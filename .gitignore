@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+
+# Collected data (usually you don't want raw data / audio in git history)
+data_collector/dataset.csv
+data_collector/audio/*
+!data_collector/audio/.gitkeep
