@@ -176,7 +176,7 @@ def _term_variants(cell: str) -> list[str]:
 def parse_dictionary(path: Path, lang: Lang, overrides: dict) -> list[Entry]:
     """Read one markdown dictionary file into entries.
 
-    A heading of the form ``## PIDGIN: determiners`` switches the language for the
+    A heading of the form ``## CAMFRANGLAIS: determiners`` switches the language for the
     rows that follow, so a supplementary file can hold several languages at once.
     """
     entries: list[Entry] = []
@@ -289,10 +289,9 @@ def load_lexicon(
     lex.english = _load_english(data_dir / "english_core.txt")
 
     sources = (
-        (dict_dir / "pidgin.md", Lang.PIDGIN),
         (dict_dir / "camfranglais.md", Lang.CAMFRANGLAIS),
         (dict_dir / "french_core.md", Lang.FRENCH),
-        (data_dir / "extra_lexicon.md", Lang.PIDGIN),
+        (data_dir / "extra_lexicon.md", Lang.CAMFRANGLAIS),
     )
     for path, lang in sources:
         if not path.exists():

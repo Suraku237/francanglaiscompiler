@@ -36,6 +36,7 @@ category the analyzer assigns to the word.
 | **te** | PRON | you |
 | **se** | PRON | himself |
 | **nous autres** | PRON | we |
+| **tout le monde** | PRON | everybody |
 | **ca** | PRON | that |
 | **cela** | PRON | that |
 | **ceci** | PRON | this |
@@ -288,6 +289,7 @@ category the analyzer assigns to the word.
 | **la-bas** | ADV | over there |
 | **partout** | ADV | everywhere |
 | **ensemble** | ADV | together |
+| **un peu** | ADV | a little |
 | **deja** | PART | already |
 | **seulement** | PART | only |
 
@@ -310,6 +312,75 @@ category the analyzer assigns to the word.
 | **mille** | NUM | thousand |
 | **premier** | NUM | first |
 | **dernier** | NUM | last |
+
+## More verbs
+
+| French | POS | English meaning |
+|---|---|---|
+| **commencer** | VERB | to start |
+| **commence** | VERB | to start |
+| **finir** | VERB | to finish |
+| **finit** | VERB | to finish |
+| **tomber** | VERB | to fall |
+| **tombe** | VERB | to fall |
+| **gater** | VERB | to spoil |
+| **gate** | VERB | to spoil |
+| **reduire** | VERB | to reduce |
+| **reduis** | VERB | to reduce |
+| **monter** | VERB | to get in |
+| **monte** | VERB | to get in |
+| **bloquer** | VERB | to block |
+| **bloque** | VERB | to block |
+| **couper** | VERB | to cut off |
+| **coupe** | VERB | to cut off |
+| **charger** | VERB | to charge |
+| **telecharger** | VERB | to download |
+| **telecharge** | VERB | to download |
+| **rouler** | VERB | to drive |
+| **klaxonner** | VERB | to hoot |
+| **oublier** | VERB | to forget |
+| **aider** | VERB | to help |
+| **montrer** | VERB | to show |
+| **apporter** | VERB | to bring |
+| **emmener** | VERB | to take along |
+| **deposer** | VERB | to drop off |
+| **depose** | VERB | to drop off |
+| **paye** | VERB | to pay |
+| **attendu** | VERB | to wait |
+| **vendu** | VERB | to sell |
+| **perdu** | VERB | to lose |
+| **fini** | VERB | to finish |
+| **descendre** | VERB | to get down |
+| **descend** | VERB | to get down |
+
+## More nouns
+
+| French | POS | English meaning |
+|---|---|---|
+| **scolarite** | NOUN | tuition fee |
+| **livre** | NOUN | book |
+| **cahier** | NOUN | exercise book |
+| **salle** | NOUN | classroom |
+| **note** | NOUN | mark |
+| **matiere** | NOUN | subject |
+| **camarade** | NOUN | classmate |
+| **voisin** | NOUN | neighbour |
+| **queue** | NOUN | queue |
+| **file** | NOUN | queue |
+| **electricite** | NOUN | electricity |
+| **riz** | NOUN | rice |
+| **poisson** | NOUN | fish |
+| **banane** | NOUN | plantain |
+| **arachide** | NOUN | groundnut |
+| **plat** | NOUN | dish |
+| **sac** | NOUN | bag |
+| **carrefour** | NOUN | junction |
+| **saison** | NOUN | season |
+| **boue** | NOUN | mud |
+| **panier** | NOUN | basket |
+| **monnaie** | NOUN | change |
+| **heure** | NOUN | hour |
+| **place** | NOUN | seat |
 
 ## Grammar words
 
@@ -355,6 +426,7 @@ category the analyzer assigns to the word.
 | **comment** | QWORD | how |
 | **pourquoi** | QWORD | why |
 | **combien** | QWORD | how much |
+| **c'est combien** | QWORD | how much is it |
 | **quel** | QWORD | which |
 | **quelle** | QWORD | which |
 | **oui** | INTERJ | yes |

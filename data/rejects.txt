@@ -5,19 +5,19 @@
 # the project. Each line states the reason it is ungrammatical.
 
 # noun pile-up with no predicate and no determiner structure
-moni moni moni taxi taxi
+mbourou mbourou mbourou taxi taxi
 
 # preposition with nothing to attach to
-for for for di
+avec avec avec le
 
 # tense marker with no verb and a stray determiner
-a don di di
+il a le le
 
 # adjective stack in front of a bare noun (the grammar requires a determiner)
-big big tranga moto dei come
+gros gros chaud moto est la
 
-# verb group inside a noun phrase
-di chop go di maket haus moni
+# determiner with no head noun
+le chaud le gros le
 
 # question word followed by a determiner and nothing else
-wetin di
+combien le

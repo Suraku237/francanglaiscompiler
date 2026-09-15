@@ -1,8 +1,8 @@
 # Franc-anglais Compiler
 
-A lexical and syntactic analyzer, and English translator, for the informal urban speech
-of Yaoundé — Cameroonian Pidgin (Kamtok) and Camfranglais, including utterances that
-mix either of them with English, and Camfranglais mixed with French.
+A lexical and syntactic analyzer, and English translator, for **Camfranglais** — the
+urban youth speech of Yaoundé — including utterances that mix it with French and
+English the way it is actually spoken.
 
 Built for **CS4110 Compiler Construction**, ICT University, Summer 2026.
 
@@ -60,7 +60,7 @@ python main.py regex     --scan "a don tchop for kwatt"   # scan using the regex
 python main.py stats                                      # dictionary coverage
 ```
 
-Add `--prefer pidgin` (or `camfranglais`, `french`) **before the sub-command** to break
+Add `--prefer camfranglais` (or `french`) **before the sub-command** to break
 language ties in favour of one dictionary — useful when a word such as `chop`, `wahala`
 or `moto` belongs to several at once:
 
@@ -91,10 +91,10 @@ Mixtures are handled without being told which language is in play:
 
 | Input | Mixture | English |
 |---|---|---|
-| `A don tchop ma moni.` | Pidgin + Camfranglais | I have eaten my money. |
-| `A no fit download notin.` | Pidgin + English | I can not download anything. |
+| `Mbom, j'ai gauler ma bolo.` | Camfranglais + French | Guy, I have caught my job. |
+| `Je ne peux pas telecharger.` | French + English | I can not download. |
 | `Le pays est dur oh!` | French + Camfranglais | Times are hard! |
-| `Le reseau ndem again.` | French + Camfranglais + English | The network fails again. |
+| `Le reseau ndem encore.` | French + Camfranglais | The network fails again. |
 
 ## 3a. The web interface
 
@@ -123,15 +123,12 @@ the translation together, and `POST /api/sample` returns a generated sentence.
 Generation ([fca/generate.py](fca/generate.py)) fills category sequences the LL(1)
 grammar accepts with vocabulary from [data/generation.json](data/generation.json), then
 parses each candidate and only returns one the parser accepts — so the button can never
-produce something the analyzer then rejects. It obeys the same composition rule: a
-Pidgin sentence draws only on Pidgin and English, a Camfranglais one only on
-Camfranglais, French and English. Patterns the chosen family cannot fill are dropped,
-which is why `make` and the plural `dem` never appear in a Camfranglais sentence.
+produce something the analyzer then rejects.
 
 ## 4. How the pieces work
 ### 4.1 The dictionaries are the source of truth
 
-`dictionary/pidgin.md`, `dictionary/camfranglais.md` and `dictionary/french_core.md` are
+`dictionary/camfranglais.md` and `dictionary/french_core.md` are
 ordinary markdown tables. The loader reads the term column, the gloss column and the
 section heading, and infers a grammatical category from them:
 
@@ -142,51 +139,43 @@ section heading, and infers a grammatical category from them:
   grammar — pronouns, tense markers, prepositions, question words.
 
 To extend the vocabulary, add a row to a table. No code changes. `data/extra_lexicon.md`
-holds the additions this project needed (determiners, transport and utility nouns, more
-slang) so the two reference dictionaries stay untouched.
+holds the additions this project needed (transport and utility nouns, university slang,
+fillers) so the reference dictionary stays untouched.
 
 ### 4.2 Lexical analysis
 
-The scanner does **maximal munch over phrases**, not just words, because `no wahala`,
+The scanner does **maximal munch over phrases**, not just words, because `na wa`,
 `njama njama` and `c'est comment` are single lexical items. It then resolves two kinds
 of ambiguity:
 
-**Language.** A word may be in several dictionaries. `chop`, `wahala`, `moto` and
-`kombi` are shared between Pidgin and Camfranglais; `taxi`, `me` and `note` are shared
-with English. Every token keeps the full set of languages that recognise it (`langs`),
-which is what lets the mixture detector distinguish *this utterance is Pidgin* from
-*this word merely could be Pidgin*.
+**Language.** A word may be in both dictionaries. Camfranglais draws much of its
+vocabulary from French, so `moto`, `petit`, `gros`, `chaud` and `marche` appear in each;
+`taxi`, `note` and `pour` are shared with English. Every token keeps the full set of
+languages that recognise it (`langs`), which is what lets the mixture detector
+distinguish *this utterance is Camfranglais* from *this word merely could be*. Ties go
+to Camfranglais, then French, then English, and `--prefer` overrides that.
 
-The two varieties compose differently, and the analyzer keeps them apart:
-
-| Variety | Composes with |
-|---|---|
-| Pidgin | Pidgin alone, or Pidgin + English |
-| Camfranglais | Camfranglais + French (usually), Camfranglais alone, or French + English |
-
-So a word shared by both is settled by the company it keeps rather than by a fixed
-priority: the unambiguous words in the utterance vote for a family, and the shared ones
-follow the winner. `A don chop di rais` reads `chop` as Pidgin; `La chop va tchop` reads
-the same word as Camfranglais. A tie leaves the default order alone, and `--prefer`
-overrides the whole mechanism. Only the same word class is ever swapped - Pidgin `go`
-(future marker) and Camfranglais `go` (girl) are different words that happen to be
-spelled alike.
-
-**Category.** `chop` is a noun and a verb; `go` is a verb and the future marker; `di` is
-the continuous marker and the definite article. These are settled from context — the
-classic "lexer hack":
+**Category.** `tchop` is a noun and a verb; `a` is the perfect auxiliary and the
+preposition *to*; `la` is a determiner and a post-nominal demonstrative. These are
+settled from context — the classic "lexer hack":
 
 ```
-di chop         DET  NOUN     the food
-a don chop      PRON TMA VERB I have eaten
-a go maket      PRON VERB NOUN I go to the market
-a go chop       PRON TMA  VERB I will eat
+il achete le tchop   PRON VERB DET NOUN   he buys the food
+il va tchop          PRON TMA  VERB       he will eat
+il a mange           PRON TMA  VERB       he has eaten
+on va a l'amphi      PRON TMA  PREP DET NOUN   we go to the lecture theatre
 ```
 
-**French elision.** `j'ai`, `l'argent` and `qu'on` are scanned as two words, since the
+**French elision.** `j'ai`, `l'argent` and `n'a` are scanned as two words, since the
 clitic carries its own grammar. The split is skipped when the whole form is itself a
-dictionary entry (`c'est comment`, `aujourd'hui`), and both halves are tagged French,
-which is what stops `ai` (*have*) being read as Pidgin `ai` (*eye*).
+dictionary entry (`c'est comment`, `aujourd'hui`), and both halves are tagged French.
+
+**French inflection.** A word that is not in the dictionary is retried without a final
+`s` or `e`, which picks up plurals (`taxis` → `taxi`) and feminine adjectives
+(`lente` → `lent`). The plural survives into the English output.
+
+**`ne … pas`.** Only `ne` carries the negation; the trailing `pas` is re-tagged as a
+particle so it does not negate the clause twice.
 
 Words in no dictionary are kept, marked `UNKNOWN`, and guessed as noun or verb from
 their neighbours, so one unfamiliar word does not derail the parse.
@@ -210,7 +199,7 @@ Two grammar files:
 
 * `grammar/fca_raw.gram` — the rules as first drafted from the corpus. Left-recursive
   and unfactored on purpose.
-* `grammar/fca.gram` — the working grammar: **45 productions, 15 non-terminals, LL(1)
+* `grammar/fca.gram` — the working grammar: **54 productions, 16 non-terminals, LL(1)
   with zero conflicts**.
 
 `python main.py grammar -g grammar/fca_raw.gram --transform` applies left-recursion
@@ -221,29 +210,34 @@ The core of the working grammar:
 
 ```
 Utterance -> Openers Clause Rest
-Clause    -> QWORD QClause | MAKE Clause | NP Predicate | VG | eps
+Clause    -> QWORD QClause | NP Predicate | VG | eps
 Predicate -> VG | ADJ Args | PP Args | ADV Args | eps
-VG        -> NEG VG | TMA VG | VERB Args | COP Comp
+VG        -> NEG VG | TMA VGTail | VERB Args | COP Comp
+VGTail    -> PRON VGTail | PART VGTail | NEG VGTail | TMA VGTail
+           | VERB Args | COP Comp | PP Args | NPBare Args | ADV Args | ADJ Args | eps
 Args      -> NP Args | PP Args | ADV Args | ADJ Args | PART Args | VG | eps
-NP        -> PRON | DET AdjList NHead | POSS AdjList NHead | NUM AdjList NHead | NHead
-NHead     -> NOUN Plur | UNKNOWN Plur
+NP        -> PRON | NPBare
+NPBare    -> DET AdjList NHead | POSS AdjList NHead | NUM AdjList NHead | NHead
 ```
 
 It is designed around what this variety actually does:
 
-* `VG -> NEG VG | TMA VG | …` mirrors the marker stack `i no don di chop`;
-* `Predicate -> ADJ Args | PP Args` allows the **zero copula** (`a hongri`, `a for haus`);
-* `Args -> VG` allows **serial verbs** (`carry me go Mvog-Ada`);
-* `NHead -> NOUN Plur` handles the post-nominal plural (`pikin dem`);
-* two noun phrases in a row give the ditransitive (`gi mi moni`, `drop me for junction`).
+* `VG -> NEG VG | TMA VGTail` mirrors `il ne va pas manger`;
+* `VGTail -> PRON VGTail` takes the French **object clitic** before the verb
+  (`tu peux me deposer`);
+* `VGTail -> PART VGTail` absorbs the trailing `pas` of `ne … pas`;
+* `Predicate -> ADJ Args | PP Args` allows the **zero copula** (`la moto fain`,
+  `je dans le kwatt`);
+* `Args -> VG` allows **serial verbs** (`tu peux me carry go Mvog-Ada`);
+* two noun phrases in a row give the ditransitive (`donne moi le mbourou`).
 
 Two restrictions were accepted to keep the grammar conflict-free, and both are worth
 discussing in the report:
 
-1. **A bare adjective cannot open a noun phrase.** `di big moto` is fine, `big moto dey
-   come` is not, because a noun-initial `ADJ` would be ambiguous between a modifier and
-   a predicate.
-2. **A numeral must modify a noun.** `tu kolo` parses, a bare `fifti` as a whole
+1. **A bare adjective cannot open a noun phrase.** `le gros piol` is fine, `gros piol
+   est la` is not, because a noun-initial `ADJ` would be ambiguous between a modifier
+   and a predicate.
+2. **A numeral must modify a noun.** `deux kolo` parses, a bare `cinquante` as a whole
    utterance does not.
 
 The parser is a table-driven predictive parser with an explicit stack. `--trace` prints
@@ -262,20 +256,20 @@ supplies equivalents where the dictionary *describes* a word instead of translat
 
 | Source | English | Rule |
 |---|---|---|
-| `a don chop` | I have eaten | `don` → perfect |
-| `a di chop` | I am eating | `di` → progressive |
-| `a go chop` | I will eat | `go` → future |
-| `a bin chop` | I ate | `bin` → past |
-| `a no fit chop` | I can not eat | negation + modal |
-| `a no chop` | I do not eat | do-support |
-| `yu sabi di tori?` | Do you know the story? | interrogative inversion |
-| `di moto fain` | The motorcycle is beautiful | zero copula filled in |
-| `i dey sell soya` | He is selling soya | `dey` + verb → progressive |
-| `pikin dem` | children | post-nominal plural |
-| `make wi go` | let us go | hortative, object pronoun |
+| `il a tchop` | He has eaten | `a` → perfect |
+| `il va tchop` | He will eat | `va` → future |
+| `il peut tchop` | He can eat | `peut` → modal |
+| `il faut tchop` | He must eat | `faut` → modal |
+| `je ne tchop pas` | I do not eat | do-support, `pas` absorbed |
+| `tu sabi le toli?` | Do you know the story? | interrogative inversion |
+| `combien tu peux payer?` | How much can you pay? | wh-question inversion |
+| `la moto fain` | The motorcycle is fine | zero copula filled in |
+| `la route est gate` | The road is spoiled | copula + participle → passive |
+| `tu peux me deposer` | you can drop me off | object clitic moved after the verb |
+| `pas de monnaie` | not … change | partitive `de` dropped under negation |
+| `les taxis` | the taxis | French plural carried into English |
 | `moto la` | that motorcycle | post-nominal `la` → demonstrative |
-| `a no fit download notin` | I can not download anything | negative concord resolved |
-| `carry me go Mvog-Ada` | carry me to Mvog-Ada | serial `go` → directional |
+| `j'ai pas de livre` | I do not have a book | bare auxiliary becomes a lexical verb |
 
 **Generation.** `fca/morphology.py` inflects the English: third person, past, past
 participle, gerund and plural, with an irregular-verb table and the usual spelling
@@ -286,7 +280,8 @@ vocatives; pronouns take subject or object case according to position.
 
 * Word order is only lightly rearranged, so a predicative adjective after a long
   prepositional phrase can land in an odd place.
-* Clefts (`na tu kolo a get`) parse but translate stiffly.
+* French agreement is not checked: a generated `je va` is accepted and translated
+  rather than corrected.
 * One reading is chosen per ambiguous word; the alternatives are visible with
   `python main.py word <term>` but the translator does not hedge.
 
@@ -306,9 +301,9 @@ $ python main.py corpus
 accepted 18/18
 
 == negative tests (these must be rejected) ==
-REJECTED  moni moni moni taxi taxi
-REJECTED  for for for di
-REJECTED  a don di di
+REJECTED  mbourou mbourou mbourou taxi taxi
+REJECTED  avec avec avec le
+REJECTED  il a le le
 ...
 ```
 
@@ -349,7 +344,7 @@ francanglaiscompiler/
 │   ├── morphology.py           English inflection
 │   ├── translate.py            transfer-based translator
 │   └── cli.py                  command line
-├── dictionary/                 pidgin.md, camfranglais.md, french_core.md
+├── dictionary/                  camfranglais.md, french_core.md
 ├── data/                       corpus, negative tests, overrides, extra lexicon
 ├── grammar/                    fca.gram (LL(1)), fca_raw.gram (unnormalised)
 └── tests/                       62 tests over the corpus

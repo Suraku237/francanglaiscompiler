@@ -294,7 +294,7 @@ def cmd_stats(args) -> int:
     lexicon = load_lexicon()
     rows = [
         [lang.value, str(lexicon.count(lang))]
-        for lang in (Lang.PIDGIN, Lang.CAMFRANGLAIS, Lang.FRENCH)
+        for lang in (Lang.CAMFRANGLAIS, Lang.FRENCH)
     ]
     rows.append(["ENGLISH (core list)", str(len(lexicon.english))])
     rows.append(["ENGLISH (from glosses)", str(len(lexicon.english_extra))])
@@ -447,9 +447,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="francanglais",
         description="Lexical and syntactic analyzer and English translator for "
-                    "Pidgin / Camfranglais speech.",
+                    "Camfranglais speech.",
     )
-    parser.add_argument("--prefer", choices=["pidgin", "camfranglais", "french", "english"],
+    parser.add_argument("--prefer", choices=["camfranglais", "french", "english"],
                         help="break language ties in favour of this dictionary")
     sub = parser.add_subparsers(dest="command", required=True)
 

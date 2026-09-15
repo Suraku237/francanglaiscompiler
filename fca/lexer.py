@@ -14,7 +14,6 @@ Three things happen here that a textbook scanner does not have to do:
 from __future__ import annotations
 
 import re
-from collections import Counter
 from dataclasses import dataclass
 
 from .lexicon import Entry, Lexicon, load_lexicon, normalize
@@ -26,15 +25,11 @@ _PUNCT_CAT = {".", "!", "?", ",", ";", ":", "...", "\u2026"}
 _ELISION = re.compile(r"^([A-Za-zÀ-ÿ]{1,3}['\u2019])(.+)$")
 
 #: Language preference when a word exists in more than one dictionary.
-_LANG_PRIORITY = (Lang.PIDGIN, Lang.CAMFRANGLAIS, Lang.FRENCH, Lang.ENGLISH)
+_LANG_PRIORITY = (Lang.CAMFRANGLAIS, Lang.FRENCH, Lang.ENGLISH)
 
-#: The two ways this speech composes. Pidgin goes with English; Camfranglais goes with
-#: French. A word shared by both families is settled by whichever family surrounds it.
-_FAMILY = {
-    Lang.PIDGIN: "pidgin",
-    Lang.CAMFRANGLAIS: "camfranglais",
-    Lang.FRENCH: "camfranglais",
-}
+
+#: The second half of French 'ne ... pas' carries no negation of its own.
+_NEG_TAIL = {"pas", "plus", "jamais"}
 
 
 @dataclass
@@ -77,7 +72,6 @@ class Lexer:
         raw = self._split_elisions(scan_raw(text))
         tokens = self._match_phrases(raw)
         self._resolve_categories(tokens)
-        self._resolve_languages(tokens)
         for i, tok in enumerate(tokens):
             tok.index = i
         return tokens
@@ -94,7 +88,7 @@ class Lexer:
             if normalize(head) not in self.lex:
                 out.append(token)
                 continue
-            # Both halves are French, which settles 'ai' (have) against Pidgin 'ai' (eye).
+            # Both halves are French, which settles the reading of the clitic's partner.
             out.append(RawToken(head, normalize(head), token.line, token.col, Lang.FRENCH))
             out.append(
                 RawToken(tail, normalize(tail), token.line, token.col + len(head), Lang.FRENCH)
@@ -120,9 +114,26 @@ class Lexer:
                 matched = True
                 break
             if not matched:
-                tokens.append(self._fallback(raw[i]))
+                tokens.append(self._inflected_or_fallback(raw[i]))
                 i += 1
         return tokens
+
+    def _inflected_or_fallback(self, raw: RawToken) -> Token:
+        """Try the French plural and feminine forms before giving up on a word."""
+        for stem, plural in ((raw.norm[:-1], True), (raw.norm[:-1], False)):
+            if len(raw.norm) < 4:
+                break
+            if plural and not raw.norm.endswith("s"):
+                continue
+            if not plural and not raw.norm.endswith("e"):
+                continue
+            entries = self.lex.lookup(stem)
+            if entries:
+                token = self._from_entries(stem, raw.surface, entries, raw, 1)
+                token.norm = stem
+                token.plural = plural
+                return token
+        return self._fallback(raw)
 
     def _from_entries(
         self, key: str, surface: str, entries: list[Entry], pos: RawToken, words: int
@@ -221,29 +232,33 @@ class Lexer:
             nxt = tokens[i + 1] if i + 1 < len(tokens) else None
             tok.cat = self._decide(cats, prev, nxt, tok.guessed)
             tok.gloss = self._gloss_for(tok)
-        self._mark_plurals(tokens)
+        self._mark_negation_tails(tokens)
 
     @staticmethod
-    def _mark_plurals(tokens: list[Token]) -> None:
-        """Post-nominal ``dem`` is a plural marker, not the third person pronoun."""
+    def _mark_negation_tails(tokens: list[Token]) -> None:
+        """In 'ne ... pas' only 'ne' negates; 'pas' is left as a particle."""
         for i, tok in enumerate(tokens):
-            if tok.norm != "dem" or tok.lang not in {Lang.PIDGIN, Lang.CAMFRANGLAIS}:
+            if tok.norm not in _NEG_TAIL or tok.cat is not Cat.NEG:
                 continue
             prev = tokens[i - 1] if i else None
-            if prev is not None and prev.cat in {Cat.NOUN, Cat.UNKNOWN}:
-                tok.cat = Cat.PLUR
+            if prev is not None and prev.cat in {Cat.VERB, Cat.COP, Cat.TMA}:
+                tok.cat = Cat.PART
 
     @staticmethod
     def _decide(cats: tuple, prev: Token | None, nxt: Token | None, guessed: bool = False) -> Cat:
         has = cats.__contains__
         nxt_cats = set(nxt.candidates) | {nxt.cat} if nxt else set()
         nominal_next = bool(nxt_cats & {Cat.NOUN, Cat.ADJ, Cat.UNKNOWN})
+        # A preposition can be followed by anything that opens a noun phrase.
+        phrase_next = bool(
+            nxt_cats & {Cat.NOUN, Cat.ADJ, Cat.UNKNOWN, Cat.NUM, Cat.DET, Cat.POSS, Cat.PRON}
+        )
         # A guessed word is weak evidence, so it cannot on its own turn the word in
         # front of it into a tense marker.
         verb_next = nxt is not None and not nxt.guessed and Cat.VERB in nxt_cats
         # 'go di chop': a marker may be followed by another marker rather than the verb.
         verbal_next = verb_next or (nxt is not None and Cat.TMA in nxt_cats)
-        after_subject = prev is not None and prev.cat in {Cat.PRON, Cat.TMA, Cat.NEG, Cat.MAKE}
+        after_subject = prev is not None and prev.cat in {Cat.PRON, Cat.TMA, Cat.NEG}
 
         if prev and prev.cat in {Cat.DET, Cat.POSS, Cat.NUM, Cat.PREP, Cat.ADJ} and has(Cat.NOUN):
             return Cat.NOUN
@@ -251,12 +266,15 @@ class Lexer:
             return Cat.TMA
         if prev and prev.cat in {Cat.VERB, Cat.COP, Cat.PREP} and has(Cat.DET):
             return Cat.DET
+        # 'a' is both the perfect auxiliary and the preposition 'to'.
+        if has(Cat.PREP) and phrase_next and not verb_next:
+            return Cat.PREP
         # Utterance-initial 'di' is the article, not the continuous marker.
         if has(Cat.TMA) and prev is not None and verb_next:
             return Cat.TMA
         if has(Cat.DET) and nominal_next and not (nxt is not None and nxt.guessed):
             return Cat.DET
-        if prev and prev.cat in {Cat.TMA, Cat.NEG, Cat.MAKE} and has(Cat.VERB):
+        if prev and prev.cat in {Cat.TMA, Cat.NEG} and has(Cat.VERB):
             return Cat.VERB
         if prev and prev.cat is Cat.PRON and has(Cat.VERB):
             return Cat.VERB
@@ -278,54 +296,6 @@ class Lexer:
             if entry.lang is tok.lang:
                 return entry.gloss
         return tok.gloss
-
-    # -- stage 3: language disambiguation ----------------------------------
-
-    def _resolve_languages(self, tokens: list[Token]) -> None:
-        """Settle words shared by both families in favour of the surrounding one.
-
-        ``chop``, ``na``, ``fain`` and ``kombi`` are in the Pidgin and the Camfranglais
-        dictionary alike. Reading them by a fixed priority makes an otherwise French
-        and Camfranglais utterance look part-Pidgin, so the words around them decide.
-        """
-        if self.prefer:
-            return
-
-        scores: Counter = Counter()
-        for tok in tokens:
-            families = {_FAMILY[lang] for lang in tok.langs if lang in _FAMILY}
-            if len(families) == 1:
-                scores[families.pop()] += 1
-        if not scores:
-            return
-        ranked = scores.most_common()
-        if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-            return  # no majority, leave the default priority in place
-        winner = ranked[0][0]
-
-        for tok in tokens:
-            options = [lang for lang in tok.langs if lang in _FAMILY]
-            if len({_FAMILY[lang] for lang in options}) < 2:
-                continue
-            if _FAMILY.get(tok.lang) == winner:
-                continue
-            target = next((lang for lang in options if _FAMILY[lang] == winner), None)
-            # Only the same class may be swapped: Pidgin 'go' (future marker) and
-            # Camfranglais 'go' (girl) are unrelated, and the context rules already
-            # settled which class this is.
-            entry = next(
-                (
-                    e
-                    for e in self.lex.lookup(tok.norm)
-                    if e.lang is target and e.cat is tok.cat
-                ),
-                None,
-            )
-            if entry is not None:
-                tok.lang = target
-                tok.gloss = entry.gloss
-                tok.section = entry.section
-                tok.origin = entry.origin
 
 
 def _candidate_map(lex: Lexicon) -> dict[str, tuple[Cat, ...]]:

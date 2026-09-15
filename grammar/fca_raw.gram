@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
-# Franc-anglais / Pidgin grammar - RAW form, written the way the rules were first
-# drafted from the corpus. It is deliberately NOT LL(1):
+# Camfranglais grammar - RAW form, written the way the rules were first drafted
+# from the corpus. It is deliberately NOT LL(1):
 #
 #   * Utterance, Openers, Args and AdjList are left-recursive.
 #   * Clause and QClause have alternatives sharing the common prefix NP.
@@ -22,7 +22,6 @@ Clause    -> NP Predicate
            | NP
            | QWORD NP Predicate
            | QWORD Predicate
-           | MAKE Clause
            | COP Comp
            | VG
            | eps

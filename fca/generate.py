@@ -1,7 +1,8 @@
 """Sentence generation for the auto-generate button.
 
 Free random derivation from the CFG produces grammatical but meaningless strings
-("make nain ches"), so generation works from a fixed set of sentence patterns instead.
+("le cinq chest va dormir"), so generation works from a fixed set of sentence patterns
+instead.
 Each pattern is a sequence of lexical categories that the LL(1) grammar accepts, and
 each slot is filled with a word of that class drawn from the requested language and,
 for nouns, from the everyday topics the corpus is about.
@@ -35,11 +36,9 @@ PATTERNS: tuple[tuple[str, ...], ...] = (
     ("DET", "ADJ", "NOUN", "TMA", "VERB"),
     ("NOUN", "TMA", "VERB", "PREP", "DET", "NOUN"),
     ("NOUN", "NEG", "COP", "PREP", "NOUN"),
-    ("DET", "NOUN", "PLUR", "NEG", "COP", "PREP", "NOUN"),
     ("QWORD", "PRON", "TMA", "VERB"),
     ("QWORD", "PREP", "DET", "NOUN"),
     ("QWORD", "PRON", "VERB", "DET", "NOUN"),
-    ("MAKE", "PRON", "VERB", "PREP", "NOUN"),
     ("PART", "VERB", "PRON", "PREP", "NOUN"),
     ("INTERJ", "PRON", "TMA", "VERB", "POSS", "NOUN"),
     ("INTERJ", "DET", "NOUN", "TMA", "VERB"),
@@ -53,16 +52,14 @@ _TOPICAL = (
     "market", "life",
 )
 
-#: How the two varieties actually compose. Pidgin speech draws on Pidgin and English;
-#: Camfranglais draws on Camfranglais, French and English. The two families are never
-#: mixed with each other, so a generated sentence stays inside one of them.
+#: Camfranglais draws on Camfranglais, French and English. Choosing a language only
+#: changes which of them is tried first.
 _FAMILIES: dict[Lang, tuple[Lang, ...]] = {
-    Lang.PIDGIN: (Lang.PIDGIN, Lang.ENGLISH),
     Lang.CAMFRANGLAIS: (Lang.CAMFRANGLAIS, Lang.FRENCH, Lang.ENGLISH),
     Lang.FRENCH: (Lang.FRENCH, Lang.CAMFRANGLAIS, Lang.ENGLISH),
 }
 
-_AUTO = (Lang.PIDGIN, Lang.CAMFRANGLAIS)
+_AUTO = (Lang.CAMFRANGLAIS, Lang.FRENCH)
 
 
 class Generator:
@@ -129,7 +126,7 @@ class Generator:
         return list(pool)
 
     def _fillable(self, pattern: tuple[str, ...], chain: tuple[Lang, ...]) -> bool:
-        """Drop patterns this family cannot fill - 'make' and plural 'dem' are Pidgin only."""
+        """Drop patterns this language ordering cannot fill."""
         return all(
             any(self._candidates(Cat(name), lang) for lang in chain)
             for name in pattern

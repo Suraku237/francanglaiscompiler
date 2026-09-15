@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from .tokens import Cat, Lang, Token
 
 _LABELS = {
-    Lang.PIDGIN: "Pidgin",
     Lang.CAMFRANGLAIS: "Camfranglais",
     Lang.FRENCH: "French",
     Lang.ENGLISH: "English",
@@ -44,12 +43,12 @@ class LanguageProfile:
 
     @property
     def present(self) -> list[Lang]:
-        order = (Lang.PIDGIN, Lang.CAMFRANGLAIS, Lang.FRENCH, Lang.ENGLISH)
+        order = (Lang.CAMFRANGLAIS, Lang.FRENCH, Lang.ENGLISH)
         return [lang for lang in order if self.counts.get(lang)]
 
     @property
     def label(self) -> str:
-        """A short human description such as ``Pidgin matrix with English insertions``."""
+        """A short human description such as ``Camfranglais matrix with French insertions``."""
         found = self.present
         if not found:
             return "unrecognised"

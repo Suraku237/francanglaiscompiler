@@ -1,4 +1,4 @@
-"""Transfer-based translation from Pidgin / Camfranglais into English.
+"""Transfer-based translation from Camfranglais into English.
 
 The strategy is the classical three-stage transfer model, simplified:
 
@@ -6,9 +6,9 @@ The strategy is the classical three-stage transfer model, simplified:
    the dictionary gloss (or from ``data/translation_overrides.json`` where the gloss
    describes a word instead of translating it).
 2. **Structural transfer** - the parts of the sentence that do *not* map word-for-word
-   are rewritten: the tense/mood/aspect markers ``bin don di go fit mus`` become an
-   English auxiliary chain, the zero copula is filled in, pronouns take subject or
-   object case, and post-nominal ``dem`` becomes an English plural.
+   are rewritten: the French auxiliaries ``va a peut faut`` become an English auxiliary
+   chain, the zero copula is filled in, pronouns take subject or object case, and
+   ``ne ... pas`` collapses onto a single English negation.
 3. **Generation** - the English words are inflected, given articles, capitalised and
    punctuated.
 """
@@ -27,23 +27,6 @@ from .tokens import Cat, Lang, Token
 # -- pronoun tables ------------------------------------------------------
 # (subject form, object form, person, number)
 
-_PIDGIN_PRONOUNS = {
-    "a": ("I", "me", 1, "sg"),
-    "mi": ("I", "me", 1, "sg"),
-    "yu": ("you", "you", 2, "sg"),
-    "i": ("he", "him", 3, "sg"),
-    "yi": ("he", "him", 3, "sg"),
-    "e": ("it", "it", 3, "sg"),
-    "am": ("it", "it", 3, "sg"),
-    "wi": ("we", "us", 1, "pl"),
-    "wuna": ("you", "you", 2, "pl"),
-    "dem": ("they", "them", 3, "pl"),
-    "ol man": ("everybody", "everybody", 3, "sg"),
-    "ol ting": ("everything", "everything", 3, "sg"),
-    "notin": ("nothing", "nothing", 3, "sg"),
-    "nobodi": ("nobody", "nobody", 3, "sg"),
-}
-
 _FRENCH_PRONOUNS = {
     "je": ("I", "me", 1, "sg"),
     "j'": ("I", "me", 1, "sg"),
@@ -61,6 +44,7 @@ _FRENCH_PRONOUNS = {
     "ils": ("they", "them", 3, "pl"),
     "elles": ("they", "them", 3, "pl"),
     "eux": ("they", "them", 3, "pl"),
+    "tout le monde": ("everybody", "everybody", 3, "sg"),
     "ca": ("that", "that", 3, "sg"),
     "cela": ("that", "that", 3, "sg"),
     "ceci": ("this", "this", 3, "sg"),
@@ -82,28 +66,32 @@ _ENGLISH_PRONOUNS = {
 }
 
 _POSSESSIVES = {
-    "ma": "my", "ya": "your", "wi own": "our", "yu own": "your",
-    "mon": "my", "mes": "my", "ton": "your", "ta": "your",
-    "son": "his", "sa": "her", "notre": "our", "votre": "your", "leur": "their",
+    "mon": "my", "ma": "my", "mes": "my",
+    "ton": "your", "ta": "your", "tes": "your",
+    "son": "his", "sa": "her", "ses": "his",
+    "notre": "our", "votre": "your", "leur": "their",
 }
 
 #: Tense / mood / aspect markers mapped onto abstract features.
 _TMA = {
-    "bin": "PAST", "don": "PERF", "di": "PROG", "go": "FUT", "fit": "CAN", "mus": "MUST",
-    "va": "FUT", "vais": "FUT", "vas": "FUT", "vont": "FUT", "allons": "FUT", "allez": "FUT",
-    "ai": "PERF", "as": "PERF", "a": "PERF", "ont": "PERF", "avons": "PERF", "avez": "PERF",
+    "va": "FUT", "vais": "FUT", "vas": "FUT", "vont": "FUT",
+    "allons": "FUT", "allez": "FUT",
+    "ai": "PERF", "as": "PERF", "a": "PERF", "ont": "PERF",
+    "avons": "PERF", "avez": "PERF",
     "peut": "CAN", "peux": "CAN", "pouvons": "CAN", "peuvent": "CAN",
     "faut": "MUST", "doit": "MUST", "dois": "MUST",
-    "will": "FUT", "shall": "FUT", "would": "FUT", "going to": "FUT", "about to": "FUT",
+    "will": "FUT", "shall": "FUT", "would": "FUT", "going to": "FUT",
+    "about to": "FUT",
     "can": "CAN", "could": "CAN", "may": "MAY", "might": "MAY",
     "must": "MUST", "should": "MUST",
     "have": "PERF", "has": "PERF", "had": "PASTPERF",
     "did": "PAST", "used to": "PAST", "do": "", "does": "",
 }
 
-_PAST_COPULAS = {"was", "were", "etait", "bin"}
+_PAST_COPULAS = {"was", "were", "etait"}
 _FUTURE_COPULAS = {"sera"}
-_DROP = {"pas", "ne", "oh", "deh", "dey", "la"}
+_NEG_TAIL = {"pas", "plus", "jamais"}
+_DROP = {"pas", "ne", "n", "oh", "deh", "dey", "la"}
 _AUXILIARIES = {
     "is", "are", "am", "was", "were", "will", "can", "could", "must", "may",
     "might", "have", "has", "had", "do", "does", "did", "would", "should",
@@ -124,7 +112,7 @@ class Translation:
 
 
 class Translator:
-    """Rule-based Pidgin/Camfranglais -> English transfer engine."""
+    """Rule-based Camfranglais -> English transfer engine."""
 
     def __init__(self, lexicon: Lexicon | None = None, lexer: Lexer | None = None):
         self.lex = lexicon or (lexer.lex if lexer else load_lexicon())
@@ -133,7 +121,7 @@ class Translator:
         self.overrides = {normalize(k): v for k, v in data["gloss"].items()}
         self.preps = data["prepositions"]
         self.place_preps = data["place_prepositions"]
-        self.place_nouns = set(data["place_nouns"])
+        self.place_nouns = set(data["place_nouns"]) | set(data["time_nouns"])
         self.determiners = data["determiners"]
 
     # -- public API ------------------------------------------------------
@@ -176,7 +164,6 @@ class Translator:
         det_pending = False
         article_at = -1
         first_group: tuple[int, dict, tuple | None] | None = None
-        hortative = False
         wh_subject = False
         has_qword = False
         subject_at = -1
@@ -192,20 +179,10 @@ class Translator:
                 continue
             tok = seg[i]
 
-            if tok.cat is Cat.PLUR:
-                i += 1
-                continue
-
             if tok.cat is Cat.CONJ:
                 out.append(self._english_of(tok))
                 subject, verb_done, wh_subject = None, False, False
                 copula_at, article_at, last_verb, subject_at = -1, -1, "", -1
-                i += 1
-                continue
-
-            if tok.cat is Cat.MAKE:
-                out.append("let")
-                hortative = True
                 i += 1
                 continue
 
@@ -222,16 +199,23 @@ class Translator:
                     last_verb = ""
                     det_pending = False
                     continue
-                rendered = self._render_verb_group(group, None if hortative else subject)
-                # 'taxi no dey' - a clause-final copula needs an English complement.
-                if group["copula"] and i >= len(seg) and not has_qword:
+                rendered = self._render_verb_group(group, subject)
+                for clitic in group["clitics"]:
+                    person = self._pronoun(clitic)
+                    _place_clitic(rendered, person[1] if person else self._english_of(clitic))
+                # 'le taxi n'est pas' - a bare clause-final copula needs a complement.
+                if (
+                    group["copula"]
+                    and not group["participle"]
+                    and i >= len(seg)
+                    and not has_qword
+                ):
                     rendered.append("there")
                 out.extend(rendered)
                 if first_group is None:
                     first_group = (start, group, subject)
                 last_verb = group["head"]
                 verb_done = True
-                hortative = False
                 det_pending = False
                 continue
 
@@ -245,15 +229,12 @@ class Translator:
                     # 'na tu kolo a get' - a pronoun right after a noun and right
                     # before a verb opens a new (cleft or relative) clause.
                     new_clause = (
-                        prev is not None
-                        and prev.cat in {Cat.NOUN, Cat.PLUR, Cat.NUM}
-                        and nxt is not None
-                        and nxt.cat in {Cat.VERB, Cat.TMA, Cat.NEG}
-                    )
-                    if hortative:
-                        out.append(person[1])
-                        subject = person
-                    elif (subject is None and not verb_done) or new_clause:
+                    prev is not None
+                    and prev.cat in {Cat.NOUN, Cat.NUM}
+                    and nxt is not None
+                    and nxt.cat in {Cat.VERB, Cat.TMA, Cat.NEG}
+                )
+                    if (subject is None and not verb_done) or new_clause:
                         subject = person
                         subject_at = len(out)
                         out.append(person[0])
@@ -298,8 +279,11 @@ class Translator:
                 continue
 
             if tok.cat is Cat.PREP:
-                nxt = seg[i + 1] if i + 1 < len(seg) else None
-                out.append(self._preposition(tok, nxt))
+                # French partitive: 'pas de monnaie' is simply 'no money'.
+                if negated and tok.norm in {"de", "d", "du", "des"}:
+                    i += 1
+                    continue
+                out.append(self._preposition(tok, _head_noun(seg, i)))
                 last_verb = ""
                 det_pending = False
                 i += 1
@@ -317,10 +301,8 @@ class Translator:
                 continue
 
             if tok.cat is Cat.NOUN or (tok.cat is Cat.UNKNOWN and word):
-                plural = _is_plural_marked(seg, i)
-                if plural:
-                    skip.add(i + 1)
                 noun = _strip_article(word)[0]
+                plural = tok.plural
                 if plural:
                     noun = morph.plural(noun)
                 vocative = len(seg) == 1 and closer in {",", "!", ""}
@@ -376,13 +358,21 @@ class Translator:
 
     def _read_verb_group(self, seg: list[Token], i: int) -> tuple[dict, int]:
         group = {
-            "neg": False, "markers": [], "head": "",
-            "copula": False, "past": False, "inflect": True,
+            "neg": False, "markers": [], "head": "", "clitics": [],
+            "copula": False, "past": False, "inflect": True, "participle": "",
         }
         while i < len(seg):
             tok = seg[i]
             if tok.cat is Cat.NEG:
                 group["neg"] = True
+                i += 1
+                continue
+            if tok.cat is Cat.PART and tok.norm in _NEG_TAIL:
+                i += 1  # the 'pas' of 'ne ... pas' carries nothing of its own
+                continue
+            if tok.cat is Cat.PRON and group["markers"]:
+                # French puts the object clitic before the verb; English does not.
+                group["clitics"].append(tok)
                 i += 1
                 continue
             if tok.cat is Cat.TMA:
@@ -392,13 +382,6 @@ class Translator:
                 i += 1
                 continue
             if tok.cat is Cat.COP:
-                # 'dey/dei' immediately before a verb is the progressive marker,
-                # not the copula: 'i dey sell' = 'he is selling'.
-                nxt = seg[i + 1] if i + 1 < len(seg) else None
-                if tok.norm in {"dei", "dey", "de"} and nxt is not None and nxt.cat is Cat.VERB:
-                    group["markers"].append("PROG")
-                    i += 1
-                    continue
                 group["copula"] = True
                 group["head"] = "be"
                 if tok.norm in _PAST_COPULAS:
@@ -408,6 +391,11 @@ class Translator:
                 if tok.norm in {"c'est", "ce n'est pas"}:
                     group["dummy_subject"] = "it"
                 i += 1
+                # 'la route est gate' - a verb after the copula is a participle.
+                nxt = seg[i] if i < len(seg) else None
+                if nxt is not None and nxt.cat is Cat.VERB:
+                    group["participle"] = self._english_of(nxt) or nxt.norm
+                    i += 1
                 break
             if tok.cat is Cat.VERB:
                 group["head"] = self._english_of(tok) or tok.norm
@@ -420,14 +408,23 @@ class Translator:
         return group, i
 
     def _render_verb_group(self, group: dict, subject) -> list[str]:
-        markers = group["markers"]
+        markers = list(group["markers"])
+        main = group["head"] or ("be" if group["copula"] else "")
+        # 'j'ai pas de monnaie' / 'on va a l'amphi' - the auxiliary is the whole verb.
+        if not main:
+            if "PERF" in markers or "PASTPERF" in markers:
+                main = "have"
+                markers = [m for m in markers if m not in {"PERF", "PASTPERF"}]
+            elif "FUT" in markers:
+                main = "go"
+                markers = [m for m in markers if m != "FUT"]
+
         person, number = (subject[2], subject[3]) if subject else (2, "sg")
         past = group["past"] or "PAST" in markers or "PASTPERF" in markers
         perfect = "PERF" in markers or "PASTPERF" in markers
         progressive = "PROG" in markers
         future = "FUT" in markers
         modal = next((m.lower() for m in markers if m in {"CAN", "MUST", "MAY"}), "")
-        main = group["head"] or ("be" if group["copula"] else "")
         words: list[str] = []
         if group["copula"] and subject is None and not group.get("dummy_subject"):
             group["dummy_subject"] = "it"
@@ -453,6 +450,8 @@ class Translator:
 
         if not chain:
             words.extend(_simple_verb(main, person, number, past, group["neg"], group["inflect"]))
+            if group.get("participle"):
+                words.append(morph.participle(group["participle"]))
             return words
 
         finite = chain[0]
@@ -476,6 +475,8 @@ class Translator:
             keep_raw = is_main and not group["inflect"]
             words.append(nxt if keep_raw else _dependent_form(previous, nxt))
             previous = nxt
+        if group.get("participle"):
+            words.append(morph.participle(group["participle"]))
         return words
 
     # -- lexical helpers ---------------------------------------------------
@@ -489,22 +490,22 @@ class Translator:
             return self.determiners[tok.norm]
         if tok.lang is Lang.UNKNOWN:
             return tok.surface
-        if tok.lang is Lang.ENGLISH or not tok.gloss:
-            return tok.norm
-        for entry in self.lex.lookup(tok.norm):
+        # A dictionary entry always beats the raw word, even when the token was
+        # tagged English because the spelling is shared ('pour', 'note', 'taxi').
+        entries = self.lex.lookup(tok.norm)
+        for entry in entries:
             if entry.lang is tok.lang and entry.cat is tok.cat:
                 return _decapitalise(entry.head, tok.cat)
-        entries = self.lex.lookup(tok.norm)
-        return _decapitalise(entries[0].head, tok.cat) if entries else tok.norm
+        for entry in entries:
+            if entry.cat is tok.cat:
+                return _decapitalise(entry.head, tok.cat)
+        if entries:
+            return _decapitalise(entries[0].head, tok.cat)
+        return tok.norm
 
     def _pronoun(self, tok: Token):
-        table = {
-            Lang.PIDGIN: _PIDGIN_PRONOUNS,
-            Lang.CAMFRANGLAIS: _PIDGIN_PRONOUNS,
-            Lang.FRENCH: _FRENCH_PRONOUNS,
-            Lang.ENGLISH: _ENGLISH_PRONOUNS,
-        }.get(tok.lang, _ENGLISH_PRONOUNS)
-        return table.get(tok.norm) or _ENGLISH_PRONOUNS.get(tok.norm)
+        table = _ENGLISH_PRONOUNS if tok.lang is Lang.ENGLISH else _FRENCH_PRONOUNS
+        return table.get(tok.norm) or _FRENCH_PRONOUNS.get(tok.norm)
 
     def _preposition(self, tok: Token, nxt: Token | None) -> str:
         if tok.norm in self.preps:
@@ -591,14 +592,29 @@ def _dependent_form(previous: str, word: str) -> str:
     return word
 
 
-def _is_plural_marked(seg: list[Token], i: int) -> bool:
-    nxt = seg[i + 1] if i + 1 < len(seg) else None
-    return bool(nxt and nxt.cat is Cat.PLUR)
-
-
 def _negative_concord(word: str) -> str:
-    """Pidgin stacks negatives; English does not. 'no ... notin' -> 'not anything'."""
+    """French stacks negatives; English does not. 'ne ... rien' -> 'not anything'."""
     return {"nothing": "anything", "nobody": "anybody", "nowhere": "anywhere"}.get(word, word)
+
+
+def _place_clitic(rendered: list[str], word: str) -> None:
+    """'drop off' + 'me' is 'drop me off', not 'drop off me'."""
+    if rendered and " " in rendered[-1]:
+        head, _, particle = rendered[-1].partition(" ")
+        rendered[-1] = head
+        rendered.extend([word, particle])
+    else:
+        rendered.append(word)
+
+
+def _head_noun(seg: list[Token], i: int) -> Token | None:
+    """The noun a preposition governs, skipping over determiners and numerals."""
+    for tok in seg[i + 1 : i + 5]:
+        if tok.cat is Cat.NOUN:
+            return tok
+        if tok.cat not in {Cat.DET, Cat.POSS, Cat.NUM, Cat.ADJ}:
+            return tok
+    return None
 
 
 def _decapitalise(word: str, cat: Cat) -> str:

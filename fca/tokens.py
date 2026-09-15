@@ -9,7 +9,6 @@ from enum import Enum
 class Lang(str, Enum):
     """Source language a token was recognised from."""
 
-    PIDGIN = "PIDGIN"
     CAMFRANGLAIS = "CAMFRANGLAIS"
     FRENCH = "FRENCH"
     ENGLISH = "ENGLISH"
@@ -36,8 +35,6 @@ class Cat(str, Enum):
     QWORD = "QWORD"
     PART = "PART"
     INTERJ = "INTERJ"
-    MAKE = "MAKE"
-    PLUR = "PLUR"
     PUNCT = "PUNCT"
     UNKNOWN = "UNKNOWN"
 
@@ -67,6 +64,7 @@ class Token:
     section: str = ""
     origin: str = ""
     guessed: bool = False
+    plural: bool = False
 
     @property
     def is_multiword(self) -> bool:

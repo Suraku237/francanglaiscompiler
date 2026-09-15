@@ -37,7 +37,6 @@ CONTENT_TYPES = {
 }
 
 _LANGUAGE_NAMES = {
-    Lang.PIDGIN: "Pidgin",
     Lang.CAMFRANGLAIS: "Camfranglais",
     Lang.FRENCH: "French",
     Lang.ENGLISH: "English",
@@ -60,7 +59,7 @@ class Analyzer:
     def _for(self, prefer: str) -> tuple[Lexer, Translator]:
         key = (prefer or "").lower()
         if key not in self._lexers:
-            lang = Lang[key.upper()] if key in {"pidgin", "camfranglais", "french"} else None
+            lang = Lang[key.upper()] if key in {"camfranglais", "french"} else None
             lexer = Lexer(self.lexicon, lang)
             self._lexers[key] = lexer
             self._translators[key] = Translator(self.lexicon, lexer)
@@ -68,7 +67,7 @@ class Analyzer:
 
     def sample(self, prefer: str = "") -> str:
         key = (prefer or "").lower()
-        lang = Lang[key.upper()] if key in {"pidgin", "camfranglais", "french"} else None
+        lang = Lang[key.upper()] if key in {"camfranglais", "french"} else None
         return self.generator.sentence(lang)
 
     def analyze(self, text: str, prefer: str = "") -> dict:

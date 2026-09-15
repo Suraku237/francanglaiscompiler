@@ -1,5 +1,5 @@
 # =============================================================================
-# CORPUS - Yaoundé street speech
+# CORPUS - Camfranglais as spoken in Yaoundé
 #
 # >>> REPLACE THESE LINES WITH YOUR OWN TRANSCRIPTIONS. <<<
 # The project requires 10-15 statements that your group actually heard and
@@ -14,37 +14,37 @@
 # =============================================================================
 
 ## Taxi and commuting
-Chauffeur, abeg drop me for carrefour.
-Mbom, di taxi dem no dey for road tide.
-A don wait for opep sotai.
+Chauffeur, tu peux me deposer au carrefour.
+Mbom, les taxis ne sont pas sur la route aujourd'hui.
+J'ai attendre un clando pendant deux heures.
 
 ## Poor internet connectivity
-Le reseau ndem again, a no fit download notin.
-Di konekshon dei slow tu moch for kampus.
+Le reseau ndem encore, je ne peux pas telecharger.
+La connexion est lente sur le campus.
 
 ## Limited electricity supply
-Courant don kwenchi since morning oh.
-Ashia, delestage don start for kwatt.
+Le courant a coupe depuis le matin oh.
+Ashia, le delestage a commence dans le kwatt.
 
 ## Market bargaining
-Mami, hamas for dis njama njama?
-Abeg redus small, di prais dei tranga.
-A no get chenj, na tu kolo a get.
+Patron, c'est combien pour ce njama njama?
+Reduis un peu, le prix est chaud.
+Je n'ai pas de monnaie, j'ai seulement deux kolo.
 
 ## Rainy season struggles
-Ren don fall sotai, di rod don spoil.
-Weh, wata don enta ma haus.
+La pluie a tombe beaucoup, la route est gate.
+Weh, l'eau a entrer dans ma piol.
 
 ## Fuel scarcity
-Station no get fiul, ol man dei for queue.
+La station n'a pas d'essence, tout le monde est dans la queue.
 
 ## Bendskin and roadside business
-Motard, yu go carry me go Mvog-Ada?
-Sauveteur dei sell soya for carrefour.
+Motard, tu peux me emmener a Mvog-Ada?
+Le sauveteur vend le soya au carrefour.
 
 ## Security and checkpoints
-Polisman don block di rod for chek point.
+Les mange-mille ont bloque la route au chek point.
 
 ## Life at the ICT University
-Mola, a don pay ma fee bot a no get buk.
-Lekcha go start for et o'clock, make wi go.
+Mola, j'ai paye ma scolarite mais je n'ai pas de livre.
+Le cours va commencer a huit heures, on va a l'amphi.
