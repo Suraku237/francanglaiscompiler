@@ -1,10 +1,20 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .vscode/
 .idea/
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+*.tsbuildinfo
 
 # Collected data (usually you don't want raw data / audio in git history)
 data_collector/dataset.csv
+data_collector/dataset.csv.lock
+data_collector/.dataset-*.tmp
+data_collector/coursework/
 data_collector/audio/*
 !data_collector/audio/.gitkeep

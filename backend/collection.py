@@ -1,0 +1,85 @@
+from collections import Counter
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from compiler.lexer.tokenizer import normalize_text
+from data_collector import dataset
+
+from .schemas import DatasetEntry, DatasetResponse, EntryCreate, EntryPatch
+
+
+class CollectionError(Exception):
+    def __init__(self, status_code: int, detail: str):
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
+def list_entries(query: str) -> DatasetResponse:
+    entries = dataset.load_all()
+    search = query.strip().casefold()
+    matches = [
+        entry for entry in entries
+        if not search or any(search in value.casefold() for value in entry.values())
+    ]
+    return DatasetResponse(
+        entries=[DatasetEntry.model_validate(entry) for entry in reversed(matches)],
+        total=len(entries),
+        by_category=dict(Counter(entry["category"] or "(none)" for entry in entries)),
+        by_type=dict(Counter(entry["entry_type"] or "(none)" for entry in entries)),
+    )
+
+
+def _check_duplicate(
+    entries: list[dict[str, str]], text: str, language: str, exclude_id: str = ""
+) -> None:
+    if any(
+        entry["id"] != exclude_id and entry["language"] == language
+        and normalize_text(entry["text"]) == normalize_text(text)
+        for entry in entries
+    ):
+        raise CollectionError(409, "This text is already in the collection for the selected language.")
+
+
+def create_entry(request: EntryCreate) -> DatasetEntry:
+    if request.category not in dataset.CATEGORIES:
+        raise CollectionError(422, "Select one of the available collection categories.")
+    with dataset.dataset_lock():
+        entries = dataset.load_all()
+        _check_duplicate(entries, request.text, request.language)
+        entry = DatasetEntry(
+            **request.model_dump(),
+            id=str(uuid4()),
+            audio_filename="",
+            timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
+        dataset.append_entry(entry.model_dump())
+        return entry
+
+
+def edit_entry(entry_id: str, request: EntryPatch) -> DatasetEntry:
+    with dataset.dataset_lock():
+        entries = dataset.load_all()
+        entry = next((item for item in entries if item["id"] == entry_id), None)
+        if entry is None:
+            raise CollectionError(404, "This collection entry no longer exists.")
+        if request.entry_type is not None and request.entry_type not in (*dataset.ENTRY_TYPES, entry["entry_type"]):
+            raise CollectionError(422, "Select one of the available collection entry types.")
+        if request.category is not None and request.category not in (*dataset.CATEGORIES, entry["category"]):
+            raise CollectionError(422, "Select one of the available collection categories.")
+        text = request.text if request.text is not None else entry["text"]
+        language = request.language if request.language is not None else entry["language"]
+        if normalize_text(text) != normalize_text(entry["text"]) or language != entry["language"]:
+            _check_duplicate(entries, text, language, entry_id)
+        dataset.apply_entry_update(entry, request.model_dump(exclude_unset=True))
+        dataset.save_all(entries)
+        return DatasetEntry.model_validate(entry)
+
+
+def remove_entry(entry_id: str) -> None:
+    with dataset.dataset_lock():
+        entries = dataset.load_all()
+        remaining = [entry for entry in entries if entry["id"] != entry_id]
+        if len(remaining) == len(entries):
+            raise CollectionError(404, "This collection entry no longer exists.")
+        dataset.save_all(remaining)
