@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Franc-anglais Compiler</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <span class="wordmark">FRANC-ANGLAIS</span>
+  <span class="label bar-note">Lexical &middot; Syntactic &middot; Translate</span>
+</header>
+
+<main class="page">
+
+  <h1 class="headline">Type Yaound&eacute; street speech. We&rsquo;ll name it and turn it into English.</h1>
+  <p class="lede">
+    Paste a phrase in Pidgin, Camfranglais, or any mixture of those with English and
+    French. Check which languages are in play, or translate the whole thing into English.
+    Auto-generate builds a fresh sentence straight from the grammar.
+  </p>
+
+  <section class="block">
+    <label class="label" for="text">YOUR TEXT</label>
+    <textarea id="text" rows="5" spellcheck="false"
+              placeholder="Mbom, di taxi dem no dey for road tide."></textarea>
+
+    <div class="controls">
+      <div class="field">
+        <label class="label" for="prefer">LANGUAGE</label>
+        <div class="select-wrap">
+          <select id="prefer">
+            <option value="">Auto / mixed</option>
+            <option value="pidgin">Pidgin</option>
+            <option value="camfranglais">Camfranglais</option>
+            <option value="french">French</option>
+          </select>
+        </div>
+      </div>
+      <button id="generate" class="btn btn-secondary" type="button">Auto-generate</button>
+      <button id="detect" class="btn btn-secondary" type="button">Check language</button>
+      <button id="translate" class="btn btn-primary" type="button">Translate</button>
+    </div>
+  </section>
+
+  <p id="status" class="status" role="status" aria-live="polite" hidden>WORKING&hellip;</p>
+  <div id="error" class="error" role="alert" hidden></div>
+
+  <section id="result" class="block" hidden>
+    <div class="panel">
+      <div class="cell">
+        <span class="label" id="result-kicker">LANGUAGE</span>
+        <p class="answer" id="result-answer"></p>
+      </div>
+      <div class="cell">
+        <span class="label">DETAIL</span>
+        <p class="detail" id="result-detail"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="dictionary" class="block" hidden>
+    <h2 class="section-title">DICTIONARY</h2>
+    <p class="detail">Every reading this word has across the loaded dictionaries.</p>
+    <div class="table-scroll">
+      <table class="grid">
+        <thead>
+          <tr><th>Language</th><th>Class</th><th>English</th></tr>
+        </thead>
+        <tbody id="readings"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="analysis" class="block" hidden>
+    <h2 class="section-title">ANALYSIS</h2>
+
+    <p class="kicker-line"><span class="label">SYNTAX</span></p>
+    <p class="verdict" id="verdict"></p>
+    <p class="detail" id="categories"></p>
+
+    <p class="kicker-line"><span class="label">TOKENS</span></p>
+    <div class="table-scroll">
+      <table class="grid">
+        <thead>
+          <tr><th>Lexeme</th><th>Class</th><th>Language</th><th>Gloss</th></tr>
+        </thead>
+        <tbody id="tokens"></tbody>
+      </table>
+    </div>
+
+    <button id="tree-toggle" class="btn btn-secondary" type="button" aria-expanded="false">
+      Show parse tree
+    </button>
+    <pre id="tree" class="tree" hidden></pre>
+  </section>
+
+  <section id="recent" class="block" hidden>
+    <h2 class="section-title">RECENT</h2>
+    <div id="recent-list"></div>
+  </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

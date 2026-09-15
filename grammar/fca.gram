@@ -1,0 +1,67 @@
+# -----------------------------------------------------------------------------
+# Franc-anglais / Pidgin grammar - LL(1) form.
+#
+# Terminals are the lexical categories produced by fca/lexer.py:
+#   PRON POSS DET NOUN NUM ADJ ADV VERB COP TMA NEG PREP CONJ QWORD PART
+#   INTERJ MAKE PUNCT UNKNOWN
+# 'eps' is the empty string.
+#
+# This file is the grammar the parser actually runs. fca_raw.gram holds the
+# natural (left-recursive, unfactored) version that the transformation tools
+# rewrite, so the report can show both.
+# -----------------------------------------------------------------------------
+
+Start     -> Utterance
+
+# An utterance is optional openers, a clause, then either coordination,
+# punctuation followed by more speech, or nothing.
+Utterance -> Openers Clause Rest
+
+Openers   -> INTERJ Openers | PART Openers | eps
+Rest      -> CONJ Utterance | PUNCT Utterance | eps
+
+# Clause types: wh-question, hortative (make ...), identifying copula,
+# subject + predicate, bare imperative, or silence (a pure exclamation).
+Clause    -> QWORD QClause
+           | MAKE Clause
+           | NP Predicate
+           | VG
+           | eps
+
+QClause   -> NP Predicate | Predicate
+
+# Predicates. Pidgin and Camfranglais allow a zero copula before adjectives,
+# prepositional phrases and adverbs, so each of those may stand alone.
+Predicate -> VG
+           | ADJ Args
+           | PP Args
+           | ADV Args
+           | eps
+
+Comp      -> Args
+
+# Verb group: negation and tense/mood/aspect markers stack in front of the verb
+# or the copula.
+#   i no don chop  ->  NEG TMA VERB
+#   taxi no dey    ->  NEG COP
+VG        -> NEG VG | TMA VG | VERB Args | COP Comp
+
+# Argument list after a verb. Two noun phrases in a row give the ditransitive
+# pattern 'gi mi moni' / 'drop me for junction'; a second verb group gives the
+# serial verb pattern 'carry me go Mvog-Ada'.
+Args      -> NP Args | PP Args | ADV Args | ADJ Args | PART Args | VG | eps
+
+PP        -> PREP NP
+
+# Noun phrase. Attributive adjectives sit between the determiner and the head
+# noun; a bare adjective after a noun is read as a predicate, not a modifier.
+NP        -> PRON
+           | DET AdjList NHead
+           | POSS AdjList NHead
+           | NUM AdjList NHead
+           | NHead
+
+# 'pikin dem' - a post-nominal plural marker, not a pronoun.
+NHead     -> NOUN Plur | UNKNOWN Plur
+Plur      -> PLUR | eps
+AdjList   -> ADJ AdjList | NUM AdjList | eps

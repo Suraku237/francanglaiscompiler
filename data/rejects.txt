@@ -1,0 +1,23 @@
+# Sentences that MUST be rejected by the parser.
+#
+# Every grammar has to be shown to reject as well as accept - these are the
+# negative test cases for the 'which sentences are accepted or rejected' part of
+# the project. Each line states the reason it is ungrammatical.
+
+# noun pile-up with no predicate and no determiner structure
+moni moni moni taxi taxi
+
+# preposition with nothing to attach to
+for for for di
+
+# tense marker with no verb and a stray determiner
+a don di di
+
+# adjective stack in front of a bare noun (the grammar requires a determiner)
+big big tranga moto dei come
+
+# verb group inside a noun phrase
+di chop go di maket haus moni
+
+# question word followed by a determiner and nothing else
+wetin di

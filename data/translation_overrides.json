@@ -1,0 +1,97 @@
+{
+  "_comment": "Glosses that describe a word rather than translate it, plus items whose first dictionary sense is not a usable English equivalent. Keys are normalised terms; an empty value means 'drop this word from the translation'.",
+
+  "gloss": {
+    "na wa": "this is unbelievable",
+    "na wa oh": "this is really unbelievable",
+    "ekie": "oh my",
+    "weh": "oh dear",
+    "chai": "wow",
+    "muf": "get out of the way",
+    "ehen": "I see",
+    "hein": "right",
+    "quoi": "you know",
+    "la": "that one",
+    "deh": "",
+    "dey": "",
+    "oh": "",
+    "sef": "even",
+    "sha": "anyway",
+    "meme": "even",
+    "deja": "already",
+    "seulement": "only",
+    "comme ca": "like that",
+    "soso": "constantly",
+    "njoh": "for free",
+    "abeg": "please",
+    "ashia": "sorry",
+    "ashouka": "serves you right",
+    "na so": "that is right",
+    "na tru": "that is true",
+    "na lai": "that is a lie",
+    "no bi so": "isn't that so",
+    "no wahala": "no problem",
+    "how fa": "how are things",
+    "wetin dei": "what is the matter",
+    "tank yu": "thank you",
+    "sotai": "for a long time",
+    "y a quoi": "what is going on",
+    "c'est comment": "how is it going",
+    "tu es how": "how are you",
+    "on est ensemble": "we are in this together",
+    "le pays est dur": "times are hard",
+    "ca va aller": "it will be alright",
+    "on va faire comment": "what can we do",
+    "tu vas faire comment": "what are you going to do about it",
+    "mbeng fever": "the drive to emigrate to Europe",
+    "feymania": "large-scale confidence trickery",
+    "bayam-sellam": "market trader",
+    "call-boxeur": "phone-credit vendor",
+    "mbenguiste": "Cameroonian back from Europe",
+    "longcrayon": "intellectual",
+    "ngataman": "ex-convict",
+    "poulet dg": "director-general chicken",
+    "njama njama": "huckleberry greens",
+    "kolo": "thousand CFA francs",
+    "gombo": "side income",
+    "voila": "there you go",
+    "alors": "so",
+    "wanda": "be amazed",
+    "tranga": "tough",
+    "hongri": "hungry",
+    "taisti": "thirsty",
+    "je wanda": "I am amazed"
+  },
+
+  "prepositions": {
+    "for": "for",
+    "fo": "for"
+  },
+
+  "place_prepositions": {
+    "for": "at",
+    "fo": "at"
+  },
+
+  "place_nouns": [
+    "junction", "market", "house", "home", "school", "university", "campus",
+    "office", "shop", "church", "hospital", "road", "street", "town", "city",
+    "village", "quarter", "neighbourhood", "station", "checkpoint", "bush",
+    "farm", "room", "kitchen", "hostel", "class", "classroom", "back", "front",
+    "side", "place", "corner", "bar", "stall", "garage", "park", "border",
+    "queue", "line", "traffic", "junction", "roundabout", "bus stop"
+  ],
+
+  "determiners": {
+    "di": "the",
+    "da": "the",
+    "dis": "this",
+    "dat": "that",
+    "la": "the",
+    "le": "the",
+    "les": "the",
+    "un": "a",
+    "une": "a",
+    "ol": "all"
+  }
+}

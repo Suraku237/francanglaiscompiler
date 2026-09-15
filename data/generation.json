@@ -1,0 +1,73 @@
+{
+  "_comment": "Vocabulary the auto-generate button draws on. Restricting generation to everyday words keeps the sample sentences plausible: without this it happily produces things like 'make nain ches' (let nine chest). Terms are matched against the dictionaries, so a word listed here that does not exist in the chosen language is simply skipped.",
+
+  "pools": {
+    "NOUN": [
+      "taxi", "moto", "bendskin", "benskin", "opep", "clando", "motard",
+      "rod", "carrefour", "junction", "maket", "haus", "piol", "kwatt", "kwata",
+      "mboa", "skul", "kampus", "hostel", "lekcha", "fee", "buk",
+      "bolo", "djoba", "moni", "mbourou", "nkap", "kolo", "prais", "fea", "chenj",
+      "chop", "tchop", "wata", "mimbo", "rais", "bins", "mit", "fish",
+      "njama njama", "eru", "soya", "garri", "beignets",
+      "ren", "son", "win", "faya", "courant", "kurent", "lait", "jenerato",
+      "netwok", "konekshon", "fon", "kredi", "fiul", "gaz", "station",
+      "wahala", "palava", "tori", "kongosa", "ngeme",
+      "polisman", "sojaman", "chauffeur", "sauveteur", "bayam-sellam",
+      "mola", "mbom", "nga", "muna", "pikin", "titcha", "oga", "massa",
+      "mami", "papa", "kombi", "tara",
+      "taim", "dei", "wik", "mun", "yia",
+      "quartier", "marche", "argent", "essence", "pluie", "voiture", "travail",
+      "maison", "ecole", "probleme", "embouteillage", "coupure", "delestage",
+      "panne", "boulot", "reseau", "telephone"
+    ],
+    "VERB": [
+      "chop", "tchop", "dja", "damer", "drink", "jong",
+      "go", "kam", "waka", "ron", "sidon", "slip", "nang", "wekop", "piak",
+      "sabi", "mimba", "tink", "wan", "laik", "si", "luk", "wanda",
+      "tok", "tel", "aks", "ansa", "hala", "beg",
+      "bai", "sel", "pei", "wok", "bosh", "helep", "lan", "rid", "rait",
+      "brok", "lef", "stei", "fain", "los", "tif", "fait",
+      "drop", "enta", "komot", "rish", "taya", "kwenchi", "blok", "redus",
+      "gauler", "ndem", "sissia", "tcha", "kick", "tchatcher",
+      "travailler", "manger", "acheter", "vendre", "attendre", "chercher",
+      "payer", "rester", "partir", "rentrer", "appeler"
+    ],
+    "ADJ": [
+      "fain", "gud", "bad", "big", "smol", "ol", "nyu", "yong",
+      "tranga", "wik", "chip", "dia", "swit", "hot", "kol",
+      "fulop", "empti", "kwik", "slo", "hevi", "krezi", "fulish",
+      "rich", "po", "wowo", "klin", "doti",
+      "chaud", "dur", "fort", "fresh", "gros", "long", "top", "mbut",
+      "mauvais", "grand", "cher", "gratuit", "facile", "difficile"
+    ],
+    "PRON": [
+      "a", "mi", "yu", "i", "yi", "wi", "wuna", "dem",
+      "je", "tu", "il", "elle", "on", "nous"
+    ],
+    "DET": ["di", "da", "dis", "dat", "som", "eni", "ol", "le", "la", "un", "une"],
+    "POSS": ["ma", "ya", "wi own", "mon", "ton", "notre"],
+    "NUM": [
+      "wan", "tu", "tri", "faiv", "ten", "twenti", "fifti", "handred", "tausin",
+      "deux", "trois", "cinq", "dix", "vingt", "cinquante", "cent", "mille"
+    ],
+    "TMA": ["don", "di", "go", "bin", "fit", "mus", "va", "peut", "faut"],
+    "COP": ["na", "dei", "dey", "bi", "est"],
+    "NEG": ["no", "ne"],
+    "PREP": [
+      "for", "fo", "wit", "insai", "autsai", "ontop", "onda", "nia", "bifo", "afta",
+      "avec", "chez", "sur", "sous"
+    ],
+    "QWORD": [
+      "wetin", "wusai", "hu", "wen", "hau", "wai", "hamas",
+      "comment", "pourquoi", "combien", "quoi"
+    ],
+    "ADV": [
+      "tide", "tumoro", "yestade", "naw", "naw naw", "leta", "hia", "dea",
+      "maintenant", "demain", "hier", "vite", "encore", "toujours", "njoh"
+    ],
+    "PART": ["abeg", "please"],
+    "INTERJ": ["ashia", "weh", "chai", "ekie", "ehen", "na wa", "ekiee"],
+    "MAKE": ["make"],
+    "PLUR": ["dem"]
+  }
+}
