@@ -1,8 +1,15 @@
 venv/
+.venv/
+node_modules/
 __pycache__/
 *.pyc
 .vscode/
 .idea/
+
+# Local environment files can contain API keys.
+.env
+.env.*
+!.env.example
 
 # Collected data (usually you don't want raw data / audio in git history)
 data_collector/dataset.csv
