@@ -1,31 +1,118 @@
 @startuml
-title Save Collected Entry - Sequence Diagram
+title Save a Collected Entry - Optional Audio Attachment and Validation
+hide footbox
+autonumber
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+skinparam sequenceParticipantBackgroundColor #F1F5F9
+skinparam sequenceParticipantBorderColor #334155
+skinparam sequenceLifeLineBorderColor #64748B
+skinparam sequenceLifeLineBackgroundColor #DBEAFE
+skinparam sequenceArrowColor #334155
+skinparam dpi 160
+
 actor Contributor
-participant "App (CustomTkinter)" as App
-participant "dataset.py" as Dataset
-participant "audio_utils.py" as Audio
-database "dataset.csv" as CSV
-participant "audio/ directory" as AudioDir
+participant "app : App" as App
+participant "audio_utils\n<<module>>" as Audio
+participant "dataset\n<<module>>" as Dataset
+participant "Local file I/O\n<<external>>" as Files
 
-Contributor -> App : Fill form and click Save
-App -> App : Read text and metadata
-App -> App : Reject empty text
-App -> Dataset : append_entry(entry)
-Dataset -> Dataset : ensure_dataset_file()
-Dataset -> CSV : Append DictWriter row
-CSV --> Dataset : File write complete
-Dataset --> App : Return
-App -> Dataset : total_count()
-Dataset -> CSV : Read rows
-CSV --> Dataset : Entries
-Dataset --> App : Count
-App --> Contributor : Show saved status and refresh UI
-
-opt Audio attached before save
-  Contributor -> App : Record or attach file
-  App -> Audio : save_recording()/attach_file()
-  Audio -> AudioDir : Write copied/generated file
-  AudioDir --> Audio : Filename
-  Audio --> App : pending_audio_path
+opt Contributor selects an existing audio file before saving
+  activate Contributor
+  Contributor -> App : attach_audio_file()
+  activate App
+  note over App
+    The file dialog returns a selected path.
+    Cancellation is outside this optional interaction.
+  end note
+  App -> Audio : attach_file(source_path, AUDIO_DIR)
+  activate Audio
+  Audio -> Files : copy2(source_path, generated destination)
+  activate Files
+  Files --> Audio : File copied
+  deactivate Files
+  Audio --> App : Generated filename
+  deactivate Audio
+  note over App
+    Set pending_audio_path.
+    Update status and enable Play.
+  end note
+  App --> Contributor : Attachment displayed
+  deactivate App
+  deactivate Contributor
 end
+
+activate Contributor
+Contributor -> App : save_entry()
+activate App
+note over App : Read and strip the form text.
+
+alt Text is empty
+  note over App
+    Show "Missing text" warning.
+    Return without appending a row.
+  end note
+else Text is non-empty
+  note over App
+    Build the entry dict with ID, timestamp,
+    metadata and pending audio filename (or "").
+  end note
+  App -> Dataset : append_entry(entry)
+  activate Dataset
+  Dataset -> Dataset : ensure_dataset_file()
+  activate Dataset
+  Dataset -> Files : Ensure audio directory;\ncreate CSV header only if absent
+  activate Files
+  Files --> Dataset : Storage ready
+  deactivate Files
+  Dataset --> Dataset : None
+  deactivate Dataset
+  Dataset -> Files : Append one UTF-8 CSV row
+  activate Files
+  Files --> Dataset : Write complete
+  deactivate Files
+  Dataset --> App : None
+  deactivate Dataset
+
+  group Refresh count and recent entries
+    App -> Dataset : total_count()
+    activate Dataset
+    Dataset -> Files : Ensure storage; read CSV via load_all()
+    activate Files
+    Files --> Dataset : Rows
+    deactivate Files
+    Dataset --> App : Number of rows
+    deactivate Dataset
+    App -> Dataset : load_all()
+    activate Dataset
+    Dataset -> Files : Ensure storage; read CSV rows
+    activate Files
+    Files --> Dataset : Rows
+    deactivate Files
+    Dataset --> App : Entries
+    deactivate Dataset
+    note over App : Display the count and latest six entries.
+  end
+
+  App -> App : clear_form(keep_contributor=True)
+  activate App
+  App --> App : Form cleared; contributor retained
+  deactivate App
+end
+
+App --> Contributor : Warning or saved status
+deactivate App
+deactivate Contributor
+
+legend bottom left
+  Solid arrows: synchronous calls. Dashed arrows: replies.
+  Every call opens a receiver activation; its reply closes it.
+  Self-calls have nested activation boxes. Callers remain active.
+  UI widget calls and low-level file helpers are abstracted.
+  This scenario covers attachment; live recording is not expanded.
+  Storage operations assume success; I/O exceptions are not shown.
+endlegend
 @enduml

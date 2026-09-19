@@ -14,7 +14,7 @@
 \pagestyle{fancy}
 \fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD}\cfoot{\thepage}
 \newcommand{\placeholder}[1]{\textcolor{red}{\textbf{#1}}}
-\newcommand{\diagram}[2]{\begin{figure}[H]\centering\includegraphics[width=#2\textwidth]{diagrams/#1.png}\caption{#1}\end{figure}}
+\newcommand{\diagram}[2]{\begin{figure}[H]\centering\includegraphics[width=#2\textwidth,height=0.82\textheight,keepaspectratio]{diagrams/#1.png}\caption{#1}\end{figure}}
 
 \title{\textbf{Software Design Description}\\[0.4em]
 \Large Francanglais Compiler and Dataset Platform}
@@ -94,7 +94,41 @@ sentence with a grammar, and return a structured analysis. This boundary
 should be implemented behind an adapter so the collector remains usable
 without the compiler and so compiler analysis cannot silently rewrite data.
 
+\subsection{Class relationships and multiplicities}
+The class diagram includes both application-defined classes, \texttt{App}
+and \texttt{audio\_utils.Recorder}, together with the relevant external
+classes \texttt{customtkinter.CTk} and \texttt{sounddevice.InputStream}.
+It shows selected attributes and methods rather than every GUI widget.
+\texttt{App} inherits from \texttt{CTk} and owns the optional recorder;
+the audio helper module does not own a recorder instance.
+
+The \texttt{module}, \texttt{record}, and \texttt{logical storage}
+stereotypes distinguish supporting design elements from implemented
+classes. In particular, \texttt{dataset.py} and \texttt{audio\_utils.py}
+are modules whose functions are shown as static operations.
+\texttt{DatasetEntry} describes the CSV row/Python dictionary schema;
+\texttt{DatasetFile} and \texttt{AudioFile} describe stored files.
+These three names are not Python model classes.
+
 \diagram{class-domain}{0.98}
+
+\begin{longtable}{p{3.5cm}p{9.6cm}}
+\toprule
+\textbf{Relationship} & \textbf{Multiplicity and meaning}\\ \midrule
+\endhead
+App--Recorder & One app owns zero or one recorder, depending on audio capability. Each recorder created by the collector belongs to one app.\\
+Recorder--InputStream & One recorder owns zero or one stream. The stream is created when recording starts and closed and released when it stops.\\
+DatasetFile--DatasetEntry & One CSV file contains zero or more rows; each stored row belongs to one CSV file in this data model.\\
+DatasetEntry--AudioFile & A row optionally references one audio file by filename. A file may have zero or more references because filenames are not constrained to be unique across rows.\\
+\bottomrule
+\end{longtable}
+
+Filled diamonds denote composition and sit at the owning (whole) end.
+The audio-file link is an association, not composition: deleting a CSV row
+does not delete its audio file. This logical link does not guarantee that
+the referenced file still exists. Inheritance and function-call dependencies
+do not have multiplicities; adding cardinalities to those arrows would not
+be valid UML.
 
 \section{Behavioral Design}
 \subsection{Use cases}
@@ -104,6 +138,20 @@ without the compiler and so compiler analysis cannot silently rewrite data.
 \diagram{activity-collect}{0.90}
 
 \subsection{Save sequence}
+The sequence shows an optional existing-file attachment before saving,
+followed by mutually exclusive empty-text and valid-text paths. An empty
+submission returns a warning without a CSV write. On the valid path,
+the application persists the entry, refreshes counts and recent entries,
+and clears the form while retaining the contributor.
+
+Every synchronous message starts an activation on its receiving lifeline,
+and every dashed reply ends that activation. A self-call creates a nested
+activation; the caller remains active while waiting. The contributor's
+activation spans each user interaction. Module lifelines represent executing
+functions, and the file-I/O lifeline abstracts local filesystem operations,
+not an additional application class or remote service. Individual widget
+calls and lower-level file helpers are omitted. Live recording and storage
+exceptions are outside this particular scenario.
 \diagram{sequence-collect}{0.98}
 
 \subsection{Entry lifecycle}
@@ -114,11 +162,11 @@ without the compiler and so compiler analysis cannot silently rewrite data.
 \toprule
 \textbf{Interface} & \textbf{Contract}\\ \midrule
 \endhead
-\texttt{Dataset.append\_entry(entry)} & Receives a dictionary containing the canonical fields and appends one UTF-8 CSV row.\\
-\texttt{Dataset.update\_entry(id, fields)} & Loads rows, updates the matching ID, and rewrites the CSV.\\
-\texttt{Dataset.delete\_entry(id)} & Loads rows, removes matching ID, and rewrites the CSV.\\
-\texttt{AudioUtils.attach\_file(source, dir)} & Copies a source media file to the managed directory and returns its generated filename.\\
-\texttt{AudioUtils.play\_audio(path)} & Returns true only when playback was successfully started.\\
+\texttt{dataset.append\_entry(entry)} & Receives a dictionary containing the canonical fields and appends one UTF-8 CSV row.\\
+\texttt{dataset.update\_entry(id, fields)} & Loads rows, updates the matching ID, and rewrites the CSV.\\
+\texttt{dataset.delete\_entry(id)} & Loads rows, removes matching ID, and rewrites the CSV.\\
+\texttt{audio\_utils.attach\_file(source, dir)} & Copies a source media file to the managed directory and returns its generated filename.\\
+\texttt{audio\_utils.play\_audio(path)} & Returns true only when playback was successfully started.\\
 \texttt{CompilerAdapter.analyse(text)} & Proposed contract returning tokens, token labels, parse status, and explanatory diagnostics.\\
 \bottomrule
 \end{longtable}

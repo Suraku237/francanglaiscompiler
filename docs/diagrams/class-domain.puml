@@ -1,65 +1,119 @@
 @startuml
-title Francanglais Collector - Domain Class Diagram
+title Francanglais Collector - Classes, Relationships and Multiplicities
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
 skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F1F5F9
+skinparam classBorderColor #334155
+skinparam ArrowColor #334155
+skinparam nodesep 35
+skinparam ranksep 40
+skinparam dpi 160
+hide empty members
+
+class "customtkinter.CTk" as CTk <<external>> {
+  + mainloop()
+}
 
 class App {
-  - pending_audio_path: str
-  - selected_browse_id: str
-  - recorder: Recorder
-  + save_entry()
-  + clear_form()
-  + attach_audio_file()
-  + play_pending_audio()
-  + toggle_recording()
+  + pending_audio_path: str [0..1]
+  + selected_browse_id: str [0..1]
+  + selected_browse_audio: str [0..1]
+  + __init__()
+  + save_entry(): None
+  + clear_form(keep_contributor: bool = False): None
+  + toggle_recording(): None
+  + attach_audio_file(): None
+  + play_pending_audio(): None
+  - _refresh_browse_list(): None
+  - _save_browse_edit(): None
+  - _delete_browse_entry(): None
 }
 
-class Dataset {
-  {static} FIELDNAMES: list
-  {static} CATEGORIES: list
-  {static} ENTRY_TYPES: list
-  + ensure_dataset_file()
-  + load_all(): list
-  + append_entry(entry: dict)
-  + save_all(entries)
-  + update_entry(id, fields)
-  + delete_entry(id)
-  + text_exists(text, exclude_id)
-  + count_by(field): dict
-  + total_count(): int
+class "audio_utils.Recorder" as Recorder {
+  + frames: list[ndarray]
+  + recording: bool = False
+  + __init__()
+  + start(): None
+  + stop(): ndarray [0..1]
 }
 
-class AudioUtils {
-  {static} AUDIO_RECORDING_AVAILABLE: bool
-  {static} SAMPLE_RATE: int
-  + save_recording(audio, audio_dir): str
-  + attach_file(source, audio_dir): str
-  + play_audio(path): bool
-}
-
-class Recorder {
-  - frames: list
-  - stream: InputStream
-  - recording: bool
+class "sounddevice.InputStream" as InputStream <<external>> {
   + start()
-  + stop(): audio
+  + stop()
+  + close()
 }
 
-class DatasetEntry {
-  id: str
-  text: str
-  entry_type: word|phrase|sentence
-  french_gloss: str
-  english_gloss: str
-  category: str
-  notes: str
-  audio_filename: str
-  contributor: str
-  timestamp: ISO-8601
+class "dataset.py" as Dataset <<module>> {
+  {static} + FIELDNAMES: list[str]
+  {static} + ENTRY_TYPES: list[str]
+  {static} + CATEGORIES: list[str]
+  {static} + ensure_dataset_file(): None
+  {static} + load_all(): list[DatasetEntry]
+  {static} + append_entry(entry: DatasetEntry): None
+  {static} + update_entry(entry_id: str, updated_fields: dict): None
+  {static} + delete_entry(entry_id: str): None
+  {static} + text_exists(text: str, exclude_id: str [0..1]): bool
+  {static} + count_by(field: str): dict
+  {static} + total_count(): int
 }
 
-App ..> Dataset : uses
-App ..> AudioUtils : uses
-AudioUtils *-- Recorder : creates when available
-Dataset "1" o-- "*" DatasetEntry : CSV rows
-DatasetEntry "0..1" --> "1" AudioUtils : audio file
+class "audio_utils.py" as AudioUtils <<module>> {
+  {static} + AUDIO_RECORDING_AVAILABLE: bool
+  {static} + SAMPLE_RATE: int = 44100
+  {static} + save_recording(audio, audio_dir: str): str
+  {static} + attach_file(source_path: str, audio_dir: str): str
+  {static} + play_audio(path: str): bool
+}
+
+class DatasetFile <<logical storage>> {
+  + filename: str = "dataset.csv"
+  + encoding: str = "UTF-8"
+}
+
+class DatasetEntry <<record>> {
+  + id: str
+  + text: str
+  + entry_type: str
+  + french_gloss: str
+  + english_gloss: str
+  + category: str
+  + notes: str
+  + audio_filename: str
+  + contributor: str
+  + timestamp: str
+}
+
+class AudioFile <<logical storage>> {
+  + filename: str
+  + directory: str = "audio/"
+}
+
+App --|> CTk
+App "1" *-- "0..1" Recorder : recorder
+Recorder "1" *-- "0..1" InputStream : stream
+App ..> Dataset : calls
+App ..> AudioUtils : calls
+App ..> DatasetEntry : constructs / displays
+Dataset ..> DatasetFile : reads / writes
+AudioUtils ..> AudioFile : saves / copies / plays
+DatasetFile "1" *-- "0..*" DatasetEntry : rows
+DatasetEntry "0..*" --> "0..1" AudioFile : references by filename
+
+legend bottom left
+  <b>Scope and notation</b>
+  App and Recorder: all application-defined classes in the available source.
+  <<external>>: selected library classes; widget internals are omitted.
+  <<module>>: module-level functions, not instantiated Python classes.
+  <<record>>: a CSV row / Python dict, not an implemented model class.
+  <<logical storage>>: files in the data model, not Python classes.
+  1 = exactly one; 0..1 = optional; 0..* = zero or more.
+  Filled diamond = composition; triangle = inheritance.
+  Dashed arrows = dependencies (no multiplicities).
+  An audio file may be unreferenced or referenced by several rows.
+  The filename link is logical: file existence is not guaranteed.
+endlegend
 @enduml
