@@ -1,31 +1,34 @@
 # Francanglais Compiler Documentation
 
-Version 1.2 describes the current desktop collector, editable React frontend,
+Version 1.3 describes the current desktop collector, editable React frontend,
 FastAPI API, local lexer/parser, imports, reviewed retrieval and coursework
-workspace. It replaces the obsolete desktop-only architecture.
+workspace, and the separate supplied reference dictionary.
 
 ## Documents
 
-- [SRS PDF](srs.pdf) and [LaTeX source](srs.tex): 36 numbered functional
+- [SRS PDF](srs.pdf) and [LaTeX source](srs.tex): 37 numbered functional
   requirements (including one deferred predictor), 16 non-functional
-  requirements, 23 user stories, 23 backlog items and four proposed two-week
+  requirements, 24 user stories, 24 backlog items and four proposed two-week
   sprint backlogs with 30 individually evidence-labelled tasks.
 - [SDD PDF](sdd.pdf) and [LaTeX source](sdd.tex): architecture, data/transaction
-  boundaries, the twenty application API method/path combinations, failure
+  boundaries, the twenty-one application API method/path combinations, failure
   contracts, every diagram's explanation and requirement/source trace.
 - [Full-size UML atlas](uml-atlas.pdf) and [atlas source](uml-atlas.tex): the same
-  28 diagram sheets included at the end of the SDD, without the prose.
-- [Editable PlantUML and PNGs](diagrams): nine class views, thirteen sequences,
+  29 diagram sheets included at the end of the SDD, without the prose.
+- [Editable PlantUML and PNGs](diagrams): nine class views, fourteen sequences,
   two state models, one activity, one use case, one component view and one
   deployment view.
-- [Class-coverage inventory](diagrams/class-coverage.json): all **47** authored
-  production classes: 45 Python `ClassDef` declarations, the runtime `Token`
+- [Class-coverage inventory](diagrams/class-coverage.json): all **49** authored
+  production classes: 47 Python `ClassDef` declarations, the runtime `Token`
   namedtuple and frontend `ApiError`. Test helpers, maintenance tools, external
   libraries and erased TypeScript interfaces are excluded.
 - [Measured desktop performance](evidence/collector-benchmark.json): raw
   timings, machine/runtime and collector source hashes.
-- [Final verification record](evidence/verification.json): recorded checks,
+- [Earlier completion record](evidence/verification.json): recorded baseline checks,
   stage outcomes, integration boundaries and remaining manual gates.
+- [Reference dictionary verification](evidence/dictionary-verification.json):
+  the supplied 179 source rows, independent retrieval, corpus isolation and
+  the updated test/documentation results.
 
 The SDD uses A4 explanatory pages followed by large-format diagram sheets.
 Diagram labels remain approximately nine points at actual size; complex
@@ -37,14 +40,14 @@ report still has its own 25-30-page requirement; the SRS/SDD are not that report
 
 | Check | Current recorded result | Boundary |
 |---|---|---|
-| Python | **252 tests passed** | Includes 56 desktop and 33 maintenance/checker tests; isolated fixtures and mocked provider/device failures. |
-| Frontend components | **77 tests passed** | Eight component/helper test files. |
-| Browser workflows | **18 tests passed** | Desktop and mobile Chromium; controlled API fixtures, no real corpus/provider/device access. |
+| Python | **268 tests passed** | Includes 16 dictionary, 56 desktop and 33 maintenance/checker tests; isolated corpus fixtures and mocked provider/device failures. |
+| Frontend components | **86 tests passed** | Nine component/helper test files; two-worker validation run. |
+| Browser workflows | **22 tests passed** | Desktop and mobile Chromium; two workers; controlled API fixtures, no real corpus/provider/device access. |
 | Types and production assets | **Passed** | Application and test TypeScript configurations; production bundle rebuilt. |
 | WAV I/O | **Passed** | Silent mono 44,100 Hz, 4,410 frames; codec/file round-trip, not microphone or speaker certification. |
 | Recovery and measurement methodology | **21 tests passed** | Sixteen snapshot/restore and five benchmark-method tests, also included in the Python total. |
 | Real GUI timing | **Passed on measured machine** | Search p95 53.31 ms; Stats p95 606.01 ms; 1,000 ms limit, 1,000 synthetic 500-character rows, one warm-up and 20 runs each. |
-| Documentation | Local render/build/check | 47 classes, 28 diagrams, 13 balanced synchronous sequence views; source/atlas mapping, PDF pixels, layout and references checked by the command below. |
+| Documentation | Local render/build/check | 49 classes, 29 diagrams, 14 balanced synchronous sequence views; source/atlas mapping, PDF pixels, layout and references checked by the command below. |
 | CI | Configured and locally linted | No remote GitHub Actions result is asserted. |
 
 The measured machine has approximately **31.8 GiB RAM**. This does **not**
@@ -55,8 +58,8 @@ An earlier intermittent Windows storage-test failure did not recur in 25
 targeted retries or subsequent clean complete runs. Its underlying cause was
 not proven, and no speculative production retry was introduced.
 
-The first author name/matricule already entered in the old SDD is preserved
-in both documents. The other two member rows remain blank. All contributions,
+The two author names/matricules supplied in the SDD are preserved in both
+documents. The third member row remains blank. All contributions,
 genuine transcriptions, permission, reviewed meanings, corpus-grounded grammar
 rationale/evaluation, genuine screenshots, final report/slides and rehearsal
 remain human inputs. Physical audio, real mobile/assistive-technology use,
@@ -67,6 +70,12 @@ The four sprint allocations retain the original **67 selected story points /
 106 estimated task hours**, plus the deferred 8-point predictor. They are a
 proposal, not historical velocity or retrospectively completed sprints.
 Every task distinguishes current software evidence from open human gates.
+
+The new Dictionary workspace uses [the core list](../dictionary/camfranglais.md)
+and [the supplement](../dictionary/extra_lexicon.md) without writing the research
+CSV. English meanings are supplied; French meanings and grammatical categories
+are not inferred. Reference entries remain separate from fieldwork and are
+included as source resources, not corpus rows, in coursework ZIPs.
 
 ## UML conventions
 

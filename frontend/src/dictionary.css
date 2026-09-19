@@ -1,0 +1,13 @@
+.dictionary-page > .notice { margin-bottom: 24px; }
+.dictionary-summary { margin: 20px 0 10px; color: var(--green); line-height: 1.7; }
+.dictionary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; margin: 22px 0; }
+.dictionary-card { min-width: 0; display: flex; flex-direction: column; padding: 22px; border: 1px solid #d5dfc9; border-radius: 12px; background: #fffef8; }
+.dictionary-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.dictionary-heading h2 { margin: 0; color: var(--green); overflow-wrap: anywhere; font-size: 24px; }
+.dictionary-card dl { flex: 1; margin: 18px 0; }
+.dictionary-card dl > div { margin-bottom: 13px; }
+.dictionary-card dt { margin-bottom: 5px; color: #47643d; font-size: 11px; font-weight: 600; }
+.dictionary-card dd { margin: 0; color: #526248; line-height: 1.7; font-size: 13px; overflow-wrap: anywhere; }
+.dictionary-card .button { align-self: flex-start; }
+.dictionary-pagination { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: center; margin: 22px 0; }
+.dictionary-pagination > span { color: #526248; font-size: 12px; }

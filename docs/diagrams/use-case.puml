@@ -11,7 +11,8 @@ rectangle "Francanglais platform (local trust boundary)" {
   usecase "Preview an import" as Preview
   usecase "Cloud transcription / OCR" as CloudImport
   usecase "Translate with visible origin\nand evidence coverage" as Translate
-  usecase "Approved local lookup" as Lookup
+  usecase "Approved collection /\nreference dictionary lookup" as Lookup
+  usecase "Search reference vocabulary\nand open a translation draft" as Dictionary
   usecase "AI translation suggestion" as AITranslate
   usecase "Explicit learning chat" as Chat
   usecase "Analyze lexer / CFG /\nFIRST-FOLLOW / parse trace" as Analyze
@@ -24,18 +25,20 @@ Contributor -- Audio
 Contributor -- Review
 Contributor -- Preview
 Learner -- Translate
+Learner -- Dictionary
 Learner -- Chat
 Learner -- Analyze
 Learner -- Tutor
 Learner -- Project
 Learner -- Export
-Lookup ..> Translate : <<extend>>\n[use_dataset]
+Lookup ..> Translate : <<extend>>\n[use_dataset or use_dictionary]
 AITranslate ..> Translate : <<extend>>\n[no exact answer and allow_ai]
 CloudImport ..> Preview : <<extend>>\n[needed and consented]
 note bottom of Review
   Saved does not mean approved.
   Preview/handoff never auto-saves.
   Roles are not authentication permissions.
+  Dictionary search/handoff does not create fieldwork.
 end note
 note bottom of Export
   Draft generation is not completed fieldwork,

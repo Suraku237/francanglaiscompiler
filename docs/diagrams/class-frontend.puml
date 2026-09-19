@@ -12,7 +12,7 @@ class "JavaScript Error" as Error <<external>>
 rectangle "api.ts <<function module>>\napi<T>(), errorDetail(), messageOf()\nisCancelled()" as API
 rectangle "useRequest.ts <<hook module>>\nuseRequest(): run / cancel / pending / error" as Request
 rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nhash navigation; draft handoff; health" as App
-rectangle "Translator / Assistant / Collection\nImports / Coursework <<function components>>\nforms; reviewed results; local state" as Pages
+rectangle "Translator / Assistant / Collection\nDictionary / Imports / Coursework <<function components>>\nforms; source-labelled results; local state" as Pages
 rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
 rectangle "voice.ts <<hook module>>\nuseDictation(), useReadAloud()\nbrowserVoiceLanguage()" as Voice
 rectangle "components.tsx <<functions>>\nModal(), OriginBadge(), EvidencePanel()\ninitial focus / Tab wrap / restore trigger" as Components

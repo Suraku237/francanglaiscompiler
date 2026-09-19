@@ -37,6 +37,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
   const [source, setSource] = useState<TranslationLanguage>('francanglais')
   const [target, setTarget] = useState<TranslationLanguage>('fr')
   const [useDataset, setUseDataset] = useState(true)
+  const [useDictionary, setUseDictionary] = useState(true)
   const [draft, setDraft] = useState('')
   const [importNotice, setImportNotice] = useState(false)
   const [messages, setMessages] = useState<DisplayMessage[]>([])
@@ -112,7 +113,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
     void run(
       (signal) => api<ChatReply>('/chat', {
         method: 'POST',
-        body: { message: content, language, history, use_dataset: useDataset, source_language: source, target_language: target },
+        body: { message: content, language, history, use_dataset: useDataset, use_dictionary: useDictionary, source_language: source, target_language: target },
         signal, timeout: 60000,
       }),
       (response) => {
@@ -152,6 +153,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
           setTarget(nextTarget)
         }} />
         <label className="checkbox-label"><input type="checkbox" checked={useDataset} disabled={pending} onChange={(event) => { clearError(); setUseDataset(event.target.checked) }} />Use approved dataset matches for this answer</label>
+        <label className="checkbox-label"><input type="checkbox" checked={useDictionary} disabled={pending} onChange={(event) => { clearError(); setUseDictionary(event.target.checked) }} />Use reference dictionary for this answer</label>
         <p className="helper-text">The direction guides translation questions; your explanation language is separate. Changing controls does not rewrite earlier answers.</p>
         {!aiAvailable && <p className="helper-text">Chat needs configured AI. You can still <a href="#translator">look up exact approved translations</a> or <a href="#collection">review the local collection</a>.</p>}
       </div>

@@ -3,7 +3,8 @@
 A Python + React language workspace for understanding Francanglais (Camfranglais)
 and **Cameroon Pidgin**, comparing expressions with French and English, and growing
 a reviewed local dataset. Translation works in both directions between the four
-languages, using approved dataset evidence first and clearly labeled Gemini
+languages, using approved collection evidence and a separate reference dictionary
+before clearly labeled Gemini
 suggestions for gaps. Documents, images, audio and video can supply text for
 review, translation, conversation or new dataset entries.
 
@@ -42,21 +43,62 @@ separate educational workspace within the app.
    editor. Optionally label the lexical category of a **Word**.
 3. Explicitly approve the record after checking it. Approval is a local human
    decision, not a guarantee of universal spelling or meaning.
-4. Translate with **Use dataset** enabled. An unambiguous approved whole-entry
+4. Translate with the desired **Use approved dataset matches** and **Use reference
+   dictionary** switches enabled. An unambiguous supplied whole-entry
    alignment can be returned locally, without a Gemini call. Matching separate
    words is not treated as a reliable full-sentence translation.
 5. When coverage is incomplete or ambiguous, enabled AI fallback receives only
-   bounded relevant approved expressions and glosses, and returns a labeled
+   bounded relevant source-labelled expressions and glosses, and returns a labeled
    suggestion. Evidence cards identify the supplied records; they do **not**
    certify every generated word. Disable fallback for a strict local lookup.
-6. Ask the assistant to translate or explain using the dataset. Select the
+6. Ask the assistant to translate or explain using the selected sources. Select the
    translation direction; its reply includes the evidence supplied to Gemini.
    New model output is never automatically added to the dataset.
 
 Approved word-category entries can extend local lexical classification. This
 does not train or fine-tune Gemini, guarantee full language coverage, or make an
-arbitrary sentence satisfy the editable coursework grammar. Unreviewed and
-unclassified records remain available for human review, not trusted translation.
+arbitrary sentence satisfy the editable coursework grammar. Unreviewed collection
+records remain available for human review, not trusted collection translation.
+
+### Supplied reference dictionary
+
+Open **Dictionary** in the sidebar (`#dictionary`). The project now uses the
+two supplied Markdown files directly:
+
+- [Core Camfranglais vocabulary](dictionary/camfranglais.md): **143 source entries**.
+- [Supplementary vocabulary](dictionary/extra_lexicon.md): **36 source entries**.
+
+These are **179 source rows**, not 179 unique words or collected statements.
+Search words, listed forms, English meanings, topics or origins. Results keep
+their source filename/line; repeated headwords and conflicting senses remain
+visible. Slash-separated forms, explicitly optional parenthesized wording and
+terminal `!`/`?` variants support lookup without changing the stored headword.
+
+**No French translations are present in these files.** The `Origin` column
+describes etymology; it is not a French gloss or a part-of-speech annotation.
+Nothing is guessed to fill these gaps. The dictionary does not modify
+[the collection CSV](data_collector/dataset.csv), approve entries, change
+reviewed lexer categories, train a model or increase coursework corpus totals.
+An empty collection can therefore coexist with a working reference dictionary.
+
+Use **Open in translator** to fill a Francanglais-to-English draft, then explicitly
+press **Translate**. For example, `tchop` returns `to eat`, `motard` returns
+`a motorcycle taxi rider`, and `pasho` finds the supplied `pater / pasho` entry.
+These exact lookups work without an AI key. Reverse lookup requires the complete
+supplied English meaning; matching one word inside a definition is not an exact
+translation. Conflicting full-entry meanings return 422 when AI is disabled,
+rather than silently choosing a sense. English-only references do not veto an
+otherwise valid approved French alignment.
+
+The collection and dictionary switches are independent, including in chat.
+When AI is enabled, only selected evidence from enabled sources is supplied;
+dictionary citations are never labelled human-approved fieldwork. Missing or
+malformed reference files cause an explicit, retryable 503, not an empty success.
+`GET /api/dictionary` accepts `query` (up to 200 characters), `offset` (nonnegative)
+and `limit` (1-100; default 50). The UI uses 25-entry pages and cancels stale searches.
+The two files are versioned project resources, so no Downloads path or import
+step is required after cloning. Coursework bundles retain them under
+`source/dictionary`, separately from the exported corpus.
 
 ### Supported file inputs
 
@@ -144,8 +186,8 @@ FastAPI does **not** serve the frontend at `/`. Vite preview is a local
 verification server, not a public production-hosting solution; production
 hosting needs a separate static server and matching API routing.
 
-Without a Gemini key, collection, local document preview, lexical analysis and
-unambiguous approved dataset translations still work. Unsupported local lookups
+Without a Gemini key, dictionary search, collection, local document preview,
+lexical analysis and unambiguous local translations still work. Unsupported local lookups
 and requests requiring Gemini give a clear error; there are no fabricated
 offline translations.
 The health indicator checks whether a key is configured, not whether Google has

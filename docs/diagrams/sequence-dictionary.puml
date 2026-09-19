@@ -1,0 +1,56 @@
+@startuml
+!include theme.iuml
+title Reference lookup: separate sources, explicit draft handoff
+hide footbox
+autonumber
+actor User
+participant "Dictionary\n<<React function>>" as Web
+participant "App\n<<React function>>" as Shell
+participant "main.get_dictionary\n<<route function>>" as API
+participant "dictionary\n<<function module>>" as Reference
+participant "Versioned Markdown files" as Files
+
+activate User
+User -> Web : Open dictionary / change search or page
+activate Web
+note over Web : Debounce 250 ms; cancel stale requests.\nDo not load the dictionary while its page is hidden.
+Web -> API : GET /api/dictionary?query&offset&limit
+activate API
+API -> Reference : list_dictionary(query, offset, limit)
+activate Reference
+Reference -> Reference : load_dictionary()
+activate Reference
+loop Each supplied file, until complete or read/validation failure
+  Reference -> Files : read_text(UTF-8)
+  activate Files
+  Files --> Reference : Markdown or read error
+  deactivate Files
+  opt Read succeeded
+    Reference -> Reference : parse_dictionary(text, filename)
+    activate Reference
+    Reference --> Reference : Entries / validation error
+    deactivate Reference
+  end
+end
+Reference --> Reference : All entries / safe CollectionError
+deactivate Reference
+note over Reference : Successful loads preserve every source row and sense.\nSearch normalized words, forms and meanings; slice one page.\nNo dataset read, approval, fieldwork count or provider call.
+Reference --> API : DictionaryResponse / safe 503
+deactivate Reference
+API --> Web : 200 paginated entries / 422 or 503
+deactivate API
+Web --> User : Meanings + source file/line / retryable error
+deactivate Web
+opt User chooses a reference entry
+  User -> Web : Open in translator
+  activate Web
+  Web -> Shell : onTranslate(listed form)
+  activate Shell
+  note over Shell : Fill a new draft; direction Francanglais to English.\nTranslator enables reference lookup on handoff.\nNo submit or save.
+  Shell --> Web : Translation draft state
+  deactivate Shell
+  Web --> User : Editable draft; explicit Translate still required
+  deactivate Web
+end
+deactivate User
+@enduml

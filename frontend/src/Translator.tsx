@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from './api'
 import { CopyButton, DictationButton, DictationStatus, ErrorNotice, EvidencePanel, Icon, LanguageToggle, OriginBadge, ReadButton, Spinner, TokenAnalysis, TranslationDirection } from './components'
-import { languageLabels, MAX_TEXT } from './types'
+import { isLocalOrigin, languageLabels, MAX_TEXT } from './types'
 import type { IncomingText, Language, Tone, Translation, TranslationLanguage } from './types'
 import { browserVoiceLanguage, useDictation } from './voice'
 import type { ReadAloud } from './voice'
@@ -37,6 +37,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
   const [target, setTarget] = useState<TranslationLanguage>('francanglais')
   const [explanationLanguage, setExplanationLanguage] = useState<Language>('fr')
   const [useDataset, setUseDataset] = useState(true)
+  const [useDictionary, setUseDictionary] = useState(true)
   const [allowAI, setAllowAI] = useState(true)
   const [importNotice, setImportNotice] = useState(false)
   const [tone, setTone] = useState<Tone>('everyday')
@@ -45,7 +46,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
   const { pending, error, run, cancel, clearError } = useRequest()
   const { stop } = speech
   const voiceLanguage = browserVoiceLanguage(source)
-  const canTranslate = useDataset || (allowAI && aiAvailable)
+  const canTranslate = useDataset || useDictionary || (allowAI && aiAvailable)
 
   const invalidate = useCallback(() => {
     cancel()
@@ -77,6 +78,11 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
     cancelVoice()
     invalidate()
     setText(incomingText.text.slice(0, MAX_TEXT))
+    if (incomingText.source && incomingText.target && incomingText.source !== incomingText.target) {
+      setSource(incomingText.source)
+      setTarget(incomingText.target)
+    }
+    if (incomingText.kind === 'dictionary') setUseDictionary(true)
     setImportNotice(true)
   }, [incomingText, cancelVoice, invalidate])
 
@@ -106,6 +112,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         body: {
           text: text.trim(), source_language: source, target_language: target,
           explanation_language: explanationLanguage, tone, use_dataset: useDataset,
+          use_dictionary: useDictionary,
           allow_ai: allowAI && aiAvailable,
         },
         signal,
@@ -120,7 +127,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
       <div>
         <div className="eyebrow"><span className="eyebrow-line" />CAMEROON FRANCANGLAIS & PIDGIN · LEARN BOTH WAYS</div>
         <h1 id="translator-title">Many words.<br /><em>More understanding.</em></h1>
-        <p>Explore Francanglais and Cameroon Pidgin alongside French and English.<br className="desktop-break" /> Start with reviewed local entries. See what is known—and what still needs learning.</p>
+        <p>Explore Francanglais and Cameroon Pidgin alongside French and English.<br className="desktop-break" /> Compare reviewed collection entries and source-labelled reference vocabulary.</p>
       </div>
       <div className="intro-note" aria-label="Learn with comparisons and human review">
         <div className="orbit-mark" aria-hidden="true"><span>fr</span><Icon name="sparkles" size={31} /><span>en</span></div>
@@ -129,7 +136,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
       </div>
     </div>
 
-    {importNotice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>Imported text is in your draft. Check the source language and wording, then choose Translate. Nothing has been submitted or saved.</span></div>}
+    {importNotice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{incomingText?.kind === 'dictionary' ? 'A reference word is in your draft, set to Francanglais → English. Review it, then choose Translate. Nothing has been submitted or saved.' : 'Imported text is in your draft. Check the source language and wording, then choose Translate. Nothing has been submitted or saved.'}</span></div>}
     <form className="translation-workspace" onSubmit={submit}>
       <div className="source-panel">
         <div className="panel-topline"><span className="small-caps">01 / YOUR WORDS</span><Icon name="globe" size={18} /></div>
@@ -150,9 +157,10 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
           </div>
           <div className="grounding-options">
             <label className="checkbox-label"><input type="checkbox" checked={useDataset} onChange={(event) => { invalidate(); setUseDataset(event.target.checked) }} />Use approved dataset matches</label>
+            <label className="checkbox-label"><input type="checkbox" checked={useDictionary} onChange={(event) => { invalidate(); setUseDictionary(event.target.checked) }} />Use reference dictionary</label>
             <label className="checkbox-label"><input type="checkbox" checked={allowAI && aiAvailable} disabled={!aiAvailable} onChange={(event) => { invalidate(); setAllowAI(event.target.checked) }} />Allow AI suggestions for gaps</label>
-            <p className="helper-text">{!aiAvailable ? 'AI is unavailable. Exact approved entry/gloss matches still work locally without an AI key.' : useDataset ? 'An exact approved full-entry match stays local. Otherwise, enabled AI fallback receives your text and selected approved text/gloss matches only.' : 'Dataset use is off. An enabled AI request sends your text, not collection matches.'}</p>
-            {!canTranslate && <p className="helper-text">Enable dataset lookup or available AI suggestions to translate.</p>}
+            <p className="helper-text">Exact, unambiguous matches from enabled local sources need no AI key. The reference dictionary supplies English meanings, not French translations. If enabled, AI fallback receives your text and selected matches from the sources you enable.</p>
+            {!canTranslate && <p className="helper-text">Enable collection lookup, the dictionary, or available AI suggestions to translate.</p>}
           </div>
         </div>
         <label className="sr-only" htmlFor="translation-source">{languageLabels[source]} text to translate</label>
@@ -187,12 +195,12 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         {pending ? <div className="translation-loading" role="status">
           <div className="loading-symbol"><Icon name="sparkles" size={32} /></div>
           <h2>Finding the right words…</h2>
-          <p>{useDataset ? 'Checking approved local entries first.' : 'Requesting a clearly labeled AI suggestion.'}</p>
+          <p>{useDataset || useDictionary ? 'Checking enabled local sources first.' : 'Requesting a clearly labeled AI suggestion.'}</p>
           <div className="skeleton-lines" aria-hidden="true"><span /><span /><span /></div>
         </div> : result ? <div className="translation-result">
           <OriginBadge origin={result.origin} exact={result.origin === 'dataset' && Boolean(result.translation) && result.evidence?.some((entry) => entry.match_type === 'exact')} />
           <p className="result-text" aria-live="polite">{result.translation}</p>
-          {!result.translation && <p className="result-explanation">No complete translation was found in the approved dataset. Add reviewed entries or explicitly enable AI suggestions.</p>}
+          {!result.translation && <p className="result-explanation">No complete translation was found in the enabled local sources. Compare dictionary senses, add reviewed entries, or explicitly enable AI suggestions.</p>}
           {result.translation && <div className="result-actions">
             <ReadButton speech={speech} id="translation-result" text={result.translation} language={browserVoiceLanguage(result.target_language ?? target)} disabled={voice.listening} />
             <CopyButton text={result.translation} />
@@ -202,7 +210,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         </div> : <div className="translation-empty">
           <div className="empty-spark" aria-hidden="true"><Icon name="sparkles" size={40} /><span className="tiny-spark">✦</span></div>
           <h2>A meaning to explore.<br /><em>A source to compare.</em></h2>
-          <p>Your {languageLabels[target]} result will appear here.<br />Exact dataset matches and AI suggestions are labeled separately.</p>
+          <p>Your {languageLabels[target]} result will appear here.<br />Collection matches, reference meanings, and AI suggestions are labelled separately.</p>
           <span className="empty-dots" aria-hidden="true"><i /><i /><i /></span>
         </div>}
         <div className="result-footnote"><Icon name="leaf" size={15} /><span>Language is living. Context makes the difference.</span></div>
@@ -217,7 +225,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
       {result.coverage && <section className="coverage-card" aria-labelledby="coverage-title">
         <div className="section-title"><Icon name="search" size={18} /><h2 id="coverage-title">What this lookup covered</h2></div>
         <dl className="coverage-summary">
-          <div><dt>Matched in approved entries</dt><dd>{result.coverage.matched_terms.length ? result.coverage.matched_terms.join(' · ') : 'No matching terms reported'}</dd></div>
+          <div><dt>Matched in enabled local sources</dt><dd>{result.coverage.matched_terms.length ? result.coverage.matched_terms.join(' · ') : 'No matching terms reported'}</dd></div>
           <div><dt>Not matched in this lookup</dt><dd>{result.coverage.unmatched_terms.length ? result.coverage.unmatched_terms.join(' · ') : 'No unmatched terms reported—not a guarantee of full understanding'}</dd></div>
         </dl>
         {result.coverage.warnings.length > 0 && <ul className="coverage-warnings">{result.coverage.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
@@ -232,12 +240,12 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         <summary><Icon name="code" size={17} /><span>Look at the local lexer analysis</span><Icon name="chevron" size={15} /></summary>
         <TokenAnalysis analysis={result.analysis} />
       </details>}
-      <p className="helper-text model-note">{result.origin === 'dataset' ? `Local lookup · ${result.model}. No Gemini translation request was needed.` : `AI suggestion · ${result.model}. Dataset evidence does not verify all generated wording; check cultural nuance with a speaker.`}</p>
+      <p className="helper-text model-note">{isLocalOrigin(result.origin) ? `Local lookup · ${result.model}. No Gemini translation request was needed.` : `AI suggestion · ${result.model}. Retrieved evidence does not verify all generated wording; check cultural nuance with a speaker.`}</p>
     </div>}
 
     <div className="learning-next-steps">
       <div><strong>Turn a gap into something to learn.</strong><p>Keep Francanglais and Cameroon Pidgin distinct. Compare meanings, record real context, and approve only after your review.</p></div>
-      <div className="learning-links"><button type="button" className="button button-secondary" onClick={onOpenCollection}><Icon name="collection" size={17} />Review collection</button><button type="button" className="button button-secondary" onClick={onOpenImports}><Icon name="upload" size={17} />Import & learn</button></div>
+      <div className="learning-links"><a className="button button-secondary" href="#dictionary"><Icon name="search" size={17} />Browse dictionary</a><button type="button" className="button button-secondary" onClick={onOpenCollection}><Icon name="collection" size={17} />Review collection</button><button type="button" className="button button-secondary" onClick={onOpenImports}><Icon name="upload" size={17} />Import & learn</button></div>
     </div>
     <div className="translator-bottom-grid">
       <article className="culture-card">
@@ -250,6 +258,6 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         <Icon name="arrow" size={21} />
       </button>
     </div>
-    <p className="privacy-caption" id="translation-voice-privacy"><Icon name="shield" size={15} /><span>Exact approved translations run on your local backend. When enabled and needed, AI fallback sends your submitted text and selected approved text/gloss matches to Gemini—not names, locations, notes, or the full corpus. Optional dictation may send audio to your browser’s speech provider. Neither importing nor dictation submits automatically.</span></p>
+    <p className="privacy-caption" id="translation-voice-privacy"><Icon name="shield" size={15} /><span>Exact local lookups do not call Gemini. When enabled and needed, AI fallback sends your submitted text and selected source-labelled matches—not collection contributor names, locations, notes, the full corpus, or the full dictionary. Optional dictation may send audio to your browser’s speech provider. Neither importing nor dictation submits automatically.</span></p>
   </section>
 }

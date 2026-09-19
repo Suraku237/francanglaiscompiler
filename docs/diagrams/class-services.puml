@@ -29,13 +29,14 @@ class AIError {
 ' @class backend.grounding.Grounding
 class Grounding <<dataclass>> {
   exact_translation: str | None
+  exact_sources: set[EvidenceSource]
   ambiguous: bool
 }
 class "httpx.AsyncClient" as Client <<external>>
 class Exception <<external>>
 class "Evidence\n(result view)" as Evidence <<reference>>
 class "Coverage\n(result view)" as Coverage <<reference>>
-rectangle "grounding.py <<module>>\nretrieve(), local_translation()\nwithout_dataset(), evidence_json()" as Retrieval
+rectangle "grounding.py <<module>>\nretrieve(), local_translation(), ai_origin()\nwithout_local_sources(), evidence_json()" as Retrieval
 Settings --|> BaseSettings
 AIError --|> Exception
 GeminiService "0..*" --> "1" Settings : settings

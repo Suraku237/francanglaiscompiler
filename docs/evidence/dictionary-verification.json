@@ -1,0 +1,118 @@
+{
+  "recorded_on": "2026-09-19",
+  "baseline_commit": "160945c",
+  "includes_uncommitted_dictionary_changes": true,
+  "scope": "Separate reference dictionary integration; not linguistic validation or fieldwork certification",
+  "stages": {
+    "supplied_sources_and_loader": "passed",
+    "lookup_translation_and_provenance": "passed",
+    "interface_and_documentation": "passed",
+    "integration_and_cleanup": "passed"
+  },
+  "sources": [
+    {
+      "file": "dictionary/camfranglais.md",
+      "entries": 143,
+      "supplied_sha256": "4f78163fd91252916ec44d9fed289a58f9bb1e9fd07717c56f76aef9b0e020a1",
+      "repository_sha256": "484729ff27868e031b1fe4f17035d0846a69e1f416cbb48c273775dcd8c11c21"
+    },
+    {
+      "file": "dictionary/extra_lexicon.md",
+      "entries": 36,
+      "supplied_sha256": "f42d21da6747fa6e7b65134a1c30561967db25d0a08e99e1a0f599c7eba8bea1",
+      "repository_sha256": "45834fac89457ca63653a433397679b6e8a24cdb836badeb6038235e77d13a53"
+    }
+  ],
+  "source_copy_note": "Vocabulary text and source line positions preserved; repository copies normalize line endings and terminate the final line.",
+  "reference_entries": 179,
+  "reference_count_is_not_unique_words_or_fieldwork": true,
+  "french_definitions_generated": false,
+  "source_meanings_silently_replaced": false,
+  "dictionary_rows_added_to_collection": 0,
+  "python": {
+    "command": ".venv\\Scripts\\python.exe -m tools.run_python_tests --quiet",
+    "passed": 268,
+    "failed": 0,
+    "seconds": 84.131,
+    "dictionary_tests_included": 16,
+    "desktop_tests_included": 56,
+    "maintenance_tests_included": 33,
+    "provider_requests": "Mocked in automated tests",
+    "export_verification": "Both reference files retained under source/dictionary; empty corpus and coursework counts remain zero"
+  },
+  "frontend": {
+    "component_command": "npm test -- --maxWorkers=2",
+    "component_tests_passed": 86,
+    "component_files": 9,
+    "browser_command": "npm run test:e2e -- --workers=2",
+    "browser_tests_passed": 22,
+    "browser_profiles": ["Desktop Chromium", "Mobile Chromium emulation"],
+    "browser_api": "Controlled fixtures",
+    "final_wording_check": "All six Dictionary component tests passed again after correcting singular result-count text",
+    "application_and_test_typechecks": "passed",
+    "production_build": "passed",
+    "initial_run_note": "The combined unit/browser/Python/UML run had frontend timeouts. Separate two-worker reruns passed without relaxed timeouts. The new browser test was corrected to select From/To comboboxes by accessible role and name.",
+    "served_assets_match_disk_sha256": {
+      "index-Sz9vNHO0.js": "b4d3938640328bed4fccfc893302c5310a31d2b2136d71d782c2d6abbdaf4154",
+      "index-jW0SgOzm.css": "6c0ecfba3ba9f9748d406cb88bfd2b407d3dfa294bfb0f8156d86470c79d8def"
+    }
+  },
+  "live_integration": {
+    "transport": "Real loopback FastAPI and built Vite preview",
+    "ai_configured": false,
+    "gemini_calls_for_verified_lookups": 0,
+    "api_method_path_count": 21,
+    "dictionary_source_entries": 179,
+    "lookups": [
+      {"word": "tchop", "target": "en", "status": 200, "translation": "to eat"},
+      {"word": "motard", "target": "en", "status": 200, "translation": "a motorcycle taxi rider"},
+      {"word": "pasho", "target": "en", "status": 200, "translation": "father; dad"},
+      {"word": "wanda", "target": "en", "status": 422, "reason": "Conflicting supplied senses"},
+      {"word": "tchop", "target": "fr", "status": 422, "reason": "No supplied French alignment"}
+    ],
+    "browser_handoff_and_local_tchop_result": "verified against the real API",
+    "mobile_supplement_entry": "motard; extra_lexicon.md:13; source and English meaning visible",
+    "mobile_viewport_width": 390,
+    "mobile_document_width": 375,
+    "horizontal_overflow": false,
+    "collection_and_coursework_counts": 0,
+    "corpus_sha256_before": "bfbf5c12e1f4664472335c0ea6231e697af2d3e62571bbe7e89e7a2ad8d79ec2",
+    "corpus_sha256_after": "bfbf5c12e1f4664472335c0ea6231e697af2d3e62571bbe7e89e7a2ad8d79ec2"
+  },
+  "documentation": {
+    "version": "1.3",
+    "command": ".venv\\Scripts\\python.exe -m tools.check_documentation",
+    "verified": true,
+    "production_classes": 49,
+    "diagrams": 29,
+    "balanced_sequence_views": 14,
+    "srs_pages": 26,
+    "sdd_pages": 46,
+    "atlas_pages": 29,
+    "functional_requirements": 37,
+    "nonfunctional_requirements": 16,
+    "user_stories": 24,
+    "product_backlog_items": 24,
+    "proposed_sprints": 4,
+    "published_pdfs_match_build_sha256": {
+      "srs.pdf": "c4b2be4c12553d74d9c54dd923342a5f2e4103a0a57da03cdab3731dfb57f0e1",
+      "sdd.pdf": "0d60f51949aa2753d44c772b46764b2a271f31dc030af290cd1b1064d30438d2",
+      "uml-atlas.pdf": "8b7f4b0de141cdbad0ea0603a8a8e5e7ca8d3969743277701667dc57342ffc08"
+    },
+    "checks": "Class coverage, explicit activations, source/sheet mappings, embedded pixels, resolved references and LaTeX layout",
+    "rendering": "Local PlantUML and Tectonic"
+  },
+  "cleanup": {
+    "owned_api_and_preview_processes": "stopped",
+    "listeners_on_validation_ports_after_shutdown": 0,
+    "temporary_inspection_outputs": "removed",
+    "commit_created": false
+  },
+  "remaining_boundaries": [
+    "Sources supply English definitions, not French meanings or trusted grammatical labels.",
+    "The dictionaries are finite learner references; coverage and linguistic correctness require human evaluation.",
+    "Reference vocabulary is not genuine collected fieldwork and does not fulfill the corpus/report requirements.",
+    "Physical audio, live AI quality, real mobile hardware and assistive-technology acceptance are not certified.",
+    "No remote CI result is claimed."
+  ]
+}

@@ -180,6 +180,10 @@ class CourseworkTests(unittest.TestCase):
             self.assertFalse(any(".env" in name or "node_modules" in name for name in names))
             self.assertIn("source/compiler/parser/service.py", names)
             self.assertIn("source/tests/test_collected.py", names)
+            self.assertIn("source/dictionary/camfranglais.md", names)
+            self.assertIn("source/dictionary/extra_lexicon.md", names)
+            self.assertIn(b"**tchop** | to eat", archive.read("source/dictionary/camfranglais.md"))
+            self.assertIn(b"**motard** | a motorcycle taxi rider", archive.read("source/dictionary/extra_lexicon.md"))
             report = archive.read("report.html").decode()
             self.assertEqual(report.count("<section class='report-page'>"), 25)
             self.assertIn("&lt;script&gt;", report)
@@ -201,6 +205,8 @@ class CourseworkTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_exporting_empty_data_is_explicit_draft(self):
+        self.assertEqual(self.client.get("/api/dictionary").json()["total"], 179)
+        self.assertEqual(self.client.get("/api/coursework").json()["stats"]["total"], 0)
         response = self.client.get("/api/coursework/export")
         self.assertEqual(response.status_code, 200)
         with ZipFile(io.BytesIO(response.content)) as archive:

@@ -18,6 +18,7 @@ class TranslationRequest {
   tone
   explanation_language
   use_dataset: bool
+  use_dictionary: bool
   allow_ai: bool
   different_languages(): Self
 }
@@ -28,6 +29,7 @@ class ChatRequest {
   source_language
   target_language
   use_dataset: bool
+  use_dictionary: bool
   validate_history(): Self
 }
 ' @class backend.schemas.ChatMessage

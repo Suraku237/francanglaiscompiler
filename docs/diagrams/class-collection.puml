@@ -1,7 +1,7 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Collection DTOs and application error
+title Separate collection and reference dictionary DTOs
 hide empty members
 class "RequestModel\n(request view)" as RequestModel <<reference>>
 ' @class backend.schemas.EntryCreate
@@ -33,6 +33,18 @@ class DatasetResponse {
   by_category: dict[str, int]
   by_type: dict[str, int]
 }
+' @class backend.schemas.DictionaryEntry
+class DictionaryEntry {
+  id; text; aliases
+  language: francanglais
+  english_gloss; origin; topic
+  source_document; source_line
+}
+' @class backend.schemas.DictionaryResponse
+class DictionaryResponse {
+  total; matched; offset; limit
+  sources: list[str]
+}
 ' @class backend.schemas.HealthResponse
 class HealthResponse {
   status: ok
@@ -54,10 +66,15 @@ class CollectionError {
 }
 class Exception <<external>>
 rectangle "collection.py <<module>>\nlist_entries(), create_entry()\nedit_entry(), remove_entry()" as Collection
+rectangle "dictionary.py <<module>>\nparse_dictionary(), load_dictionary()\nlist_dictionary(), headword_aliases()" as Dictionary
 EntryCreate --|> RequestModel
 EntryPatch --|> RequestModel
 CollectionError --|> Exception
 DatasetResponse "0..*" --> "0..*" DatasetEntry : entries
+DictionaryResponse "0..*" --> "0..100" DictionaryEntry : entries
+Dictionary ..> DictionaryEntry : parses supplied Markdown rows
+Dictionary ..> DictionaryResponse : search and pagination
+Dictionary ..> CollectionError : raises safe 503 on load failure
 Collection ..> EntryCreate : validates create
 Collection ..> EntryPatch : applies changed fields
 Collection ..> DatasetResponse : returns list / global counts
@@ -68,9 +85,11 @@ note bottom of EntryPatch
   ID, timestamp and audio are not editable.
 end note
 legend bottom
-  The four response DTOs directly extend pydantic.BaseModel.
+  The six response DTOs directly extend pydantic.BaseModel.
   EntryCreate/EntryPatch inherit extra=forbid via RequestModel.
   DatasetEntry is an API DTO, not the storage representation:
   CSV helpers use dictionaries, not a repository/model class.
+  Reference entries are read-only, not approved corpus entries.
+  Their etymological origin does not supply a French gloss or POS.
 endlegend
 @enduml

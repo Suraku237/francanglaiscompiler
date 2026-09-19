@@ -17,6 +17,7 @@ from data_collector import dataset
 from .coursework import BRIEF, analyze_coursework, corpus_stats, lexical_spec, read_corpus
 from .coursework_models import ProjectProfile
 from .coursework_store import list_screenshots, load_project, screenshot_path
+from .dictionary import DICTIONARY_PATHS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -310,6 +311,8 @@ if __name__ == "__main__":
         for path in (ROOT / "frontend" / "src").glob("*"):
             if path.suffix in (".ts", ".tsx", ".css"):
                 archive.write(path, "source/" + path.relative_to(ROOT).as_posix())
+        for path in DICTIONARY_PATHS:
+            archive.write(path, "source/dictionary/" + path.name)
         for relative in (
             "data_collector/dataset.py", "compiler/lexer/regex_specification.md",
             "requirements.txt", "backend/requirements.txt", "README.md",
@@ -323,6 +326,7 @@ if __name__ == "__main__":
         archive.writestr("START-HERE.txt",
             "DRAFT coursework bundle. No API keys or environment files are included.\n"
             "Raw data and contributor names ARE included: share only with authorized course recipients.\n"
+            "source/dictionary contains separate reference vocabulary, not collected fieldwork or extra corpus rows.\n"
             "Open report.html locally; print/save as PDF after editing and checking 25-30 pages (max 30).\n"
             "Personalize presentation.pptx; timing notes total 10 minutes (3 per member plus wrap-up).\n"
             "Review actual screenshots, original discussion and fieldwork claims before submission.\n"

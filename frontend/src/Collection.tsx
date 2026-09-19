@@ -267,6 +267,7 @@ export function Collection({ active }: { active: boolean }) {
       <div><span className="stat-icon lavender"><Icon name="shield" size={23} /></span><div><strong className="stat-word">Yours.</strong><span>stored locally, always in reach</span></div><span className="stat-index" aria-hidden="true">03</span></div>
     </div>
     <div className="collection-summary"><span className="helper-text">Counts cover your whole collection, not just the search results.</span>{dataset && <div className="type-counts">{Object.entries(dataset.by_type).map(([type, count]) => <span key={type}>{type || 'Unspecified'} <strong>{count}</strong></span>)}</div>}</div>
+    <p className="helper-text">Looking for the supplied word lists? <a href="#dictionary">Open the reference dictionary</a>. Its entries stay separate and are not included in these collection totals.</p>
     <div className="notice notice-subtle"><Icon name="shield" size={18} /><p><strong>Saved is not the same as approved.</strong> Legacy records without a review status remain unreviewed; records without a language remain unspecified. Mixed-language entries are distinct. Review missing details rather than guessing. <a href="#imports">Import material to preview and review</a>.</p></div>
 
     <div className="collection-tools">

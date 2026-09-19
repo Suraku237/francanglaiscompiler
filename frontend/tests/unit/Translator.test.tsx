@@ -27,6 +27,50 @@ const sourceText = () => screen.getByRole('textbox', { name: /text to translate/
 const submit = () => screen.getByRole('button', { name: 'Translate' })
 
 describe('translator trust and submission boundaries', () => {
+  it('labels a dictionary answer as local reference material rather than approved fieldwork or AI', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(translation({
+      translation: 'Reference meaning', origin: 'dictionary', model: 'local-dictionary',
+      evidence: [{
+        id: 'dictionary:fixture.md:4', text: 'fixture', language: 'francanglais',
+        french_gloss: '', english_gloss: 'Reference meaning', match_type: 'exact',
+        source: 'dictionary', source_document: 'fixture.md', source_line: 4, aliases: ['fixture'],
+      }],
+    })))
+    const { user } = renderTranslator({ aiAvailable: false })
+    await user.type(sourceText(), 'fixture')
+    await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))
+    expect(submit()).toBeEnabled()
+    await user.click(submit())
+    expect(await screen.findByText('Reference dictionary · local')).toBeInTheDocument()
+    expect(screen.getByText(/fixture.md:4 · not fieldwork/)).toBeInTheDocument()
+    expect(screen.getByText('No French gloss recorded')).toBeInTheDocument()
+    expect(screen.getByText(/No Gemini translation request was needed/)).toBeInTheDocument()
+    expect(screen.queryByText('Exact approved match · local')).not.toBeInTheDocument()
+    expect(requestBody(vi.mocked(fetch).mock.calls[0])).toMatchObject({
+      use_dataset: false, use_dictionary: true, allow_ai: false,
+    })
+  })
+
+  it('sets the correct direction for a dictionary handoff without automatically submitting', async () => {
+    renderTranslator({ incomingText: { id: 1, text: 'pasho', source: 'francanglais', target: 'en', kind: 'dictionary' } })
+    expect(sourceText()).toHaveValue('pasho')
+    expect(screen.getByLabelText('From')).toHaveValue('francanglais')
+    expect(screen.getByLabelText('To')).toHaveValue('en')
+    expect(screen.getByText(/A reference word is in your draft/)).toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('invalidates an old answer when dictionary use changes', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(translation({ translation: 'Old source selection' })))
+    const { user } = renderTranslator()
+    await user.type(sourceText(), 'fixture')
+    await user.click(submit())
+    await screen.findByText('Old source selection')
+    await user.click(screen.getByRole('checkbox', { name: 'Use reference dictionary' }))
+    expect(screen.queryByText('Old source selection')).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('works without AI, explicitly sends local-only options and identifies an exact approved match', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(translation({ translation: 'Local fixture result' })))
     const { user } = renderTranslator({ aiAvailable: false })
@@ -38,7 +82,7 @@ describe('translator trust and submission boundaries', () => {
 
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toEqual({
       text: 'Sens de test', source_language: 'fr', target_language: 'francanglais',
-      explanation_language: 'fr', tone: 'everyday', use_dataset: true, allow_ai: false,
+      explanation_language: 'fr', tone: 'everyday', use_dataset: true, use_dictionary: true, allow_ai: false,
     })
     expect(await screen.findByText('Exact approved match · local')).toBeInTheDocument()
     expect(screen.getByText('Local fixture result')).toBeInTheDocument()
@@ -47,7 +91,7 @@ describe('translator trust and submission boundaries', () => {
   })
 
   it.each([
-    { origin: 'ai' as const, label: 'AI suggestion · no dataset evidence' },
+    { origin: 'ai' as const, label: 'AI suggestion · no local evidence' },
     { origin: 'ai_with_dataset' as const, label: 'AI suggestion · with dataset matches' },
   ])('labels $origin without implying that retrieval verifies the answer', async ({ origin, label }) => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(translation({
@@ -70,7 +114,7 @@ describe('translator trust and submission boundaries', () => {
     await user.type(sourceText(), 'unknown-fixture')
     await user.click(submit())
     expect(await screen.findByText('Local dataset lookup')).toBeInTheDocument()
-    expect(screen.getByText(/No complete translation was found in the approved dataset/)).toBeInTheDocument()
+    expect(screen.getByText(/No complete translation was found in the enabled local sources/)).toBeInTheDocument()
     expect(screen.getByText('unknown-fixture', { selector: 'dd' })).toBeInTheDocument()
     expect(screen.getByText('No approved full-entry match.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Copy text' })).not.toBeInTheDocument()
@@ -81,6 +125,7 @@ describe('translator trust and submission boundaries', () => {
     const { user } = renderTranslator({ aiAvailable: false })
     await user.type(sourceText(), 'Fixture')
     await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Use reference dictionary' }))
     expect(submit()).toBeDisabled()
     expect(fetch).not.toHaveBeenCalled()
     await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))

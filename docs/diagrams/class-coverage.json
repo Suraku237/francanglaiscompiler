@@ -26,6 +26,8 @@
   "backend.schemas.Coverage": ["class-api-results"],
   "backend.schemas.DatasetEntry": ["class-collection"],
   "backend.schemas.DatasetResponse": ["class-collection"],
+  "backend.schemas.DictionaryEntry": ["class-collection"],
+  "backend.schemas.DictionaryResponse": ["class-collection"],
   "backend.schemas.EntryCreate": ["class-collection"],
   "backend.schemas.EntryPatch": ["class-collection"],
   "backend.schemas.Evidence": ["class-api-results"],

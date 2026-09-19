@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
-import { languageLabels, translationLanguages } from './types'
+import { isLocalOrigin, languageLabels, translationLanguages } from './types'
 import type { Analysis, AnswerOrigin, DatasetEvidence, Language, TranslationLanguage } from './types'
 import type { Dictation, ReadAloud } from './voice'
 
@@ -137,9 +137,17 @@ export function TranslationDirection({ source, target, onChange, disabled = fals
 }
 
 export function OriginBadge({ origin, exact = false }: { origin?: AnswerOrigin; exact?: boolean }) {
-  return <span className={`origin-badge ${origin === 'dataset' ? 'origin-local' : 'origin-ai'}`}>
-    <Icon name={origin === 'dataset' ? 'collection' : 'sparkles'} size={14} />
-    {origin === 'dataset' ? exact ? 'Exact approved match · local' : 'Local dataset lookup' : origin === 'ai_with_dataset' ? 'AI suggestion · with dataset matches' : 'AI suggestion · no dataset evidence'}
+  const labels: Record<AnswerOrigin, string> = {
+    dataset: exact ? 'Exact approved match · local' : 'Local dataset lookup',
+    dictionary: 'Reference dictionary · local',
+    local_sources: 'Collection + dictionary · local',
+    ai_with_dataset: 'AI suggestion · with dataset matches',
+    ai_with_sources: 'AI suggestion · with local source matches',
+    ai: 'AI suggestion · no local evidence',
+  }
+  return <span className={`origin-badge ${isLocalOrigin(origin) ? 'origin-local' : 'origin-ai'}`}>
+    <Icon name={isLocalOrigin(origin) ? 'collection' : 'sparkles'} size={14} />
+    {labels[origin ?? 'ai']}
   </span>
 }
 
@@ -149,19 +157,20 @@ export function EvidencePanel({ evidence, origin, compact = false }: {
   compact?: boolean
 }) {
   return <details className={`evidence-panel ${compact ? 'evidence-compact' : ''}`} open={compact ? undefined : true}>
-    <summary><Icon name="collection" size={17} /><span>Approved dataset matches <strong>({evidence.length})</strong></span><Icon name="chevron" size={15} /></summary>
+    <summary><Icon name="collection" size={17} /><span>Local source matches <strong>({evidence.length})</strong></span><Icon name="chevron" size={15} /></summary>
     <div className="evidence-content">
-      <p className="helper-text">{origin === 'dataset'
-        ? 'These are the approved local records returned by this lookup. Approval records a human review, not universal correctness.'
+      <p className="helper-text">{isLocalOrigin(origin)
+        ? 'Sources are labelled individually. Approved collection records reflect human review; dictionary references are not collected fieldwork or a guarantee of universal correctness.'
         : 'These are retrieved records, not a verification of the entire AI answer. A phrase or token match does not establish the meaning of a whole sentence.'}</p>
       {evidence.length ? <div className="evidence-list">{evidence.map((entry, index) => <article className="evidence-record" key={`${entry.id}-${index}`}>
         <div className="evidence-byline"><code>ID: {entry.id}</code><span>{entry.match_type} match</span></div>
+        <div className="evidence-byline">{entry.source === 'dictionary' ? <span>Reference dictionary · {entry.source_document}:{entry.source_line} · not fieldwork</span> : <span>Human-approved collection record</span>}</div>
         <dl className="evidence-comparison">
           <div><dt>{languageLabels[entry.language] ?? entry.language}</dt><dd>{entry.text}</dd></div>
           <div><dt>French · FR</dt><dd lang="fr">{entry.french_gloss || 'No French gloss recorded'}</dd></div>
           <div><dt>English · EN</dt><dd lang="en">{entry.english_gloss || 'No English gloss recorded'}</dd></div>
         </dl>
-      </article>)}</div> : <p className="evidence-empty">No approved matches were returned. The local collection does not cover every word or expression.</p>}
+      </article>)}</div> : <p className="evidence-empty">No local matches were returned. The collection and reference dictionary do not cover every word or expression.</p>}
     </div>
   </details>
 }

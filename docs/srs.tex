@@ -13,7 +13,7 @@
 \hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdfstartview=FitH,
   pdftitle={Francanglais Platform - Software Requirements Specification}}
 \pagestyle{fancy}
-\fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS v1.2}\cfoot{\thepage}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS v1.3}\cfoot{\thepage}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcommand{\placeholder}[1]{\textcolor{accent}{\textbf{[To supply: #1]}}}
 \newcommand{\requirement}[4]{\textbf{#1}\newline\textit{#2} & #3\par\smallskip\textbf{Acceptance:} #4\\\addlinespace}
@@ -24,9 +24,9 @@
 \large Current Requirements, Traceability and Proposed Delivery Plan}
 \author{Group members and matricules:\\[0.5em]
 Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
-Name 2: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}\\[0.5em]
+Djemtchimo Noukui Bruno Jonatan --- ICTU20241585\\[0.5em]
 Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
-\date{Version 1.2 --- 19 September 2026}
+\date{Version 1.3 --- 19 September 2026}
 \begin{document}
 \maketitle\thispagestyle{empty}
 \begin{center}
@@ -34,8 +34,8 @@ Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
 \end{center}
 \vfill
 \noindent\textbf{Revision basis:} current production source in the working tree
-based on \nolinkurl{ff7dcf7}, including the current completion changes.
-The first author's supplied SDD details are preserved; the other identities,
+based on \nolinkurl{160945c}, including the reference dictionary extension.
+The two supplied SDD identities are preserved; remaining identity details,
 observations and historical sprint results are not inferred.
 \par\medskip
 \noindent\textbf{Planning basis:} four proposed two-week sprints. Story points,
@@ -49,7 +49,8 @@ its acceptance boundaries and remaining human deliverables. It serves contributo
 the three-person project group, learners, maintainers and reviewers. The SDD
 explains the actual modules, all production application classes and UML workflows.
 
-Version 1.2 supersedes v1.1's desktop-only assumptions. Backend, compiler and
+Version 1.3 retains v1.2's replacement of v1.1's desktop-only assumptions and
+adds the separate supplied reference dictionary. Backend, compiler and
 editable React source now provide direct evidence: the web API, reviewed
 translation, import preview, grammar workbench and coursework export are
 \emph{implemented}, not hypothetical components. Existing FR-01--FR-20,
@@ -199,10 +200,10 @@ native Francanglais voices and provider retention guarantees are not supplied.
 {Stored language and review status shall distinguish francanglais, pidgin, mixed and unspecified, and approved from unreviewed.}
 {Legacy/invalid values become unspecified/unreviewed in memory; an invalid lexical label becomes empty. Editing evidence without an explicit review decision invalidates approval. A reviewer may explicitly approve a changed record.}
 \requirement{FR-23}{B}
-{Dataset-first translation shall use approved, labelled Francanglais/Pidgin alignments and answer locally only for an unambiguous full-entry source/target match.}
+{Collection-grounded translation shall use approved, labelled Francanglais/Pidgin alignments and answer locally only for an unambiguous full-entry source/target match; separately enabled references follow FR-37.}
 {Partial/token overlap never synthesizes a local sentence. Conflicting or missing target alignments prevent local success. Return IDs, selected evidence and overlap warnings within the bounded evidence budget; do not share private row metadata.}
 \requirement{FR-24}{B}
-{Explicit translation/chat requests may use configured AI, with dataset controls and visible origin/model labels.}
+{Explicit translation/chat requests may use configured AI, with independent collection/reference controls and visible origin/model labels.}
 {No eligible exact match plus disabled AI returns 422. AI output is labelled unverified, never auto-saved. Chat accepts at most six complete alternating exchanges (12 messages, 24,000 total history characters).}
 \requirement{FR-25}{B}
 {The web collection shall search all row values, show whole-corpus counts, and create, partially edit or confirm deletion of entries.}
@@ -240,6 +241,9 @@ native Francanglais voices and provider retention guarantees are not supplied.
 \requirement{FR-36}{B}
 {Optional compiler tutoring shall explain locally recomputed facts without applying changes or choosing parser results.}
 {Send only entered grammar/practice text/question/language and selected computed facts; omit stored profile, screenshots and full corpus. Bound context to 30,000 characters; suggestions remain for human review.}
+\requirement{FR-37}{B}
+{The system shall expose a searchable, read-only reference dictionary from the two supplied Markdown files, separately from collected fieldwork, and use enabled reference meanings for honest local lookup.}
+{Preserve all 143+36 source rows, senses and source citations; support listed forms, search and pagination (at most 100 entries per API page). Require an unambiguous whole-entry match, never concatenate word meanings into a sentence. Do not invent absent French meanings, infer grammar labels from origins, write corpus rows or inflate coursework counts. Handoff fills a draft only; independent switches also constrain AI evidence. Corrupt/missing reference sources fail explicitly.}
 \bottomrule\end{longtable}
 
 \section{Non-Functional Requirements}
@@ -330,7 +334,7 @@ They are \emph{collection categories}, not lexer terminal labels.
 
 \subsection{Interface families}
 All explicit application routes use \nolinkurl{/api}: health/metadata,
-translation, chat, lexical analysis, dataset CRUD, import preview/suggestions,
+translation, chat, lexical analysis, dataset CRUD, read-only dictionary lookup, import preview/suggestions,
 and coursework state, project saving, corpus analysis, parsing, tutoring,
 screenshots and export. DTO details and the
 complete method/path table are in the SDD. Request models reject unknown
@@ -338,8 +342,10 @@ JSON fields. The OpenAPI page is generated by FastAPI; it is documentation,
 not proof that an AI key is valid. Desktop has no HTTP dependency.
 
 \subsection{Privacy and evidence separation}
-Approved retrieval sends only ID, expression text, language, French/English
-glosses and match type, with coverage where applicable; source location,
+Local retrieval sends ID, expression text, language, French/English
+glosses, match type and a source discriminator, with coverage where applicable.
+Dictionary matches additionally include their supplied forms and reference
+filename/line; these are not human fieldwork claims. Collection source location,
 contributor, notes, timestamp, audio and full corpus are excluded. This
 minimization does not anonymize sensitive words a user explicitly submits.
 Cloud consent applies to import preview; pressing a later AI suggestion,
@@ -350,7 +356,7 @@ it must be reviewed before sharing. These documentation PDFs contain neither
 the actual corpus nor invented fieldwork.
 
 \section{User Stories and Acceptance Criteria}
-US-01--US-16 preserve the previous story identities. US-17--US-23 describe
+US-01--US-16 preserve the previous story identities. US-17--US-24 describe
 already implemented added scope. Each maps to the corresponding PB suffix.
 None of these statements records a historically completed sprint.
 
@@ -468,6 +474,12 @@ None of these statements records a historically completed sprint.
 {FR-35; NFR-15}
 {\item Cancellation/navigation/editing prevents stale success callbacks; timeouts never promise server rollback.
 \item Dictation is opt-in and only fills text; synthesis can stop and has no native-voice guarantee.}
+\story{US-24}{Use supplied reference vocabulary without inventing fieldwork}
+{As a learner, I want to find supplied words and English meanings even when the research CSV is empty, while keeping their provenance distinct.}
+{FR-23, FR-24, FR-35, FR-37; NFR-08, NFR-16}
+{\item Both supplied sources are searchable and cited; conflicting senses remain visible and never silently replace each other.
+\item Exact reference lookups need no AI key; missing French remains a gap. The reference switch is independent of collection use.
+\item Dictionary handoff does not submit/save; collection counts and coursework corpus analysis remain unchanged.}
 
 \section{Prioritized Product Backlog}
 \subsection{Current verification register}
@@ -476,12 +488,13 @@ E5 is verified by rebuilding and checking the published artifacts; the same
 commands run in the configured CI workflow. A remote CI result is not claimed.
 \begin{longtable}{L{1cm}L{13.3cm}}
 \toprule\textbf{ID} & \textbf{Recorded result and boundary}\\\midrule\endhead
-E1 & 252 Python regressions passed, including 56 desktop and 33 maintenance/checker tests. Real WAV codec/file round-trip also passed; microphone/provider tests remain isolated mocks.\\
-E2 & 77 frontend component tests passed; application and test TypeScript checks and production build passed.\\
-E3 & 18 desktop/mobile Chromium cases passed, including import consent/handoff, review, keyboard focus, saved-project/export gating and downloaded fixture ZIP bytes. API data is mocked, not authentic research.\\
+E1 & 268 Python regressions passed, including 16 dictionary, 56 desktop and 33 maintenance/checker tests. Earlier real WAV codec/file round-trip also passed; microphone/provider tests remain isolated mocks.\\
+E2 & 86 frontend component tests passed; application and test TypeScript checks and production build passed.\\
+E3 & 22 desktop/mobile Chromium cases passed, including dictionary search/handoff/retry, import consent, review, keyboard focus, saved-project/export gating and downloaded fixture ZIP bytes. API data is mocked, not authentic research.\\
 E4 & Real active-tab benchmark: 1,000 synthetic 500-character rows; search p95 53.31 ms, Stats p95 606.01 ms; 20 measured runs each. Report: \nolinkurl{docs/evidence/collector-benchmark.json}. Measured hardware is not the original 8 GB/SSD reference.\\
-E5 & SRS/SDD and 28 full-size UML sheets built locally. Inventory covers 47 production classes; 13 sequence views have explicit balanced call/reply activations. Source/sheet/image/reference checks accompany publication.\\
-H & Human gates: genuine corpus and permission, two remaining identities and all contributions, reviewed linguistic findings, real devices/provider, reference hardware, final report/slides and group sign-off. Not fulfilled by E1--E5.\\
+E5 & SRS/SDD and 29 full-size UML sheets built locally. Inventory covers 49 production classes; 14 sequence views have explicit balanced call/reply activations. Source/sheet/image/reference checks accompany publication.\\
+E6 & Reference extension: both supplied files retain 143+36 source entries, explicit English meanings and provenance. Local lookups, conflicting senses, missing French, source switches and unchanged corpus/export counts are tested. See \nolinkurl{docs/evidence/dictionary-verification.json}.\\
+H & Human gates: genuine corpus and permission, remaining identity details and all contributions, reviewed linguistic findings, real devices/provider, reference hardware, final report/slides and group sign-off. Not fulfilled by E1--E6.\\
 \bottomrule\end{longtable}
 
 \subsection{Source state versus proposed scheduling}
@@ -505,7 +518,7 @@ PB-08 & US-08 & Should & 5 & S2 & PB-07 & Software verified (E1): fallback/error
 PB-09 & US-09 & Should & 5 & S3 & PB-07,08 & Software/WAV I/O verified (E1): retry states and guards. Genuine microphone trial is H.\\
 PB-10 & US-10 & Should & 3 & S3 & PB-01 & Software verified (E1, E4): consistent Stats/readiness. Authentic topic coverage is H.\\
 PB-11 & US-11 & Must & 5 & S3 & PB-05--09 & Software verified (E1, E4): fault safety and restore checks. Real-data permission/recovery approval is H.\\
-PB-12 & US-12 & Must & 3 & S3 & PB-11 & Engineering documents verified (E5); two author rows and group approval remain H.\\
+PB-12 & US-12 & Must & 3 & S3 & PB-11 & Engineering documents verified (E5); remaining member details and group approval remain H.\\
 PB-13 & US-13 & Must & 8 & S4 & PB-01,11 & Software verified (E1): regex/reviewed-word lexer. Independent linguistic evaluation is H.\\
 PB-14 & US-14 & Must & 8 & S4 & PB-13 & Software verified (E1, E3): CFG/LL(1)/traces. Own-corpus rationale/evaluation is H.\\
 PB-15 & US-15 & Must & 3 & S4 & PB-12--14 & Engineering handover verified (E1--E5); research, devices, provider and group sign-off remain H.\\
@@ -524,6 +537,7 @@ PB-20 / US-20 & PB-17,19 & Software verified (E1--E3): bounded preview, consent,
 PB-21 / US-21 & PB-13,14,17 & Software verified (E1--E3): profile/analysis/images. Actual group data, transcripts and interpretation remain H.\\
 PB-22 / US-22 & PB-21 & Software verified (E1--E3): draft ZIP/report/slides and native download. Final pagination/rehearsal/release remain H.\\
 PB-23 / US-23 & PB-17--22 & Software verified (E2--E3): cancellation, focus and opt-in controls. Real devices/assistive technology remain H.\\
+PB-24 / US-24 & PB-18,23 & Software verified (E1--E3, E6): separate supplied dictionary, provenance-aware retrieval and draft handoff. Source coverage and linguistic evaluation remain human responsibilities.\\
 \bottomrule\end{longtable}
 
 \section{Sprint Backlogs: Four Proposed Two-Week Iterations}
@@ -534,7 +548,7 @@ velocity. M1, M2 and M3 refer to the three author rows;
 suggested leads are \textbf{unconfirmed}. All tasks below have planning
 allocation state \textbf{Proposed}. Each task separately records current
 software evidence below; it does not claim a completed sprint. Implementations should be reviewed and
-verified instead of unnecessarily re-created. Added PB-17--PB-23 scope
+verified instead of unnecessarily re-created. Added PB-17--PB-24 scope
 is not silently included in these unchanged estimates.
 \begin{longtable}{L{1.3cm}L{1.8cm}L{7.7cm}L{1cm}L{1.3cm}}
 \toprule\textbf{Sprint} & \textbf{Window} & \textbf{Proposed goal} & \textbf{SP} & \textbf{Hours}\\\midrule\endhead

@@ -8,10 +8,10 @@
 \setlength{\emergencystretch}{3em}
 \setlist{itemsep=2pt,topsep=5pt}
 \definecolor{accent}{HTML}{1E3A5F}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdfstartview=FitH,
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,
   pdftitle={Francanglais Platform - Software Design Description}}
 \pagestyle{fancy}
-\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD v1.2}\cfoot{\thepage}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD v1.3}\cfoot{\thepage}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcommand{\viewtrace}[2]{\par\smallskip\noindent\textbf{Requirements:} #1.\par
   \noindent\textbf{Source:} #2.\par\medskip}
@@ -23,19 +23,19 @@
 \large Source-grounded Architecture and Explained UML}
 \author{Group members and matricules:\\[0.6em]
 Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
-Name 2: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}\\[0.5em]
+Djemtchimo Noukui Bruno Jonatan --- ICTU20241585\\[0.5em]
 Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
-\date{Version 1.2 --- 19 September 2026}
+\date{Version 1.3 --- 19 September 2026}
 \begin{document}
 \maketitle\thispagestyle{empty}
 \begin{center}\textit{Engineering evidence, not a substitute for genuine fieldwork.}\end{center}
 \vfill
 \noindent\textbf{Revision basis:} current working source based on
-\nolinkurl{ff7dcf7}, including the desktop, browser and verification completion
-changes. The first author's supplied details are preserved from the existing
-SDD; other identities and contributions are not invented.
+\nolinkurl{160945c}, including the separate reference dictionary integration.
+The two supplied names/matricules are preserved; remaining identity details
+and contributions are not invented.
 \par\medskip
-\noindent\textbf{Reading design:} A4 explanations are followed by 28 full-size
+\noindent\textbf{Reading design:} A4 explanations are followed by 29 full-size
 UML sheets. Click a figure reference to inspect its sheet. The sheets retain
 readable label sizes rather than shrinking complex diagrams to tiny A4 text.
 Use actual-size or tiled printing for large sheets; the SRS remains A4.
@@ -49,12 +49,12 @@ not proposed components. This document supersedes the old desktop-only SDD.
 The local CSV is shared; there is no database server, trained predictor,
 authenticated user model or public multi-tenant deployment.
 
-Nine class views collectively cover \textbf{47 authored production classes}:
-45 Python class declarations, the factory-generated lexer \texttt{Token}, and
+Nine class views collectively cover \textbf{49 authored production classes}:
+47 Python class declarations, the factory-generated lexer \texttt{Token}, and
 the TypeScript \texttt{ApiError}. The machine-readable mapping is
 \nolinkurl{docs/diagrams/class-coverage.json}. Test helpers, maintenance tools,
 framework classes and erased TypeScript interfaces are outside that count.
-The remaining views are 13 sequences, two states, one activity, one use case,
+The remaining views are 14 sequences, two states, one activity, one use case,
 one component view and one deployment view.
 
 \subsection{How to read the models}
@@ -99,6 +99,10 @@ file artifact, not a relational database. Coursework uses the compiler and
 saved evidence; only explicit tutoring uses Gemini. Imports can produce
 candidates but cannot implicitly append a row. Browser speech has its own
 provider boundary, independent of Gemini and desktop recording.
+The sixth browser workspace, Dictionary, reads versioned Markdown through
+\nolinkurl{backend/dictionary.py}. These resources are not CSV corpus rows.
+Retrieval can use either or both local sources; collection statistics and
+compiler research continue to read only the saved CSV.
 \viewtrace{FR-01, FR-06, FR-15--FR-16, FR-21--FR-36}
 {\nolinkurl{backend/main.py}, \nolinkurl{backend/coursework_api.py},
 \nolinkurl{backend/import_api.py}, \nolinkurl{frontend/src}, \nolinkurl{data_collector/App.py}}
@@ -106,10 +110,8 @@ provider boundary, independent of Gemini and desktop recording.
 \subsection{Deployment topology}
 Figure~\ref{fig:deployment} distinguishes the trusted workstation, execution
 environments, artifacts and external services. Development uses browser--Vite
-HTTP and the Vite API proxy. Built-preview mode serves the versioned frontend
-assets through Vite preview, whose API proxy is also configured. FastAPI exposes
-the API only; its root path does not serve the web interface. Production hosting
-needs a separate static server with matching API routing. The desktop process can run
+HTTP and the Vite API proxy. The alternative built mode serves the versioned
+frontend assets and API directly through FastAPI. The desktop process can run
 independently, using the same local CSV and audio directory.
 
 Keys remain in server configuration, not browser assets. Optional HTTPS
@@ -185,6 +187,12 @@ models. Create and patch requests differ from stored-entry, list, health and
 metadata responses. The \nolinkurl{CollectionError} class carries safe failure
 details. A dataset response holds any number of entry DTOs.
 Aggregate counts describe the whole corpus, not only a search result.
+The same view also shows \nolinkurl{DictionaryEntry} and
+\nolinkurl{DictionaryResponse}. The latter associates zero through 100 entry
+values per response, enforced by Pydantic. It reports total source rows,
+matched rows, offset, limit and source filenames. The separate dictionary
+module reads references and raises the existing safe error type on failure;
+it does not use collection mutation methods.
 
 PATCH requires at least one field, rejects explicit null, and preserves
 omitted fields. Only editable values and the review decision are sent by the
@@ -275,6 +283,32 @@ Desktop timestamps are local ISO seconds; API timestamps carry UTC offset.
 IDs/timestamps survive editing. The file is not a database enforcing every
 identity invariant: manually duplicated IDs can break GUI row identifiers and
 must not be treated as supported concurrent editing.
+
+\subsection{Reference vocabulary is not a research corpus}
+The supplied \nolinkurl{dictionary/camfranglais.md} and
+\nolinkurl{dictionary/extra_lexicon.md} contain 143 and 36 source rows,
+respectively. Each row retains its headword, original English meaning,
+topic, indicative etymological origin, source filename and line number.
+All 179 rows are retained, including repeated headwords, identical duplicates
+and distinct senses. This count is not a unique-word or collected-statement count.
+
+The loader validates the three-column Markdown tables. Search normalizes
+matching text only; displayed wording is unchanged. Explicit slash alternatives,
+optional parenthesized wording such as \texttt{Na wa (oh)}, and terminal
+question/exclamation-mark variants support lookup. IDs include the filename
+and row line, not corpus UUIDs; editing source layout may change these IDs.
+The two files are loaded afresh on requests, so a corrected source can be retried
+without a stale-cache fallback.
+
+The sources contain English meanings, not French translations or trusted
+part-of-speech annotations. Etymological ``French''/``Pidgin'' labels do not
+change the declared Francanglais reference language. No dictionary operation
+inserts CSV rows, approves records, adjusts learner labels or inflates
+coursework statistics. Export includes these files as implementation resources,
+separate from corpus artifacts. The desktop collector remains CSV-based.
+\viewtrace{FR-37; NFR-08, NFR-16}
+{\nolinkurl{backend/dictionary.py}, \nolinkurl{frontend/src/Dictionary.tsx},
+\nolinkurl{backend/coursework_export.py}}
 
 \subsection{Audio and review ownership}
 An entry references zero or one filename; a filename is not a foreign key or
@@ -410,7 +444,7 @@ the lock. Missing update/delete IDs never become successful rewrites.
 Lock activations show acquire/release execution, not the whole ownership interval.
 \viewtrace{FR-01, FR-06, FR-19, FR-25; NFR-11}{\nolinkurl{data_collector/dataset.py}, \nolinkurl{backend/collection.py}}
 
-\subsection{Dataset-first translation}
+\subsection{Local-source translation}
 Figure~\ref{fig:sequence-translation} shows explicit submission, reviewed
 retrieval and three outcome paths. An unambiguous full-entry alignment returns
 local wording without tone synthesis. Otherwise enabled AI may receive only
@@ -418,6 +452,14 @@ selected evidence; disabled AI produces actionable 422 guidance. Storage
 failure does not fall through to a cloud request. Successful text is analyzed
 locally and labelled with origin/model/evidence/coverage.
 Cancellation prevents stale display, not guaranteed rollback of provider work.
+Collection and dictionary use have independent switches, enabled by default.
+Reference aliases participate in full-entry matching; English definitions
+are not split into invented bilingual pairs. Distinct full-entry target meanings
+remain ambiguous, even across the collection/reference boundary. Identical
+targets can share source evidence. Missing dictionary French meanings cannot
+veto a valid approved French alignment. Local results distinguish
+\texttt{dataset}, \texttt{dictionary} and \texttt{local\_sources}; AI results
+retain their AI designation, including \texttt{ai\_with\_sources}.
 \viewtrace{FR-23--FR-24, FR-29, FR-35}{\nolinkurl{backend/main.py}, \nolinkurl{backend/grounding.py}}
 
 \subsection{Chat history and provider boundaries}
@@ -428,8 +470,29 @@ at most one bounded retry for an initial 503. Safe errors distinguish quota,
 transport, timeout, blocked/truncated output and invalid content.
 Only a current successful result appends a user/assistant pair. Failed turns
 retain the draft. Clearing browser history does not erase provider-retained data.
+The provider service rechecks each evidence source against its own switch;
+turning collection use off must not strip enabled reference evidence, and
+turning dictionary use off must exclude it. Citation metadata is separate from
+private collection provenance. A reference is never described as approved fieldwork.
 \viewtrace{FR-24, FR-35; NFR-08, NFR-14}
 {\nolinkurl{frontend/src/Assistant.tsx}, \nolinkurl{backend/gemini.py}}
+
+\subsection{Read-only dictionary lookup and handoff}
+Figure~\ref{fig:sequence-dictionary} shows a debounced, cancellable search,
+validated route parameters, both file reads and strict parsing before a
+paginated response. The total and matched counts refer to dictionary rows,
+not corpus statistics. Missing files or malformed rows produce a visible 503;
+invalid query parameters produce 422. Neither failure silently becomes an
+empty dictionary.
+
+Opening a listed form invokes the App handoff callback: the translator gets
+a draft with Francanglais-to-English direction and dictionary lookup enabled.
+The user must still press Translate. There is no implicit AI call or collection
+save. Receiver activations and matching replies show every synchronous
+communication, including nested parser calls and the App callback.
+\viewtrace{FR-35, FR-37; NFR-15--NFR-16}
+{\nolinkurl{frontend/src/Dictionary.tsx}, \nolinkurl{frontend/src/App.tsx},
+\nolinkurl{backend/main.py}, \nolinkurl{backend/dictionary.py}}
 
 \subsection{Import preview, suggestions and explicit saving}
 Figure~\ref{fig:sequence-imports} separates three actions. Preview validates a
@@ -473,16 +536,16 @@ research report, and slides still require personalization/rehearsal.
 
 \section{HTTP Interfaces and Failure Contracts}
 \subsection{Complete application route inventory}
-The table covers all twenty application method/path combinations exposed by
-the generated OpenAPI schema. FastAPI additionally exposes its schema/docs
-framework routes. Frontend documents/assets are served separately through Vite
-or an explicitly configured static host, not by the API application.
+The table covers all twenty-one application method/path combinations exposed by
+the generated OpenAPI schema. FastAPI's schema/docs and built static assets
+are framework/presentation routes, not additional data-mutation APIs.
 \begingroup\small
 \begin{longtable}{L{1.6cm}L{6.6cm}L{6.4cm}}
 \toprule\textbf{Method} & \textbf{Path} & \textbf{Successful contract}\\\midrule\endhead
 GET & \nolinkurl{/api/health} & 200 HealthResponse; configuration, no live probe.\\
 GET & \nolinkurl{/api/metadata} & 200 MetadataResponse.\\
 GET & \nolinkurl{/api/dataset} & 200 DatasetResponse; optional search, global counts.\\
+GET & \nolinkurl{/api/dictionary} & 200 DictionaryResponse; query, offset and bounded limit; no mutation.\\
 POST & \nolinkurl{/api/dataset} & 201 DatasetEntry; validated create.\\
 PATCH & \nolinkurl{/api/dataset/{entry_id}} & 200 DatasetEntry; changed editable fields.\\
 DELETE & \nolinkurl{/api/dataset/{entry_id}} & 204; no response body.\\
@@ -528,13 +591,18 @@ authenticated permission, independent research verification or grade.
 \subsection{Recorded engineering checks}
 \begin{longtable}{L{3.8cm}L{10.8cm}}
 \toprule\textbf{Evidence} & \textbf{Result and limit}\\\midrule\endhead
-Python regression run & 252 tests passed after the inventory/activation checks were added. Includes 56 desktop tests and 33 maintenance/checker tests. Synthetic storage and mocked provider/device failures.\\
-Frontend checks & 77 component tests; 18 desktop/mobile Chromium workflows; app/test type-checking and production build passed. Browser API responses are controlled fixtures.\\
+Python regression run & 268 tests passed, including 16 dictionary tests, 56 desktop tests and 33 maintenance/checker tests. Synthetic storage and mocked provider/device failures. Reference source files are read, never counted as fieldwork.\\
+Frontend checks & 86 component tests; 22 desktop/mobile Chromium workflows; app/test type-checking and production build passed. Browser API responses are controlled fixtures.\\
 Real WAV round-trip & Silent mono 44,100 Hz WAV written/read with 4,410 frames. This exercises codec/file I/O, not a microphone or audible playback.\\
 Desktop benchmark & 1,000 synthetic 500-character rows, one warm-up and 20 measured runs per operation. Search p95 53.31 ms; Stats p95 606.01 ms, both below 1,000 ms on the recorded machine.\\
 Recovery & Sixteen snapshot tests verify exact bytes, media/profile recovery, corruption rejection and refusal to overwrite an existing destination; five tests check timing/fixture methodology.\\
-Documentation & Local UML/LaTeX generation; 47-class mapping, explicit activations, 28 source/image references, full-size sheet mapping, embedded pixels and reference/layout checks.\\
+Documentation & Local UML/LaTeX generation; 49-class mapping, explicit activations, 29 source/image references, full-size sheet mapping, embedded pixels and reference/layout checks.\\
 \bottomrule\end{longtable}
+Reference integration evidence is recorded separately at
+\nolinkurl{docs/evidence/dictionary-verification.json}. The two-worker frontend
+reruns passed without relaxed assertion timeouts after an initial concurrent
+run timed out; the dictionary browser selector was corrected to use the
+combobox's accessible role/name. No production timing workaround was added.
 The benchmark report at \nolinkurl{docs/evidence/collector-benchmark.json}
 records source hashes, raw samples, runtime and approximately 31.8 GiB RAM.
 It does \textbf{not} certify the SRS's original 8 GB/local-SSD reference setup.
@@ -623,4 +691,5 @@ resolution PNGs are retained in \nolinkurl{docs/diagrams}.
 \diagram{sequence-imports}{26}{Preview, suggestion and reviewed import sequence}
 \diagram{sequence-compiler}{27}{Grammar analysis and predictive parsing sequence}
 \diagram{sequence-coursework}{28}{Saved coursework and draft export sequence}
+\diagram{sequence-dictionary}{29}{Separate reference lookup and explicit draft handoff}
 \end{document}

@@ -6,7 +6,7 @@ autonumber
 actor User
 participant "Assistant\n<<React function>>" as Web
 participant "main.chat\n<<route function>>" as API
-participant "grounding / dataset\n<<modules>>" as Local
+participant "grounding / dataset / dictionary\n<<modules>>" as Local
 participant "service : GeminiService" as AI
 participant "httpx / Gemini" as Provider
 
@@ -19,17 +19,18 @@ Web --> Web : Up to 6 complete exchanges; <= 24,000 chars
 deactivate Web
 Web -> API : POST /api/chat\nChatRequest
 activate API
-opt use_dataset = true
+opt use_dataset or use_dictionary
   API -> Local : retrieve(..., chat=True)\nusing current + last 2 user queries
   activate Local
-  Local --> API : Whitelisted approved evidence / storage error
+  Local --> API : Source-labelled evidence / storage error
   deactivate Local
 end
 alt Storage failed
   note over API : Return safe storage error; do not contact AI.
-else Grounding available or dataset disabled
+else Grounding available or both sources disabled
 API -> AI : await chat(request, evidence)
 activate AI
+note over AI : Recheck each source's switch;\nreference evidence is not human-approved fieldwork.
 AI -> AI : await _generate(contents, structured=False)
 activate AI
 alt API key missing
@@ -70,7 +71,8 @@ Web --> User : Reply / recoverable state
 deactivate Web
 deactivate User
 legend bottom
-  Dataset-off excludes retrieved examples, not explicitly typed messages/history.
+  The collection and dictionary switches are independent.
+  Disabled sources supply no retrieved examples; typed text/history is still sent.
   The model never receives contributor/location/notes through retrieval.
   Clear removes browser-tab history, not possible provider-retained records.
 endlegend

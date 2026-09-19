@@ -3,14 +3,15 @@
 title Implemented package dependencies and data boundaries
 skinparam componentFontSize 14
 package "Browser: frontend/src" {
-  component "React function components\n5 workspaces + dialogs/results" as UI
+  component "React function components\n6 workspaces + dialogs/results" as UI
   component "api.ts / useRequest.ts\nHTTP, cancellation, errors" as WebAPI
   component "voice.ts\nopt-in browser speech" as Voice
 }
 package "Python backend" {
   component "main.py / schemas.py\nFastAPI routes and public DTOs" as Routes
   component "collection.py\nvalidated CRUD functions" as Collection
-  component "grounding.py\napproved alignment retrieval" as Grounding
+  component "grounding.py\nsource-labelled local retrieval" as Grounding
+  component "dictionary.py\nvalidated read-only reference lookup" as Dictionary
   component "gemini.py / config.py\nprovider client and secret settings" as Gemini
   component "import_api.py / imports.py\nbounded preview and suggestions" as Imports
   component "coursework*.py\nanalysis, profile, images, draft export" as Course
@@ -25,6 +26,7 @@ package "Desktop collector" {
   component "audio_utils.py\nRecorder / file / playback" as Audio
 }
 artifact "dataset.csv\n14 fields; legacy-compatible" as CSV <<file>>
+artifact "dictionary/*.md\n179 supplied source entries" as References <<file>>
 folder "Local audio" as AudioFiles
 folder "coursework\nproject.json / screenshots" as Project
 cloud "Gemini HTTPS\noptional explicit requests" as Cloud
@@ -34,6 +36,7 @@ UI ..> Voice
 WebAPI ..> Routes : /api
 Routes ..> Collection
 Routes ..> Grounding
+Routes ..> Dictionary
 Routes ..> Gemini
 Routes ..> Imports : included router
 Routes ..> Course : included router
@@ -41,11 +44,14 @@ Routes ..> Lexer
 Routes ..> Dataset : analysis / retrieval snapshot
 Collection ..> Dataset
 Grounding ..> Lexer : normalize / tokenize
+Dictionary ..> Lexer : normalize search
+Dictionary ..> References : read without corpus mutation
 Imports ..> Gemini : consented media / explicit suggestions
 Course ..> Lexer
 Course ..> Parser
 Course ..> Dataset
 Course ..> Project : profile / screenshot operations
+Course ..> References : export source files, not fieldwork rows
 Course ..> Gemini : explicit tutoring only
 Gemini ..> Cloud
 Desktop ..> Dataset

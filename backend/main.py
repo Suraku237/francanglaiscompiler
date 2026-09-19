@@ -15,11 +15,11 @@ from compiler.lexer.learned import build_lexicon
 from compiler.lexer.tokenizer import analyze_sentence
 from data_collector import dataset
 
-from . import collection
+from . import collection, dictionary
 from .config import Settings
 from .coursework_api import router as coursework_router
 from .gemini import AIError, GeminiService
-from .grounding import local_translation, retrieve, without_dataset
+from .grounding import ai_origin, local_translation, retrieve, without_local_sources
 from .import_api import router as import_router
 from .schemas import (
     AnalysisResult,
@@ -28,10 +28,12 @@ from .schemas import (
     ChatResponse,
     DatasetEntry,
     DatasetResponse,
+    DictionaryResponse,
     EntryCreate,
     EntryPatch,
     HealthResponse,
     MetadataResponse,
+    Origin,
     TokenResult,
     TranslationRequest,
     TranslationResponse,
@@ -75,7 +77,7 @@ def create_app(
 
     app = FastAPI(
         title="Mboa - Francanglais and Cameroon Pidgin",
-        description="Dataset-first translation, language learning, reviewed multimodal imports and compiler analysis.",
+        description="Local collection and reference dictionary translation, reviewed imports and compiler analysis.",
         version="1.0.0",
         lifespan=lifespan,
     )
@@ -104,18 +106,27 @@ def create_app(
         def get_grounding():
             entries = dataset.load_all() if payload.use_dataset else []
             grounding = retrieve(
-                entries, payload.text, payload.source_language, payload.target_language
-            ) if payload.use_dataset else without_dataset(payload.text)
+                entries, payload.text, payload.source_language, payload.target_language,
+                references=dictionary.load_dictionary() if payload.use_dictionary else [],
+            ) if payload.use_dataset or payload.use_dictionary else without_local_sources(payload.text)
             return entries, grounding
 
         entries, grounding = await run_in_threadpool(lambda: storage_operation(get_grounding))
+        origin: Origin
         if grounding.exact_translation is not None:
             result = local_translation(grounding, payload.explanation_language)
-            origin, model = "dataset", "local-dataset"
+            if grounding.exact_sources == {"dictionary"}:
+                origin, model = "dictionary", "local-dictionary"
+            elif grounding.exact_sources == {"dataset"}:
+                origin, model = "dataset", "local-dataset"
+            else:
+                origin, model = "local_sources", "local-sources"
         else:
             if not payload.allow_ai:
                 raise collection.CollectionError(
-                    422, "No unambiguous approved full-entry translation is available and AI suggestions are disabled. "
+                    422, "No unambiguous full-entry translation is available from the enabled local sources "
+                    "and AI suggestions are disabled. Check dictionary meanings, translation direction and "
+                    "conflicting senses; the supplied dictionary has English meanings only. "
                     "Add or review a complete aligned entry, or enable AI suggestions."
                 )
             result = await service.translate(payload, grounding.evidence, grounding.coverage)
@@ -124,7 +135,7 @@ def create_app(
                 if payload.explanation_language == "fr" else "Unverified AI suggestion; manual review required. "
             )
             result = result.model_copy(update={"note": label + result.note[:2000 - len(label)]})
-            origin = "ai_with_dataset" if grounding.evidence else "ai"
+            origin = ai_origin(grounding.evidence)
             model = config.gemini_model
         return TranslationResponse(
             **result.model_dump(),
@@ -139,16 +150,18 @@ def create_app(
     async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
         service: GeminiService = request.app.state.gemini
         evidence = []
-        if payload.use_dataset:
+        if payload.use_dataset or payload.use_dictionary:
             grounding = await run_in_threadpool(lambda: storage_operation(lambda: retrieve(
-                dataset.load_all(), payload.message, payload.source_language, payload.target_language,
+                dataset.load_all() if payload.use_dataset else [],
+                payload.message, payload.source_language, payload.target_language,
+                references=dictionary.load_dictionary() if payload.use_dictionary else [],
                 recent_user_messages=[message.content for message in payload.history if message.role == "user"],
                 chat=True,
             )))
             evidence = grounding.evidence
         return ChatResponse(
             reply=await service.chat(payload, evidence), model=config.gemini_model,
-            origin="ai_with_dataset" if evidence else "ai", evidence=evidence,
+            origin=ai_origin(evidence), evidence=evidence,
         )
 
     @app.post("/api/analyze", response_model=AnalysisResult)
@@ -165,6 +178,14 @@ def create_app(
     @app.get("/api/dataset", response_model=DatasetResponse)
     def get_dataset(query: str = Query(default="", max_length=200)) -> DatasetResponse:
         return storage_operation(lambda: collection.list_entries(query))
+
+    @app.get("/api/dictionary", response_model=DictionaryResponse)
+    def get_dictionary(
+        query: str = Query(default="", max_length=200),
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=50, ge=1, le=100),
+    ) -> DictionaryResponse:
+        return dictionary.list_dictionary(query, offset, limit)
 
     @app.post("/api/dataset", status_code=201, response_model=DatasetEntry)
     def add_entry(payload: EntryCreate) -> DatasetEntry:

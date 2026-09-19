@@ -60,7 +60,10 @@ class ApiTestCase(unittest.TestCase):
     def translate(self, **changes: object) -> httpx.Response:
         return self.client.post(
             "/api/translate",
-            json={"text": "The taxi refused.", "source_language": "en", "tone": "everyday", **changes},
+            json={
+                "text": "The taxi refused.", "source_language": "en", "tone": "everyday",
+                "use_dictionary": False, **changes,
+            },
         )
 
 

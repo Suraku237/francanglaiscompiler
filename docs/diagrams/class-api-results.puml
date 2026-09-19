@@ -13,7 +13,7 @@ class TranslationResponse {
   source_language
   target_language
   model: str
-  origin: dataset | ai_with_dataset | ai
+  origin: Origin
 }
 ' @class backend.schemas.VocabularyItem
 class VocabularyItem {
@@ -28,6 +28,9 @@ class Evidence {
   french_gloss: str
   english_gloss: str
   match_type: exact | phrase | token
+  source: dataset | dictionary
+  source_document; source_line
+  aliases: list[str]
 }
 ' @class backend.schemas.Coverage
 class Coverage {
@@ -61,6 +64,8 @@ ChatResponse "0..*" --> "0..*" Evidence : evidence
 note bottom of Evidence
   Whitelist intentionally omits contributor,
   location, notes, audio and timestamp.
+  Dictionary file/line and forms are public source citations,
+  not contributor or collection-location metadata.
   Retrieval emits at most 8 evidence records,
   but these DTO list types alone do not enforce 8.
 end note

@@ -186,7 +186,14 @@ class GroundingTests(ApiTestCase):
         response = self.translate(text="overlap gap")
         evidence = response.json()["evidence"]
         self.assertEqual([item["id"] for item in evidence], [relevant["id"]])
-        self.assertEqual(set(evidence[0]), {"id", "text", "language", "french_gloss", "english_gloss", "match_type"})
+        self.assertEqual(set(evidence[0]), {
+            "id", "text", "language", "french_gloss", "english_gloss", "match_type",
+            "source", "source_document", "source_line", "aliases",
+        })
+        self.assertEqual(evidence[0]["source"], "dataset")
+        self.assertEqual(evidence[0]["source_document"], "")
+        self.assertIsNone(evidence[0]["source_line"])
+        self.assertEqual(evidence[0]["aliases"], [])
         sent = json.loads(self.requests[-1].content)
         encoded = json.dumps(sent)
         self.assertNotIn("PRIVATE", encoded)

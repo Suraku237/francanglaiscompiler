@@ -3,6 +3,7 @@ import { api } from './api'
 import { Assistant } from './Assistant'
 import { Collection } from './Collection'
 import { Coursework } from './Coursework'
+import { Dictionary } from './Dictionary'
 import { Imports } from './Imports'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
 import type { IconName } from './components'
@@ -17,11 +18,12 @@ const navigation: { page: Page; label: string; icon: IconName; number: string }[
   { page: 'collection', label: 'Collection', icon: 'collection', number: '03' },
   { page: 'imports', label: 'Import & learn', icon: 'upload', number: '04' },
   { page: 'coursework', label: 'Compiler lab', icon: 'code', number: '05' },
+  { page: 'dictionary', label: 'Dictionary', icon: 'search', number: '06' },
 ]
 
 function currentPage(): Page {
   const hash = window.location.hash.slice(1)
-  return hash === 'assistant' || hash === 'collection' || hash === 'imports' || hash === 'coursework' ? hash : 'translator'
+  return hash === 'assistant' || hash === 'dictionary' || hash === 'collection' || hash === 'imports' || hash === 'coursework' ? hash : 'translator'
 }
 
 function PrivacyDialog({ onClose }: { onClose: () => void }) {
@@ -29,6 +31,7 @@ function PrivacyDialog({ onClose }: { onClose: () => void }) {
     <p className="modal-description">Here’s what stays local, what leaves your device, and when.</p>
     <div className="privacy-sections">
       <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Local storage, selected evidence</h3><p>Expressions live on your backend’s local disk. Browsing, searching, saving, deleting, and lexer analysis do not send records to Gemini. Exact approved translations also run locally, without an AI key. Unreviewed records are excluded from trusted matches; legacy records are not assumed approved.</p><p>For an explicitly submitted AI request with dataset use enabled, selected approved expression text and French/English glosses may be shared. Contributor names, source locations, notes, other record metadata, and the full corpus are excluded from retrieved evidence. Turn dataset use off to exclude those matches.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="search" size={21} /></span><div><h3>A separate reference dictionary</h3><p>The supplied dictionaries stay separate from collected fieldwork. Search and unambiguous full-entry lookups run locally. Reference meanings are not human-approved collection records; missing French meanings are not invented.</p><p>Dictionary use has its own switch. When you explicitly request an AI answer with dictionary use enabled, only selected words, meanings, listed variants, and source file/line citations may be sent, not the entire dictionary. Turning off collection use does not turn off dictionary use.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="sparkles" size={21} /></span><div><h3>AI suggestions, not automatic approval</h3><p>When there is no exact approved translation and AI fallback is enabled, Translate sends your text, direction, explanation language, tone, and any selected matches to Gemini. Send in the learning assistant shares your message, direction, language, up to six recent successful exchanges, and enabled dataset matches. Retrieved evidence does not verify every generated word.</p><p>AI answers and import suggestions are not saved automatically. Review language, wording, and meanings yourself before approving an entry. Never invent fieldwork or provenance to fill a gap.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="upload" size={21} /></span><div><h3>Preview imports before using them</h3><p>TXT, Markdown, CSV, JSON, DOCX, and text-based PDF previews are processed locally. Images, audio, video, and scanned PDFs require the cloud consent checkbox and an explicit Preview action before content is sent to Gemini for transcription. Limits are 12 MB per file, 40 PDF pages, and 40,000 extracted characters.</p><p>The app does not retain raw import files. Preview text is not automatically saved, translated, or submitted again. Choosing Translate or Ask AI only fills a draft; generating AI collection suggestions is a separate explicit request. Review any transcription and suggested records before saving. Provider-side retention is outside this app’s control. Remove sensitive information from any content you explicitly submit.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="code" size={21} /></span><div><h3>Your Compiler lab is still here</h3><p>Compiler lab AI explanations send only the grammar, manual test text, question, language, and locally recomputed results. Group profiles and explicitly uploaded coursework screenshots stay on the local backend. They are separate from import previews.</p><p>Drafts and chat stay in this browser tab’s memory and are lost on reload. Clearing a conversation removes local history, not records a service provider may retain.</p></div></section>
@@ -111,12 +114,16 @@ export default function App() {
       </header>
       <main id="main-content" className="main-content" ref={main} tabIndex={-1}>
         {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>AI requests are paused until the connection is restored. Start your local backend and check the connection again.</p></div>}
-        {!healthError && health && !health.ai_configured && <div className="configuration-banner" role="status"><span className="configuration-icon"><Icon name="collection" size={20} /></span><div><strong>Dataset-first learning is ready without AI.</strong><p>Exact approved translations, collection review, local document previews, and Compiler lab work without an AI key. To enable AI suggestions and consented media transcription, set <code>GEMINI_API_KEY</code> in <code>backend\.env</code>, restart the backend, then check the connection.</p></div></div>}
+        {!healthError && health && !health.ai_configured && <div className="configuration-banner" role="status"><span className="configuration-icon"><Icon name="collection" size={20} /></span><div><strong>Local-source learning is ready without AI.</strong><p>Dictionary search, exact local translations, collection review, local document previews, and Compiler lab work without an AI key. To enable AI suggestions and consented media transcription, set <code>GEMINI_API_KEY</code> in <code>backend\.env</code>, restart the backend, then check the connection.</p></div></div>}
         {speech.error && <ErrorNotice message={speech.error} />}
         {speech.activeId && <div className="playback-banner" role="status"><Icon name="volume" size={18} /><span>Reading with a browser voice</span><button type="button" className="text-button" onClick={speech.stop}><Icon name="stop" size={14} />Stop reading</button></div>}
         <div hidden={page !== 'translator'}><Translator active={page === 'translator'} aiAvailable={aiAvailable} speech={speech} incomingText={translationDraft} onOpenAssistant={() => { window.location.hash = 'assistant' }} onOpenCollection={() => { window.location.hash = 'collection' }} onOpenImports={() => { window.location.hash = 'imports' }} /></div>
         <div hidden={page !== 'assistant'}><Assistant active={page === 'assistant'} aiAvailable={aiAvailable} speech={speech} incomingText={assistantDraft} /></div>
         <div hidden={page !== 'collection'}><Collection active={page === 'collection'} /></div>
+        <div hidden={page !== 'dictionary'}><Dictionary active={page === 'dictionary'} onTranslate={(text) => {
+          setTranslationDraft({ id: nextHandoffId.current++, text, source: 'francanglais', target: 'en', kind: 'dictionary' })
+          window.location.hash = 'translator'
+        }} /></div>
         <div hidden={page !== 'imports'}><Imports active={page === 'imports'} aiAvailable={aiAvailable} onUseText={(text) => {
           setTranslationDraft({ id: nextHandoffId.current++, text })
           window.location.hash = 'translator'

@@ -18,6 +18,7 @@ node "Trusted workstation (default setup)" <<device>> {
   }
   node "Local storage" <<device>> {
     artifact "dataset.csv + cooperative lock" as CSV
+    artifact "dictionary/camfranglais.md\n+ extra_lexicon.md (versioned)" as References
     artifact "audio / generated filenames" as Audio
     artifact "coursework / profile + PNGs" as Coursework
     artifact "User-chosen draft ZIP / snapshot\nreview before sharing" as Export
@@ -30,6 +31,7 @@ node "Browser-selected speech provider\nimplementation-dependent" as SpeechProvi
 Browser -- Vite : local UI / assets HTTP
 Vite -- Backend : configured /api proxy
 Python ..> CSV : locked I/O
+Python ..> References : read-only lookup
 Python ..> Coursework : local I/O
 Python ..> Export : download bytes
 Collector ..> CSV : same lock protocol

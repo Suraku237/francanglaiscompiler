@@ -2,13 +2,20 @@ export type Language = 'fr' | 'en'
 export type TranslationLanguage = Language | 'francanglais' | 'pidgin'
 export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified'
 export type ReviewStatus = 'unreviewed' | 'approved'
-export type AnswerOrigin = 'dataset' | 'ai_with_dataset' | 'ai'
+export type AnswerOrigin = 'dataset' | 'dictionary' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
 export type Tone = 'everyday' | 'polite' | 'street'
-export type Page = 'translator' | 'assistant' | 'collection' | 'imports' | 'coursework'
+export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports' | 'coursework'
+
+export function isLocalOrigin(origin?: AnswerOrigin): boolean {
+  return origin === 'dataset' || origin === 'dictionary' || origin === 'local_sources'
+}
 
 export interface IncomingText {
   id: number
   text: string
+  source?: TranslationLanguage
+  target?: TranslationLanguage
+  kind?: 'dictionary'
 }
 
 export const translationLanguages: TranslationLanguage[] = ['fr', 'en', 'francanglais', 'pidgin']
@@ -28,6 +35,31 @@ export interface DatasetEvidence {
   french_gloss: string
   english_gloss: string
   match_type: 'exact' | 'phrase' | 'token'
+  source: 'dataset' | 'dictionary'
+  source_document: string
+  source_line: number | null
+  aliases: string[]
+}
+
+export interface DictionaryEntry {
+  id: string
+  text: string
+  aliases: string[]
+  language: 'francanglais'
+  english_gloss: string
+  origin: string
+  topic: string
+  source_document: string
+  source_line: number
+}
+
+export interface DictionaryResult {
+  entries: DictionaryEntry[]
+  total: number
+  matched: number
+  offset: number
+  limit: number
+  sources: string[]
 }
 
 export interface DatasetCoverage {
