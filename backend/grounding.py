@@ -10,7 +10,7 @@ from compiler.lexer.tokenizer import normalize_text, tokenize
 
 from .schemas import (
     Coverage, DatasetLanguage, DictionaryEntry, Evidence, EvidenceSource,
-    Origin, TranslationContent, TranslationLanguage,
+    Origin, PracticeEntry, TranslationContent, TranslationLanguage,
 )
 
 MAX_CANDIDATES = 64
@@ -46,6 +46,7 @@ def source_values(entry: Evidence, language: TranslationLanguage) -> list[str]:
 
 def source_evidence(
     entries: list[dict[str, str]], references: list[DictionaryEntry],
+    examples: list[PracticeEntry] | None = None,
 ) -> Iterator[Evidence]:
     for entry in entries:
         if (
@@ -65,6 +66,13 @@ def source_evidence(
             source="dictionary", source_document=entry.source_document,
             source_line=entry.source_line, aliases=entry.aliases,
         )
+    for example in examples or []:
+        yield Evidence(
+            id=example.id, text=example.text, language=example.language,
+            french_gloss=example.french_gloss, english_gloss=example.english_gloss,
+            match_type="token", source="examples", source_document=example.source_document,
+            source_line=example.source_line,
+        )
 
 
 def evidence_json(evidence: list[Evidence]) -> str:
@@ -72,7 +80,7 @@ def evidence_json(evidence: list[Evidence]) -> str:
 
 
 def ai_origin(evidence: list[Evidence]) -> Origin:
-    if any(item.source == "dictionary" for item in evidence):
+    if any(item.source != "dataset" for item in evidence):
         return "ai_with_sources"
     return "ai_with_dataset" if evidence else "ai"
 
@@ -100,6 +108,7 @@ def retrieve(
     target_language: TranslationLanguage,
     *,
     references: list[DictionaryEntry] | None = None,
+    examples: list[PracticeEntry] | None = None,
     recent_user_messages: list[str] | None = None,
     chat: bool = False,
 ) -> Grounding:
@@ -113,7 +122,7 @@ def retrieve(
     missing_exact_target = False
     omitted = False
     matched_count = 0
-    for index, entry in enumerate(source_evidence(entries, references or [])):
+    for index, entry in enumerate(source_evidence(entries, references or [], examples)):
         if local_languages and entry.language not in local_languages:
             continue
         sources = source_values(entry, source_language)
@@ -208,7 +217,7 @@ def retrieve(
 def without_local_sources(text: str) -> Grounding:
     return Grounding(coverage=Coverage(
         unmatched_terms=list(dict.fromkeys(terms(text))),
-        warnings=["Collection and dictionary use are disabled; any translation is an unverified AI suggestion."],
+        warnings=["All local sources are disabled; any translation is an unverified AI suggestion."],
     ))
 
 
@@ -216,6 +225,21 @@ def local_translation(result: Grounding, explanation_language: str) -> Translati
     if result.exact_translation is None:
         raise ValueError("No complete local translation is available.")
     french = explanation_language == "fr"
+    if "examples" in result.exact_sources:
+        return TranslationContent(
+            translation=result.exact_translation,
+            explanation=(
+                "Sens fourni avec un exemple construit, repris sans IA."
+                if french else "Supplied meaning from a constructed practice example, copied without AI."
+            ),
+            vocabulary=[],
+            note=(
+                "Exemple pédagogique construit, pas une observation vérifiée d'un locuteur. "
+                "Les mots fournis sont conservés sans adaptation du ton."
+                if french else "Constructed learning material, not a verified real-speaker statement. "
+                "Supplied wording is preserved without tone adaptation."
+            ),
+        )
     if "dictionary" in result.exact_sources:
         return TranslationContent(
             translation=result.exact_translation,

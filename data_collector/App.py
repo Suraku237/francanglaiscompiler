@@ -184,6 +184,7 @@ class App(ctk.CTk):
         self._staged_audio_files: set[str] = set()
         self._captured_audio = None
         self._recording_pending_stop = False
+        self._recording_check_job = None
         self._collect_approval = None
         self._browse_approval = None
         self._selected_browse_entry = None
@@ -548,6 +549,7 @@ class App(ctk.CTk):
         if self.recorder is None:
             return
         if self.recorder.recording or self._recording_pending_stop or self.recorder.stream is not None:
+            self._cancel_recording_check()
             try:
                 audio = self.recorder.stop()
             except AUDIO_ERRORS as error:
@@ -557,6 +559,8 @@ class App(ctk.CTk):
                 self._sync_audio_controls()
                 return
             self._recording_pending_stop = False
+            if self.recorder.warning:
+                messagebox.showwarning("Review captured audio", self.recorder.warning)
             if audio is None or len(audio) == 0:
                 suffix = " Previous attachment kept." if self.pending_audio_path else ""
                 self.audio_status_label.configure(text=f"No new audio captured.{suffix}")
@@ -577,11 +581,30 @@ class App(ctk.CTk):
                 self._recording_pending_stop = True
                 self.audio_status_label.configure(text="Recording...")
                 self._on_collect_evidence_change()
+                self._recording_check_job = self.after(250, self._check_recording)
         self._sync_audio_controls()
+
+    def _cancel_recording_check(self):
+        if self._recording_check_job is not None:
+            self.after_cancel(self._recording_check_job)
+            self._recording_check_job = None
+
+    def _check_recording(self):
+        self._recording_check_job = None
+        if self._closed or self.recorder is None or not self._recording_pending_stop:
+            return
+        if self.recorder.recording:
+            self._recording_check_job = self.after(250, self._check_recording)
+        else:
+            self.toggle_recording()
 
     def _save_captured_audio(self):
         try:
-            filename = audio_utils.save_recording(self._captured_audio, dataset.AUDIO_DIR)
+            if self.recorder is None:
+                raise audio_utils.AudioError("The recorder is unavailable; captured audio cannot be saved.")
+            filename = audio_utils.save_recording(
+                self._captured_audio, dataset.AUDIO_DIR, self.recorder.sample_rate
+            )
         except AUDIO_ERRORS as error:
             self.audio_status_label.configure(text="Recording kept in memory — use Retry audio save.")
             messagebox.showerror("Audio save failed", f"The recording and draft are kept for retry.\n\n{error}")
@@ -1140,6 +1163,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(frame, text="").pack(pady=4)  # bottom spacing
 
     def _release_audio(self):
+        self._cancel_recording_check()
         failures = []
         operations = [audio_utils.stop_playback]
         if self.recorder is not None:

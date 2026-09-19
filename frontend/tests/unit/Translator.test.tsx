@@ -82,7 +82,7 @@ describe('translator trust and submission boundaries', () => {
 
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toEqual({
       text: 'Sens de test', source_language: 'fr', target_language: 'francanglais',
-      explanation_language: 'fr', tone: 'everyday', use_dataset: true, use_dictionary: true, allow_ai: false,
+      explanation_language: 'fr', tone: 'everyday', use_dataset: true, use_dictionary: true, use_examples: false, allow_ai: false,
     })
     expect(await screen.findByText('Exact approved match · local')).toBeInTheDocument()
     expect(screen.getByText('Local fixture result')).toBeInTheDocument()

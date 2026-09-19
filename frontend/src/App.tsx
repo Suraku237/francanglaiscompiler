@@ -4,6 +4,7 @@ import { Assistant } from './Assistant'
 import { Collection } from './Collection'
 import { Coursework } from './Coursework'
 import { Dictionary } from './Dictionary'
+import { Examples } from './Examples'
 import { Imports } from './Imports'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
 import type { IconName } from './components'
@@ -19,11 +20,12 @@ const navigation: { page: Page; label: string; icon: IconName; number: string }[
   { page: 'imports', label: 'Import & learn', icon: 'upload', number: '04' },
   { page: 'coursework', label: 'Compiler lab', icon: 'code', number: '05' },
   { page: 'dictionary', label: 'Dictionary', icon: 'search', number: '06' },
+  { page: 'examples', label: 'Practice examples', icon: 'leaf', number: '07' },
 ]
 
 function currentPage(): Page {
   const hash = window.location.hash.slice(1)
-  return hash === 'assistant' || hash === 'dictionary' || hash === 'collection' || hash === 'imports' || hash === 'coursework' ? hash : 'translator'
+  return hash === 'assistant' || hash === 'dictionary' || hash === 'examples' || hash === 'collection' || hash === 'imports' || hash === 'coursework' ? hash : 'translator'
 }
 
 function PrivacyDialog({ onClose }: { onClose: () => void }) {
@@ -35,7 +37,8 @@ function PrivacyDialog({ onClose }: { onClose: () => void }) {
       <section><span className="privacy-section-icon"><Icon name="sparkles" size={21} /></span><div><h3>AI suggestions, not automatic approval</h3><p>When there is no exact approved translation and AI fallback is enabled, Translate sends your text, direction, explanation language, tone, and any selected matches to Gemini. Send in the learning assistant shares your message, direction, language, up to six recent successful exchanges, and enabled dataset matches. Retrieved evidence does not verify every generated word.</p><p>AI answers and import suggestions are not saved automatically. Review language, wording, and meanings yourself before approving an entry. Never invent fieldwork or provenance to fill a gap.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="upload" size={21} /></span><div><h3>Preview imports before using them</h3><p>TXT, Markdown, CSV, JSON, DOCX, and text-based PDF previews are processed locally. Images, audio, video, and scanned PDFs require the cloud consent checkbox and an explicit Preview action before content is sent to Gemini for transcription. Limits are 12 MB per file, 40 PDF pages, and 40,000 extracted characters.</p><p>The app does not retain raw import files. Preview text is not automatically saved, translated, or submitted again. Choosing Translate or Ask AI only fills a draft; generating AI collection suggestions is a separate explicit request. Review any transcription and suggested records before saving. Provider-side retention is outside this app’s control. Remove sensitive information from any content you explicitly submit.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="code" size={21} /></span><div><h3>Your Compiler lab is still here</h3><p>Compiler lab AI explanations send only the grammar, manual test text, question, language, and locally recomputed results. Group profiles and explicitly uploaded coursework screenshots stay on the local backend. They are separate from import previews.</p><p>Drafts and chat stay in this browser tab’s memory and are lost on reload. Clearing a conversation removes local history, not records a service provider may retain.</p></div></section>
-      <section><span className="privacy-section-icon"><Icon name="mic" size={21} /></span><div><h3>The microphone is always opt-in</h3><p>Dictation starts only when you press “Use your voice.” Your browser may send audio to its speech-recognition provider. Francanglais uses a French recognizer and Cameroon Pidgin uses an English recognizer as approximations. Stop recording, review the text and spellings, then explicitly press Translate or Send.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="leaf" size={21} /></span><div><h3>Practice is not fieldwork</h3><p>The supplied constructed statements and French/English meanings stay in a separate practice library. Their source switch is off by default. Enabling it allows local exact lookup and selected, clearly labelled example evidence in an explicitly submitted AI request. They never become collected research or human-approved records automatically.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="mic" size={21} /></span><div><h3>The microphone is always opt-in</h3><p>“Record audio” captures a local browser file. Review, play or download it before deciding to save. Collection saving attaches it to your local backend, not Gemini. Import transcription requires the separate cloud consent checkbox and Preview action. Capture stops when you leave its workspace or hide the tab.</p><p>Dictation is separate: “Use your voice” may send audio to your browser's speech-recognition provider. Francanglais uses a French recognizer and Cameroon Pidgin uses an English recognizer as approximations. Review spellings before explicitly pressing Translate or Send.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="volume" size={21} /></span><div><h3>A browser voice, not a native voice</h3><p>Read-aloud uses French or English browser speech synthesis—not a guaranteed native Francanglais or Cameroon Pidgin voice. Pronunciation may be imperfect, and some voices use an online service. Stop playback at any time; automatic reading of assistant replies is off by default.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="shield" size={21} /></span><div><h3>Your API key belongs on the backend</h3><p>Set <code>GEMINI_API_KEY</code> in <code>backend\.env</code> and restart the backend. Never enter a key into this interface or add one to frontend code. AI wording may need a human check, especially for cultural nuance.</p></div></section>
     </div>
@@ -122,6 +125,10 @@ export default function App() {
         <div hidden={page !== 'collection'}><Collection active={page === 'collection'} /></div>
         <div hidden={page !== 'dictionary'}><Dictionary active={page === 'dictionary'} onTranslate={(text) => {
           setTranslationDraft({ id: nextHandoffId.current++, text, source: 'francanglais', target: 'en', kind: 'dictionary' })
+          window.location.hash = 'translator'
+        }} /></div>
+        <div hidden={page !== 'examples'}><Examples active={page === 'examples'} onTranslate={(text, target) => {
+          setTranslationDraft({ id: nextHandoffId.current++, text, source: 'francanglais', target, kind: 'examples' })
           window.location.hash = 'translator'
         }} /></div>
         <div hidden={page !== 'imports'}><Imports active={page === 'imports'} aiAvailable={aiAvailable} onUseText={(text) => {

@@ -82,6 +82,12 @@ describe('API response and error contracts', () => {
     vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
     await expect(api(path, { method, body: {} })).rejects.toThrow(message)
   })
+
+  it('discloses uncertain completion after an interrupted audio upload', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Upload connection interrupted'))
+    await expect(api('/dataset/audio', { method: 'POST', body: new FormData() }))
+      .rejects.toThrow('The change may have completed. Close this dialog and refresh the collection')
+  })
 })
 
 describe('API cancellation and time limits', () => {

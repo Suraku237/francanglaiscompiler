@@ -1,34 +1,11 @@
-import { useEffect, useState } from 'react'
-import { api } from './api'
 import { CopyButton, ErrorNotice, Icon, Spinner } from './components'
 import type { DictionaryResult } from './types'
-import { useRequest } from './useRequest'
+import { REFERENCE_PAGE_SIZE as PAGE_SIZE, useReferenceSearch } from './useReferenceSearch'
 import './dictionary.css'
 
-const PAGE_SIZE = 25
-
 export function Dictionary({ active, onTranslate }: { active: boolean; onTranslate: (text: string) => void }) {
-  const [query, setQuery] = useState('')
-  const [offset, setOffset] = useState(0)
-  const [revision, setRevision] = useState(0)
-  const [result, setResult] = useState<DictionaryResult | null>(null)
-  const { pending, error, run, cancel, clearError } = useRequest()
-
-  useEffect(() => {
-    if (!active) return
-    setResult(null)
-    clearError()
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ query, offset: String(offset), limit: String(PAGE_SIZE) })
-      void run((signal) => api<DictionaryResult>(`/dictionary?${params}`, { signal }), setResult)
-    }, 250)
-    return () => {
-      window.clearTimeout(timer)
-      cancel()
-    }
-  }, [active, query, offset, revision, run, cancel, clearError])
-
-  const loading = pending || (!result && !error)
+  const { query, setQuery, offset, setOffset, result, pending, error, refresh, loading } =
+    useReferenceSearch<DictionaryResult>('/dictionary', active)
 
   return <section className="page dictionary-page" aria-labelledby="dictionary-title">
     <div className="page-intro compact-intro">
@@ -37,9 +14,9 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
     <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>A dictionary, not collected fieldwork.</strong> These references do not populate the collection, approve records, or increase coursework totals. No French translations were supplied. Origins such as “French” describe etymology, not a French meaning or a grammatical label.</p></div>
     <div className="collection-tools">
       <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="dictionary-query">Search reference dictionary</label><input id="dictionary-query" type="search" maxLength={200} value={query} placeholder="Try tchop, motard, pasho, or an English meaning" onChange={(event) => { setQuery(event.target.value); setOffset(0) }} /></div>
-      <button type="button" className="icon-button" aria-label="Refresh reference dictionary" disabled={pending} onClick={() => setRevision((value) => value + 1)}><Icon name="refresh" size={19} /></button>
+      <button type="button" className="icon-button" aria-label="Refresh reference dictionary" disabled={pending} onClick={refresh}><Icon name="refresh" size={19} /></button>
     </div>
-    <ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} />
+    <ErrorNotice message={error} onRetry={refresh} />
     <div className="dictionary-results" aria-busy={loading}>
       {loading ? <div className="collection-loading"><Spinner label="Loading reference dictionary" /><p>Looking up the supplied vocabulary...</p></div> : result && <>
         <p className="dictionary-summary" role="status"><strong>{result.matched.toLocaleString()} matching {result.matched === 1 ? 'entry' : 'entries'}</strong> out of {result.total.toLocaleString()} source entries. Repeated words may have different senses.</p>

@@ -38,6 +38,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
   const [explanationLanguage, setExplanationLanguage] = useState<Language>('fr')
   const [useDataset, setUseDataset] = useState(true)
   const [useDictionary, setUseDictionary] = useState(true)
+  const [useExamples, setUseExamples] = useState(false)
   const [allowAI, setAllowAI] = useState(true)
   const [importNotice, setImportNotice] = useState(false)
   const [tone, setTone] = useState<Tone>('everyday')
@@ -46,7 +47,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
   const { pending, error, run, cancel, clearError } = useRequest()
   const { stop } = speech
   const voiceLanguage = browserVoiceLanguage(source)
-  const canTranslate = useDataset || useDictionary || (allowAI && aiAvailable)
+  const canTranslate = useDataset || useDictionary || useExamples || (allowAI && aiAvailable)
 
   const invalidate = useCallback(() => {
     cancel()
@@ -83,6 +84,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
       setTarget(incomingText.target)
     }
     if (incomingText.kind === 'dictionary') setUseDictionary(true)
+    if (incomingText.kind === 'examples') setUseExamples(true)
     setImportNotice(true)
   }, [incomingText, cancelVoice, invalidate])
 
@@ -112,7 +114,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         body: {
           text: text.trim(), source_language: source, target_language: target,
           explanation_language: explanationLanguage, tone, use_dataset: useDataset,
-          use_dictionary: useDictionary,
+          use_dictionary: useDictionary, use_examples: useExamples,
           allow_ai: allowAI && aiAvailable,
         },
         signal,
@@ -136,7 +138,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
       </div>
     </div>
 
-    {importNotice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{incomingText?.kind === 'dictionary' ? 'A reference word is in your draft, set to Francanglais → English. Review it, then choose Translate. Nothing has been submitted or saved.' : 'Imported text is in your draft. Check the source language and wording, then choose Translate. Nothing has been submitted or saved.'}</span></div>}
+    {importNotice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{incomingText?.kind === 'examples' ? 'A constructed example is in your draft and its source is enabled. This is practice, not fieldwork. Review it, then choose Translate; nothing has been submitted or saved.' : incomingText?.kind === 'dictionary' ? 'A reference word is in your draft, set to Francanglais → English. Review it, then choose Translate. Nothing has been submitted or saved.' : 'Imported text is in your draft. Check the source language and wording, then choose Translate. Nothing has been submitted or saved.'}</span></div>}
     <form className="translation-workspace" onSubmit={submit}>
       <div className="source-panel">
         <div className="panel-topline"><span className="small-caps">01 / YOUR WORDS</span><Icon name="globe" size={18} /></div>
@@ -158,9 +160,10 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
           <div className="grounding-options">
             <label className="checkbox-label"><input type="checkbox" checked={useDataset} onChange={(event) => { invalidate(); setUseDataset(event.target.checked) }} />Use approved dataset matches</label>
             <label className="checkbox-label"><input type="checkbox" checked={useDictionary} onChange={(event) => { invalidate(); setUseDictionary(event.target.checked) }} />Use reference dictionary</label>
+            <label className="checkbox-label"><input type="checkbox" checked={useExamples} onChange={(event) => { invalidate(); setUseExamples(event.target.checked) }} />Use constructed practice examples (not fieldwork)</label>
             <label className="checkbox-label"><input type="checkbox" checked={allowAI && aiAvailable} disabled={!aiAvailable} onChange={(event) => { invalidate(); setAllowAI(event.target.checked) }} />Allow AI suggestions for gaps</label>
             <p className="helper-text">Exact, unambiguous matches from enabled local sources need no AI key. The reference dictionary supplies English meanings, not French translations. If enabled, AI fallback receives your text and selected matches from the sources you enable.</p>
-            {!canTranslate && <p className="helper-text">Enable collection lookup, the dictionary, or available AI suggestions to translate.</p>}
+            {!canTranslate && <p className="helper-text">Enable a local source or available AI suggestions to translate.</p>}
           </div>
         </div>
         <label className="sr-only" htmlFor="translation-source">{languageLabels[source]} text to translate</label>
@@ -195,7 +198,7 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
         {pending ? <div className="translation-loading" role="status">
           <div className="loading-symbol"><Icon name="sparkles" size={32} /></div>
           <h2>Finding the right words…</h2>
-          <p>{useDataset || useDictionary ? 'Checking enabled local sources first.' : 'Requesting a clearly labeled AI suggestion.'}</p>
+          <p>{useDataset || useDictionary || useExamples ? 'Checking enabled local sources first.' : 'Requesting a clearly labeled AI suggestion.'}</p>
           <div className="skeleton-lines" aria-hidden="true"><span /><span /><span /></div>
         </div> : result ? <div className="translation-result">
           <OriginBadge origin={result.origin} exact={result.origin === 'dataset' && Boolean(result.translation) && result.evidence?.some((entry) => entry.match_type === 'exact')} />

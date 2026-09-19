@@ -1,11 +1,20 @@
+import csv
+import logging
 from collections import Counter
+from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import TypeVar
 from uuid import uuid4
+
+from filelock import Timeout
 
 from compiler.lexer.tokenizer import normalize_text
 from data_collector import dataset
 
 from .schemas import DatasetEntry, DatasetResponse, EntryCreate, EntryPatch
+
+logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 class CollectionError(Exception):
@@ -13,6 +22,18 @@ class CollectionError(Exception):
         super().__init__(detail)
         self.status_code = status_code
         self.detail = detail
+
+
+def storage_operation(operation: Callable[[], T]) -> T:
+    try:
+        return operation()
+    except Timeout as exc:
+        raise CollectionError(503, "The collection is busy. Please try again.") from exc
+    except (OSError, csv.Error, ValueError) as exc:
+        logger.error("Collection storage operation failed (%s)", type(exc).__name__)
+        raise CollectionError(
+            500, "Cannot read or save the collection. Check the server CSV file and permissions."
+        ) from exc
 
 
 def list_entries(query: str) -> DatasetResponse:
@@ -41,7 +62,7 @@ def _check_duplicate(
         raise CollectionError(409, "This text is already in the collection for the selected language.")
 
 
-def create_entry(request: EntryCreate) -> DatasetEntry:
+def create_entry(request: EntryCreate, *, audio_filename: str = "") -> DatasetEntry:
     if request.category not in dataset.CATEGORIES:
         raise CollectionError(422, "Select one of the available collection categories.")
     with dataset.dataset_lock():
@@ -50,14 +71,16 @@ def create_entry(request: EntryCreate) -> DatasetEntry:
         entry = DatasetEntry(
             **request.model_dump(),
             id=str(uuid4()),
-            audio_filename="",
+            audio_filename=audio_filename,
             timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         )
         dataset.append_entry(entry.model_dump())
         return entry
 
 
-def edit_entry(entry_id: str, request: EntryPatch) -> DatasetEntry:
+def edit_entry(
+    entry_id: str, request: EntryPatch, *, audio_filename: str | None = None,
+) -> DatasetEntry:
     with dataset.dataset_lock():
         entries = dataset.load_all()
         entry = next((item for item in entries if item["id"] == entry_id), None)
@@ -71,7 +94,10 @@ def edit_entry(entry_id: str, request: EntryPatch) -> DatasetEntry:
         language = request.language if request.language is not None else entry["language"]
         if normalize_text(text) != normalize_text(entry["text"]) or language != entry["language"]:
             _check_duplicate(entries, text, language, entry_id)
-        dataset.apply_entry_update(entry, request.model_dump(exclude_unset=True))
+        changes = request.model_dump(exclude_unset=True)
+        if audio_filename is not None:
+            changes["audio_filename"] = audio_filename
+        dataset.apply_entry_update(entry, changes)
         dataset.save_all(entries)
         return DatasetEntry.model_validate(entry)
 

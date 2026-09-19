@@ -1,9 +1,7 @@
 import base64
 import binascii
 import io
-import os
 import re
-import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,6 +13,7 @@ from compiler.parser.service import DEFAULT_GRAMMAR, analyze_grammar
 
 from .collection import CollectionError
 from .coursework_models import ProjectProfile, ScreenshotRequest
+from .file_storage import atomic_write as _atomic_write
 
 PROJECT_DIR = Path(__file__).resolve().parents[1] / "data_collector" / "coursework"
 MAX_SCREENSHOTS = 6
@@ -30,20 +29,6 @@ def load_project() -> ProjectProfile:
     if not path.exists():
         return default_project()
     return ProjectProfile.model_validate_json(path.read_bytes())
-
-
-def _atomic_write(path: Path, content: bytes) -> None:
-    temporary_path = None
-    try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".write-", delete=False) as handle:
-            temporary_path = Path(handle.name)
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary_path, path)
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
 
 
 def save_project(profile: ProjectProfile) -> ProjectProfile:

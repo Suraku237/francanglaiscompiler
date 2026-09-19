@@ -1,21 +1,19 @@
-import csv
-import logging
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import TypeVar
 
 import httpx
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from filelock import Timeout
 from starlette.concurrency import run_in_threadpool
 
 from compiler.lexer.learned import build_lexicon
 from compiler.lexer.tokenizer import analyze_sentence
 from data_collector import dataset
 
-from . import collection, dictionary
+from . import collection, dictionary, examples
+from .audio_api import router as audio_router
+from .collection import storage_operation
 from .config import Settings
 from .coursework_api import router as coursework_router
 from .gemini import AIError, GeminiService
@@ -34,13 +32,11 @@ from .schemas import (
     HealthResponse,
     MetadataResponse,
     Origin,
+    PracticeResponse,
     TokenResult,
     TranslationRequest,
     TranslationResponse,
 )
-
-logger = logging.getLogger(__name__)
-T = TypeVar("T")
 
 
 def analyze(text: str, entries: list[dict[str, str]] | None = None) -> AnalysisResult:
@@ -50,18 +46,6 @@ def analyze(text: str, entries: list[dict[str, str]] | None = None) -> AnalysisR
         code_mixed_spans=result["code_mixed_spans"],
         verb_phrases=result["verb_phrases"],
     )
-
-
-def storage_operation(operation: Callable[[], T]) -> T:
-    try:
-        return operation()
-    except Timeout as exc:
-        raise collection.CollectionError(503, "The collection is busy. Please try again.") from exc
-    except (OSError, csv.Error, ValueError) as exc:
-        logger.error("Collection storage operation failed (%s)", type(exc).__name__)
-        raise collection.CollectionError(
-            500, "Cannot read or save the collection. Check the server CSV file and permissions."
-        ) from exc
 
 
 def create_app(
@@ -108,7 +92,8 @@ def create_app(
             grounding = retrieve(
                 entries, payload.text, payload.source_language, payload.target_language,
                 references=dictionary.load_dictionary() if payload.use_dictionary else [],
-            ) if payload.use_dataset or payload.use_dictionary else without_local_sources(payload.text)
+                examples=examples.load_examples() if payload.use_examples else [],
+            ) if payload.use_dataset or payload.use_dictionary or payload.use_examples else without_local_sources(payload.text)
             return entries, grounding
 
         entries, grounding = await run_in_threadpool(lambda: storage_operation(get_grounding))
@@ -117,6 +102,8 @@ def create_app(
             result = local_translation(grounding, payload.explanation_language)
             if grounding.exact_sources == {"dictionary"}:
                 origin, model = "dictionary", "local-dictionary"
+            elif grounding.exact_sources == {"examples"}:
+                origin, model = "examples", "local-examples"
             elif grounding.exact_sources == {"dataset"}:
                 origin, model = "dataset", "local-dataset"
             else:
@@ -150,11 +137,12 @@ def create_app(
     async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
         service: GeminiService = request.app.state.gemini
         evidence = []
-        if payload.use_dataset or payload.use_dictionary:
+        if payload.use_dataset or payload.use_dictionary or payload.use_examples:
             grounding = await run_in_threadpool(lambda: storage_operation(lambda: retrieve(
                 dataset.load_all() if payload.use_dataset else [],
                 payload.message, payload.source_language, payload.target_language,
                 references=dictionary.load_dictionary() if payload.use_dictionary else [],
+                examples=examples.load_examples() if payload.use_examples else [],
                 recent_user_messages=[message.content for message in payload.history if message.role == "user"],
                 chat=True,
             )))
@@ -179,6 +167,13 @@ def create_app(
     def get_dataset(query: str = Query(default="", max_length=200)) -> DatasetResponse:
         return storage_operation(lambda: collection.list_entries(query))
 
+    @app.get("/api/examples", response_model=PracticeResponse)
+    def get_examples(
+        query: str = Query(default="", max_length=200),
+        offset: int = Query(default=0, ge=0), limit: int = Query(default=25, ge=1, le=100),
+    ) -> PracticeResponse:
+        return examples.list_examples(query, offset, limit)
+
     @app.get("/api/dictionary", response_model=DictionaryResponse)
     def get_dictionary(
         query: str = Query(default="", max_length=200),
@@ -202,6 +197,7 @@ def create_app(
 
     app.include_router(coursework_router)
     app.include_router(import_router)
+    app.include_router(audio_router)
     return app
 
 

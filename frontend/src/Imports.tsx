@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from './api'
+import { AudioRecorder, isAudioFile } from './AudioRecorder'
 import { EntryEditor } from './Collection'
 import { CopyButton, ErrorNotice, Icon, Spinner } from './components'
 import { IMPORT_ACCEPT, MAX_IMPORT_BYTES } from './importTypes'
@@ -18,6 +19,8 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
   onOpenCollection: () => void
 }) {
   const [file, setFile] = useState<File | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [recording, setRecording] = useState(false)
   const [allowCloud, setAllowCloud] = useState(false)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [segment, setSegment] = useState(0)
@@ -52,6 +55,7 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
   function selectFile(next: File | null) {
     cancel()
     clearError()
+    setAllowCloud(false)
     clearSuggestions()
     setPreview(null)
     setText('')
@@ -64,6 +68,10 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
   function extract(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!file || pending) return
+    if (recording) {
+      setValidation('Stop recording before previewing the source.')
+      return
+    }
     if (!file.size || file.size > MAX_IMPORT_BYTES) {
       setValidation(file.size ? 'This file exceeds 12 MB.' : 'This file is empty.')
       return
@@ -128,13 +136,17 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
     </div>
     <form className="import-card" onSubmit={extract}>
       <div className="import-heading"><Icon name="collection" size={23} /><div><h2>1. Choose your source</h2><p>Up to 12 MB per file. PDFs: up to 40 pages. Extracted text: up to 40,000 characters.</p></div></div>
-      <div className="field"><label htmlFor="language-file">Document, image, audio or video</label><input id="language-file" type="file" accept={IMPORT_ACCEPT} disabled={pending} onChange={(event) => selectFile(event.target.files?.[0] ?? null)} /></div>
+      <div className="field"><label htmlFor="language-file">Document, image, audio or video</label><input ref={fileInput} id="language-file" type="file" accept={IMPORT_ACCEPT} disabled={pending || recording} onChange={(event) => selectFile(event.target.files?.[0] ?? null)} /></div>
+      <AudioRecorder active={active} disabled={pending} file={file && isAudioFile(file) ? file : null} showPicker={false} onBusyChange={setRecording} onFile={(recorded) => {
+        if (fileInput.current) fileInput.current.value = ''
+        selectFile(recorded)
+      }} />
       <div className="import-formats"><p><strong>Local text extraction:</strong> TXT, Markdown, CSV, JSON, text PDFs and DOCX.</p><p><strong>Gemini transcription / OCR:</strong> PNG, JPEG, WebP, MP3, WAV, M4A, OGG, FLAC, MP4, WebM, MOV and scanned PDFs. Use short clips; long transcripts can exceed the AI response limit. Unsupported files are rejected, not silently converted.</p></div>
-      <label className="import-consent"><input type="checkbox" checked={allowCloud} disabled={pending || !aiAvailable} onChange={(event) => setAllowCloud(event.target.checked)} /><span>I consent to sending this file to Gemini when transcription or OCR is needed. I have permission to process its content.</span></label>
+      <label className="import-consent"><input type="checkbox" checked={allowCloud} disabled={pending || recording || !aiAvailable} onChange={(event) => setAllowCloud(event.target.checked)} /><span>I consent to sending this file to Gemini when transcription or OCR is needed. I have permission to process its content.</span></label>
       {!aiAvailable && <p className="helper-text">Gemini is unavailable. Local documents still work; media transcription needs a configured API key.</p>}
       <p className="helper-text">Files are processed temporarily and not kept by this app. Nothing is saved to the collection or translated automatically. Provider data policies apply to cloud processing.</p>
       <ErrorNotice message={validation || error} />
-      <div className="import-actions"><button type="submit" className="button button-primary" disabled={!file || pending || file.size > MAX_IMPORT_BYTES}>{pending ? <Spinner label="Extracting or transcribing" /> : <Icon name="code" size={18} />}{pending ? 'Processing source...' : 'Preview source text'}</button>{pending && <button type="button" className="text-button" onClick={cancel}>Cancel</button>}</div>
+      <div className="import-actions"><button type="submit" className="button button-primary" disabled={!file || pending || recording || file.size > MAX_IMPORT_BYTES}>{pending ? <Spinner label="Extracting or transcribing" /> : <Icon name="code" size={18} />}{pending ? 'Processing source...' : 'Preview source text'}</button>{pending && <button type="button" className="text-button" onClick={cancel}>Cancel</button>}</div>
     </form>
 
     {preview && <section className="import-card" aria-labelledby="import-preview-title">

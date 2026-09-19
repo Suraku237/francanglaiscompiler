@@ -1,0 +1,18 @@
+.audio-recorder {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  margin-block: 16px;
+  background: var(--paper);
+}
+.audio-recorder-heading { display: flex; gap: 12px; align-items: flex-start; }
+.audio-recorder-heading p, .audio-draft p { font-size: 13px; line-height: 1.6; margin: 6px 0 12px; }
+.audio-recorder-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.audio-timer { font-variant-numeric: tabular-nums; font-size: 13px; }
+.audio-attachment-field { margin-top: 14px; }
+.audio-player { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; min-width: 0; }
+.audio-player audio { width: 100%; max-width: 360px; min-width: 0; }
+.audio-player a { font-size: 12px; text-decoration: underline; }
+.audio-player .error-notice { flex-basis: 100%; }
+.audio-draft { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; overflow-wrap: anywhere; }
+.audio-recorder input[type="file"] { max-width: 100%; min-width: 0; }

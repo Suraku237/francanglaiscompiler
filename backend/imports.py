@@ -193,7 +193,7 @@ def _local_preview(data: bytes, extension: str) -> tuple[str, list[SuggestedEntr
     return text, drafts, [], False
 
 
-def _validate_media(data: bytes, extension: str) -> None:
+def validate_media(data: bytes, extension: str) -> None:
     valid = False
     if extension == ".mp3":
         valid = data.startswith(b"ID3") or (len(data) >= 2 and data[0] == 255 and data[1] & 224 == 224)
@@ -241,7 +241,7 @@ async def preview_file(
     if extension in LOCAL_EXTENSIONS:
         text, drafts, warnings, needs_ocr = await run_in_threadpool(_local_preview, data, extension)
     else:
-        await run_in_threadpool(_validate_media, data, extension)
+        await run_in_threadpool(validate_media, data, extension)
     if not text.strip() or (needs_ocr and allow_cloud):
         if not allow_cloud:
             raise CollectionError(422, "This file needs Gemini transcription/OCR. Enable cloud processing only if you consent to sending this file, or supply a manual text transcript.")

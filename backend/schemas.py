@@ -8,8 +8,8 @@ Language = Literal["fr", "en"]
 TranslationLanguage = Literal["fr", "en", "francanglais", "pidgin"]
 DatasetLanguage = Literal["francanglais", "pidgin", "mixed", "unspecified"]
 ReviewStatus = Literal["unreviewed", "approved"]
-Origin = Literal["dataset", "dictionary", "local_sources", "ai_with_dataset", "ai_with_sources", "ai"]
-EvidenceSource = Literal["dataset", "dictionary"]
+Origin = Literal["dataset", "dictionary", "examples", "local_sources", "ai_with_dataset", "ai_with_sources", "ai"]
+EvidenceSource = Literal["dataset", "dictionary", "examples"]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
 Gloss = Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
@@ -55,6 +55,30 @@ class DictionaryResponse(BaseModel):
     sources: list[str]
 
 
+class PracticeEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    text: StoredText
+    language: Literal["francanglais"] = "francanglais"
+    french_gloss: StoredGloss
+    english_gloss: StoredGloss
+    topic: ShortText
+    notes: StoredNotes
+    source_document: ShortText
+    source_line: int = Field(ge=1)
+    constructed: Literal[True] = True
+
+
+class PracticeResponse(BaseModel):
+    entries: list[PracticeEntry] = Field(max_length=100)
+    total: int
+    matched: int
+    offset: int
+    limit: int
+    sources: list[str]
+
+
 class Coverage(BaseModel):
     matched_terms: list[str] = Field(default_factory=list)
     unmatched_terms: list[str] = Field(default_factory=list)
@@ -76,6 +100,7 @@ class TranslationRequest(AnalyzeRequest):
     explanation_language: Language = "en"
     use_dataset: bool = True
     use_dictionary: bool = True
+    use_examples: bool = False
     allow_ai: bool = True
 
     @model_validator(mode="after")
@@ -128,6 +153,7 @@ class ChatRequest(RequestModel):
     language: Language = "en"
     use_dataset: bool = True
     use_dictionary: bool = True
+    use_examples: bool = False
     source_language: TranslationLanguage = "francanglais"
     target_language: TranslationLanguage = "en"
     history: list[ChatMessage] = Field(default_factory=list, max_length=12)

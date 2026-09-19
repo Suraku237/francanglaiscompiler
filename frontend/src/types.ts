@@ -2,12 +2,12 @@ export type Language = 'fr' | 'en'
 export type TranslationLanguage = Language | 'francanglais' | 'pidgin'
 export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified'
 export type ReviewStatus = 'unreviewed' | 'approved'
-export type AnswerOrigin = 'dataset' | 'dictionary' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
+export type AnswerOrigin = 'dataset' | 'dictionary' | 'examples' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
 export type Tone = 'everyday' | 'polite' | 'street'
-export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports' | 'coursework'
+export type Page = 'translator' | 'assistant' | 'dictionary' | 'examples' | 'collection' | 'imports' | 'coursework'
 
 export function isLocalOrigin(origin?: AnswerOrigin): boolean {
-  return origin === 'dataset' || origin === 'dictionary' || origin === 'local_sources'
+  return origin === 'dataset' || origin === 'dictionary' || origin === 'examples' || origin === 'local_sources'
 }
 
 export interface IncomingText {
@@ -15,7 +15,7 @@ export interface IncomingText {
   text: string
   source?: TranslationLanguage
   target?: TranslationLanguage
-  kind?: 'dictionary'
+  kind?: 'dictionary' | 'examples'
 }
 
 export const translationLanguages: TranslationLanguage[] = ['fr', 'en', 'francanglais', 'pidgin']
@@ -35,7 +35,7 @@ export interface DatasetEvidence {
   french_gloss: string
   english_gloss: string
   match_type: 'exact' | 'phrase' | 'token'
-  source: 'dataset' | 'dictionary'
+  source: 'dataset' | 'dictionary' | 'examples'
   source_document: string
   source_line: number | null
   aliases: string[]
@@ -55,6 +55,28 @@ export interface DictionaryEntry {
 
 export interface DictionaryResult {
   entries: DictionaryEntry[]
+  total: number
+  matched: number
+  offset: number
+  limit: number
+  sources: string[]
+}
+
+export interface PracticeEntry {
+  id: string
+  text: string
+  language: 'francanglais'
+  french_gloss: string
+  english_gloss: string
+  topic: string
+  notes: string
+  source_document: string
+  source_line: number
+  constructed: true
+}
+
+export interface PracticeResult {
+  entries: PracticeEntry[]
   total: number
   matched: number
   offset: number

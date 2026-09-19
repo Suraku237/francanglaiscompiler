@@ -12,7 +12,7 @@ from data_collector.tests.support import IsolatedDatasetTest
 
 class RecorderTests(unittest.TestCase):
     def setUp(self):
-        self.stream = Mock()
+        self.stream = Mock(samplerate=48000.0)
         self.device = SimpleNamespace(InputStream=Mock(return_value=self.stream))
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
@@ -114,6 +114,38 @@ class RecorderTests(unittest.TestCase):
                 self.recorder.start()
         self.assertFalse(self.recorder.recording)
 
+    def test_uses_device_rate_instead_of_forcing_44100(self):
+        self.recorder.start()
+        self.assertNotIn("samplerate", self.device.InputStream.call_args.kwargs)
+        self.assertEqual(self.recorder.sample_rate, 48000)
+
+    def test_callback_status_is_not_silently_discarded(self):
+        self.recorder.start()
+        callback = self.device.InputStream.call_args.kwargs["callback"]
+        callback([1, 2], 2, None, "input overflow")
+        self.assertIn("input overflow", self.recorder.warning)
+        self.assertEqual(self.recorder.stop(), "samples")
+        self.assertIn("incomplete", self.recorder.warning)
+
+    def test_unexpected_device_stop_exposes_warning_and_keeps_frames(self):
+        self.recorder.start()
+        self.recorder.frames = [[1]]
+        self.device.InputStream.call_args.kwargs["finished_callback"]()
+        self.assertFalse(self.recorder.recording)
+        self.assertIn("stopped unexpectedly", self.recorder.warning)
+        self.assertEqual(self.recorder.stop(), "samples")
+
+    def test_failed_start_preserves_rate_and_warning_with_retained_samples(self):
+        self.recorder.frames = [[1]]
+        self.recorder.sample_rate = 22050
+        self.recorder.warning = "Review previous capture."
+        self.stream.start.side_effect = OSError("busy")
+        with self.assertRaises(audio_utils.AudioError):
+            self.recorder.start()
+        self.assertEqual(self.recorder.sample_rate, 22050)
+        self.assertEqual(self.recorder.warning, "Review previous capture.")
+        self.assertEqual(self.recorder.frames, [[1]])
+
 
 class AudioFileTests(IsolatedDatasetTest):
     def setUp(self):
@@ -164,6 +196,16 @@ class AudioFileTests(IsolatedDatasetTest):
         self.assertTrue(filename.endswith(".wav"))
         self.assertEqual(Path(dataset.AUDIO_DIR, filename).read_bytes(), b"wav fixture")
         self.assertEqual(len(list(Path(dataset.AUDIO_DIR).iterdir())), 1)
+
+    def test_saved_wav_uses_actual_capture_rate(self):
+        self.codec.write.side_effect = lambda target, *_args: Path(target).write_bytes(b"wav fixture")
+        audio_utils.save_recording([1], dataset.AUDIO_DIR, 48000)
+        self.assertEqual(self.codec.write.call_args.args[2], 48000)
+
+    def test_invalid_sample_rate_is_not_saved(self):
+        with self.assertRaisesRegex(audio_utils.AudioError, "sample rate"):
+            audio_utils.save_recording([1], dataset.AUDIO_DIR, 0)
+        self.codec.write.assert_not_called()
 
     def test_atomic_publish_failure_cleans_staging_file(self):
         with patch.object(audio_utils.os, "replace", side_effect=PermissionError("locked")):

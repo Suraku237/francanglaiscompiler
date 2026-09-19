@@ -41,7 +41,7 @@ interface RequestOptions {
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const controller = new AbortController()
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
-    ((path === '/dataset' || path === '/coursework/screenshots') && options.method === 'POST')
+    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots') && options.method === 'POST')
   const recovery = path.startsWith('/coursework')
     ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
     : 'Close this dialog and refresh the collection before trying again.'

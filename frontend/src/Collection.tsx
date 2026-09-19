@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, isCancelled, messageOf } from './api'
+import { AudioPlayer, AudioRecorder } from './AudioRecorder'
 import { ErrorNotice, Icon, Modal, Spinner, TokenAnalysis } from './components'
 import { defaultMetadata, languageLabels, MAX_TEXT } from './types'
 import type { Analysis, Dataset, DatasetEntry, DatasetLanguage, EditableEntry, Metadata, ReviewStatus } from './types'
@@ -58,6 +59,9 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
   const expressionInput = useRef<HTMLTextAreaElement>(null)
   const [draft, setDraft] = useState<EditableEntry>(() => entry ? editableFields(entry) : { ...emptyEntry, ...initialDraft, review_status: 'unreviewed' })
   const [validationError, setValidationError] = useState('')
+  const [audioFile, setAudioFile] = useState<File | null>(null)
+  const [removeAudio, setRemoveAudio] = useState(false)
+  const [recording, setRecording] = useState(false)
   const { pending, error, run, clearError } = useRequest()
   const categories = uniqueOptions([...metadata.categories, draft.category])
   const entryTypes = uniqueOptions([...metadata.entry_types, draft.entry_type])
@@ -78,6 +82,10 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
+    if (recording) {
+      setValidationError('Stop recording before saving the expression.')
+      return
+    }
     if (!draft.text.trim()) {
       setValidationError('Please add an expression. It cannot contain only spaces.')
       return
@@ -87,14 +95,24 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
     const changes = original
       ? Object.fromEntries(Object.entries(values).filter(([field, value]) => original[field as keyof EditableEntry] !== value))
       : values
-    if (entry && !Object.keys(changes).length) {
+    if (entry && !Object.keys(changes).length && !audioFile && !removeAudio) {
       onClose()
       return
     }
     const body = { ...changes, review_status: values.review_status }
+    const withAudio = Boolean(audioFile || removeAudio)
+    const multipart = new FormData()
+    if (withAudio) {
+      multipart.append('fields', JSON.stringify(body))
+      if (audioFile) multipart.append('file', audioFile)
+      if (removeAudio) multipart.append('remove_audio', 'true')
+    }
+    const path = entry
+      ? `/dataset/${encodeURIComponent(entry.id)}${withAudio ? '/audio' : ''}`
+      : `/dataset${withAudio ? '/audio' : ''}`
     void run(
-      (signal) => api<DatasetEntry>(entry ? `/dataset/${encodeURIComponent(entry.id)}` : '/dataset', {
-        method: entry ? 'PATCH' : 'POST', body, signal,
+      (signal) => api<DatasetEntry>(path, {
+        method: entry ? 'PATCH' : 'POST', body: withAudio ? multipart : body, signal,
       }),
       onSaved,
     )
@@ -126,15 +144,31 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
           <div className="field"><label htmlFor="entry-contributor">Contributor <span>optional</span></label><input id="entry-contributor" maxLength={200} value={draft.contributor} disabled={pending} onChange={(event) => update('contributor', event.target.value)} placeholder="Name or alias" /></div>
         </div>
         <div className="field"><label htmlFor="entry-notes">Context & notes <span>optional</span></label><textarea id="entry-notes" rows={3} maxLength={2000} value={draft.notes} disabled={pending} onChange={(event) => update('notes', event.target.value)} placeholder="When is it used? What makes it special?" /></div>
+        <AudioRecorder disabled={pending} file={audioFile} onBusyChange={setRecording} onFile={(file) => {
+          setAudioFile(file)
+          setRemoveAudio(false)
+          update('review_status', 'unreviewed')
+        }} />
+        <p className="helper-text">Audio stays a browser draft until you save. Saving attaches it to this local record without sending it to Gemini. Only record people who have given permission.</p>
+        {entry?.audio_filename && !audioFile && <div>
+          {removeAudio ? <p className="helper-text">The attachment will be removed from this entry when you save. The original file is retained locally.</p> : <>
+            <p className="helper-text">Current attachment: {entry.audio_filename}</p>
+            <AudioPlayer src={`/api/dataset/${encodeURIComponent(entry.id)}/audio`} filename={entry.audio_filename} disabled={pending || recording} />
+          </>}
+          <button type="button" className="text-button" disabled={pending || recording} onClick={() => {
+            setRemoveAudio((previous) => !previous)
+            update('review_status', 'unreviewed')
+          }}>{removeAudio ? 'Keep the existing attachment' : 'Remove attachment on save'}</button>
+        </div>}
         <div className="entry-review">
           <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, and meanings. Approve this entry for dataset-backed learning.</span></label>
           <p>Changing a field clears approval so you can review the new version. Unchecked entries are saved as <strong>Unreviewed</strong> and excluded from trusted translation/chat matches. Approval is your review, not a claim that every usage is correct.</p>
           <p>Approved text and glosses may be selected for an explicitly submitted AI request with dataset use enabled. Names, locations, notes, and other record metadata stay local.</p>
         </div>
-        {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'} <span className="helper-text">(read-only; no upload needed)</span></dd></div></dl></details>}
+        {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>}
         <ErrorNotice message={validationError || error} />
       </div>
-      <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />This save stays local.</span><div className="submit-actions"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Cancel</button><button type="submit" className="button button-primary" disabled={pending}>{pending ? <Spinner label="Saving expression" /> : <Icon name="check" size={17} />}{pending ? 'Saving…' : draft.review_status === 'approved' ? 'Save approved entry' : 'Save unreviewed'}</button></div></div>
+      <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />This save stays local.</span><div className="submit-actions"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Cancel</button><button type="submit" className="button button-primary" disabled={pending || recording}>{pending ? <Spinner label="Saving expression" /> : <Icon name="check" size={17} />}{pending ? 'Saving…' : draft.review_status === 'approved' ? 'Save approved entry' : 'Save unreviewed'}</button></div></div>
     </form>
   </Modal>
 }
@@ -297,7 +331,8 @@ export function Collection({ active }: { active: boolean }) {
                 {entry.english_gloss && <p lang="en"><span aria-label="English meaning">EN</span>{entry.english_gloss}</p>}
                 {!entry.french_gloss && !entry.english_gloss && <p className="no-gloss">A meaning waiting to be shared.</p>}
               </div>
-              <details className="entry-context"><summary>Context & record details<Icon name="chevron" size={14} /></summary>{entry.notes && <p>{entry.notes}</p>}{entry.contributor && <p><strong>Contributor:</strong> {entry.contributor}</p>}{entry.audio_filename && <p><strong>Audio file:</strong> {entry.audio_filename} <span className="helper-text">(reference only)</span></p>}<p className="record-id"><strong>ID:</strong> {entry.id}</p></details>
+              {entry.audio_filename && <AudioPlayer src={`/api/dataset/${encodeURIComponent(entry.id)}/audio`} filename={entry.audio_filename} active={active} />}
+              <details className="entry-context"><summary>Context & record details<Icon name="chevron" size={14} /></summary>{entry.notes && <p>{entry.notes}</p>}{entry.contributor && <p><strong>Contributor:</strong> {entry.contributor}</p>}{entry.audio_filename && <p><strong>Audio file:</strong> {entry.audio_filename}</p>}<p className="record-id"><strong>ID:</strong> {entry.id}</p></details>
               <div className="entry-footer"><span><Icon name="location" size={14} />{entry.source_location || 'Location not recorded'}</span><time title={entry.timestamp}>{displayDate(entry.timestamp)}</time></div>
             </article>)}</div>}
     </div>

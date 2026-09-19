@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AUDIO_FOCUS_EVENT, claimAudioFocus, hasAudioFocus } from './audioFocus'
 import type { Language, TranslationLanguage } from './types'
 
 export function browserVoiceLanguage(language: TranslationLanguage): Language {
@@ -82,6 +83,12 @@ export function useDictation(language: Language, onTranscript: (text: string) =>
     return cancel
   }, [language, cancel])
 
+  useEffect(() => {
+    const onFocus = (event: Event) => { if (!hasAudioFocus(event, recognition.current)) cancel() }
+    window.addEventListener(AUDIO_FOCUS_EVENT, onFocus)
+    return () => window.removeEventListener(AUDIO_FOCUS_EVENT, onFocus)
+  }, [cancel])
+
   const toggle = useCallback(() => {
     if (recognition.current) {
       try {
@@ -150,6 +157,7 @@ export function useDictation(language: Language, onTranscript: (text: string) =>
       setInterim('')
     }
     try {
+      claimAudioFocus(current)
       current.start()
       setListening(true)
     } catch {
@@ -178,6 +186,12 @@ export function useReadAloud() {
   }, [])
 
   useEffect(() => stop, [stop])
+
+  useEffect(() => {
+    const onFocus = (event: Event) => { if (!hasAudioFocus(event, utterance.current)) stop() }
+    window.addEventListener(AUDIO_FOCUS_EVENT, onFocus)
+    return () => window.removeEventListener(AUDIO_FOCUS_EVENT, onFocus)
+  }, [stop])
 
   const speak = useCallback((id: string, text: string, language: Language) => {
     stop()
@@ -209,6 +223,7 @@ export function useReadAloud() {
       }
     }
     try {
+      claimAudioFocus(current)
       setActiveId(id)
       window.speechSynthesis.speak(current)
     } catch {

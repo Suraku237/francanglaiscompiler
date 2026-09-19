@@ -182,6 +182,8 @@ class CourseworkTests(unittest.TestCase):
             self.assertIn("source/tests/test_collected.py", names)
             self.assertIn("source/dictionary/camfranglais.md", names)
             self.assertIn("source/dictionary/extra_lexicon.md", names)
+            self.assertIn("source/examples/camfranglais_statements.csv", names)
+            self.assertIn(b"Constructed example", archive.read("source/examples/camfranglais_statements.csv"))
             self.assertIn(b"**tchop** | to eat", archive.read("source/dictionary/camfranglais.md"))
             self.assertIn(b"**motard** | a motorcycle taxi rider", archive.read("source/dictionary/extra_lexicon.md"))
             report = archive.read("report.html").decode()
@@ -206,11 +208,13 @@ class CourseworkTests(unittest.TestCase):
 
     def test_exporting_empty_data_is_explicit_draft(self):
         self.assertEqual(self.client.get("/api/dictionary").json()["total"], 179)
+        self.assertEqual(self.client.get("/api/examples").json()["total"], 26)
         self.assertEqual(self.client.get("/api/coursework").json()["stats"]["total"], 0)
         response = self.client.get("/api/coursework/export")
         self.assertEqual(response.status_code, 200)
         with ZipFile(io.BytesIO(response.content)) as archive:
             self.assertEqual(json.loads(archive.read("source/tests/collected_cases.json")), [])
+            self.assertIn("source/examples/camfranglais_statements.csv", archive.namelist())
             self.assertIn("TO COMPLETE", archive.read("report.html").decode())
 
     def test_learned_lexicon_matches_manual_corpus_and_exported_regression_results(self):

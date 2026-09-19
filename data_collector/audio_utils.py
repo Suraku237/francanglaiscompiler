@@ -6,6 +6,7 @@ via the OS's default player as a fallback.
 """
 
 import os
+import math
 import uuid
 import shutil
 import subprocess
@@ -41,6 +42,8 @@ class Recorder:
         self.frames = []
         self.stream = None
         self.recording = False
+        self.sample_rate = SAMPLE_RATE
+        self.warning = ""
 
     def start(self):
         """Start once; a failed start resets state and closes any opened stream."""
@@ -49,17 +52,31 @@ class Recorder:
         if self.recording or self.stream is not None:
             raise AudioError("Finish stopping the previous recording before starting another.")
 
-        def callback(indata, _frames, _time_info, _status):
+        def callback(indata, _frames, _time_info, status):
             if self.recording:
+                if status:
+                    self.warning = f"Audio device reported {status}. The recording may be incomplete; listen before saving."
                 self.frames.append(indata.copy())
 
+        def finished():
+            if self.recording:
+                self.recording = False
+                self.warning = "The microphone stopped unexpectedly. Review the captured audio for missing speech."
+
         previous_frames = self.frames
+        previous_rate = self.sample_rate
+        previous_warning = self.warning
         started = False
         try:
             self.stream = sd.InputStream(
-                samplerate=SAMPLE_RATE, channels=1, callback=callback
+                channels=1, callback=callback, finished_callback=finished,
             )
+            rate = float(self.stream.samplerate)
+            if not math.isfinite(rate) or rate <= 0:
+                raise AudioError("The microphone returned an invalid sample rate.")
+            self.sample_rate = int(round(rate))
             self.frames = []
+            self.warning = ""
             self.recording = True
             self.stream.start()
             started = True
@@ -69,6 +86,8 @@ class Recorder:
             if not started:
                 self.recording = False
                 self.frames = previous_frames
+                self.sample_rate = previous_rate
+                self.warning = previous_warning
                 self._close_stream()
 
     def stop(self):
@@ -121,13 +140,15 @@ def _store_audio(audio_dir: str, suffix: str, write: Callable[[str], object]) ->
     return filename
 
 
-def save_recording(audio, audio_dir: str) -> str:
+def save_recording(audio, audio_dir: str, sample_rate: int = SAMPLE_RATE) -> str:
     """Atomically write a WAV; return its filename or raise AudioError."""
     if not AUDIO_RECORDING_AVAILABLE or sf is None:
         raise AudioError("The recording dependencies are unavailable.")
+    if type(sample_rate) is not int or sample_rate <= 0:
+        raise AudioError("A positive recording sample rate is required.")
     write = sf.write
     try:
-        return _store_audio(audio_dir, ".wav", lambda path: write(path, audio, SAMPLE_RATE))
+        return _store_audio(audio_dir, ".wav", lambda path: write(path, audio, sample_rate))
     except _BACKEND_ERRORS as error:
         raise AudioError(f"Could not save the recording: {error}") from error
 

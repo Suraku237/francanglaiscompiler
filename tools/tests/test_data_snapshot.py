@@ -201,18 +201,25 @@ class DataSnapshotTests(unittest.TestCase):
 
     def test_concurrent_file_change_aborts_without_publishing(self) -> None:
         original_copy = data_snapshot.shutil.copy2
+        changed = []
 
         def changed_copy(source, destination):
             result = original_copy(source, destination)
-            if Path(source) == self.audio:
+            if Path(source).samefile(self.audio):
                 self.audio.write_bytes(b"changed-during-backup")
+                changed.append(Path(source))
             return result
 
         with patch.object(data_snapshot.shutil, "copy2", side_effect=changed_copy):
             with self.assertRaisesRegex(ValueError, "changed during copying"):
                 data_snapshot.create_backup(self.source, self.backup)
+        self.assertEqual(len(changed), 1, "The source-change fault must actually be injected.")
         self.assertFalse(self.backup.exists())
         self.assertEqual(list(self.root.glob(".mboa-snapshot-*")), [])
+
+    def test_source_change_is_detected_with_equivalent_noncanonical_paths(self) -> None:
+        self.audio = self.audio.parent / ".." / "audio" / self.audio.name
+        self.test_concurrent_file_change_aborts_without_publishing()
 
     def test_cli_reports_success_and_failure_truthfully(self) -> None:
         output = io.StringIO()

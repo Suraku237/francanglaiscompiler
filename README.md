@@ -28,6 +28,9 @@ separate educational workspace within the app.
 - **Voice assistance**: dictate French or English in supported browsers, review
   the transcript, then explicitly submit it. Read translations and assistant
   replies aloud with the browser's voices, or stop playback.
+- **Local audio recording and attachments**: record, review, play and download
+  audio in the collection editor or Import & learn. Collection saves can attach
+  the recording locally; recording alone never uploads or transcribes it.
 - **Shared data**: the web app, optional desktop collector and lexer all use
   `data_collector/dataset.csv`. No migration or overwrite of existing entries is
   required. Older CSV headers are read with safe defaults: missing language is
@@ -99,6 +102,48 @@ and `limit` (1-100; default 50). The UI uses 25-entry pages and cancels stale se
 The two files are versioned project resources, so no Downloads path or import
 step is required after cloning. Coursework bundles retain them under
 `source/dictionary`, separately from the exported corpus.
+
+### Constructed bilingual practice statements
+
+Open **Practice examples** (`#examples`) to search the 26 supplied statements in
+[camfranglais_statements.csv](examples/camfranglais_statements.csv). They include
+both French and English meanings, original topics and explicit constructed-example
+notes. They are **not recorded or verified real-speaker statements**.
+
+**Practice in French/English** fills a translator draft and enables the separate
+**Use constructed practice examples (not fieldwork)** option. That option is off
+by default in translation and chat. Complete, unambiguous supplied alignments work
+locally in either direction; a partial word match never fabricates a sentence.
+Examples retain a distinct source label, including when selected for an explicit
+AI request. They do not alter the research CSV, human approval, coursework
+counts, lexical categories or the saved grammar. Coursework ZIPs retain the
+original file under `source/examples`, not among collected statements.
+
+### Recording and reviewing audio
+
+In **Collection**, add or edit an expression, choose **Record audio**, then
+**Stop recording**. Play or download the draft before explicitly saving the
+entry. **Attach an audio file** accepts WAV, MP3, M4A, OGG, FLAC and WebM up to
+12 MB. Replacing/removing audio clears approval for review; removal detaches the
+reference but retains the previously committed file, as desktop deletion does.
+A failed save keeps the browser draft. Interrupted requests may have completed:
+refresh the collection before retrying an uncertain mutation.
+
+Recording requires localhost/HTTPS, permission and MediaRecorder support.
+Permission requests can be cancelled; late grants are released. Navigation,
+tab hiding and competing audio activity stop capture. Microphone disconnection,
+empty output, size limits and codec/playback failures are reported explicitly.
+Local preview URLs and media tracks are released when no longer needed.
+
+**Import & learn** can also record a file, but Gemini transcription requires
+both fresh cloud-processing consent and an explicit **Preview source text**
+action. Selecting a new file resets consent. Recording is distinct from browser
+dictation, which may use the browser vendor's speech service.
+
+The desktop recorder uses its device's actual sample rate when saving WAV files
+and surfaces overflow or unexpected device stops rather than silently calling
+partial capture complete. Tests use mocked devices, generated audio streams
+and real local file I/O; they do not certify a physical microphone or speaker.
 
 ### Supported file inputs
 
@@ -304,8 +349,10 @@ synthetic temporary fixtures, never the group's actual corpus.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | API status, configured-model name, key-present flag |
-| POST | `/api/translate` | `text`, source/target languages (`fr`/`en`/`francanglais`/`pidgin`), `explanation_language`, `tone`, `use_dataset`, `allow_ai`; translation, origin, evidence, coverage and lexer output |
-| POST | `/api/chat` | `message`, explanation `language`, bounded `history`, source/target languages, `use_dataset`; assistant reply and supplied evidence |
+| POST | `/api/translate` | `text`, source/target languages (`fr`/`en`/`francanglais`/`pidgin`), `explanation_language`, `tone`, independent `use_dataset`/`use_dictionary`/`use_examples`, `allow_ai`; translation, origin, evidence, coverage and lexer output |
+| POST | `/api/chat` | `message`, explanation `language`, bounded `history`, source/target languages and the three independent source switches; assistant reply and supplied evidence |
+| GET | `/api/dictionary` | Read-only reference vocabulary; `query`, `offset`, `limit` (1-100) |
+| GET | `/api/examples` | Read-only constructed bilingual statements; `query`, `offset`, `limit` (1-100) |
 | POST | `/api/analyze` | Analyze `text` locally with reviewed word categories and the base lexer |
 | POST | `/api/imports/preview` | Multipart `file` and `allow_cloud_processing=true/false`; transcript, passages, warnings and unreviewed structured drafts |
 | POST | `/api/imports/suggest` | Reviewed `text` and language context; unreviewed AI vocabulary candidates, never a save |
@@ -314,6 +361,9 @@ synthetic temporary fixtures, never the group's actual corpus.
 | POST | `/api/dataset` | Create a reviewed or unreviewed entry; language, aligned glosses, review status and optional word category |
 | PATCH | `/api/dataset/{id}` | Edit supplied fields, preserving other metadata |
 | DELETE | `/api/dataset/{id}` | Delete a collection entry |
+| POST | `/api/dataset/audio` | Multipart `file` and JSON `fields`; create an entry with a local audio attachment atomically |
+| PATCH | `/api/dataset/{id}/audio` | Multipart JSON changed `fields` and either `file` or `remove_audio=true`; never both |
+| GET | `/api/dataset/{id}/audio` | Play/download the attached local file, including byte-range requests |
 
 Text inputs are limited to 4,000 characters. Chat accepts at most six complete
 user/assistant exchanges (12 messages, 24,000 history characters).

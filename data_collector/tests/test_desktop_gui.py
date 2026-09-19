@@ -73,6 +73,7 @@ class FormHarness:
         self._staged_audio_files = set()
         self._captured_audio = None
         self._recording_pending_stop = False
+        self._recording_check_job = None
         self._collect_approval = None
         self._browse_approval = None
         self._selected_browse_entry = None
@@ -267,7 +268,7 @@ class DesktopHandlerTests(IsolatedDatasetTest):
 
     def test_failed_wav_save_retains_samples_until_explicit_retry(self):
         samples = [1, 2]
-        self.app.recorder = SimpleNamespace(recording=False, stream=None)
+        self.app.recorder = SimpleNamespace(recording=False, stream=None, sample_rate=48000, warning="")
         self.app._captured_audio = samples
         with patch.object(audio_utils, "save_recording", side_effect=audio_utils.AudioError("disk full")):
             self.app.toggle_recording()
@@ -275,7 +276,8 @@ class DesktopHandlerTests(IsolatedDatasetTest):
         self.assertEqual(self.app.save_btn.options["state"], "disabled")
         self.assertIn("Retry audio save", self.app.record_btn.label)
 
-        def save(_samples, audio_dir):
+        def save(_samples, audio_dir, sample_rate):
+            self.assertEqual(sample_rate, 48000)
             Path(audio_dir, "new.wav").write_bytes(b"synthetic recording")
             return "new.wav"
 
@@ -285,6 +287,37 @@ class DesktopHandlerTests(IsolatedDatasetTest):
         self.assertEqual(self.app.pending_audio_path, "new.wav")
         self.assertEqual(self.app.save_btn.options["state"], "normal")
         self.assertEqual(dataset.total_count(), 0)
+
+    def test_device_failure_is_detected_and_warning_precedes_audio_review(self):
+        self.app.recorder = SimpleNamespace(
+            recording=False, stream=object(), sample_rate=48000,
+            warning="The microphone stopped unexpectedly.", stop=Mock(return_value=[1, 2]),
+        )
+        self.app._recording_pending_stop = True
+        self.app._save_captured_audio = Mock()
+        self.app._check_recording()
+        self.warnings.assert_called_once_with("Review captured audio", "The microphone stopped unexpectedly.")
+        self.app._save_captured_audio.assert_called_once()
+        self.assertEqual(self.app._captured_audio, [1, 2])
+        self.assertFalse(self.app._recording_pending_stop)
+
+    def test_live_recording_monitor_is_rescheduled_and_cancelled_on_cleanup(self):
+        self.app.recorder = SimpleNamespace(recording=True, stream=object(), close=Mock())
+        self.app._recording_pending_stop = True
+        self.app._check_recording()
+        self.app.after.assert_called_once()
+        self.assertEqual(self.app.after.call_args.args[0], 250)
+        self.app._release_audio()
+        self.app.after_cancel.assert_called_once_with("duplicate-job")
+        self.assertIsNone(self.app._recording_check_job)
+
+    def test_missing_recorder_cannot_silently_save_unknown_rate(self):
+        self.app._captured_audio = [1]
+        with patch.object(audio_utils, "save_recording") as save:
+            self.app._save_captured_audio()
+        self.errors.assert_called_once()
+        save.assert_not_called()
+        self.assertEqual(self.app._captured_audio, [1])
 
     def test_cancelled_or_failed_attachment_keeps_previous_audio(self):
         attachment = self.stage()
