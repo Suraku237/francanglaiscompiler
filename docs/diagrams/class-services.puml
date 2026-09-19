@@ -1,0 +1,58 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Actual provider service and local grounding result
+hide empty members
+' @class backend.config.Settings
+class Settings {
+  gemini_api_key: SecretStr
+  gemini_model: str
+  gemini_timeout_seconds: float
+  cors_origins: list[str]
+  ai_configured: bool {readOnly}
+}
+class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
+' @class backend.gemini.GeminiService
+class GeminiService {
+  __init__(settings, client)
+  async _generate(contents, instruction, structured)
+  async translate(request, evidence, coverage)
+  async chat(request, evidence)
+  async explain_coursework(question, language, context)
+}
+' @class backend.gemini.AIError
+class AIError {
+  status_code: int
+  detail: str
+  __init__(status_code, detail)
+}
+' @class backend.grounding.Grounding
+class Grounding <<dataclass>> {
+  exact_translation: str | None
+  ambiguous: bool
+}
+class "httpx.AsyncClient" as Client <<external>>
+class Exception <<external>>
+class "Evidence\n(result view)" as Evidence <<reference>>
+class "Coverage\n(result view)" as Coverage <<reference>>
+rectangle "grounding.py <<module>>\nretrieve(), local_translation()\nwithout_dataset(), evidence_json()" as Retrieval
+Settings --|> BaseSettings
+AIError --|> Exception
+GeminiService --> "1" Settings : settings
+GeminiService --> "1" Client : client
+GeminiService ..> AIError : raises safe provider errors
+Grounding --> "0..*" Evidence : evidence
+Grounding --> "1" Coverage : coverage
+Retrieval ..> Grounding : constructs result
+GeminiService ..> Retrieval : serializes whitelisted evidence
+note bottom of Client
+  create_app's lifespan creates and closes
+  the client; GeminiService receives it.
+  Therefore this is not service composition.
+end note
+legend bottom
+  GeminiService is a real class. Retrieval and route handlers are functions.
+  Grounding is a value holder, not a hidden training or translation service.
+  At most 8 selected evidence records are emitted by retrieve().
+endlegend
+@enduml

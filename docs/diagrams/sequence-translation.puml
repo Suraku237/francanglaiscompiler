@@ -1,0 +1,67 @@
+@startuml
+!include theme.iuml
+title Web translation: exact reviewed lookup, then optional AI
+hide footbox
+autonumber
+actor User
+participant "Translator\n<<React function>>" as Web
+participant "main.translate\n<<route function>>" as API
+participant "dataset / grounding\n<<modules>>" as Local
+participant "service : GeminiService" as AI
+participant "Gemini HTTPS" as Provider
+
+User -> Web : submit()
+activate Web
+note over Web : Reject blank/listening/pending inputs;\nfreeze direction/options for this request.
+Web -> API : POST /api/translate\nTranslationRequest
+activate API
+API -> Local : get_grounding() via thread pool
+activate Local
+alt use_dataset = true
+  note over Local : Read locked CSV; retrieve approved, labelled\nalignments only; cap evidence and detect ambiguity.
+else dataset use disabled
+  note over Local : No corpus read; without_dataset(text).
+end
+Local --> API : entries + Grounding, or storage error
+deactivate Local
+alt Unambiguous approved full-entry alignment
+  API -> Local : local_translation(grounding, language)
+  activate Local
+  Local --> API : TranslationContent
+  deactivate Local
+  note over API : origin=dataset; model=local-dataset;\nwording preserved, no tone synthesis.
+else No exact answer and allow_ai = true
+  API -> AI : await translate(request, evidence, coverage)
+  activate AI
+  AI -> AI : await _generate(..., structured=True)
+  activate AI
+  AI -> Provider : generateContent (selected evidence only)
+  activate Provider
+  Provider --> AI : Response or transport failure
+  deactivate Provider
+  note over AI : Validate response/finish status; one bounded\n503 retry is expanded in the chat/provider view.
+  AI --> AI : JSON text or AIError
+  deactivate AI
+  AI --> API : Validated TranslationContent or AIError
+  deactivate AI
+  note over API : Prefix unverified note; origin=ai_with_dataset\nwhen evidence exists, otherwise ai.
+else No exact answer and allow_ai = false
+  note over API : 422 with actionable alignment/review guidance.
+end
+opt Translation content obtained
+  API -> API : analyze(translation, entries)
+  activate API
+  note over API : Build reviewed word map; local lexer runs.\nNo corpus mutation or automatic learning.
+  API --> API : AnalysisResult
+  deactivate API
+end
+API --> Web : TranslationResponse or safe HTTP error
+deactivate API
+Web --> User : Origin, evidence, coverage, tokens / error
+deactivate Web
+legend bottom
+  Awaited work is shown as a request/reply interval, not a blocked UI thread.
+  Storage/validation/provider failure exits to an error; it never becomes a success.
+  Cancellation prevents stale display, not guaranteed server/provider rollback.
+endlegend
+@enduml

@@ -1,0 +1,76 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Collection DTOs and application error
+hide empty members
+class "RequestModel\n(request view)" as RequestModel <<reference>>
+' @class backend.schemas.EntryCreate
+class EntryCreate {
+  text: StoredText
+  entry_type: Word | Phrase | Sentence
+  language; review_status
+  lexical_category
+  glosses; category; source_location
+  notes; contributor
+  valid_lexical_metadata(): Self
+}
+' @class backend.schemas.EntryPatch
+class EntryPatch {
+  editable fields: optional
+  reject_null_fields(): Self
+}
+' @class backend.schemas.DatasetEntry
+class DatasetEntry {
+  id; text; entry_type
+  french_gloss; english_gloss
+  category; source_location; notes
+  audio_filename; contributor; timestamp
+  language; review_status; lexical_category
+}
+' @class backend.schemas.DatasetResponse
+class DatasetResponse {
+  total: int
+  by_category: dict[str, int]
+  by_type: dict[str, int]
+}
+' @class backend.schemas.HealthResponse
+class HealthResponse {
+  status: ok
+  ai_configured: bool
+  model: str
+}
+' @class backend.schemas.MetadataResponse
+class MetadataResponse {
+  categories: list[str]
+  entry_types: list[str]
+  lexical_categories: list[str]
+  dataset_languages: list[str]
+}
+' @class backend.collection.CollectionError
+class CollectionError {
+  status_code: int
+  detail: str
+  __init__(status_code, detail)
+}
+class Exception <<external>>
+rectangle "collection.py <<module>>\nlist_entries(), create_entry()\nedit_entry(), remove_entry()" as Collection
+EntryCreate --|> RequestModel
+EntryPatch --|> RequestModel
+CollectionError --|> Exception
+DatasetResponse --> "0..*" DatasetEntry : entries
+Collection ..> EntryCreate : validates create
+Collection ..> EntryPatch : applies changed fields
+Collection ..> DatasetResponse : returns list / global counts
+Collection ..> CollectionError : raises 404 / 409 / 422
+note bottom of EntryPatch
+  At least one field; explicit null is rejected.
+  Omitted fields survive unchanged.
+  ID, timestamp and audio are not editable.
+end note
+legend bottom
+  The four response DTOs directly extend pydantic.BaseModel.
+  EntryCreate/EntryPatch inherit extra=forbid via RequestModel.
+  DatasetEntry is an API DTO, not the storage representation:
+  CSV helpers use dictionaries, not a repository/model class.
+endlegend
+@enduml

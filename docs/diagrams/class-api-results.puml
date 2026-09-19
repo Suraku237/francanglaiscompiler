@@ -1,0 +1,74 @@
+@startuml
+!include theme.iuml
+title Translation and analysis result DTOs
+hide empty members
+' @class backend.schemas.TranslationContent
+class TranslationContent {
+  translation: Text
+  explanation: Text
+  note: Notes
+}
+' @class backend.schemas.TranslationResponse
+class TranslationResponse {
+  source_language
+  target_language
+  model: str
+  origin: dataset | ai_with_dataset | ai
+}
+' @class backend.schemas.VocabularyItem
+class VocabularyItem {
+  term: str [1..200 chars]
+  meaning: Text
+}
+' @class backend.schemas.Evidence
+class Evidence {
+  id: str
+  text: str
+  language: DatasetLanguage
+  french_gloss: str
+  english_gloss: str
+  match_type: exact | phrase | token
+}
+' @class backend.schemas.Coverage
+class Coverage {
+  matched_terms: list[str]
+  unmatched_terms: list[str]
+  warnings: list[str]
+}
+' @class backend.schemas.TokenResult
+class TokenResult {
+  text: str
+  category: str
+}
+' @class backend.schemas.AnalysisResult
+class AnalysisResult {
+  code_mixed_spans: list[str]
+  verb_phrases: list[str]
+}
+' @class backend.schemas.ChatResponse
+class ChatResponse {
+  reply: Text
+  model: str
+  origin: Origin = ai
+}
+TranslationResponse --|> TranslationContent
+TranslationContent --> "0..12" VocabularyItem : vocabulary
+TranslationResponse --> "1" AnalysisResult : analysis
+AnalysisResult --> "0..*" TokenResult : tokens
+TranslationResponse --> "1" Coverage : coverage
+TranslationResponse --> "0..*" Evidence : evidence
+ChatResponse --> "0..*" Evidence : evidence
+note bottom of Evidence
+  Whitelist intentionally omits contributor,
+  location, notes, audio and timestamp.
+  Retrieval emits at most 8 evidence records,
+  but these DTO list types alone do not enforce 8.
+end note
+legend bottom
+  All eight primary classes live in backend.schemas.
+  Each directly extends pydantic.BaseModel except TranslationResponse.
+  Associations describe nested values, not exclusive lifetimes;
+  Pydantic values may be shared/reused by Python callers.
+  Validation/serialization use inherited model_validate/model_dump.
+endlegend
+@enduml

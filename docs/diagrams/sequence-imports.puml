@@ -1,0 +1,69 @@
+@startuml
+!include theme.iuml
+title Import preview, explicit suggestions and human review/save
+hide footbox
+autonumber
+actor User
+participant "Imports / EntryEditor\n<<React functions>>" as Web
+participant "import_api / imports\n<<functions>>" as Imports
+participant "service : GeminiService" as AI
+participant "dataset API / collection\n<<functions>>" as Collection
+
+User -> Web : Preview selected file
+activate Web
+Web -> Imports : POST /api/imports/preview\nmultipart file + consent flag
+activate Imports
+note over Imports : Bound multipart stream; validate format and size.\nClose upload resources in finally.
+Imports -> Imports : preview_file(...)\nlocal extraction or media validation
+activate Imports
+alt Supported readable local document
+  note over Imports : Parse text / structured rows / DOCX / PDF.\nImported approval flags are discarded.
+else Media / no text / consented partial-PDF OCR
+  alt Explicit cloud consent
+    Imports -> AI : await _generate(file inline, structured=False)
+    activate AI
+    AI --> Imports : Unreviewed transcript or AIError
+    deactivate AI
+  else No consent
+    note over Imports : Reject required cloud processing; no provider call.
+  end
+end
+Imports --> Imports : Bounded text, drafts and warnings / error
+deactivate Imports
+Imports --> Web : ImportPreview or safe HTTP error
+deactivate Imports
+Web --> User : Editable segments and warnings; nothing saved
+deactivate Web
+
+opt User explicitly requests AI entry suggestions
+  User -> Web : Generate suggestions
+  activate Web
+  Web -> Imports : POST /api/imports/suggest\nreviewed segment + language
+  activate Imports
+  Imports -> AI : await _generate(..., structured=False)
+  activate AI
+  AI --> Imports : Candidate JSON or AIError
+  deactivate AI
+  note over Imports : Validate <=12 unreviewed drafts;\nexact word-bounded quotations, no invented source text.
+  Imports --> Web : SuggestionResponse / error; no save
+  deactivate Imports
+  Web --> User : Candidates requiring review
+  deactivate Web
+end
+
+User -> Web : Review candidate, then explicitly Save
+activate Web
+note over Web : EntryEditor starts unreviewed; human edits\nlanguage/glosses/provenance and review decision.
+Web -> Collection : POST /api/dataset\nEntryCreate
+activate Collection
+note over Collection : Validate, reject duplicate if needed;\nlocked atomic mutation (storage sequence).
+Collection --> Web : 201 DatasetEntry / actionable error
+deactivate Collection
+Web --> User : Saved status only on success; draft on failure
+deactivate Web
+legend bottom
+  Translate/Ask AI handoff fills a draft only (no network/save side effect).
+  Original imports are not retained as collection attachments by the application.
+  Permission and manual fieldwork authenticity cannot be supplied by software.
+endlegend
+@enduml

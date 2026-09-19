@@ -1,0 +1,61 @@
+@startuml
+!include theme.iuml
+title Deterministic grammar analysis and category-token parsing
+hide footbox
+autonumber
+actor Learner
+participant "Compiler lab\n<<React functions>>" as Web
+participant "coursework_api / coursework\n<<functions>>" as API
+participant "parser.service / analysis / grammar\n<<modules>>" as Grammar
+participant "lexer / dataset\n<<modules>>" as Lexer
+participant "predictive\n<<module>>" as Parser
+
+Learner -> Web : Analyze corpus or Parse practice input
+activate Web
+Web -> API : POST /api/coursework/analyze or /parse\ncurrent editor grammar
+activate API
+API -> Grammar : analyze_grammar(grammar)
+activate Grammar
+Grammar -> Grammar : read_grammar(); transform_grammar()
+activate Grammar
+note over Grammar : Validate symbols/limits; ordered substitution,\ndirect recursion elimination, repeated left factoring.\nKeep bounded before/after transformation snapshots.
+Grammar --> Grammar : Original / transformed rules and steps\nor GrammarError
+deactivate Grammar
+opt Valid bounded transformation
+  Grammar -> Grammar : calculate_first(); calculate_follow();\nbuild_table(); remaining-cycle checks
+  activate Grammar
+  Grammar --> Grammar : Sets, unambiguous cells, conflicts, warnings
+  deactivate Grammar
+end
+Grammar --> API : Grammar analysis / GrammarError
+deactivate Grammar
+alt Valid grammar result (possibly not LL(1))
+  API -> Lexer : lexical_report(saved corpus) or tokens_for(text)
+  activate Lexer
+  note over Lexer : Approved non-conflicting Word annotations;\nregex + lists + heuristics; preserve UNKNOWN.\nCorpus limits apply to analyze, not the practice field.
+  Lexer --> API : Token streams / lexical report or storage error
+  deactivate Lexer
+  loop Each corpus entry, or one practice input
+    API -> Parser : parse_analysis(grammar, tokens)
+    activate Parser
+    alt Conflicts or unresolved recursion
+      note over Parser : Reject without choosing a conflicting production.
+    else LL(1) table available
+      note over Parser : Bounded stack machine; snapshots before actions.\nAccept only full input + end marker agreement.\nMissing cells/mismatch/trailing input/limits reject.
+    end
+    Parser --> API : accepted, error, trace, consumed
+    deactivate Parser
+  end
+else Invalid notation / unsafe expansion / limits
+  note over API : GrammarError maps to HTTP 422.
+end
+API --> Web : Structured results / safe error
+deactivate API
+Web --> Learner : Tables and traces; editor not implicitly saved
+deactivate Web
+legend bottom
+  Function-module self-calls deliberately collapse internal function boundaries.
+  No Gemini call determines analysis or acceptance.
+  Existing CSV/audio are read-only; missing storage can bootstrap an empty header.
+endlegend
+@enduml

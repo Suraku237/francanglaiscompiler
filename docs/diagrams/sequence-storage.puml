@@ -1,0 +1,60 @@
+@startuml
+!include theme.iuml
+title Shared locked CSV mutation and failure-safe replacement
+hide footbox
+autonumber
+participant "App / collection functions\n<<caller>>" as Caller
+participant "dataset.py\n<<module>>" as Dataset
+participant "path-keyed FileLock\n<<external>>" as Lock
+participant "Local filesystem\n<<external>>" as Files
+
+Caller -> Dataset : append_entry / update_entry / delete_entry\n(or collection's outer transaction)
+activate Dataset
+Dataset -> Lock : acquire(timeout=10)
+activate Lock
+Lock --> Dataset : Lock held or Timeout
+deactivate Lock
+alt Lock acquired
+  Dataset -> Dataset : load_all()
+  activate Dataset
+  note over Dataset : Reentrant same-path lock; ensure storage.\nValidate 10/11/14-field exact header and row shape.
+  Dataset -> Files : Read UTF-8 CSV
+  activate Files
+  Files --> Dataset : Bytes / read failure
+  deactivate Files
+  Dataset --> Dataset : Normalized row dictionaries / error
+  deactivate Dataset
+  opt Read and mutation validation succeed
+    note over Dataset : Modify rows in memory; reset approval on changed\nfields unless review status is explicitly supplied.
+    Dataset -> Dataset : _write_entries(entries)
+    activate Dataset
+    Dataset -> Files : Create sibling scratch file;\nwrite canonical header/rows; flush + fsync
+    activate Files
+    Files --> Dataset : Completed sibling or write failure
+    deactivate Files
+    opt Sibling completely written
+      Dataset -> Files : os.replace(sibling, dataset.csv)
+      activate Files
+      Files --> Dataset : Atomic replacement / replacement failure
+      deactivate Files
+    end
+    note over Dataset : Finally remove any leftover sibling.\nBefore replacement failure, previous CSV stays intact.
+    Dataset --> Dataset : Committed or exception
+    deactivate Dataset
+  end
+  Dataset -> Lock : release() in context-manager exit
+  activate Lock
+  Lock --> Dataset : Released, including on failure
+  deactivate Lock
+else Lock timed out
+  note over Dataset : No mutation; return busy/failure to caller.
+end
+Dataset --> Caller : Success or propagated exception
+deactivate Dataset
+legend bottom
+  collection functions take the same outer lock around duplicate/ID checks and write.
+  Lock activation shows the acquire/release call, not the duration of file ownership.
+  Append also rewrites the full dataset; there is no unsafe direct append path.
+  Protection covers cooperative users of this path, not external manual writers.
+endlegend
+@enduml

@@ -207,6 +207,50 @@ is writing to it. All API writes preserve existing IDs, timestamps and audio
 metadata when editing; malformed CSV files produce an error rather than being
 silently replaced.
 
+### Verified backup and recovery
+
+Close the desktop collector and stop the API before taking a snapshot, including
+any recording or screenshot upload. Store backups in an access-restricted
+location; they contain collected text, contributor details and recordings.
+Checksums detect changes, not the authenticity of fieldwork or the trustworthiness
+of an unknown backup.
+
+From the repository root, choose **new** destination names:
+
+```powershell
+New-Item -ItemType Directory -Force .backups | Out-Null
+.\.venv\Scripts\python.exe -m tools.data_snapshot backup --destination .backups\before-review
+.\.venv\Scripts\python.exe -m tools.data_snapshot verify .backups\before-review
+.\.venv\Scripts\python.exe -m tools.data_snapshot restore .backups\before-review --destination .backups\restore-check
+.\.venv\Scripts\python.exe -m tools.data_snapshot verify .backups\restore-check
+```
+
+The [snapshot tool](tools/data_snapshot.py) preserves CSV bytes (including
+supported legacy headers), managed audio including unreferenced recordings,
+the saved coursework profile, and screenshots. Configuration files such as the
+root `.env`, locks and incomplete atomic-write files are not part of that
+payload. A SHA-256 manifest verifies the complete file inventory and referenced
+audio. Missing media, corrupt files, unsafe paths, links and detected concurrent
+changes are explicit failures. A failed snapshot is not published.
+
+Restore refuses an existing destination: it **never overwrites the live
+collection**. To recover real data, first preserve the current data, verify a
+snapshot, restore to a new directory, and inspect the restored rows/media.
+Only then, with all apps still stopped, deliberately copy the verified data
+and corresponding media/profile files into the managed data directory. Copy
+the CSV last; do not copy the snapshot manifest or delete unrelated files.
+Reopen the application and check the expected counts and referenced recordings.
+Keep the pre-recovery copy until those checks pass. Access permissions and
+encryption for the backup location remain the operator's responsibility.
+If the current CSV is already malformed, preserve a separate manual copy
+before troubleshooting: the tool deliberately refuses to label a malformed
+CSV as a verified snapshot.
+
+`.backups/` is ignored by Git, but an external protected backup location is
+preferable for disaster recovery. `--source <folder>` supports rehearsal with
+an isolated data directory. Automated round-trip and corruption tests use
+synthetic temporary fixtures, never the group's actual corpus.
+
 ### API overview
 
 | Method | Endpoint | Purpose |
@@ -235,19 +279,74 @@ provider timeouts 504. Provider response bodies and keys are not exposed.
 From the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s backend\tests -v
-cd frontend
-npm run build
+.\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }
+.\.venv\Scripts\python.exe -m tools.run_python_tests
+if ($LASTEXITCODE -ne 0) { throw "Python tests failed." }
+Push-Location frontend
+try {
+    npm ci
+    if ($LASTEXITCODE -ne 0) { throw "Frontend installation failed." }
+    npm test
+    if ($LASTEXITCODE -ne 0) { throw "Frontend component tests failed." }
+    npm run build
+    if ($LASTEXITCODE -ne 0) { throw "Frontend build failed." }
+    npx playwright install chromium
+    if ($LASTEXITCODE -ne 0) { throw "Browser installation failed." }
+    npm run test:e2e
+    if ($LASTEXITCODE -ne 0) { throw "Frontend browser tests failed." }
+}
+finally {
+    Pop-Location
+}
 ```
 
-Backend tests use temporary CSV files and a mocked Gemini HTTP transport:
+Python tests use temporary CSV files and a mocked Gemini HTTP transport:
 they make **no real Gemini requests**, require no API key and do not modify
 your collected dataset. They cover language directions, approved local matching,
 evidence privacy, chat, malformed/blocked AI responses, timeouts, quotas, imports
 and review gates, input validation, CRUD, concurrent/atomic CSV writes, and
-legacy collector/lexer behavior.
+collector/lexer behavior. Desktop audio/device failures are mocked; snapshot
+tests verify exact-byte recovery, missing/corrupt media and refusal to overwrite
+existing data. Frontend component and browser tests use controlled API fixtures,
+not a running research backend or live AI service.
+
+[CI](.github/workflows/ci.yml) runs Python regressions on Windows with Python
+3.11 and 3.14, frontend/component/browser checks on Node.js 22, and a fresh
+PlantUML/LaTeX build with checksum-verified tools. Its documentation check compares
+the production-class inventory with the actual Python source, checks every
+diagram reference, and verifies that the current diagram pixels are embedded
+in the published SDD. A workflow definition is not evidence that a remote
+GitHub run has already completed; inspect the repository's Actions results.
+
+For an isolated performance measurement, use a graphical desktop session and
+do not interact with the temporary benchmark window:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.benchmark_collector --output docs\.build\collector-benchmark.json
+```
+
+This exercises the actual active-tab search and Stats handlers, including Tk
+idle rendering, over 1,000 synthetic 500-character entries. Each operation has
+one warm-up and 20 measured runs; the reported p95 is the nearest-rank value
+and the default limit is 1,000 ms. The report records hardware, runtime, raw
+timings and source hashes, and exits unsuccessfully if the limit is exceeded.
+The real CSV is never used or replaced. Passing on one recorded machine is
+not a claim of identical performance on all machines.
+
+Rebuild and verify the documentation separately:
+
+```powershell
+.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
+.\.venv\Scripts\python.exe -m tools.check_documentation
+```
+
 Actual translation quality, account/model access and physical microphone
-behavior require a live check on your machine.
+behavior require a live check on your machine. Before release, exercise mic
+permission denial, missing/disconnected devices, Record/Stop, attachment and
+playback, browser dictation availability, network/provider errors and a reviewed
+translation example. Use non-sensitive examples and explicit cloud consent;
+passing mocked tests is not proof of provider access or linguistic accuracy.
 
 ---
 
@@ -314,10 +413,34 @@ Project metadata and screenshots persist in `data_collector/coursework/`
 corpus, with limits of 500 entries and 100,000 text characters. Grammar and
 parser limits produce explicit errors instead of hanging.
 
+### Fieldwork information the group must provide
+
+The software can prepare and verify the workflow, but must not invent these
+inputs. A CSV, spreadsheet or clearly structured text table is sufficient:
+
+| Input | What to provide |
+| --- | --- |
+| Group identity | Three names, matricules, and each member's actual contribution |
+| Genuine speech | 10-15 exact manually transcribed full statements, not dictionary/AI/demo substitutes; keep the original spelling and code mixing |
+| Topic and language | One required topic per statement and the observed language; use `mixed` or `unspecified` when genuinely uncertain |
+| Provenance | Who in the group collected it, general location/context and when it was heard, where known; omit unnecessary speaker-identifying details |
+| Meanings | French/English glosses only where known, with uncertainty or ambiguity noted |
+| Method and permission | How transcription and review were performed, appropriate permission/consent, and any restrictions on sharing text or audio |
+| Interpretation | Observed patterns, grammar rationale, discussion, limitations and independently reviewed expected parser outcomes |
+
+Audio is optional. The application generates record IDs and timestamps;
+do not invent collection dates, identities, permissions or findings to fill
+blanks. Mark approval and manual transcription only after genuine human review.
+The SRS/SDD author fields and research-dependent deliverables remain pending
+until the group supplies this information. They are separate from the required
+25-30-page coursework report.
+
 Additional endpoints: `GET /api/coursework`,
 `PUT /api/coursework/project`, `POST /api/coursework/analyze`,
 `POST /api/coursework/parse`, `POST /api/coursework/explain`,
-`POST /api/coursework/screenshots`, and `GET /api/coursework/export`.
+`POST /api/coursework/screenshots`,
+`GET /api/coursework/screenshots/{image_id}`,
+`DELETE /api/coursework/screenshots/{image_id}`, and `GET /api/coursework/export`.
 The API docs describe the request shapes.
 
 Run the coursework, compiler and existing API tests:
@@ -368,6 +491,9 @@ dataset, split into three files:
   for manual transcription), but kept as extra raw material for the
   word-prediction extension below
 - `contributor` (group name/members), `timestamp`
+- `language`, `review_status`, `lexical_category` — review metadata shared with
+  the web collection. New material is unreviewed; unspecified language is not
+  silently interpreted as Francanglais. Review changes before approving them.
 
 A duplicate warning appears if the text you're typing already exists
 in the dataset. A "Recently added" list shows your last few entries.

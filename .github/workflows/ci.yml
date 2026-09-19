@@ -1,0 +1,131 @@
+name: Project verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }} on Windows
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-desktop.txt
+            backend/requirements.txt
+      - name: Install application and desktop dependencies
+        run: python -m pip install -r requirements-desktop.txt
+      - name: Check installed dependency consistency
+        run: python -m pip check
+      - name: Run all isolated Python regressions
+        run: python -m tools.run_python_tests
+
+  frontend:
+    name: Frontend and browser regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Run component regressions
+        run: npm test
+      - name: Type-check and build production assets
+        run: npm run build
+      - name: Install the isolated browser-test runtime
+        run: npx playwright install --with-deps chromium
+      - name: Run browser workflows with mocked API data
+        run: npm run test:e2e
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-evidence
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  documentation:
+    name: UML and LaTeX verification
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install -r requirements.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install checksum-verified documentation tools
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force docs\.tools | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.17.0/tectonic-0.17.0-x86_64-pc-windows-msvc.zip' -OutFile docs\.tools\tectonic.zip
+          if ((Get-FileHash docs\.tools\tectonic.zip -Algorithm SHA256).Hash -ne 'f61ce51f0b0ade1015b7de7ef368541c5424e9756ecbd0d7af97d6d48030845f') {
+            throw 'Tectonic checksum mismatch.'
+          }
+          Expand-Archive -LiteralPath docs\.tools\tectonic.zip -DestinationPath docs\.tools -Force
+          Invoke-WebRequest -Uri 'https://github.com/plantuml/plantuml/releases/download/v1.2026.8/plantuml.jar' -OutFile docs\.tools\plantuml.jar
+          if ((Get-FileHash docs\.tools\plantuml.jar -Algorithm SHA256).Hash -ne '5e1ecfa8ecd32c90b03bbf3b1eb6f020943f98ab0fcf4032be31a0002ee2c462') {
+            throw 'PlantUML checksum mismatch.'
+          }
+          Invoke-WebRequest -Uri 'https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip' -OutFile docs\.tools\actionlint.zip
+          if ((Get-FileHash docs\.tools\actionlint.zip -Algorithm SHA256).Hash -ne '6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9') {
+            throw 'Actionlint checksum mismatch.'
+          }
+          Expand-Archive -LiteralPath docs\.tools\actionlint.zip -DestinationPath docs\.tools\actionlint -Force
+      - name: Validate workflow syntax and expressions
+        shell: pwsh
+        run: .\docs\.tools\actionlint\actionlint.exe .github\workflows\ci.yml
+      - name: Render all diagrams and build both documents
+        shell: pwsh
+        run: .\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
+      - name: Check class coverage and actual PDF figures
+        run: python -m tools.check_documentation
+      - name: Preserve generated documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: |
+            docs/srs.pdf
+            docs/sdd.pdf
+            docs/diagrams/*.png
+          retention-days: 14

@@ -14,3 +14,10 @@ skinparam sequenceParticipantBorderColor #334155
 skinparam sequenceLifeLineBorderColor #64748B
 skinparam sequenceLifeLineBackgroundColor #DBEAFE
 skinparam sequenceArrowColor #334155
+skinparam titleFontColor #1E3A5F
+skinparam titleFontSize 17
+skinparam noteBackgroundColor #FFF8E7
+skinparam noteBorderColor #B38B45
+skinparam packageBackgroundColor #FAFBFD
+skinparam packageBorderColor #94A3B8
+skinparam wrapWidth 220

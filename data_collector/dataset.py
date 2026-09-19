@@ -55,6 +55,11 @@ ENTRY_TYPES = ["Word", "Phrase", "Sentence"]
 _LOCKS: dict[str, FileLock] = {}
 _LOCKS_GUARD = Lock()
 
+
+class EntryNotFoundError(LookupError):
+    """An entry was removed before an update or delete could be committed."""
+
+
 def dataset_lock() -> FileLock:
     """Use the same reentrant, cross-process lock for a complete transaction."""
     with _LOCKS_GUARD:
@@ -137,21 +142,27 @@ def apply_entry_update(entry: dict[str, str], updated_fields: dict[str, str]) ->
         entry["review_status"] = "unreviewed"
 
 
-def update_entry(entry_id: str, updated_fields: dict):
+def update_entry(entry_id: str, updated_fields: dict[str, str]) -> None:
+    """Update under the CSV lock; raise EntryNotFoundError for a stale ID."""
     with dataset_lock():
         entries = load_all()
         for e in entries:
             if e["id"] == entry_id:
                 apply_entry_update(e, updated_fields)
                 break
+        else:
+            raise EntryNotFoundError("This collection entry no longer exists.")
         save_all(entries)
 
 
-def delete_entry(entry_id: str):
+def delete_entry(entry_id: str) -> None:
+    """Delete under the CSV lock; raise EntryNotFoundError for a stale ID."""
     with dataset_lock():
         entries = load_all()
-        entries = [e for e in entries if e["id"] != entry_id]
-        save_all(entries)
+        remaining = [e for e in entries if e["id"] != entry_id]
+        if len(remaining) == len(entries):
+            raise EntryNotFoundError("This collection entry no longer exists.")
+        save_all(remaining)
 
 
 def text_exists(text: str, exclude_id: Optional[str] = None, language: str = "unspecified") -> bool:

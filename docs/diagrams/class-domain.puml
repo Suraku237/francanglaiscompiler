@@ -1,113 +1,65 @@
 @startuml
 !include theme.iuml
-title Francanglais Collector - Classes, Relationships and Multiplicities
-top to bottom direction
-skinparam nodesep 35
-skinparam ranksep 40
+allowmixing
+title Desktop application classes and audio ownership
 hide empty members
-
-class "customtkinter.CTk" as CTk <<external>> {
-  + mainloop()
-}
-
+' @class data_collector.App.App
 class App {
-  + pending_audio_path: str [0..1]
-  + selected_browse_id: str [0..1]
-  + selected_browse_audio: str [0..1]
-  + __init__()
-  + save_entry(): None
-  + clear_form(keep_contributor: bool = False): None
-  + toggle_recording(): None
-  + attach_audio_file(): None
-  + play_pending_audio(): None
-  - _refresh_browse_list(): None
-  - _save_browse_edit(): None
-  - _delete_browse_entry(): None
-  - _refresh_stats(): None
+  recorder: Recorder | None
+  pending_audio_path: str | None
+  selected_browse_id: str | None
+  selected_browse_audio: str | None
+  _browse_entries_by_id: dict
+  save_entry()
+  toggle_recording()
+  attach_audio_file()
+  _save_browse_edit()
+  _delete_browse_entry()
+  _refresh_stats()
 }
-
-class "audio_utils.Recorder" as Recorder {
-  + frames: list[ndarray]
-  + recording: bool = False
-  + __init__()
-  + start(): None
-  + stop(): ndarray [0..1]
+' @class data_collector.App.Tooltip
+class Tooltip {
+  widget
+  text: str
+  tip_window
+  _show(event=None)
+  _hide(event=None)
 }
-
-class "sounddevice.InputStream" as InputStream <<external>> {
-  + start()
-  + stop()
-  + close()
+' @class data_collector.audio_utils.Recorder
+class Recorder {
+  frames: list
+  stream: InputStream | None
+  recording: bool
+  start()
+  stop()
 }
-
-class "dataset.py" as Dataset <<module>> {
-  {static} + FIELDNAMES: list[str]
-  {static} + ENTRY_TYPES: list[str]
-  {static} + CATEGORIES: list[str]
-  {static} + ensure_dataset_file(): None
-  {static} + load_all(): list[DatasetEntry]
-  {static} + append_entry(entry: DatasetEntry): None
-  {static} + save_all(entries: list[DatasetEntry]): None
-  {static} + update_entry(entry_id: str, updated_fields: dict): None
-  {static} + delete_entry(entry_id: str): None
-  {static} + text_exists(text: str, exclude_id: str [0..1]): bool
-  {static} + count_by(field: str): dict
-  {static} + total_count(): int
-}
-
-class "audio_utils.py" as AudioUtils <<module>> {
-  {static} + AUDIO_RECORDING_AVAILABLE: bool
-  {static} + SAMPLE_RATE: int = 44100
-  {static} + save_recording(audio, audio_dir: str): str
-  {static} + attach_file(source_path: str, audio_dir: str): str
-  {static} + play_audio(path: str): bool
-}
-
-class DatasetFile <<logical storage>> {
-  + filename: str = "dataset.csv"
-  + encoding: str = "UTF-8"
-}
-
-class DatasetEntry <<record>> {
-  + id: str
-  + text: str
-  + entry_type: str
-  + french_gloss: str
-  + english_gloss: str
-  + category: str
-  + notes: str
-  + audio_filename: str
-  + contributor: str
-  + timestamp: str
-}
-
-class AudioFile <<logical storage>> {
-  + filename: str
-  + directory: str = "audio/"
-}
-
+class "customtkinter.CTk" as CTk <<external>>
+class "Widget" as Widget <<external>>
+class "CTkToplevel" as TipWindow <<external>>
+class "sounddevice.InputStream" as Stream <<external>>
+rectangle "dataset.py <<module>>\nload_all(), append_entry()\nupdate_entry(), delete_entry()\ndataset_lock(), count_by()" as Dataset
+rectangle "audio_utils.py <<module>>\nattach_file(), save_recording()\nplay_audio()" as Audio
 App --|> CTk
-App "1" *-- "0..1" Recorder : recorder
-Recorder "1" *-- "0..1" InputStream : stream
-App ..> Dataset : calls
-App ..> AudioUtils : calls
-App ..> DatasetEntry : constructs / displays
-Dataset ..> DatasetFile : reads / writes
-AudioUtils ..> AudioFile : saves / copies / plays
-DatasetFile "1" *-- "0..*" DatasetEntry : rows
-DatasetEntry "0..*" --> "0..1" AudioFile : references by filename
-
-legend bottom left
-  <b>Scope and notation</b>
-  App and Recorder: all application-defined classes in the available source.
-  <<external>>: selected library classes; widget internals are omitted.
-  <<module>>: module-level functions, not instantiated Python classes.
-  <<record>>: a CSV row / Python dict, not an implemented model class.
-  <<logical storage>>: files in the data model, not Python classes.
-  1 = exactly one; 0..1 = optional; 0..* = zero or more.
-  Filled diamond = composition; triangle = inheritance.
-  Dashed arrows = dependencies (no multiplicities).
-  An audio file may be unreferenced or referenced by several rows.
-  The filename link is logical: file existence is not guaranteed.
+App "1" *-- "0..1" Recorder : creates when audio is available
+Recorder --> "0..1" Stream : stream
+Tooltip --> "1" Widget : widget
+Tooltip --> "0..1" TipWindow : tip_window
+App ..> Tooltip : creates for controls
+App ..> Dataset : calls functions
+App ..> Audio : calls functions
+note bottom of Recorder
+  One optional stream per recorder.
+  Frames are sample arrays, not domain classes.
+  Callback execution is asynchronous.
+end note
+note bottom of Tooltip
+  A tooltip retains one widget and at most one
+  popup. App does not store a Tooltip collection:
+  bound callbacks retain these helper objects.
+end note
+legend bottom
+  Three production classes; library types are explicitly external.
+  Per-instance target multiplicities express stored references.
+  Audio filenames are not object ownership or database foreign keys.
 endlegend
 @enduml

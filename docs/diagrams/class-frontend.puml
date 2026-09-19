@@ -1,0 +1,38 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Frontend class and function-component structure
+hide empty members
+' @class frontend.src.api.ApiError
+class ApiError {
+  status: number {readOnly}
+  constructor(message: string, status: number)
+}
+class "JavaScript Error" as Error <<external>>
+rectangle "api.ts <<function module>>\napi<T>(), errorDetail(), messageOf()\nisCancelled()" as API
+rectangle "useRequest.ts <<hook module>>\nuseRequest(): run / cancel / pending / error" as Request
+rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nhash navigation; draft handoff; health" as App
+rectangle "Translator / Assistant / Collection\nImports / Coursework <<function components>>\nforms; reviewed results; local state" as Pages
+rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
+rectangle "voice.ts <<hook module>>\nuseDictation(), useReadAloud()\nbrowserVoiceLanguage()" as Voice
+ApiError --|> Error
+API ..> ApiError : throws status-bearing errors
+Request ..> API : cancellation / error text
+Pages ..> Request : per-operation request state
+Pages ..> API : awaited HTTP
+App ..> Pages : renders / hides sections
+App ..> Voice : shared read-aloud
+Pages ..> Voice : opt-in dictation
+Evidence ..> API : error parsing / screenshot CRUD
+Evidence ..> ApiError : export HTTP failure
+note bottom of Pages
+  Interfaces in types.ts, importTypes.ts,
+  courseworkTypes.ts and browser speech typings
+  erase at runtime: they are not classes.
+end note
+legend bottom
+  ApiError is the only authored production TypeScript class.
+  React function components and hooks must not be recast as service classes.
+  Module dependencies have no association multiplicities.
+endlegend
+@enduml

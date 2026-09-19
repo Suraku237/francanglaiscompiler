@@ -1,0 +1,73 @@
+@startuml
+!include theme.iuml
+title Import and coursework request/result classes
+hide empty members
+package "backend.import_models" {
+  ' @class backend.import_models.SuggestedEntry
+  class SuggestedEntry {
+    text; entry_type; language
+    french_gloss; english_gloss
+    lexical_category
+    review_status: unreviewed
+  }
+  ' @class backend.import_models.ImportPreview
+  class ImportPreview {
+    filename; format
+    method: local | gemini
+    text; segments; warnings
+  }
+  ' @class backend.import_models.SuggestRequest
+  class SuggestRequest {
+    text [1..4000 chars]
+    language: francanglais | pidgin | mixed
+  }
+  ' @class backend.import_models.SuggestionResponse
+  class SuggestionResponse {
+    warnings: list[str]
+    model: str
+  }
+  ImportPreview --> "0..100" SuggestedEntry : drafts
+  SuggestionResponse --> "0..12" SuggestedEntry : drafts
+}
+package "backend.coursework_models" {
+  ' @class backend.coursework_models.ProjectProfile
+  class ProjectProfile {
+    group_members: list[str] [3]
+    grammar: str [1..12000 chars]
+    manual_transcription_confirmed: bool
+    grammar_rationale; discussion
+    collection_method; limitations
+    distinct_members(members): list[str]
+  }
+  ' @class backend.coursework_models.GrammarRequest
+  class GrammarRequest {
+    grammar: str [1..12000 chars]
+  }
+  ' @class backend.coursework_models.ParseRequest
+  class ParseRequest {
+    text: str [0..4000 chars]
+  }
+  ' @class backend.coursework_models.ExplainRequest
+  class ExplainRequest {
+    question: str [1..2000 chars]
+    language: fr | en
+  }
+  ' @class backend.coursework_models.ScreenshotRequest
+  class ScreenshotRequest {
+    name: str [1..120 chars]
+    data_url: str [0..2800000 chars]
+  }
+  ParseRequest --|> GrammarRequest
+  ExplainRequest --|> ParseRequest
+}
+GrammarRequest -[hidden]down- ProjectProfile
+ProjectProfile -[hidden]down- ScreenshotRequest
+legend bottom
+  SuggestRequest and all coursework classes inherit RequestModel
+  (directly, except ParseRequest and ExplainRequest as drawn).
+  Other import classes directly inherit BaseModel.
+  SuggestedEntry additionally forbids extra fields; approval cannot be imported.
+  Three member strings may initially be blank; nonblank names must be distinct.
+  UI type aliases/interfaces are not additional runtime model classes.
+endlegend
+@enduml

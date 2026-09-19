@@ -1,0 +1,66 @@
+@startuml
+!include theme.iuml
+title Save coursework, then export only saved evidence
+hide footbox
+autonumber
+actor Member
+participant "Coursework / CourseworkExport\n<<React functions>>" as Web
+participant "coursework_api\n<<functions>>" as API
+participant "coursework_store\n<<module>>" as Store
+participant "coursework_export / coursework\n<<modules>>" as Export
+participant "Local files / compiler" as Local
+
+Member -> Web : Save project
+activate Web
+Web -> API : PUT /api/coursework/project\nProjectProfile snapshot
+activate API
+API -> Store : save_project(profile)
+activate Store
+Store -> Local : Validate grammar; acquire project lock;\nwrite, flush/fsync, atomically replace JSON
+activate Local
+Local --> Store : Saved or validation/storage failure
+deactivate Local
+Store --> API : ProjectProfile or exception
+deactivate Store
+API --> Web : Saved profile / safe HTTP error
+deactivate API
+note over Web : Mark submitted snapshot saved, not later edits.\nRefresh saved evidence while preserving editor draft.
+Web --> Member : Save notice or retained draft + error
+deactivate Web
+
+Member -> Web : Download coursework draft
+activate Web
+alt Editor dirty / save or screenshot work pending
+  note over Web : Export is disabled; save or finish current work.
+else Eligible explicit export
+  Web -> API : GET /api/coursework/export
+  activate API
+  API -> Export : export_bundle()
+  activate Export
+  Export -> Store : load_project(); list_screenshots(); screenshot_path()
+  activate Store
+  Store --> Export : Saved profile and image references / error
+  deactivate Store
+  Export -> Local : Read current CSV and images;\nanalyze_coursework(saved grammar, entries)
+  activate Local
+  Local --> Export : Saved evidence + computed results / error
+  deactivate Local
+  Export -> Export : build_report(); build_presentation();\nassemble ZIP artifacts and selected sources
+  activate Export
+  Export --> Export : ZIP bytes
+  deactivate Export
+  Export --> API : ZIP bytes or exception
+  deactivate Export
+  API --> Web : application/zip; no-store / safe error
+  deactivate API
+  note over Web : Validate type/nonempty Blob, start download,\nrevoke object URL; label as DRAFT.
+end
+Web --> Member : Download started / actionable state
+deactivate Web
+legend bottom
+  No unsaved practice input or AI answer is included.
+  ZIP includes actual corpus/provenance/profile: review before sharing.
+  Individual files are protected, but export is not a global multi-file transaction.
+  Missing research remains visible; 25 sections do not guarantee 25-30 final pages.
+endlegend
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+!include theme.iuml
+title Gemini wire-response validation classes
+hide empty members
+' @class backend.gemini.GenerateResponse
+class GenerateResponse {
+  model_validate_json(content) {inherited}
+}
+' @class backend.gemini.Candidate
+class Candidate {
+  finishReason: str | None
+}
+' @class backend.gemini.Content
+class Content {
+  role: str | None
+}
+' @class backend.gemini.Part
+class Part {
+  text: str | None
+  thought: bool = false
+}
+' @class backend.gemini.PromptFeedback
+class PromptFeedback {
+  blockReason: str | None
+}
+GenerateResponse --> "0..*" Candidate : candidates
+GenerateResponse --> "0..1" PromptFeedback : promptFeedback
+Candidate --> "0..1" Content : content
+Content --> "0..*" Part : parts
+note bottom of Candidate
+  Service selects the first candidate.
+  STOP is required; truncation, blocking,
+  absent content and invalid JSON fail explicitly.
+end note
+note bottom of Part
+  Only nonempty text from non-thought parts
+  contributes to the public result.
+end note
+legend bottom
+  All five primary classes live in backend.gemini and extend BaseModel.
+  Optional fields/list defaults justify 0..1 and 0..*.
+  They validate upstream wire data, not stored corpus entities.
+  These classes are distinct from public TranslationContent/ChatResponse DTOs.
+endlegend
+@enduml

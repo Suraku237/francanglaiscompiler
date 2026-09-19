@@ -1,0 +1,59 @@
+@startuml
+!include theme.iuml
+title API request inheritance and conversation validation
+hide empty members
+class "pydantic.BaseModel" as BaseModel <<external>>
+' @class backend.schemas.RequestModel
+class RequestModel {
+  model_config: extra = forbid
+}
+' @class backend.schemas.AnalyzeRequest
+class AnalyzeRequest {
+  text: Text [1..4000 chars]
+}
+' @class backend.schemas.TranslationRequest
+class TranslationRequest {
+  source_language
+  target_language
+  tone
+  explanation_language
+  use_dataset: bool
+  allow_ai: bool
+  different_languages(): Self
+}
+' @class backend.schemas.ChatRequest
+class ChatRequest {
+  message: Text
+  language
+  source_language
+  target_language
+  use_dataset: bool
+  validate_history(): Self
+}
+' @class backend.schemas.ChatMessage
+class ChatMessage {
+  role: user | assistant
+  content: Text
+}
+RequestModel --|> BaseModel
+AnalyzeRequest --|> RequestModel
+TranslationRequest --|> AnalyzeRequest
+ChatRequest --|> RequestModel
+ChatMessage --|> RequestModel
+ChatRequest --> "0..12" ChatMessage : history
+note bottom of TranslationRequest
+  Translation directions must differ.
+  Four direction labels: fr, en,
+  francanglais and pidgin.
+end note
+note bottom of ChatRequest
+  History must contain complete alternating
+  user/assistant pairs, at most 24,000 characters.
+  Therefore valid history has 0, 2, ..., 12 messages.
+end note
+legend bottom
+  All five primary classes live in backend.schemas.
+  Text is a constrained string alias, not an additional class.
+  Entry, import and coursework request subclasses are in detail views.
+endlegend
+@enduml

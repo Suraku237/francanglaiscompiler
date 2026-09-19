@@ -1,32 +1,48 @@
 @startuml
 !include theme.iuml
-title Deployment - Local Baseline and Optional Future Host
-node "Contributor workstation" as workstation <<device>> {
-  node "Python + Tcl/Tk" as python <<executionEnvironment>> {
-    artifact "data_collector/App.py" as app
-    artifact "dataset.py" as dataset
-    artifact "audio_utils.py" as audio
+title Trusted local deployment; explicit optional remote services
+node "Trusted workstation (default setup)" {
+  node "Browser" as Browser {
+    artifact "React/Vite frontend\nin-memory drafts/history" as React
+    artifact "Browser speech APIs\nopt-in dictation / read-aloud" as Speech
   }
-  artifact "dataset.csv" as csv
-  artifact "audio/*" as audiodir <<file collection>>
-  node "OS audio services" as os <<executionEnvironment>>
-}
-node "Microphone" as mic <<device>>
-package "Optional deployment proposal - not implemented" #FFF7ED {
-  node "Analysis host" as host <<device>> {
-    artifact "Compiler + adapter" as api
-    artifact "Approved corpus copy" as snapshot
+  node "Vite development server\nlocalhost:5173" as Vite
+  node "Python / FastAPI\nloopback:8000" as Backend {
+    artifact "Backend + compiler" as Python
+    artifact "Server-only .env / environment\nGEMINI_API_KEY" as Secret
   }
-  node "Client device" as browser <<device>>
-  browser -- host : HTTP only if a web adapter is chosen
-  api ..> snapshot : read-only local access
+  node "Python / Tcl-Tk" as Tk {
+    artifact "App.py + audio_utils.py" as Collector
+  }
+  folder "Local disk" {
+    artifact "dataset.csv + cooperative lock" as CSV
+    artifact "audio / generated filenames" as Audio
+    artifact "coursework / profile + PNGs" as Coursework
+    artifact "User-chosen draft ZIP / snapshot\nreview before sharing" as Export
+  }
+  node "OS audio / default player" as OS
 }
-
-app ..> dataset : import
-app ..> audio : import
-dataset ..> csv : local I/O
-audio ..> audiodir : local I/O
-audio ..> os : record / playback
-mic -- workstation : device input
-csv ..> snapshot : <<flow>>\nproposed approved corpus transfer
+node "Microphone / speakers" as Devices <<device>>
+cloud "Gemini API" as Gemini
+cloud "Browser-selected speech provider\nimplementation-dependent" as SpeechProvider
+Browser -- Vite : local HTTP
+Vite -- Backend : /api proxy
+Python ..> CSV : locked I/O
+Python ..> Coursework : local I/O
+Python ..> Export : download bytes
+Collector ..> CSV : same lock protocol
+Collector ..> Audio : WAV / copy
+Collector -- OS : capture / play
+OS -- Devices
+Speech -- Devices : browser permissions
+Python -- Gemini : HTTPS; explicit AI requests
+Speech -- SpeechProvider : may use online speech
+Secret ..> Python
+legend bottom
+  No authentication or public multi-user deployment is supplied.
+  CORS is not access control. Keep the backend on a trusted local boundary.
+  If the backend is remote, its CSV/audio/profile live on that server.
+  A built frontend needs equivalent same-origin API routing; no hosted service is implied.
+  AI/provider access is optional; local compiler, CRUD and exact reviewed lookup work offline.
+endlegend
 @enduml

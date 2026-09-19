@@ -1,0 +1,71 @@
+@startuml
+!include theme.iuml
+title Explicit chat and bounded provider response handling
+hide footbox
+autonumber
+actor User
+participant "Assistant\n<<React function>>" as Web
+participant "main.chat\n<<route function>>" as API
+participant "grounding / dataset\n<<modules>>" as Local
+participant "service : GeminiService" as AI
+participant "httpx / Gemini" as Provider
+
+User -> Web : Send message
+activate Web
+Web -> Web : makeHistory(successful messages)
+activate Web
+Web --> Web : Up to 6 complete exchanges; <= 24,000 chars
+deactivate Web
+Web -> API : POST /api/chat\nChatRequest
+activate API
+opt use_dataset = true
+  API -> Local : retrieve(..., chat=True)\nusing current + last 2 user queries
+  activate Local
+  Local --> API : Whitelisted approved evidence / storage error
+  deactivate Local
+end
+API -> AI : await chat(request, evidence)
+activate AI
+AI -> AI : await _generate(contents, structured=False)
+activate AI
+alt API key missing
+  note over AI : Raise AIError 503 without network request.
+else Configured
+  AI -> Provider : POST generateContent
+  activate Provider
+  Provider --> AI : HTTP response or transport error
+  deactivate Provider
+  opt First response is 503, within total deadline
+    note over AI : Wait 1-2 seconds; only one retry.
+    AI -> Provider : Repeat same request once
+    activate Provider
+    Provider --> AI : HTTP response or transport error
+    deactivate Provider
+  end
+  note over AI
+    Total deadline: configured 1..120 s (default 45).
+    Map quota/key/transport/timeouts to safe AIError.
+    Validate GenerateResponse; require STOP;
+    reject blocked, truncated or empty output.
+  end note
+end
+AI --> AI : Text or AIError
+deactivate AI
+note over AI : Reply must fit 4,000 characters.
+AI --> API : Reply or AIError
+deactivate AI
+API --> Web : ChatResponse(origin, evidence, model) / error
+deactivate API
+alt Success and request still current
+  note over Web : Append both user and assistant messages.\nClear draft; optionally read reply if enabled.
+else Failure / cancelled or stale response
+  note over Web : Do not append a failed pair.\nKeep draft; error or silent cancellation as appropriate.
+end
+Web --> User : Reply / recoverable state
+deactivate Web
+legend bottom
+  Dataset-off excludes retrieved examples, not explicitly typed messages/history.
+  The model never receives contributor/location/notes through retrieval.
+  Clear removes browser-tab history, not possible provider-retained records.
+endlegend
+@enduml

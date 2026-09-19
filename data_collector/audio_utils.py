@@ -9,20 +9,33 @@ import os
 import uuid
 import shutil
 import subprocess
+import sys
+from collections.abc import Callable
 
 try:
     import sounddevice as sd
     import soundfile as sf
     import numpy as np
     AUDIO_RECORDING_AVAILABLE = True
-except Exception:
+except (ImportError, OSError):
+    sd = sf = np = None
     AUDIO_RECORDING_AVAILABLE = False
 
 SAMPLE_RATE = 44100
 
+_BACKEND_ERRORS = (OSError, ValueError)
+if sd is not None:
+    _BACKEND_ERRORS += (sd.PortAudioError,)
+if sf is not None:
+    _BACKEND_ERRORS += (sf.SoundFileError,)
+
+
+class AudioError(RuntimeError):
+    """An expected device, codec, or audio-file failure the user can retry."""
+
 
 class Recorder:
-    """Minimal start/stop mic recorder."""
+    """Retryable mic recorder; stop retains samples until start or close."""
 
     def __init__(self):
         self.frames = []
@@ -30,65 +43,135 @@ class Recorder:
         self.recording = False
 
     def start(self):
-        self.frames = []
-        self.recording = True
+        """Start once; a failed start resets state and closes any opened stream."""
+        if not AUDIO_RECORDING_AVAILABLE or sd is None:
+            raise AudioError("Live recording is unavailable. Attach an audio file instead.")
+        if self.recording or self.stream is not None:
+            raise AudioError("Finish stopping the previous recording before starting another.")
 
-        def callback(indata, frames, time_info, status):
+        def callback(indata, _frames, _time_info, _status):
             if self.recording:
                 self.frames.append(indata.copy())
 
-        self.stream = sd.InputStream(  # type: ignore
-            samplerate=SAMPLE_RATE, channels=1, callback=callback
-        )
-        self.stream.start()
+        previous_frames = self.frames
+        started = False
+        try:
+            self.stream = sd.InputStream(
+                samplerate=SAMPLE_RATE, channels=1, callback=callback
+            )
+            self.frames = []
+            self.recording = True
+            self.stream.start()
+            started = True
+        except _BACKEND_ERRORS as error:
+            raise AudioError(f"Could not start the microphone: {error}") from error
+        finally:
+            if not started:
+                self.recording = False
+                self.frames = previous_frames
+                self._close_stream()
 
     def stop(self):
+        """Stop and return samples (or None); failures keep samples for a retry."""
         self.recording = False
-        if self.stream:
-            self.stream.stop()
-            self.stream.close()
-            self.stream = None
+        try:
+            if self.stream is not None:
+                self.stream.stop()
+        except _BACKEND_ERRORS as error:
+            raise AudioError(f"Could not stop the microphone: {error}") from error
+        finally:
+            self._close_stream()
         if not self.frames:
             return None
-        return np.concatenate(self.frames, axis=0)  # type: ignore
+        if np is None:
+            raise AudioError("The recording dependencies are unavailable.")
+        try:
+            return np.concatenate(self.frames, axis=0)
+        except ValueError as error:
+            raise AudioError(f"Could not assemble the recording: {error}") from error
+
+    def _close_stream(self) -> None:
+        self.recording = False
+        if self.stream is not None:
+            try:
+                self.stream.close()
+            except _BACKEND_ERRORS as error:
+                # Retain the handle so stop/close can retry releasing the device.
+                raise AudioError(f"Could not close the microphone: {error}") from error
+            self.stream = None
+
+    def close(self) -> None:
+        """Release the mic and discard samples; safe to repeat after success."""
+        self._close_stream()
+        self.frames = []
+
+
+def _store_audio(audio_dir: str, suffix: str, write: Callable[[str], object]) -> str:
+    os.makedirs(audio_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{suffix}"
+    staging_path = os.path.join(audio_dir, f".{filename}")
+    try:
+        write(staging_path)
+        os.replace(staging_path, os.path.join(audio_dir, filename))
+    finally:
+        try:
+            os.remove(staging_path)
+        except FileNotFoundError:
+            pass
+    return filename
 
 
 def save_recording(audio, audio_dir: str) -> str:
-    """Writes the recorded audio to a .wav file, returns its filename."""
-    filename = f"{uuid.uuid4().hex}.wav"
-    path = os.path.join(audio_dir, filename)
-    sf.write(path, audio, SAMPLE_RATE)  # type: ignore
-    return filename
+    """Atomically write a WAV; return its filename or raise AudioError."""
+    if not AUDIO_RECORDING_AVAILABLE or sf is None:
+        raise AudioError("The recording dependencies are unavailable.")
+    write = sf.write
+    try:
+        return _store_audio(audio_dir, ".wav", lambda path: write(path, audio, SAMPLE_RATE))
+    except _BACKEND_ERRORS as error:
+        raise AudioError(f"Could not save the recording: {error}") from error
 
 
 def attach_file(source_path: str, audio_dir: str) -> str:
-    """Copies an existing audio file into audio_dir, returns its filename."""
-    filename = f"{uuid.uuid4().hex}{os.path.splitext(source_path)[1]}"
-    dest = os.path.join(audio_dir, filename)
-    shutil.copy2(source_path, dest)
-    return filename
+    """Atomically copy an attachment, leaving its source untouched on failure."""
+    try:
+        return _store_audio(
+            audio_dir, os.path.splitext(source_path)[1],
+            lambda path: shutil.copy2(source_path, path),
+        )
+    except (OSError, ValueError) as error:
+        raise AudioError(f"Could not attach this audio file: {error}") from error
 
 
 def play_audio(path: str) -> bool:
-    """Best-effort playback: sounddevice if available, else OS default app."""
-    if not os.path.exists(path):
+    """Return whether playback started; expected backend errors try the OS player."""
+    if not os.path.isfile(path):
         return False
 
-    if AUDIO_RECORDING_AVAILABLE:
+    if AUDIO_RECORDING_AVAILABLE and sf is not None and sd is not None:
         try:
-            data, sr = sf.read(path, dtype="float32")  # type: ignore
-            sd.play(data, sr)  # type: ignore
+            data, sr = sf.read(path, dtype="float32")
+            sd.play(data, sr)
             return True
-        except Exception:
+        except _BACKEND_ERRORS:
             pass  # fall through to OS-level fallback
 
     try:
         if os.name == "nt":
             os.startfile(path)  # type: ignore[attr-defined]
-        elif os.uname().sysname == "Darwin":
+        elif sys.platform == "darwin":
             subprocess.Popen(["open", path])
         else:
             subprocess.Popen(["xdg-open", path])
         return True
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return False
+
+
+def stop_playback() -> None:
+    """Release in-process playback; an external OS player owns its own lifetime."""
+    if AUDIO_RECORDING_AVAILABLE and sd is not None:
+        try:
+            sd.stop()
+        except _BACKEND_ERRORS as error:
+            raise AudioError(f"Could not stop audio playback: {error}") from error

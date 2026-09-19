@@ -1,42 +1,44 @@
 @startuml
 !include theme.iuml
-title Verified Collector - User Goals
 left to right direction
-skinparam packageStyle rectangle
-
-actor "Contributor" as contributor
-actor "Project maintainer" as maintainer
-
-rectangle "Francanglais Dataset Collector" {
-  usecase "Collect an annotated entry\n(extension point: before save)" as Collect
-  usecase "Validate non-empty text" as Validate
-  usecase "Attach an audio file" as Attach
-  usecase "Record microphone audio" as Record
-  usecase "Browse and search entries" as Browse
-  usecase "Edit a selected entry" as Edit
-  usecase "Delete a selected entry" as Delete
-  usecase "Confirm deletion" as Confirm
-  usecase "Play pending or stored audio" as Play
-  usecase "View corpus statistics" as Stats
+title Implemented user goals and explicit optional processing
+actor "Contributor / maintainer" as Contributor
+actor "Learner / group reviewer" as Learner
+rectangle "Francanglais platform (local trust boundary)" {
+  usecase "Collect / search / edit /\nconfirm deletion" as Collect
+  usecase "Stage or play desktop audio" as Audio
+  usecase "Review language, glosses\nand approval status" as Review
+  usecase "Preview an import" as Preview
+  usecase "Cloud transcription / OCR" as CloudImport
+  usecase "Translate with visible origin\nand evidence coverage" as Translate
+  usecase "Approved local lookup" as Lookup
+  usecase "AI translation suggestion" as AITranslate
+  usecase "Explicit learning chat" as Chat
+  usecase "Analyze lexer / CFG /\nFIRST-FOLLOW / parse trace" as Analyze
+  usecase "Optional compiler tutoring" as Tutor
+  usecase "Save coursework profile /\nupload genuine screenshots" as Project
+  usecase "Export saved coursework draft" as Export
 }
-
-maintainer --|> contributor
-contributor -- Collect
-contributor -- Browse
-contributor -- Play
-contributor -- Stats
-maintainer -- Edit
-maintainer -- Delete
-Collect .> Validate : <<include>>
-Edit .> Validate : <<include>>
-Delete .> Confirm : <<include>>
-Attach .> Collect : <<extend>>\n[user selects a file]
-Record .> Collect : <<extend>>\n[user records; capability available]
-
-legend bottom left
-  Includes point to required sub-behavior.
-  Extensions point to the base use case, not the reverse.
-  Maintainer inherits contributor goals; these are roles, not login permissions.
-  Audio files are data, not actors. Compiler goals are future scope in the SRS.
-endlegend
+Contributor -- Collect
+Contributor -- Audio
+Contributor -- Review
+Contributor -- Preview
+Learner -- Translate
+Learner -- Chat
+Learner -- Analyze
+Learner -- Tutor
+Learner -- Project
+Learner -- Export
+Lookup ..> Translate : <<extend>>\n[use_dataset]
+AITranslate ..> Translate : <<extend>>\n[no exact answer and allow_ai]
+CloudImport ..> Preview : <<extend>>\n[needed and consented]
+note bottom of Review
+  Saved does not mean approved.
+  Preview/handoff never auto-saves.
+  Roles are not authentication permissions.
+end note
+note bottom of Export
+  Draft generation is not completed fieldwork,
+  final report pagination or group sign-off.
+end note
 @enduml
