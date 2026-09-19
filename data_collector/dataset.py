@@ -1,11 +1,15 @@
 """
-Dataset read/write helpers for the Francanglais collector.
-Kept separate from the GUI so app.py stays focused on presentation.
+Shared CSV storage for the desktop collector, Python API and lexer.
 """
 
 import os
 import csv
+import tempfile
+import unicodedata
+from threading import Lock
 from typing import Optional
+
+from filelock import FileLock
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "audio")
@@ -17,75 +21,153 @@ FIELDNAMES = [
     "entry_type",       # word | phrase | sentence
     "french_gloss",
     "english_gloss",
-    "category",
+    "category",         # matches CS4110 assignment topics
+    "source_location",  # e.g. "taxi, Mvan" / "Marché Mokolo" / "ICT campus"
     "notes",
-    "audio_filename",   # empty if none
-    "contributor",
+    "audio_filename",   # empty if none — optional, feeds the word-prediction extension
+    "contributor",      # name(s) of group member(s) who collected this
     "timestamp",
+    "language",
+    "review_status",
+    "lexical_category",
+]
+PRE_REVIEW_FIELDNAMES = FIELDNAMES[:-3]
+LEGACY_FIELDNAMES = [field for field in PRE_REVIEW_FIELDNAMES if field != "source_location"]
+DATASET_LANGUAGES = ["francanglais", "pidgin", "mixed", "unspecified"]
+# Keep the standalone desktop storage usable without importing the compiler package.
+LEXICAL_CATEGORIES = [
+    "NUMBER", "PUNCTUATION", "SLANG", "PIDGIN_MARKER", "NOUN", "VERB",
+    "FRENCH_FUNCTION_WORD", "ENGLISH_FUNCTION_WORD",
+    "ENGLISH_VERB_LIKE", "FRENCH_VERB_LIKE", "UNKNOWN",
 ]
 
+# The 10 topics required by the CS4110 assignment
+# ("Lexical and Syntactic Analysis of Informal Urban Communication in Yaoundé")
 CATEGORIES = [
-    "greeting", "everyday", "slang", "insult/banter", "market/money",
-    "school/campus", "food", "family", "proverb/expression", "other",
+    "Taxi / Commuting", "Internet Connectivity", "Electricity Supply",
+    "Market Bargaining", "Rainy Season", "Fuel Scarcity",
+    "Roadside Business", "Bendskin Communication", "Security Checkpoint",
+    "Campus Life", "Other",
 ]
 
-ENTRY_TYPES = ["word", "phrase", "sentence"]
+ENTRY_TYPES = ["Word", "Phrase", "Sentence"]
+
+_LOCKS: dict[str, FileLock] = {}
+_LOCKS_GUARD = Lock()
+
+def dataset_lock() -> FileLock:
+    """Use the same reentrant, cross-process lock for a complete transaction."""
+    with _LOCKS_GUARD:
+        if DATASET_PATH not in _LOCKS:
+            _LOCKS[DATASET_PATH] = FileLock(DATASET_PATH + ".lock", timeout=10)
+        return _LOCKS[DATASET_PATH]
 
 
-def ensure_dataset_file():
-    os.makedirs(AUDIO_DIR, exist_ok=True)
-    if not os.path.exists(DATASET_PATH):
-        with open(DATASET_PATH, "w", newline="", encoding="utf-8") as f:
+def _write_entries(entries: list[dict[str, str]]) -> None:
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", newline="", encoding="utf-8",
+            dir=os.path.dirname(DATASET_PATH), prefix=".dataset-", suffix=".tmp", delete=False,
+        ) as f:
+            temporary_path = f.name
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
             writer.writeheader()
+            writer.writerows(normalize_entry(entry) for entry in entries)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary_path, DATASET_PATH)
+    finally:
+        if temporary_path is not None and os.path.exists(temporary_path):
+            os.remove(temporary_path)
 
 
-def load_all():
-    ensure_dataset_file()
-    with open(DATASET_PATH, "r", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+def ensure_dataset_file() -> None:
+    with dataset_lock():
+        os.makedirs(AUDIO_DIR, exist_ok=True)
+        if not os.path.exists(DATASET_PATH):
+            _write_entries([])
 
 
-def append_entry(entry: dict):
-    ensure_dataset_file()
-    with open(DATASET_PATH, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-        writer.writerow(entry)
+def normalize_entry(entry: dict[str, str]) -> dict[str, str]:
+    """Upgrade legacy metadata without changing collected text or provenance."""
+    normalized = dict(entry)
+    normalized.setdefault("source_location", "")
+    if normalized.get("language") not in DATASET_LANGUAGES:
+        normalized["language"] = "unspecified"
+    if normalized.get("review_status") not in ("unreviewed", "approved"):
+        normalized["review_status"] = "unreviewed"
+    if normalized.get("lexical_category") not in LEXICAL_CATEGORIES:
+        normalized["lexical_category"] = ""
+    return normalized
 
 
-def save_all(entries):
+def load_all() -> list[dict[str, str]]:
+    with dataset_lock():
+        ensure_dataset_file()
+        with open(DATASET_PATH, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            if reader.fieldnames not in (FIELDNAMES, PRE_REVIEW_FIELDNAMES, LEGACY_FIELDNAMES):
+                raise ValueError("Dataset CSV header does not match the expected fields.")
+            rows = list(reader)
+            if any(None in row or any(value is None for value in row.values()) for row in rows):
+                raise ValueError("Dataset CSV contains an incomplete or malformed row.")
+            return [normalize_entry(row) for row in rows]
+
+
+def append_entry(entry: dict) -> None:
+    with dataset_lock():
+        entries = load_all()
+        entries.append(entry)
+        _write_entries(entries)
+
+
+def save_all(entries) -> None:
     """Overwrite the whole dataset file. Used after an edit or delete."""
-    ensure_dataset_file()
-    with open(DATASET_PATH, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-        writer.writeheader()
-        writer.writerows(entries)
+    with dataset_lock():
+        ensure_dataset_file()
+        _write_entries(entries)
+
+
+def apply_entry_update(entry: dict[str, str], updated_fields: dict[str, str]) -> None:
+    """Changed evidence needs review unless this edit explicitly approves it."""
+    changed = any(entry.get(key) != value for key, value in updated_fields.items() if key != "review_status")
+    entry.update(updated_fields)
+    if changed and "review_status" not in updated_fields:
+        entry["review_status"] = "unreviewed"
 
 
 def update_entry(entry_id: str, updated_fields: dict):
-    entries = load_all()
-    for e in entries:
-        if e["id"] == entry_id:
-            e.update(updated_fields)
-            break
-    save_all(entries)
+    with dataset_lock():
+        entries = load_all()
+        for e in entries:
+            if e["id"] == entry_id:
+                apply_entry_update(e, updated_fields)
+                break
+        save_all(entries)
 
 
 def delete_entry(entry_id: str):
-    entries = load_all()
-    entries = [e for e in entries if e["id"] != entry_id]
-    save_all(entries)
+    with dataset_lock():
+        entries = load_all()
+        entries = [e for e in entries if e["id"] != entry_id]
+        save_all(entries)
 
 
-def text_exists(text: str, exclude_id: Optional[str] = None) -> bool:
-    """Case-insensitive check for a duplicate Francanglais text."""
-    norm = text.strip().lower()
+def text_exists(text: str, exclude_id: Optional[str] = None, language: str = "unspecified") -> bool:
+    """Check duplicate text within a language; legacy desktop entries are unspecified."""
+    def normalized(value: str) -> str:
+        return " ".join(unicodedata.normalize("NFC", value.casefold()).translate(
+            str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
+        ).split())
+
+    norm = normalized(text)
     if not norm:
         return False
     for e in load_all():
         if exclude_id is not None and e["id"] == exclude_id:
             continue
-        if e["text"].strip().lower() == norm:
+        if e["language"] == language and normalized(e["text"]) == norm:
             return True
     return False
 
