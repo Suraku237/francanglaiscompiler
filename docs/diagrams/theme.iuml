@@ -1,0 +1,16 @@
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #334155
+skinparam dpi 160
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F1F5F9
+skinparam classBorderColor #334155
+skinparam componentStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam sequenceParticipantBackgroundColor #F1F5F9
+skinparam sequenceParticipantBorderColor #334155
+skinparam sequenceLifeLineBorderColor #64748B
+skinparam sequenceLifeLineBackgroundColor #DBEAFE
+skinparam sequenceArrowColor #334155

@@ -1,0 +1,51 @@
+@startuml
+!include theme.iuml
+title Refresh Corpus Statistics
+hide footbox
+autonumber
+actor Maintainer
+participant "app : App" as App
+participant "dataset\n<<module>>" as Dataset
+participant "Local file I/O" as Files
+
+activate Maintainer
+Maintainer -> App : _refresh_stats() (Refresh button)
+activate App
+note over App : Remove old bars while retaining headings.
+App -> Dataset : total_count()
+activate Dataset
+Dataset -> Files : load_all(): ensure storage and read CSV
+activate Files
+Files --> Dataset : Rows
+deactivate Files
+Dataset --> App : Total row count
+deactivate Dataset
+loop field in entry_type, category (in that order)
+  App -> Dataset : count_by(field)
+  activate Dataset
+  Dataset -> Files : load_all(): read CSV again
+  activate Files
+  Files --> Dataset : Rows
+  deactivate Files
+  note over Dataset : Group values; absent/empty values use "(none)".
+  Dataset --> App : Map of label to count
+  deactivate Dataset
+  App -> App : _render_bar_group(frame, counts, total)
+  activate App
+  alt Counts are empty
+    note over App : Display "No data yet."
+  else Counts exist
+    note over App : Sort descending; draw count / total bars\n(use zero if total is zero).
+  end
+  App --> App : Group rendered
+  deactivate App
+end
+App --> Maintainer : Display total, type and category distributions
+deactivate App
+deactivate Maintainer
+legend bottom
+  Three CSV reads occur: total, entry types and categories.
+  Concurrent writers are unsupported; the three reads are not one atomic snapshot.
+  The explicit Refresh path is modeled, not an unverified tab-change event.
+endlegend
+@enduml

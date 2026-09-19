@@ -1,0 +1,55 @@
+@startuml
+!include theme.iuml
+title Play Audio with Library and OS Fallback
+hide footbox
+autonumber
+actor Contributor
+participant "app : App" as App
+participant "audio_utils\n<<module>>" as Audio
+participant "File system" as Files
+participant "soundfile / sounddevice" as Backend
+participant "OS default player" as OS
+
+note over App : Precondition: a pending or selected filename is present.
+activate Contributor
+Contributor -> App : play_pending_audio()\n(or _play_selected_audio())
+activate App
+App -> Audio : play_audio(resolved_path)
+activate Audio
+Audio -> Files : exists(path)
+activate Files
+Files --> Audio : exists: bool
+deactivate Files
+alt File does not exist
+  note over Audio : Result = false; skip all playback attempts.
+else File exists
+  opt AUDIO_RECORDING_AVAILABLE
+    Audio -> Backend : sf.read(path); sd.play(data, sample_rate)
+    activate Backend
+    Backend --> Audio : Started or library exception
+    deactivate Backend
+  end
+  alt Library playback started successfully
+    note over Audio : Result = true; do not launch an OS player.
+  else Library unavailable or failed
+    Audio -> OS : Launch platform default player(path)
+    activate OS
+    OS --> Audio : Launch accepted or exception
+    deactivate OS
+    note over Audio : Result = true if launch accepted; otherwise false.
+  end
+end
+Audio --> App : Result: bool
+deactivate Audio
+opt Result = false
+  note over App : Show "Playback failed" error dialog.
+end
+App --> Contributor : Return; show an error only on failure
+deactivate App
+deactivate Contributor
+legend bottom
+  true means a playback request was accepted, not that sound was heard to completion.
+  OS launch acceptance is not playback completion; media decoding is external.
+  No CSV rows are changed by this interaction.
+endlegend
+@enduml

@@ -1,41 +1,42 @@
 @startuml
-title Francanglais System - Use Case Diagram
+!include theme.iuml
+title Verified Collector - User Goals
 left to right direction
 skinparam packageStyle rectangle
 
 actor "Contributor" as contributor
 actor "Project maintainer" as maintainer
-actor "Microphone / audio file" as audio
-actor "Compiler client" as client
 
-rectangle "Francanglais platform" {
-  usecase "Collect linguistic entry" as UC1
-  usecase "Record or attach audio" as UC2
-  usecase "Validate required text" as UC3
-  usecase "Persist dataset row" as UC4
-  usecase "Browse and search entries" as UC5
-  usecase "Edit or delete entry" as UC6
-  usecase "Play stored audio" as UC7
-  usecase "View statistics" as UC8
-  usecase "Tokenize input" as UC9
-  usecase "Classify tokens" as UC10
-  usecase "Parse sentence" as UC11
-  usecase "Return analysis" as UC12
+rectangle "Francanglais Dataset Collector" {
+  usecase "Collect an annotated entry\n(extension point: before save)" as Collect
+  usecase "Validate non-empty text" as Validate
+  usecase "Attach an audio file" as Attach
+  usecase "Record microphone audio" as Record
+  usecase "Browse and search entries" as Browse
+  usecase "Edit a selected entry" as Edit
+  usecase "Delete a selected entry" as Delete
+  usecase "Confirm deletion" as Confirm
+  usecase "Play pending or stored audio" as Play
+  usecase "View corpus statistics" as Stats
 }
 
-contributor --> UC1
-contributor --> UC5
-contributor --> UC6
-contributor --> UC7
-contributor --> UC8
-audio --> UC2
-maintainer --> UC8
-client --> UC9
-client --> UC11
-UC1 .> UC3 : <<include>>
-UC1 .> UC4 : <<include>>
-UC1 .> UC2 : <<extend>>
-UC9 .> UC10 : <<include>>
-UC10 .> UC11 : <<include>>
-UC11 .> UC12 : <<include>>
+maintainer --|> contributor
+contributor -- Collect
+contributor -- Browse
+contributor -- Play
+contributor -- Stats
+maintainer -- Edit
+maintainer -- Delete
+Collect .> Validate : <<include>>
+Edit .> Validate : <<include>>
+Delete .> Confirm : <<include>>
+Attach .> Collect : <<extend>>\n[user selects a file]
+Record .> Collect : <<extend>>\n[user records; capability available]
+
+legend bottom left
+  Includes point to required sub-behavior.
+  Extensions point to the base use case, not the reverse.
+  Maintainer inherits contributor goals; these are roles, not login permissions.
+  Audio files are data, not actors. Compiler goals are future scope in the SRS.
+endlegend
 @enduml

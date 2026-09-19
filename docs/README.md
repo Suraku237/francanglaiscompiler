@@ -9,7 +9,21 @@ Design Description (SDD), and PlantUML sources for the Francanglais project.
 - `sdd.tex` — architecture and detailed design description.
 - `diagrams/*.puml` — editable UML sources.
 - `diagrams/*.png` — rendered diagram images included by the SDD.
+- `diagrams/theme.iuml` — shared local PlantUML styling.
 - `build.ps1` — Windows build script for PlantUML and LaTeX.
+
+## Requirements and delivery planning
+
+The SRS contains 20 functional requirements, 12 non-functional requirements,
+16 acceptance-oriented user stories, and a prioritized 16-item product backlog.
+It distinguishes source-supported behavior (B), proposed targets (T), and
+deferred scope (D).
+
+The four proposed two-week sprint backlogs contain concrete tasks, dependency
+links, suggested member leads, review gates and estimates. The selected scope
+is 67 story points / 106 task hours; the 8-point predictor is deferred. These
+are planning estimates, not historical sprint completion or measured velocity.
+Member names and matricules remain placeholders.
 
 ## Class and sequence diagram conventions
 
@@ -19,10 +33,14 @@ Design Description (SDD), and PlantUML sources for the Francanglais project.
 - Helper modules and logical CSV/audio records are explicitly labelled; they
   are not presented as implemented Python model classes. Dashed dependencies
   and inheritance arrows have no multiplicities.
-- The sequence diagram pairs each synchronous call with an activation and a
-  return, including nested self-calls. Optional audio attachment precedes the
-  save operation, and empty text does not reach persistence. Live recording
-  and storage exceptions are outside this focused scenario.
+- Seven sequence diagrams cover save/attachment, search/selection, editing,
+  confirmed deletion, recording, playback/fallback and statistics. Each shown
+  synchronous call has an activation and matching return, including self-calls.
+- Every one of the 13 UML diagrams has an SDD explanation of purpose, reading
+  order, branches/relationships, side effects, limitations and requirement
+  traceability. Compiler components/deployment options remain labelled proposed.
+- Existing use-case extension directions, save-time activity validation and
+  the selected-entry state transitions reflect the available collector source.
 - The PNGs are rendered locally from the adjacent PlantUML sources. Project
   sources do not need to be sent to an online diagram-rendering service.
 
@@ -45,6 +63,11 @@ PlantUML jar path:
 
 If PlantUML is not installed, download the current jar from
 <https://plantuml.com/download> and pass its path to the script.
+The local renderer in this workspace can be used for a full rebuild with:
+
+```powershell
+.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
+```
 
 ### Build PDFs using the existing diagrams
 

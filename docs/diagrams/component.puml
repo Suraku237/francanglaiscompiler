@@ -1,24 +1,28 @@
 @startuml
-title Francanglais Platform - Component Diagram
-skinparam componentStyle rectangle
+!include theme.iuml
+title Component Dependencies - Baseline and Proposed Analysis
+top to bottom direction
+package "Implemented desktop collector" {
+  component "Presentation\nApp.py" as UI
+  component "Dataset functions\ndataset.py" as DS
+  component "Audio functions + Recorder\naudio_utils.py" as AS
+  artifact "dataset.csv" as DB
+  artifact "audio files" as FS
+  UI ..> DS : imports / calls
+  UI ..> AS : imports / calls
+  DS ..> DB : reads / writes
+  AS ..> FS : copies / records / plays
+}
+package "Proposed extension - not verified source" #FFF7ED {
+  component "Analysis adapter\n<<proposed>>" as API
+  component "Lexer / classifier /\nsentence analysis\n<<proposed>>" as CP
+  API ..> CP : requests analysis
+  CP ..> DS : proposed read-only evidence access
+}
 
-actor Contributor
-component "CustomTkinter Collector" as UI
-component "Dataset service\n(dataset.py)" as DS
-component "Audio service\n(audio_utils.py)" as AS
-database "dataset.csv" as DB
-folder "audio/" as FS
-component "Compiler pipeline\n(lexer / classifier / parser)" as CP
-component "Future API adapter" as API
-actor "Compiler client" as Client
-
-Contributor --> UI
-UI --> DS : CRUD entries / stats
-UI --> AS : record / attach / play
-DS --> DB : CSV read/write
-AS --> FS : audio files
-Client --> API
-API --> CP
-CP --> DS : load lexical evidence
-API --> UI : optional integration
+legend bottom left
+  Dashed arrows are dependencies, not runtime message order.
+  The baseline uses local Python calls, not HTTP.
+  The adapter may be local or service-based; no current route is asserted.
+endlegend
 @enduml

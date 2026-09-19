@@ -1,16 +1,28 @@
 @startuml
-title Dataset Entry Lifecycle - State Diagram
+!include theme.iuml
+title Entry Workflow - Conceptual States and Guards
+state "Check new text" as CheckNew <<choice>>
+state "Check edited text" as CheckEdit <<choice>>
+state "Await delete confirmation" as ConfirmDelete
+
 [*] --> Draft
-Draft --> Validating : save requested
-Validating --> Rejected : text empty
-Rejected --> Draft : user edits form
-Validating --> Persisted : valid entry
-Draft --> AudioPending : audio recorded/attached
-AudioPending --> Draft : audio selected
-Persisted --> Selected : browse row selected
-Selected --> Persisted : deselect
-Persisted --> Updated : save changes
-Updated --> Persisted
-Persisted --> Deleted : delete requested
+Draft --> Draft : mediaAdded [successful] / stage filename
+Draft --> CheckNew : Save
+CheckNew --> Draft : [text empty] / show warning
+CheckNew --> Persisted : [text non-empty] / append row
+Persisted --> Selected : select browse row / populate editor
+Selected --> CheckEdit : Save changes
+CheckEdit --> Selected : [text empty] / show warning
+CheckEdit --> Selected : [text non-empty] / update row; refresh
+Selected --> ConfirmDelete : Delete
+ConfirmDelete --> Selected : No / leave row unchanged
+ConfirmDelete --> Deleted : Yes / remove row; clear selected id
 Deleted --> [*]
+
+legend bottom left
+  Conceptual UI/persistence workflow, not an implemented state enum.
+  Choice guards are mutually exclusive. Selection is required for edit/delete.
+  A deleted row's audio file is retained; no media destruction is implied.
+  I/O is assumed successful; atomic recovery is a proposed requirement.
+endlegend
 @enduml

@@ -1,0 +1,53 @@
+@startuml
+!include theme.iuml
+title Confirm or Cancel Entry Deletion
+hide footbox
+autonumber
+actor Maintainer
+participant "app : App" as App
+participant "messagebox\n<<external>>" as Dialog
+participant "dataset\n<<module>>" as Dataset
+participant "Local file I/O" as Files
+
+activate Maintainer
+Maintainer -> App : _delete_browse_entry()
+activate App
+alt No selected ID
+  note over App : Show "No selection"; do not write.
+else An entry is selected
+  App -> Dialog : askyesno("Delete entry", prompt)
+  activate Dialog
+  note over Dialog : Wait for the maintainer's Yes / No choice.
+  Dialog --> App : confirmed: bool
+  deactivate Dialog
+  alt confirmed = false
+    note over App : Return; preserve row, selection and media.
+  else confirmed = true
+    App -> Dataset : delete_entry(selected_id)
+    activate Dataset
+    Dataset -> Files : Read rows through load_all()
+    activate Files
+    Files --> Dataset : Entries
+    deactivate Files
+    note over Dataset : Remove every row whose ID equals selected_id.
+    Dataset -> Files : save_all(): rewrite header and remaining rows
+    activate Files
+    Files --> Dataset : Write complete
+    deactivate Files
+    Dataset --> App : None
+    deactivate Dataset
+    note over App
+      Clear selected ID and audio filename.
+      Show "Entry deleted"; refresh list/count/recent.
+      Audio files are not removed.
+    end note
+  end
+end
+App --> Maintainer : Return with current status
+deactivate App
+deactivate Maintainer
+legend bottom
+  Nested alternatives ensure cancellation never reaches persistence.
+  File helpers and refresh reads are condensed; no undo or atomic rewrite exists.
+endlegend
+@enduml

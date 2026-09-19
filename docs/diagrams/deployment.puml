@@ -1,25 +1,32 @@
 @startuml
-title Francanglais Platform - Deployment Diagram
-node "Contributor workstation" as workstation {
-  node "Python runtime" as python {
+!include theme.iuml
+title Deployment - Local Baseline and Optional Future Host
+node "Contributor workstation" as workstation <<device>> {
+  node "Python + Tcl/Tk" as python <<executionEnvironment>> {
     artifact "data_collector/App.py" as app
     artifact "dataset.py" as dataset
     artifact "audio_utils.py" as audio
   }
-  folder "Local project data" as data {
-    artifact "dataset.csv" as csv
-    folder "audio/" as audiodir
+  artifact "dataset.csv" as csv
+  artifact "audio/*" as audiodir <<file collection>>
+  node "OS audio services" as os <<executionEnvironment>>
+}
+node "Microphone" as mic <<device>>
+package "Optional deployment proposal - not implemented" #FFF7ED {
+  node "Analysis host" as host <<device>> {
+    artifact "Compiler + adapter" as api
+    artifact "Approved corpus copy" as snapshot
   }
+  node "Client device" as browser <<device>>
+  browser -- host : HTTP only if a web adapter is chosen
+  api ..> snapshot : read-only local access
 }
-node "Optional service host" as host {
-  artifact "Compiler/API adapter" as api
-}
-node "Client browser or tool" as browser
 
-app --> dataset
-app --> audio
-dataset --> csv
-audio --> audiodir
-browser --> api : HTTP (future integration)
-api --> csv : lexical evidence
+app ..> dataset : import
+app ..> audio : import
+dataset ..> csv : local I/O
+audio ..> audiodir : local I/O
+audio ..> os : record / playback
+mic -- workstation : device input
+csv ..> snapshot : <<flow>>\nproposed approved corpus transfer
 @enduml

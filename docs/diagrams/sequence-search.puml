@@ -1,0 +1,51 @@
+@startuml
+!include theme.iuml
+title Browse, Search and Select an Entry
+hide footbox
+autonumber
+actor Contributor
+participant "app : App" as App
+participant "dataset\n<<module>>" as Dataset
+participant "Local file I/O" as Files
+
+activate Contributor
+Contributor -> App : _refresh_browse_list()\n(search key release / Refresh)
+activate App
+note over App : Normalize query; clear tree and ID cache.
+App -> Dataset : load_all()
+activate Dataset
+Dataset -> Files : Ensure storage; read UTF-8 CSV
+activate Files
+Files --> Dataset : Row dictionaries
+deactivate Files
+Dataset --> App : Entries
+deactivate Dataset
+loop Each loaded row
+  alt Query empty or substring matches text/category/contributor
+    note over App : Cache row by ID and insert a visible tree row.
+  else No match
+    note over App : Skip row.
+  end
+end
+App --> Contributor : Matching rows (possibly none)
+deactivate App
+
+opt Contributor selects a displayed row
+  Contributor -> App : _on_browse_select(event)
+  activate App
+  note over App
+    Resolve ID in the browse cache; populate editable fields.
+    Retain selected ID and optional audio filename.
+    Enable playback only when a filename is present.
+    No additional CSV read is performed by this handler.
+  end note
+  App --> Contributor : Selected entry displayed
+  deactivate App
+end
+deactivate Contributor
+legend bottom
+  An empty query lists all rows; filtering is case-insensitive.
+  Selection without a cached row returns without changing the form.
+  The load helper and widget calls are abstracted; file errors are not handled here.
+endlegend
+@enduml

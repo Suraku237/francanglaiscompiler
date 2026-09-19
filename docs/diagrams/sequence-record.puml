@@ -1,0 +1,70 @@
+@startuml
+!include theme.iuml
+title Record and Stage Microphone Audio
+hide footbox
+autonumber
+actor Contributor
+participant "app : App" as App
+participant "recorder : Recorder" as Recorder
+participant "audio_utils\n<<module>>" as Audio
+
+note over App, Recorder
+  Precondition: optional imports succeeded, recorder exists,
+  and the microphone can be opened. Recording is initially off.
+end note
+activate Contributor
+Contributor -> App : toggle_recording() (Record)
+activate App
+App -> Recorder : start()
+activate Recorder
+create participant "stream : InputStream" as Stream
+Recorder -> Stream : InputStream(44100 Hz, mono, callback)
+activate Stream
+Stream --> Recorder : Stream instance
+deactivate Stream
+Recorder -> Stream : start()
+activate Stream
+Stream --> Recorder : Capture started
+deactivate Stream
+Recorder --> App : None
+deactivate Recorder
+App --> Contributor : Show Stop / Recording; disable Play
+deactivate App
+
+note over Recorder, Stream
+  Between button events, the audio callback copies incoming frames
+  into recorder.frames while recording is true.
+  Asynchronous callback messages are abstracted, not shown as blocking calls.
+end note
+
+Contributor -> App : toggle_recording() (Stop)
+activate App
+App -> Recorder : stop()
+activate Recorder
+note over Recorder : recording = false
+Recorder -> Stream : stop() then close()
+activate Stream
+Stream --> Recorder : Stream stopped and closed
+deactivate Stream
+note over Recorder : stream = None;\nconcatenate captured frames, if any.
+Recorder --> App : Audio array or None
+deactivate Recorder
+alt No frames / empty audio
+  note over App : Show "No audio captured"; do not save a new file.
+else Audio array contains samples
+  App -> Audio : save_recording(audio, AUDIO_DIR)
+  activate Audio
+  note over Audio : sf.write(): UUID-named WAV at 44100 Hz.
+  Audio --> App : Generated filename
+  deactivate Audio
+  note over App : Set pending_audio_path; enable Play.
+end
+App --> Contributor : Recording status displayed
+deactivate App
+deactivate Contributor
+legend bottom
+  Stream creation and synchronous calls have bounded activations.
+  Staging a WAV does not append a dataset row: saving the form is separate.
+  Library/device/write failures are not caught by these recording handlers.
+endlegend
+@enduml

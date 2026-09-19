@@ -1,0 +1,58 @@
+@startuml
+!include theme.iuml
+title Edit a Selected Entry
+hide footbox
+autonumber
+actor Maintainer
+participant "app : App" as App
+participant "dataset\n<<module>>" as Dataset
+participant "Local file I/O" as Files
+
+activate Maintainer
+Maintainer -> App : _save_browse_edit()
+activate App
+alt No selected ID
+  note over App : Show "No selection"; do not write.
+else Selected ID and edited text is empty after stripping
+  note over App : Show "Missing text"; do not write.
+else Selected ID and non-empty text
+  note over App
+    Build updates for text, type, category,
+    French/English glosses and notes only.
+  end note
+  App -> Dataset : update_entry(selected_id, updated_fields)
+  activate Dataset
+  Dataset -> Dataset : load_all()
+  activate Dataset
+  Dataset -> Files : Ensure storage; read all CSV rows
+  activate Files
+  Files --> Dataset : Rows
+  deactivate Files
+  Dataset --> Dataset : Entries
+  deactivate Dataset
+  note over Dataset : Update the first matching row by ID.
+  Dataset -> Dataset : save_all(entries)
+  activate Dataset
+  Dataset -> Files : Rewrite header and every row
+  activate Files
+  Files --> Dataset : Write complete
+  deactivate Files
+  Dataset --> Dataset : None
+  deactivate Dataset
+  Dataset --> App : None
+  deactivate Dataset
+  note over App
+    Show "Changes saved".
+    Refresh browse list, count and recent entries.
+    These repeat the read operations in the search/save views.
+  end note
+end
+App --> Maintainer : Return with warning or updated display
+deactivate App
+deactivate Maintainer
+legend bottom
+  ID, original timestamp, contributor and audio filename are unchanged by editing.
+  Missing IDs are not reported by update_entry; concurrency is unsupported.
+  Successful file I/O is assumed; the current rewrite is not atomic.
+endlegend
+@enduml

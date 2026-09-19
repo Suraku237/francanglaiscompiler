@@ -1,18 +1,8 @@
 @startuml
+!include theme.iuml
 title Save a Collected Entry - Optional Audio Attachment and Validation
 hide footbox
 autonumber
-skinparam backgroundColor white
-skinparam shadowing false
-skinparam defaultFontName Arial
-skinparam defaultFontSize 14
-skinparam sequenceMessageAlign center
-skinparam sequenceParticipantBackgroundColor #F1F5F9
-skinparam sequenceParticipantBorderColor #334155
-skinparam sequenceLifeLineBorderColor #64748B
-skinparam sequenceLifeLineBackgroundColor #DBEAFE
-skinparam sequenceArrowColor #334155
-skinparam dpi 160
 
 actor Contributor
 participant "app : App" as App

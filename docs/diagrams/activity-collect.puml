@@ -1,26 +1,46 @@
 @startuml
-title Collect a Francanglais Entry - Activity Diagram
+!include theme.iuml
+title Collector Activity - One Save Attempt
 start
 :Open Collect tab;
-:Enter word, phrase or sentence;
-if (Text is non-empty?) then (yes)
-  :Select entry type and category;
-  :Enter French/English glosses;
-  if (Audio wanted?) then (yes)
-    if (Live recording available?) then (yes)
+:Enter text, type, category\nand optional annotations;
+if (Add audio before saving?) then (yes)
+  if (Choose recording?) then (yes)
+    if (Recording capability available?) then (yes)
       :Record from microphone;
-      :Save WAV in audio directory;
+      if (Frames captured?) then (yes)
+        :Save WAV; stage generated filename;
+      else (no)
+        :Show "No audio captured";
+      endif
     else (no)
-      :Attach existing audio file;
-      :Copy file into audio directory;
+      :Recording disabled;\nattachment remains available;
+    endif
+  else (attach)
+    :Open file chooser;
+    if (File selected?) then (yes)
+      :Copy file; stage generated filename;
+    else (cancel)
+      :Keep form unchanged;
     endif
   endif
-  :Create unique entry id and timestamp;
+else (no)
+  :Continue with current draft;
+endif
+:Press Save / Ctrl+Enter;
+if (Trimmed text is non-empty?) then (yes)
+  :Generate entry id and timestamp;
   :Append CSV row;
   :Refresh count and recent entries;
-  :Clear form (preserve contributor);
+  :Clear form; preserve contributor;
 else (no)
   :Show "Missing text" warning;
+  :Keep draft available for correction;
 endif
 stop
+legend bottom
+  One activity completion is not application shutdown.
+  Duplicate warnings are advisory and do not block saving.
+  File/device exceptions are outside this normal-flow view.
+endlegend
 @enduml
