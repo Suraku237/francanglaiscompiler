@@ -1,44 +1,85 @@
 param(
-    [string]$PlantUmlJar = ""
+    [string]$PlantUmlJar = "",
+    [switch]$SkipDiagrams
 )
 
 $ErrorActionPreference = "Stop"
 $docs = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repo = Split-Path -Parent $docs
 $diagramDir = Join-Path $docs "diagrams"
+$buildDir = Join-Path $docs ".build"
+$pdflatex = Get-Command pdflatex -ErrorAction SilentlyContinue
+$tectonic = Get-Command tectonic -ErrorAction SilentlyContinue
+$localTectonic = Join-Path $docs ".tools\tectonic.exe"
 
-if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
-    throw "Java is required to render PlantUML diagrams."
+if ($pdflatex) {
+    $compiler = $pdflatex.Source
+    $engine = "pdflatex"
 }
-if (-not (Get-Command pdflatex -ErrorAction SilentlyContinue)) {
-    throw "pdflatex is required to compile the documents."
+elseif ($tectonic) {
+    $compiler = $tectonic.Source
+    $engine = "tectonic"
+}
+elseif (Test-Path -LiteralPath $localTectonic -PathType Leaf) {
+    $compiler = $localTectonic
+    $engine = "tectonic"
+}
+else {
+    throw "Install pdflatex or Tectonic, or place portable tectonic.exe in docs\.tools."
 }
 
-if ([string]::IsNullOrWhiteSpace($PlantUmlJar)) {
-    $PlantUmlJar = Join-Path $docs "plantuml.jar"
+$diagrams = @(Get-ChildItem -LiteralPath $diagramDir -Filter *.puml -File)
+if ($SkipDiagrams) {
+    Write-Host "Using existing diagram PNGs. Omit -SkipDiagrams after changing PlantUML sources."
+    foreach ($diagram in $diagrams) {
+        $image = [System.IO.Path]::ChangeExtension($diagram.FullName, ".png")
+        if (-not (Test-Path -LiteralPath $image -PathType Leaf)) {
+            throw "Missing diagram image '$image'. Render the PlantUML sources first."
+        }
+    }
 }
-if (-not (Test-Path $PlantUmlJar)) {
-    throw "PlantUML jar not found at '$PlantUmlJar'. Pass -PlantUmlJar with a valid path."
-}
-
-Get-ChildItem $diagramDir -Filter *.puml | ForEach-Object {
-    & java -jar $PlantUmlJar -tpng -charset UTF-8 $_.FullName
-    if ($LASTEXITCODE -ne 0) {
-        throw "PlantUML failed for $($_.Name)."
+else {
+    if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
+        throw "Java is required to render PlantUML diagrams, or use -SkipDiagrams with existing PNGs."
+    }
+    if ([string]::IsNullOrWhiteSpace($PlantUmlJar)) {
+        $PlantUmlJar = Join-Path $docs "plantuml.jar"
+    }
+    if (-not (Test-Path -LiteralPath $PlantUmlJar -PathType Leaf)) {
+        throw "PlantUML jar not found at '$PlantUmlJar'. Pass -PlantUmlJar, or use -SkipDiagrams with existing PNGs."
+    }
+    foreach ($diagram in $diagrams) {
+        & java -jar $PlantUmlJar -tpng -charset UTF-8 $diagram.FullName
+        if ($LASTEXITCODE -ne 0) {
+            throw "PlantUML failed for $($diagram.Name)."
+        }
     }
 }
 
+New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+Write-Host "Compiling documentation with $engine ($compiler)"
 Push-Location $docs
 try {
     foreach ($document in @("srs.tex", "sdd.tex")) {
-        & pdflatex -interaction=nonstopmode -halt-on-error $document
-        if ($LASTEXITCODE -ne 0) {
-            throw "LaTeX failed for $document."
+        if ($engine -eq "pdflatex") {
+            foreach ($pass in 1..2) {
+                & $compiler -interaction=nonstopmode -halt-on-error -file-line-error -no-shell-escape -output-directory $buildDir $document
+                if ($LASTEXITCODE -ne 0) {
+                    throw "LaTeX pass $pass failed for $document. See docs\.build for logs."
+                }
+            }
         }
-        & pdflatex -interaction=nonstopmode -halt-on-error $document
-        if ($LASTEXITCODE -ne 0) {
-            throw "Second LaTeX pass failed for $document."
+        else {
+            & $compiler --keep-logs --outdir $buildDir $document
+            if ($LASTEXITCODE -ne 0) {
+                throw "Tectonic failed for $document. See docs\.build for logs."
+            }
         }
+        $pdfName = [System.IO.Path]::ChangeExtension($document, ".pdf")
+        $pdf = Get-Item -LiteralPath (Join-Path $buildDir $pdfName)
+        if ($pdf.Length -eq 0) {
+            throw "The compiler produced an empty PDF for $document."
+        }
+        Copy-Item -LiteralPath $pdf.FullName -Destination (Join-Path $docs $pdfName) -Force
     }
 }
 finally {

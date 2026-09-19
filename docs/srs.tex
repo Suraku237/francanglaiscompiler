@@ -1,13 +1,18 @@
 \documentclass[12pt,a4paper]{article}
-\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage[a4paper,margin=2.4cm,headheight=15pt]{geometry}
 \usepackage[T1]{fontenc}
+\usepackage{iftex}
+\ifPDFTeX
 \usepackage[utf8]{inputenc}
+\fi
 \usepackage{lmodern}
 \usepackage{booktabs,longtable,tabularx,array}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{xurl}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
+\setlength{\emergencystretch}{2em}
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 \pagestyle{fancy}
 \fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS}\cfoot{\thepage}
@@ -121,15 +126,17 @@ fallbacks.
 \end{longtable}
 
 \section{Data Requirements}
-Each row shall contain the fields \texttt{id}, \texttt{text},
-\texttt{entry\_type}, \texttt{french\_gloss}, \texttt{english\_gloss},
-\texttt{category}, \texttt{notes}, \texttt{audio\_filename},
-\texttt{contributor}, and \texttt{timestamp}. Categories include greeting,
-everyday, slang, insult/banter, market/money, school/campus, food, family,
-proverb/expression, and other.
+Each row shall contain the fields \nolinkurl{id}, \nolinkurl{text},
+\nolinkurl{entry_type}, \nolinkurl{french_gloss}, \nolinkurl{english_gloss},
+\nolinkurl{category}, \nolinkurl{notes}, \nolinkurl{audio_filename},
+\nolinkurl{contributor}, and \nolinkurl{timestamp}.
+
+Categories include greeting, everyday, slang, insult\slash banter,
+market\slash money, school\slash campus, food, family,
+proverb\slash expression, and other.
 
 \section{Use Cases}
-\begin{longtable}{p{1.7cm}p{2.5cm}p{8.9cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{8.9cm}}
 \toprule
 \textbf{ID} & \textbf{Actor} & \textbf{Success scenario}\\ \midrule
 \endhead

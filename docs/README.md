@@ -35,8 +35,9 @@ run from the repository root:
 .\docs\build.ps1
 ```
 
-The script renders every `.puml` file to PNG and compiles both documents with
-`pdflatex`. It accepts an optional PlantUML jar path:
+The script renders every `.puml` file to PNG and compiles both documents.
+It uses `pdflatex` when available, otherwise Tectonic. It accepts an optional
+PlantUML jar path:
 
 ```powershell
 .\docs\build.ps1 -PlantUmlJar C:\tools\plantuml.jar
@@ -44,6 +45,29 @@ The script renders every `.puml` file to PNG and compiles both documents with
 
 If PlantUML is not installed, download the current jar from
 <https://plantuml.com/download> and pass its path to the script.
+
+### Build PDFs using the existing diagrams
+
+The checked-in PNGs can be used without installing Java or PlantUML:
+
+```powershell
+.\docs\build.ps1 -SkipDiagrams
+```
+
+Install a LaTeX distribution or [Tectonic](https://tectonic-typesetting.github.io/).
+For a portable Windows installation, extract the official Windows Tectonic
+release into `docs\.tools` so that `docs\.tools\tectonic.exe` exists. The build
+script detects it without changing the system `PATH`. Tectonic downloads
+required TeX packages on its first run; document compilation happens locally.
+
+The generated documents are `docs\srs.pdf` and `docs\sdd.pdf`. Intermediate
+files and compiler logs are kept in `docs\.build`; this directory and the
+local tool directory are ignored by Git. Tectonic automatically reruns LaTeX
+to resolve the table of contents. The `pdflatex` path runs two passes.
+
+Use the VS Code **Build documentation PDFs** task for the PDF-only build in
+this workspace. After editing a PlantUML source, regenerate its PNG using the
+full build command rather than `-SkipDiagrams`.
 
 ## Project snapshot and author fields
 

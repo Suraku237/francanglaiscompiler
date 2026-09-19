@@ -15,3 +15,7 @@ __pycache__/
 data_collector/dataset.csv
 data_collector/audio/*
 !data_collector/audio/.gitkeep
+
+# Local documentation tools and intermediate LaTeX output.
+docs/.tools/
+docs/.build/
