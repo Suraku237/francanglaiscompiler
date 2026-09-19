@@ -10,12 +10,16 @@ class App {
   selected_browse_id: str | None
   selected_browse_audio: str | None
   _browse_entries_by_id: dict
+  _staged_audio_files: set[str]
+  _captured_audio
+  _recording_pending_stop: bool
   save_entry()
   toggle_recording()
   attach_audio_file()
   _save_browse_edit()
   _delete_browse_entry()
   _refresh_stats()
+  destroy()
 }
 ' @class data_collector.App.Tooltip
 class Tooltip {
@@ -32,7 +36,14 @@ class Recorder {
   recording: bool
   start()
   stop()
+  close()
 }
+' @class data_collector.audio_utils.AudioError
+class AudioError
+' @class data_collector.dataset.EntryNotFoundError
+class EntryNotFoundError
+class RuntimeError <<external>>
+class LookupError <<external>>
 class "customtkinter.CTk" as CTk <<external>>
 class "Widget" as Widget <<external>>
 class "CTkToplevel" as TipWindow <<external>>
@@ -41,12 +52,19 @@ rectangle "dataset.py <<module>>\nload_all(), append_entry()\nupdate_entry(), de
 rectangle "audio_utils.py <<module>>\nattach_file(), save_recording()\nplay_audio()" as Audio
 App --|> CTk
 App "1" *-- "0..1" Recorder : creates when audio is available
-Recorder --> "0..1" Stream : stream
-Tooltip --> "1" Widget : widget
-Tooltip --> "0..1" TipWindow : tip_window
+Recorder "0..1" --> "0..1" Stream : stream
+Tooltip "0..*" --> "1" Widget : widget
+Tooltip "0..1" --> "0..1" TipWindow : tip_window
 App ..> Tooltip : creates for controls
 App ..> Dataset : calls functions
 App ..> Audio : calls functions
+AudioError --|> RuntimeError
+EntryNotFoundError --|> LookupError
+Recorder ..> AudioError : raises retryable failures
+Audio ..> AudioError : raises file / playback errors
+Dataset ..> EntryNotFoundError : rejects stale IDs
+App ..> AudioError : reports and retains retry state
+App ..> EntryNotFoundError : reports no longer available
 note bottom of Recorder
   One optional stream per recorder.
   Frames are sample arrays, not domain classes.
@@ -58,7 +76,7 @@ note bottom of Tooltip
   bound callbacks retain these helper objects.
 end note
 legend bottom
-  Three production classes; library types are explicitly external.
+  Five production classes; library types are explicitly external.
   Per-instance target multiplicities express stored references.
   Audio filenames are not object ownership or database foreign keys.
 endlegend

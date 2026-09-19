@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, isCancelled, messageOf } from './api'
 import { ErrorNotice, Icon, Modal, Spinner, TokenAnalysis } from './components'
@@ -55,6 +55,7 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
   onClose: () => void
   onSaved: (entry: DatasetEntry) => void
 }) {
+  const expressionInput = useRef<HTMLTextAreaElement>(null)
   const [draft, setDraft] = useState<EditableEntry>(() => entry ? editableFields(entry) : { ...emptyEntry, ...initialDraft, review_status: 'unreviewed' })
   const [validationError, setValidationError] = useState('')
   const { pending, error, run, clearError } = useRequest()
@@ -99,13 +100,13 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
     )
   }
 
-  return <Modal title={entry ? 'Review this expression' : 'Add an expression to learn'} onClose={onClose} busy={pending} className="entry-modal">
+  return <Modal title={entry ? 'Review this expression' : 'Add an expression to learn'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
     <p className="modal-description">{entry ? 'Review the wording, language, and meanings. Only changed fields and your review decision are submitted; other stored values are preserved.' : 'Keep Cameroon Francanglais and Cameroon Pidgin distinct. Save a draft, or approve after a human review.'} <span>An expression is required. Missing context is okay; never invent a speaker, location, or fieldwork source.</span></p>
     <form onSubmit={submit}>
       <div className="form-fields">
         <div className="field">
           <label htmlFor="entry-text">Expression <span className="required-mark">*</span></label>
-          <textarea id="entry-text" autoFocus rows={3} maxLength={MAX_TEXT} required value={draft.text} disabled={pending} onChange={(event) => update('text', event.target.value)} placeholder="Type the expression you want to document…" aria-describedby="entry-text-limit" />
+          <textarea ref={expressionInput} id="entry-text" rows={3} maxLength={MAX_TEXT} required value={draft.text} disabled={pending} onChange={(event) => update('text', event.target.value)} placeholder="Type the expression you want to document…" aria-describedby="entry-text-limit" />
           <span id="entry-text-limit" className="field-hint">{draft.text.length.toLocaleString()} / 4,000 characters</span>
         </div>
         <div className="field-grid">

@@ -10,7 +10,7 @@
 \setlength{\LTpre}{0.7em}\setlength{\LTpost}{0.7em}
 \setlist{itemsep=2pt,topsep=5pt}
 \definecolor{accent}{HTML}{1E3A5F}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdfstartview=FitH,
   pdftitle={Francanglais Platform - Software Requirements Specification}}
 \pagestyle{fancy}
 \fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS v1.2}\cfoot{\thepage}
@@ -18,14 +18,14 @@
 \newcommand{\placeholder}[1]{\textcolor{accent}{\textbf{[To supply: #1]}}}
 \newcommand{\requirement}[4]{\textbf{#1}\newline\textit{#2} & #3\par\smallskip\textbf{Acceptance:} #4\\\addlinespace}
 \newcommand{\story}[5]{\subsection{#1 --- #2}\label{story:#1}#3\par\smallskip\textbf{Trace:} #4.\par\textbf{Acceptance criteria}\begin{enumerate}[label=\alph*)]#5\end{enumerate}}
-\newcommand{\sprinttask}[5]{#1 & #2 & #3 & #4 & #5\\\addlinespace}
+\newcommand{\sprinttask}[6]{#1 & #2 & #3\par\smallskip\textbf{Current evidence:} #6 & #4 & #5\\\addlinespace}
 \title{\textbf{Software Requirements Specification}\\[0.4em]
 \Large Francanglais Compiler and Dataset Platform\\[0.6em]
 \large Current Requirements, Traceability and Proposed Delivery Plan}
 \author{Group members and matricules:\\[0.5em]
-\placeholder{Member 1 name and matricule}\\
-\placeholder{Member 2 name and matricule}\\
-\placeholder{Member 3 name and matricule}}
+Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
+Name 2: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}\\[0.5em]
+Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
 \date{Version 1.2 --- 19 September 2026}
 \begin{document}
 \maketitle\thispagestyle{empty}
@@ -34,8 +34,9 @@
 \end{center}
 \vfill
 \noindent\textbf{Revision basis:} current production source in the working tree
-based on \nolinkurl{a2e3601}, including the current completion changes.
-No names, matricules, observations or historical sprint results are inferred.
+based on \nolinkurl{ff7dcf7}, including the current completion changes.
+The first author's supplied SDD details are preserved; the other identities,
+observations and historical sprint results are not inferred.
 \par\medskip
 \noindent\textbf{Planning basis:} four proposed two-week sprints. Story points,
 task hours and member leads remain unconfirmed estimates, not completed work.
@@ -57,7 +58,7 @@ traceable; revised acceptance wording corrects obsolete schema and UI details.
 New scope receives new identifiers rather than rewriting sprint history.
 
 \subsection{Status and evidence vocabulary}
-\begin{longtable}{L{1.5cm}L{13cm}}
+\begin{longtable}{L{2.2cm}L{12.3cm}}
 \toprule\textbf{Label} & \textbf{Meaning}\\\midrule\endhead
 B & Implemented behavior supported by current source. It is not automatically a passed manual acceptance check or a linguistically validated result.\\
 T & An acceptance target or human/operational gate still requiring evidence. An implemented supporting mechanism does not close that gate.\\
@@ -66,8 +67,8 @@ Automated & Tests or build reports from isolated synthetic fixtures, mocks or re
 Human & Genuine transcriptions, permission/method, named contributions, interpretation, device trials, provider trials and signed acceptance supplied by the group.\\
 \bottomrule
 \end{longtable}
-The reproducible verification register is in \nolinkurl{docs\README.md} and
-parent-generated files under \nolinkurl{docs\evidence}. Commands without an
+The reproducible verification register is in \nolinkurl{docs/README.md} and
+recorded files under \nolinkurl{docs/evidence}. Commands without an
 attached result are instructions, not executed evidence. No test counts,
 latencies, speaker findings, classifier accuracy or completed sprints are
 invented. The illustrative default grammar is teaching material.
@@ -155,9 +156,9 @@ native Francanglais voices and provider retention guarantees are not supplied.
 {Cancellation preserves the draft; copying succeeds before replacing the pending filename; failure displays an error and preserves the previous attachment.}
 \requirement{FR-10}{B}
 {Recording and attachment shall generate names inside the managed audio directory; attachment preserves the source extension.}
-{The source file is unchanged. Staging media does not save a CSV row. Clearing/deleting a row does not garbage-collect audio; orphan cleanup is manual.}
+{The source file is unchanged. Staging media does not save a CSV row. Replacement/Clear/close remove only unsaved files owned by that draft, with explicit retryable cleanup errors. Committed recordings survive draft reset and row deletion; their later cleanup is deliberate.}
 \requirement{FR-11}{B}
-{Desktop Browse shall filter text, category and contributor case-insensitively, cache visible rows by ID and populate selection without a second read.}
+{Desktop Browse shall filter all stored field values case-insensitively, cache all loaded rows by ID and populate selection without a second read.}
 {Empty/non-match queries show all/no rows. Failed refreshes preserve usable state; stale selections are not reported as successful mutations.}
 \requirement{FR-12}{B}
 {A selected desktop row shall support text, type, category, gloss, source-location, notes, language, review and lexical edits, or confirmed deletion.}
@@ -166,8 +167,8 @@ native Francanglais voices and provider retention guarantees are not supplied.
 {Pending or selected audio shall use library playback when available, then an OS default-player fallback if necessary.}
 {Missing files and rejected playback/launch return failure; true means accepted playback/launch, not sound heard to completion.}
 \requirement{FR-14}{B}
-{Stats shall show total rows and descending grouped counts/bars by type and category on refresh.}
-{Fixture totals match independent counts; empty data displays zero/no-data; normalization avoids division by zero. Storage errors must not masquerade as an empty corpus.}
+{Stats shall show total rows and descending counts/bars by type, topic, language and review status from one loaded snapshot.}
+{Fixture totals match independent counts; empty data displays zero/no-data; normalization avoids division by zero. Failed reads preserve prior views, not an apparent empty corpus. Batch count/recent/Browse/Stats refresh shares one snapshot.}
 \requirement{FR-15}{B}
 {Local analysis shall return token categories, code-mixing hints and known verb phrases; compiler-lab parsing shall return explicit acceptance/rejection with diagnostics.}
 {Use deterministic golden fixtures, including unsupported symbols and empty parse input. Grammar acceptance is never described as linguistic authenticity. FR-29--FR-31 refine this requirement.}
@@ -273,9 +274,9 @@ contains the actual environment, command and result.
 \requirement{NFR-09}{B}
 {LaTeX and every PlantUML source shall build locally into readable, consistently referenced documentation.}
 {Render all diagrams with the local jar, compile both PDFs, validate full class inventory, balanced communications and references; inspect layout and remaining human placeholders.}
-\requirement{NFR-10}{T}
-{For 1,000 synthetic rows of up to 500 text characters, desktop search and Stats refresh shall each target p95 at most one second on the recorded reference workstation.}
-{Record hardware/runtime and 20 warm handler runs after one warm-up, using nearest-rank p95. A withdrawn Tk window is a real-handler benchmark, not a human usability/device test. Report actual evidence, not an assumed 8 GB/SSD configuration.}
+\requirement{NFR-10}{B/T}
+{On a recorded reference Windows workstation with 8 GB RAM and local SSD, search and Stats refresh shall each have p95 latency at most one second for 1,000 rows of up to 500 text characters.}
+{Use one warm-up and 20 measured active-tab handler runs with Tk idle rendering and nearest-rank p95. Evidence E4 passes the unchanged timing threshold on a 31.8 GiB machine. It does not certify the original 8 GB/SSD configuration; that separate acceptance gate remains open.}
 \requirement{NFR-11}{B}
 {CSV mutations shall be failure-safe and cooperative across processes, with truthful desktop/API error feedback.}
 {A reentrant path-keyed FileLock with 10-second timeout encloses complete transactions; same-directory write, flush/fsync and replace protect the prior file. Fault tests do not prove every filesystem or power-loss scenario.}
@@ -329,8 +330,9 @@ They are \emph{collection categories}, not lexer terminal labels.
 
 \subsection{Interface families}
 All explicit application routes use \nolinkurl{/api}: health/metadata,
-translate/chat/analyze, dataset CRUD, imports preview/suggest, and coursework
-state/project/analyze/parse/explain/screenshots/export. DTO details and the
+translation, chat, lexical analysis, dataset CRUD, import preview/suggestions,
+and coursework state, project saving, corpus analysis, parsing, tutoring,
+screenshots and export. DTO details and the
 complete method/path table are in the SDD. Request models reject unknown
 JSON fields. The OpenAPI page is generated by FastAPI; it is documentation,
 not proof that an AI key is valid. Desktop has no HTTP dependency.
@@ -434,7 +436,7 @@ None of these statements records a historically completed sprint.
 \story{US-17}{Use the local web collection}
 {As a web contributor, I want validated CRUD and metadata so that I can maintain shared local entries.}
 {FR-21, FR-25, FR-35}
-{\item Search, filter, add, changed-field review and confirmed delete return appropriate DTOs/status codes.
+{\item Search, filtering, creation, changed-field review and confirmed deletion return the expected data and HTTP status.
 \item Rejected/ambiguous mutations preserve drafts and prompt refresh rather than blind retries.}
 \story{US-18}{Translate from reviewed alignments}
 {As a learner, I want exact reviewed local translations and honest coverage when evidence is incomplete.}
@@ -468,6 +470,20 @@ None of these statements records a historically completed sprint.
 \item Dictation is opt-in and only fills text; synthesis can stop and has no native-voice guarantee.}
 
 \section{Prioritized Product Backlog}
+\subsection{Current verification register}
+These results describe this source snapshot, not an invented sprint history.
+E5 is verified by rebuilding and checking the published artifacts; the same
+commands run in the configured CI workflow. A remote CI result is not claimed.
+\begin{longtable}{L{1cm}L{13.3cm}}
+\toprule\textbf{ID} & \textbf{Recorded result and boundary}\\\midrule\endhead
+E1 & 252 Python regressions passed, including 56 desktop and 33 maintenance/checker tests. Real WAV codec/file round-trip also passed; microphone/provider tests remain isolated mocks.\\
+E2 & 77 frontend component tests passed; application and test TypeScript checks and production build passed.\\
+E3 & 18 desktop/mobile Chromium cases passed, including import consent/handoff, review, keyboard focus, saved-project/export gating and downloaded fixture ZIP bytes. API data is mocked, not authentic research.\\
+E4 & Real active-tab benchmark: 1,000 synthetic 500-character rows; search p95 53.31 ms, Stats p95 606.01 ms; 20 measured runs each. Report: \nolinkurl{docs/evidence/collector-benchmark.json}. Measured hardware is not the original 8 GB/SSD reference.\\
+E5 & SRS/SDD and 28 full-size UML sheets built locally. Inventory covers 47 production classes; 13 sequence views have explicit balanced call/reply activations. Source/sheet/image/reference checks accompany publication.\\
+H & Human gates: genuine corpus and permission, two remaining identities and all contributions, reviewed linguistic findings, real devices/provider, reference hardware, final report/slides and group sign-off. Not fulfilled by E1--E5.\\
+\bottomrule\end{longtable}
+
 \subsection{Source state versus proposed scheduling}
 The original point estimates and proposed sprint selections are retained for
 traceability: 67 selected SP, plus 8 deferred SP, originally 75 total.
@@ -476,23 +492,23 @@ ahead of that old proposal in several areas; the group must re-estimate and
 agree a real schedule before using it. ``Implemented'' below is not ``sprint
 Done'' and is not group sign-off.
 \begingroup\small\setlength{\tabcolsep}{3pt}
-\begin{longtable}{L{1.2cm}L{1.2cm}L{1.2cm}L{0.6cm}L{1.1cm}L{2cm}L{7.0cm}}
+\begin{longtable}{L{1.2cm}L{1.2cm}L{1.5cm}L{0.6cm}L{1.1cm}L{2cm}L{6.7cm}}
 \toprule\textbf{PB} & \textbf{US} & \textbf{Priority} & \textbf{SP} & \textbf{Plan} & \textbf{Depends} & \textbf{Current state / remaining evidence}\\\midrule\endhead
-PB-01 & US-01 & Must & 3 & S1 & None & Implemented: initialization, strict schemas, conservative legacy reads; regression evidence required.\\
-PB-02 & US-02 & Must & 5 & S1 & PB-01 & Implemented annotated creation and reset; authentic content remains human input.\\
-PB-03 & US-03 & Should & 3 & S1 & PB-02 & Implemented advisory desktop duplicates; web 409 policy is distinct.\\
-PB-04 & US-04 & Must & 5 & S1 & PB-01 & Implemented search/cache and web filters; measured handler benchmark kept separately.\\
-PB-05 & US-05 & Must & 5 & S2 & PB-04 & Implemented controlled editing/review reset; stale-ID and failure regression coverage.\\
-PB-06 & US-06 & Must & 3 & S2 & PB-04 & Implemented confirmation/removal; no automatic audio deletion.\\
-PB-07 & US-07 & Should & 3 & S2 & PB-02 & Implemented attachment/cancellation; device-independent file tests.\\
-PB-08 & US-08 & Should & 5 & S2 & PB-07 & Implemented playback fallback; real sound/device evidence pending.\\
-PB-09 & US-09 & Should & 5 & S3 & PB-07,08 & Implemented recoverable recording/guard; genuine microphone trials pending.\\
-PB-10 & US-10 & Should & 3 & S3 & PB-01 & Implemented Stats and coursework counts; authentic topic coverage pending.\\
-PB-11 & US-11 & Must & 5 & S3 & PB-05--09 & Atomic locks/writes and verification/recovery tooling implemented; consent and real-data recovery approval pending.\\
-PB-12 & US-12 & Must & 3 & S3 & PB-11 & Updated SRS/SDD/UML and local build; author fields intentionally pending.\\
-PB-13 & US-13 & Must & 8 & S4 & PB-01,11 & Implemented regex/reviewed-word lexer; independent linguistic evaluation pending.\\
-PB-14 & US-14 & Must & 8 & S4 & PB-13 & Implemented CFG transformations, FIRST/FOLLOW, LL(1) and traces; own-corpus grammar rationale pending.\\
-PB-15 & US-15 & Must & 3 & S4 & PB-12--14 & Software handover evidence assembled separately; group/research/device/provider sign-off open.\\
+PB-01 & US-01 & Must & 3 & S1 & None & Software verified (E1): initialization, strict schemas and conservative legacy reads.\\
+PB-02 & US-02 & Must & 5 & S1 & PB-01 & Software verified (E1--E3): annotated creation/reset; authentic content remains H.\\
+PB-03 & US-03 & Should & 3 & S1 & PB-02 & Software verified (E1): advisory desktop duplicates; web 409 policy is distinct.\\
+PB-04 & US-04 & Must & 5 & S1 & PB-01 & Software verified (E1, E3); measured timing E4. Original reference-machine gate remains H.\\
+PB-05 & US-05 & Must & 5 & S2 & PB-04 & Software verified (E1--E3): changed fields, review reset, stale IDs and failures.\\
+PB-06 & US-06 & Must & 3 & S2 & PB-04 & Software verified (E1, E3): confirmation/removal; committed audio retained.\\
+PB-07 & US-07 & Should & 3 & S2 & PB-02 & Software verified (E1): attachment, cancellation and draft-file ownership.\\
+PB-08 & US-08 & Should & 5 & S2 & PB-07 & Software verified (E1): fallback/errors. Real audibility/device acceptance is H.\\
+PB-09 & US-09 & Should & 5 & S3 & PB-07,08 & Software/WAV I/O verified (E1): retry states and guards. Genuine microphone trial is H.\\
+PB-10 & US-10 & Should & 3 & S3 & PB-01 & Software verified (E1, E4): consistent Stats/readiness. Authentic topic coverage is H.\\
+PB-11 & US-11 & Must & 5 & S3 & PB-05--09 & Software verified (E1, E4): fault safety and restore checks. Real-data permission/recovery approval is H.\\
+PB-12 & US-12 & Must & 3 & S3 & PB-11 & Engineering documents verified (E5); two author rows and group approval remain H.\\
+PB-13 & US-13 & Must & 8 & S4 & PB-01,11 & Software verified (E1): regex/reviewed-word lexer. Independent linguistic evaluation is H.\\
+PB-14 & US-14 & Must & 8 & S4 & PB-13 & Software verified (E1, E3): CFG/LL(1)/traces. Own-corpus rationale/evaluation is H.\\
+PB-15 & US-15 & Must & 3 & S4 & PB-12--14 & Engineering handover verified (E1--E5); research, devices, provider and group sign-off remain H.\\
 PB-16 & US-16 & Could & 8 & Later & PB-13,14 & Deferred trained/evaluated unseen-word predictor; generative suggestions are not its completion.\\
 \bottomrule\end{longtable}\endgroup
 
@@ -501,25 +517,26 @@ No story points, task hours or sprint dates are invented for these additions.
 They require group prioritization/re-estimation, although the software exists.
 \begin{longtable}{L{1.8cm}L{2cm}L{10.5cm}}
 \toprule\textbf{Item / story} & \textbf{Depends on} & \textbf{State and next acceptance gate}\\\midrule\endhead
-PB-17 / US-17 & PB-01,05,06 & Implemented validated web CRUD/API metadata; review automated browser evidence.\\
-PB-18 / US-18 & PB-13,17 & Implemented reviewed exact retrieval/coverage; supply meaningful human-approved alignments.\\
-PB-19 / US-19 & PB-18 & Implemented explicit AI translation/chat/tutoring; provider tests use mocks, live trials need permission/key.\\
-PB-20 / US-20 & PB-17,19 & Implemented bounded local/cloud preview and manual review/save; authentic source/permission remain required.\\
-PB-21 / US-21 & PB-13,14,17 & Implemented coursework profile/analysis/screenshots; provide group, manual transcripts and original discussion.\\
-PB-22 / US-22 & PB-21 & Implemented draft ZIP, report and slides; final pagination/rehearsal/authorized release pending.\\
-PB-23 / US-23 & PB-17--22 & Implemented cancellation, accessibility controls and opt-in browser voice; real-device/assistive-technology review pending.\\
+PB-17 / US-17 & PB-01,05,06 & Software verified (E1--E3): web CRUD/metadata and failure handling.\\
+PB-18 / US-18 & PB-13,17 & Software verified (E1--E3): exact retrieval/coverage. Genuine reviewed alignments remain H.\\
+PB-19 / US-19 & PB-18 & Software verified with mocked provider (E1--E2). Authorized live service/quality trials remain H.\\
+PB-20 / US-20 & PB-17,19 & Software verified (E1--E3): bounded preview, consent, handoff and explicit save. Authentic source/permission remain H.\\
+PB-21 / US-21 & PB-13,14,17 & Software verified (E1--E3): profile/analysis/images. Actual group data, transcripts and interpretation remain H.\\
+PB-22 / US-22 & PB-21 & Software verified (E1--E3): draft ZIP/report/slides and native download. Final pagination/rehearsal/release remain H.\\
+PB-23 / US-23 & PB-17--22 & Software verified (E2--E3): cancellation, focus and opt-in controls. Real devices/assistive technology remain H.\\
 \bottomrule\end{longtable}
 
 \section{Sprint Backlogs: Four Proposed Two-Week Iterations}
 \subsection{Planning assumptions and unconfirmed leads}
 S1--S4 remain a \textbf{proposal}, not retrospective history. Relative weeks
 1--8 have no claimed calendar dates, completed ceremonies or measured
-velocity. M1, M2 and M3 refer to the three unfilled author rows;
+velocity. M1, M2 and M3 refer to the three author rows;
 suggested leads are \textbf{unconfirmed}. All tasks below have planning
-state \textbf{Proposed}. Existing implementations should be reviewed and
+allocation state \textbf{Proposed}. Each task separately records current
+software evidence below; it does not claim a completed sprint. Implementations should be reviewed and
 verified instead of unnecessarily re-created. Added PB-17--PB-23 scope
 is not silently included in these unchanged estimates.
-\begin{longtable}{L{1.3cm}L{1.8cm}L{8cm}L{1cm}L{1cm}}
+\begin{longtable}{L{1.3cm}L{1.8cm}L{7.7cm}L{1cm}L{1.3cm}}
 \toprule\textbf{Sprint} & \textbf{Window} & \textbf{Proposed goal} & \textbf{SP} & \textbf{Hours}\\\midrule\endhead
 S1 & Weeks 1--2 & Reliable collection/discovery acceptance & 16 & 24\\
 S2 & Weeks 3--4 & Controlled maintenance and audio-file acceptance & 16 & 26\\
@@ -532,14 +549,14 @@ S4 & Weeks 7--8 & Local compiler and honest handover acceptance & 19 & 27\\
 \begingroup\small
 \begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
 \toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
-\sprinttask{S1-T01}{PB-01}{Review all supported headers and isolated missing/existing-storage fixtures.}{M1}{3}
-\sprinttask{S1-T02}{PB-01}{Check UTF-8, quoting, strict read failures and non-destructive startup.}{M3}{3}
-\sprinttask{S1-T03}{PB-02}{Review fields, blank validation, review defaults and generated metadata.}{M2}{4}
-\sprinttask{S1-T04}{PB-02}{Verify save/reload, latest rows, retained contributor and shortcuts.}{M3}{3}
-\sprinttask{S1-T05}{PB-03}{Review debounce, language scope and matching normalization.}{M1}{2}
-\sprinttask{S1-T06}{PB-03}{Test advisory appearance/clearance and permitted desktop duplicates.}{M3}{2}
-\sprinttask{S1-T07}{PB-04}{Review filter/cache selection and representative synthetic fixtures.}{M2}{4}
-\sprinttask{S1-T08}{PB-04}{Test query edge cases and record actual handler timings.}{M3}{3}
+\sprinttask{S1-T01}{PB-01}{Review all supported headers and isolated missing/existing-storage fixtures.}{M1}{3}{Verified E1.}
+\sprinttask{S1-T02}{PB-01}{Check UTF-8, quoting, strict read failures and non-destructive startup.}{M3}{3}{Verified E1.}
+\sprinttask{S1-T03}{PB-02}{Review fields, blank validation, review defaults and generated metadata.}{M2}{4}{Verified E1--E3.}
+\sprinttask{S1-T04}{PB-02}{Verify save/reload, latest rows, retained contributor and shortcuts.}{M3}{3}{Handlers verified E1; physical UI review H.}
+\sprinttask{S1-T05}{PB-03}{Review debounce, language scope and matching normalization.}{M1}{2}{Verified E1.}
+\sprinttask{S1-T06}{PB-03}{Test advisory appearance/clearance and permitted desktop duplicates.}{M3}{2}{Verified E1.}
+\sprinttask{S1-T07}{PB-04}{Review filter/cache selection and representative synthetic fixtures.}{M2}{4}{Verified E1, E3.}
+\sprinttask{S1-T08}{PB-04}{Test query edge cases and record actual handler timings.}{M3}{3}{Measured E4; original hardware gate H.}
 \bottomrule\end{longtable}\endgroup
 \textbf{Proposed exit:} demonstrate valid/blank save, advisory duplicate and
 matching search. Attach evidence; do not mark a sprint completed from code alone.
@@ -549,14 +566,14 @@ matching search. Attach evidence; do not mark a sprint completed from code alone
 \begingroup\small
 \begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
 \toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
-\sprinttask{S2-T01}{PB-05}{Review allowed fields, review invalidation and locked mutation.}{M1}{4}
-\sprinttask{S2-T02}{PB-05}{Test valid/blank/no-selection/stale edits and preserved metadata.}{M3}{4}
-\sprinttask{S2-T03}{PB-06}{Review confirmation, ID filtering and post-success state cleanup.}{M2}{3}
-\sprinttask{S2-T04}{PB-06}{Test Yes/No, stale rows and unchanged audio after deletion.}{M3}{3}
-\sprinttask{S2-T05}{PB-07}{Review chooser cancellation, naming and microphone-free copying.}{M1}{3}
-\sprinttask{S2-T06}{PB-07}{Test original-file preservation and failed attachment state.}{M3}{3}
-\sprinttask{S2-T07}{PB-08}{Review playback and platform fallback boundaries.}{M2}{3}
-\sprinttask{S2-T08}{PB-08}{Mock missing media/library/launch errors; plan genuine device trial.}{M3}{3}
+\sprinttask{S2-T01}{PB-05}{Review allowed fields, review invalidation and locked mutation.}{M1}{4}{Verified E1--E3.}
+\sprinttask{S2-T02}{PB-05}{Test valid/blank/no-selection/stale edits and preserved metadata.}{M3}{4}{Verified E1--E3.}
+\sprinttask{S2-T03}{PB-06}{Review confirmation, ID filtering and post-success state cleanup.}{M2}{3}{Verified E1, E3.}
+\sprinttask{S2-T04}{PB-06}{Test Yes/No, stale rows and unchanged audio after deletion.}{M3}{3}{Verified E1, E3.}
+\sprinttask{S2-T05}{PB-07}{Review chooser cancellation, naming and microphone-free copying.}{M1}{3}{Verified E1.}
+\sprinttask{S2-T06}{PB-07}{Test original-file preservation and failed attachment state.}{M3}{3}{Verified E1.}
+\sprinttask{S2-T07}{PB-08}{Review playback and platform fallback boundaries.}{M2}{3}{Software verified E1; physical sound H.}
+\sprinttask{S2-T08}{PB-08}{Mock missing media/library/launch errors; plan genuine device trial.}{M3}{3}{Mocks verified E1; real trial H.}
 \bottomrule\end{longtable}\endgroup
 \textbf{Proposed exit:} show editing, confirmed/cancelled deletion, attachment,
 playback-error feedback and no unwanted media deletion.
@@ -567,14 +584,14 @@ now exist; this proposal reviews their evidence rather than claiming history.
 \begingroup\small
 \begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
 \toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
-\sprinttask{S3-T01}{PB-09}{Review stream lifecycle, save guard and device-failure recovery.}{M1}{3}
-\sprinttask{S3-T02}{PB-09}{Test frames/no frames, unavailable audio and start/stop/write failures.}{M3}{4}
-\sprinttask{S3-T03}{PB-10}{Review grouping, totals and descending normalized bars.}{M2}{3}
-\sprinttask{S3-T04}{PB-10}{Test empty corpus, known counts and refresh failure behavior.}{M3}{2}
-\sprinttask{S3-T05}{PB-11}{Verify cross-process locking, atomic replacement and truthful write errors.}{M1}{6}
-\sprinttask{S3-T06}{PB-11}{Review regression/benchmark/snapshot evidence and consent/exclusions.}{M3}{4}
-\sprinttask{S3-T07}{PB-12}{Reconcile all UML, classes, requirements and local build steps.}{M2}{4}
-\sprinttask{S3-T08}{PB-12}{Render diagrams, compile PDFs and inspect readability/traceability.}{M3}{3}
+\sprinttask{S3-T01}{PB-09}{Review stream lifecycle, save guard and device-failure recovery.}{M1}{3}{Software verified E1; real device H.}
+\sprinttask{S3-T02}{PB-09}{Test frames/no frames, unavailable audio and start/stop/write failures.}{M3}{4}{Verified E1, including real WAV I/O.}
+\sprinttask{S3-T03}{PB-10}{Review grouping, totals and descending normalized bars.}{M2}{3}{Verified E1, E4.}
+\sprinttask{S3-T04}{PB-10}{Test empty corpus, known counts and refresh failure behavior.}{M3}{2}{Verified E1.}
+\sprinttask{S3-T05}{PB-11}{Verify cross-process locking, atomic replacement and truthful write errors.}{M1}{6}{Verified E1.}
+\sprinttask{S3-T06}{PB-11}{Review regression/benchmark/snapshot evidence and consent/exclusions.}{M3}{4}{Tooling verified E1, E4; permission H.}
+\sprinttask{S3-T07}{PB-12}{Reconcile all UML, classes, requirements and local build steps.}{M2}{4}{Engineering evidence E5; group sign-off H.}
+\sprinttask{S3-T08}{PB-12}{Render diagrams, compile PDFs and inspect readability/traceability.}{M3}{3}{Published build and checks E5.}
 \bottomrule\end{longtable}\endgroup
 \textbf{Proposed exit:} evidence of recording behavior, Stats, fault safety,
 an isolated restore rehearsal and reproducible documents. Physical-device
@@ -586,12 +603,12 @@ approve its fixture corpus and grammar rationale before making linguistic claims
 \begingroup\small
 \begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
 \toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
-\sprinttask{S4-T01}{PB-13}{Review deterministic tokenization, annotations and heuristic boundaries.}{M1}{6}
-\sprinttask{S4-T02}{PB-13}{Check mixed-input golden tests, UNKNOWN and read-only hashes.}{M3}{4}
-\sprinttask{S4-T03}{PB-14}{Review CFG transformations, FIRST/FOLLOW, LL(1) and provenance.}{M2}{6}
-\sprinttask{S4-T04}{PB-14}{Test accepted/rejected/empty/conflicting/limited cases and repeatability.}{M3}{4}
-\sprinttask{S4-T05}{PB-15}{Review end-to-end software evidence, privacy, recovery and measured performance.}{M1}{4}
-\sprinttask{S4-T06}{PB-15}{Assemble documents, actual evidence, limitations and the group's own demo.}{M2}{3}
+\sprinttask{S4-T01}{PB-13}{Review deterministic tokenization, annotations and heuristic boundaries.}{M1}{6}{Software verified E1; linguistic review H.}
+\sprinttask{S4-T02}{PB-13}{Check mixed-input golden tests, UNKNOWN and read-only hashes.}{M3}{4}{Verified E1.}
+\sprinttask{S4-T03}{PB-14}{Review CFG transformations, FIRST/FOLLOW, LL(1) and provenance.}{M2}{6}{Software verified E1; own-corpus rationale H.}
+\sprinttask{S4-T04}{PB-14}{Test accepted/rejected/empty/conflicting/limited cases and repeatability.}{M3}{4}{Verified E1, E3.}
+\sprinttask{S4-T05}{PB-15}{Review end-to-end software evidence, privacy, recovery and measured performance.}{M1}{4}{Verified E1--E4; live/hardware gates H.}
+\sprinttask{S4-T06}{PB-15}{Assemble documents, actual evidence, limitations and the group's own demo.}{M2}{3}{Engineering artifacts E1--E5; genuine demo H.}
 \bottomrule\end{longtable}\endgroup
 \textbf{Proposed exit:} traceable acceptance evidence and honest open gates.
 PB-16 remains deferred. The four proposals retain \textbf{106 estimated
@@ -637,7 +654,8 @@ them blank. Use mixed/unspecified language labels when appropriate.
 occurred, permission to record/process/share, anonymization and any
 restrictions. Keep sensitive permission evidence in an appropriately
 restricted place, not automatically in a public repository.
-\item \textbf{Three actual members:} give names, matricules and individual
+\item \textbf{Three actual members:} the first author's provided name/matricule
+are already retained on the title pages. Supply the other two identities and all individual
 contributions to collection, implementation, analysis, writing and presentation.
 The profile has three free-text member slots, not separate verified identity
 fields. Complete document title pages and contribution descriptions truthfully.

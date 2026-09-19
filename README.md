@@ -138,6 +138,12 @@ Open **http://localhost:5173**. Vite forwards `/api` to
 `http://127.0.0.1:8000`. Interactive backend API docs are at
 **http://127.0.0.1:8000/docs**. Both processes must be running.
 
+To inspect the built bundle locally, use `npm run build` followed by
+`npm run preview` in `frontend`; preview also proxies `/api` to the backend.
+FastAPI does **not** serve the frontend at `/`. Vite preview is a local
+verification server, not a public production-hosting solution; production
+hosting needs a separate static server and matching API routing.
+
 Without a Gemini key, collection, local document preview, lexical analysis and
 unambiguous approved dataset translations still work. Unsupported local lookups
 and requests requiring Gemini give a clear error; there are no fabricated
@@ -289,6 +295,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Frontend installation failed." }
     npm test
     if ($LASTEXITCODE -ne 0) { throw "Frontend component tests failed." }
+    npm run typecheck
+    if ($LASTEXITCODE -ne 0) { throw "Application or test type-checking failed." }
     npm run build
     if ($LASTEXITCODE -ne 0) { throw "Frontend build failed." }
     npx playwright install chromium
@@ -311,19 +319,33 @@ tests verify exact-byte recovery, missing/corrupt media and refusal to overwrite
 existing data. Frontend component and browser tests use controlled API fixtures,
 not a running research backend or live AI service.
 
+Browser workflows exercise desktop and mobile Chromium, including review and
+approval changes, failed mutations, stale searches, keyboard focus, short-screen
+navigation, consent before media processing, import-to-translator handoff, and a
+native ZIP download whose bytes are checked. Coursework analysis cannot silently
+save an editor draft, and unsaved changes keep export disabled. The native
+dialog restores its trigger on dismissal and applies the editor's initial focus
+only after opening.
+
 [CI](.github/workflows/ci.yml) runs Python regressions on Windows with Python
 3.11 and 3.14, frontend/component/browser checks on Node.js 22, and a fresh
 PlantUML/LaTeX build with checksum-verified tools. Its documentation check compares
-the production-class inventory with the actual Python source, checks every
+the production-class inventory with Python declarations/namedtuple factories
+and frontend runtime class declarations, checks sequence activations and every
 diagram reference, and verifies that the current diagram pixels are embedded
 in the published SDD. A workflow definition is not evidence that a remote
 GitHub run has already completed; inspect the repository's Actions results.
+
+The [SRS](docs/srs.pdf), [SDD](docs/sdd.pdf) and
+[full-size UML atlas](docs/uml-atlas.pdf) are rebuilt from local sources.
+The [documentation guide](docs/README.md) separates verified software,
+proposed sprint allocations and genuine human acceptance inputs.
 
 For an isolated performance measurement, use a graphical desktop session and
 do not interact with the temporary benchmark window:
 
 ```powershell
-.\.venv\Scripts\python.exe -m tools.benchmark_collector --output docs\.build\collector-benchmark.json
+.\.venv\Scripts\python.exe -m tools.benchmark_collector --output docs\evidence\collector-benchmark.json
 ```
 
 This exercises the actual active-tab search and Stats handlers, including Tk
@@ -333,6 +355,12 @@ and the default limit is 1,000 ms. The report records hardware, runtime, raw
 timings and source hashes, and exits unsuccessfully if the limit is exceeded.
 The real CSV is never used or replaced. Passing on one recorded machine is
 not a claim of identical performance on all machines.
+
+The [recorded benchmark](docs/evidence/collector-benchmark.json) measured search
+p95 **53.31 ms** and Stats p95 **606.01 ms**, both below 1,000 ms, on the recorded
+Windows machine with approximately **31.8 GiB RAM**. This is measured evidence
+for that source snapshot, not certification of the SRS's original 8 GB/local-SSD
+reference configuration. That hardware acceptance check remains separate.
 
 Rebuild and verify the documentation separately:
 
@@ -431,8 +459,9 @@ inputs. A CSV, spreadsheet or clearly structured text table is sufficient:
 Audio is optional. The application generates record IDs and timestamps;
 do not invent collection dates, identities, permissions or findings to fill
 blanks. Mark approval and manual transcription only after genuine human review.
-The SRS/SDD author fields and research-dependent deliverables remain pending
-until the group supplies this information. They are separate from the required
+The SRS/SDD retain the first author's already supplied name and matricule;
+the other two identities, all contributions and research-dependent deliverables
+remain pending until supplied. They are separate from the required
 25-30-page coursework report.
 
 Additional endpoints: `GET /api/coursework`,

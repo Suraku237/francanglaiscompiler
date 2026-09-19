@@ -1,0 +1,41 @@
+@startuml
+!include theme.iuml
+title Desktop capture readiness and retry states
+state "Open collector" as Open {
+  state "Ready\nno unfinished capture" as Ready
+  state "Recording" as Recording
+  state "Retry stop / close" as StopRetry
+  state "Captured samples" as Captured
+  state "Retry WAV publication" as WriteRetry
+  Captured : entry / attempt atomic WAV publication
+  [*] --> Ready
+  Ready --> Recording : Record [start succeeds]
+  Ready --> Ready : start fails [stream closed] / report
+  Ready --> StopRetry : start cleanup fails / retain handle
+  Recording --> StopRetry : stop fails (device or concatenation)
+  Recording --> StopRetry : Close [cleanup fails] / report; keep window
+  Recording --> Captured : stop succeeds [samples exist]
+  Recording --> Ready : stop succeeds [no samples] / keep prior attachment
+  StopRetry --> StopRetry : retry fails / retain retry state
+  StopRetry --> Captured : retry succeeds [samples exist]
+  StopRetry --> Ready : retry succeeds [no samples]
+  Captured --> Ready : publication succeeds / stage generated filename
+  Captured --> WriteRetry : publication fails / retain array
+  WriteRetry --> Captured : Retry audio save
+  StopRetry --> Ready : Clear [cleanup succeeds] / discard draft audio
+  WriteRetry --> Ready : Clear [cleanup succeeds] / discard array and draft audio
+  Ready --> Ready : attach, save, Clear [operation succeeds] / update ownership
+}
+Open --> [*] : Close [confirmed if needed; cleanup succeeds]
+note right of Recording
+  Saving, attaching and playback
+  are disabled while capture is unfinished.
+  Clear is disabled during live recording.
+end note
+legend bottom
+  Conceptual states derive from recording, stream, pending-stop and captured-array fields.
+  Ready may contain a staged filename; it does not mean an empty form.
+  Failed cleanup keeps the window/retry state available, not a false closed status.
+  Draft-owned files may be discarded; committed recordings are never owned by the draft.
+endlegend
+@enduml

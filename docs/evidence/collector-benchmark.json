@@ -1,0 +1,88 @@
+{
+  "recorded_at": "2026-09-19T11:50:35+00:00",
+  "fixture": "Synthetic data, never research or linguistic evidence",
+  "rows": 1000,
+  "text_characters": 500,
+  "standard_nfr10_fixture": true,
+  "method": "One warm-up then nearest-rank p95 of real active-tab handlers plus Tk idle rendering",
+  "limit_ms": 1000,
+  "passed_on_this_machine": true,
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 142 Stepping 12, GenuineIntel",
+    "physical_memory_bytes": 34166005760,
+    "python": "3.14.6",
+    "tk": "8.6.15",
+    "customtkinter": "6.0.0"
+  },
+  "source_sha256": {
+    "App.py": "2e242d5ec6643c2122af3afa42a67db790285ce80c4212548ed1b2f0680aa7fc",
+    "dataset.py": "a698cc39862bc95289847dc8d6938beb0e4f9033c03d23898276584b48e883d5",
+    "audio_utils.py": "3038e9c8e85978734e61fe6e990f5100af61c28b945268720c3d1e00e1d96692"
+  },
+  "search": {
+    "warmups": 1,
+    "runs": 20,
+    "samples_ms": [
+      51.9195,
+      53.3051,
+      55.0399,
+      50.5284,
+      49.6206,
+      49.3959,
+      48.697,
+      47.2506,
+      46.3079,
+      47.2281,
+      47.5292,
+      46.7071,
+      46.9298,
+      48.0798,
+      48.8271,
+      49.4816,
+      46.657,
+      46.3545,
+      46.3101,
+      46.9066
+    ],
+    "p95_ms": 53.3051,
+    "mean_ms": 48.65379,
+    "min_ms": 46.3079,
+    "max_ms": 55.0399
+  },
+  "stats": {
+    "warmups": 1,
+    "runs": 20,
+    "samples_ms": [
+      369.9457,
+      370.1012,
+      544.9266,
+      487.6761,
+      476.4562,
+      568.1436,
+      409.9918,
+      438.5183,
+      513.1702,
+      547.7368,
+      574.4851,
+      550.4628,
+      537.267,
+      544.7322,
+      663.2218,
+      606.0055,
+      545.8948,
+      548.3105,
+      547.4893,
+      530.5167
+    ],
+    "p95_ms": 606.0055,
+    "mean_ms": 518.75261,
+    "min_ms": 369.9457,
+    "max_ms": 663.2218
+  },
+  "limitations": [
+    "Results apply to the recorded machine and source hashes, not every supported device.",
+    "No microphone, provider request, real corpus, or audio playback was exercised."
+  ]
+}

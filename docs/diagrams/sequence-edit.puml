@@ -1,58 +1,43 @@
 @startuml
 !include theme.iuml
-title Edit a Selected Entry
+title Desktop changed-field editing and review integrity
 hide footbox
 autonumber
 actor Maintainer
 participant "app : App" as App
 participant "dataset\n<<module>>" as Dataset
-participant "Local file I/O" as Files
-
 activate Maintainer
 Maintainer -> App : _save_browse_edit()
 activate App
-alt No selected ID
-  note over App : Show "No selection"; do not write.
-else Selected ID and edited text is empty after stripping
-  note over App : Show "Missing text"; do not write.
-else Selected ID and non-empty text
-  note over App
-    Build updates for text, type, category,
-    French/English glosses and notes only.
-  end note
-  App -> Dataset : update_entry(selected_id, updated_fields)
+alt No selected ID / blank edited expression
+  note over App : Explain required selection/text; do not write.
+else Valid selected draft
+  note over App : Diff editable values against the selected snapshot.\nPreserve unchanged legacy whitespace and metadata.\nApproval is valid only for the exact reviewed values.
+  App -> Dataset : update_entry(selected_id, changed_fields)
   activate Dataset
-  Dataset -> Dataset : load_all()
-  activate Dataset
-  Dataset -> Files : Ensure storage; read all CSV rows
-  activate Files
-  Files --> Dataset : Rows
-  deactivate Files
-  Dataset --> Dataset : Entries
+  note over Dataset : Under one reentrant lock: load, find ID, apply update,\natomically replace CSV; never rewrite a missing ID.
+  Dataset --> App : Commit / EntryNotFoundError / storage failure
   deactivate Dataset
-  note over Dataset : Update the first matching row by ID.
-  Dataset -> Dataset : save_all(entries)
-  activate Dataset
-  Dataset -> Files : Rewrite header and every row
-  activate Files
-  Files --> Dataset : Write complete
-  deactivate Files
-  Dataset --> Dataset : None
-  deactivate Dataset
-  Dataset --> App : None
-  deactivate Dataset
-  note over App
-    Show "Changes saved".
-    Refresh browse list, count and recent entries.
-    These repeat the read operations in the search/save views.
-  end note
+  alt Missing ID or write failure
+    note over App : Preserve edits; report failure, never Changes saved.
+  else Commit succeeded
+    App -> App : apply committed values to local snapshot
+    activate App
+    App --> App : Snapshot/review state synchronized
+    deactivate App
+    App -> Dataset : load_all() through _refresh_views()
+    activate Dataset
+    Dataset --> App : Shared snapshot or refresh failure
+    deactivate Dataset
+    note over App : Repopulate from the fresh cached row if present.\nReport committed save separately from a failed refresh\nor a row removed after the transaction.
+  end
 end
-App --> Maintainer : Return with warning or updated display
+App --> Maintainer : Saved or recoverable editor state
 deactivate App
 deactivate Maintainer
 legend bottom
-  ID, original timestamp, contributor and audio filename are unchanged by editing.
-  Missing IDs are not reported by update_entry; concurrency is unsupported.
-  Successful file I/O is assumed; the current rewrite is not atomic.
+  Desktop edits preserve ID, timestamp, contributor and audio reference.
+  Text, glosses, topic, location, notes, language and lexical metadata are editable.
+  Locks prevent interleaved writes, not semantic last-writer-wins conflicts.
 endlegend
 @enduml

@@ -10,6 +10,7 @@ participant "coursework_store\n<<module>>" as Store
 participant "coursework_export / coursework\n<<modules>>" as Export
 participant "Local files / compiler" as Local
 
+activate Member
 Member -> Web : Save project
 activate Web
 Web -> API : PUT /api/coursework/project\nProjectProfile snapshot
@@ -22,7 +23,7 @@ Local --> Store : Saved or validation/storage failure
 deactivate Local
 Store --> API : ProjectProfile or exception
 deactivate Store
-API --> Web : Saved profile / safe HTTP error
+API --> Web : Saved ProjectProfile / safe HTTP error
 deactivate API
 note over Web : Mark submitted snapshot saved, not later edits.\nRefresh saved evidence while preserving editor draft.
 Web --> Member : Save notice or retained draft + error
@@ -57,6 +58,7 @@ else Eligible explicit export
 end
 Web --> Member : Download started / actionable state
 deactivate Web
+deactivate Member
 legend bottom
   No unsaved practice input or AI answer is included.
   ZIP includes actual corpus/provenance/profile: review before sharing.

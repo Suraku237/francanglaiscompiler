@@ -40,7 +40,7 @@ AnalyzeRequest --|> RequestModel
 TranslationRequest --|> AnalyzeRequest
 ChatRequest --|> RequestModel
 ChatMessage --|> RequestModel
-ChatRequest --> "0..12" ChatMessage : history
+ChatRequest "0..*" --> "0..12" ChatMessage : history
 note bottom of TranslationRequest
   Translation directions must differ.
   Four direction labels: fr, en,

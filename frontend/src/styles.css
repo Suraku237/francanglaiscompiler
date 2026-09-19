@@ -39,7 +39,7 @@ h1, h2, h3, p { margin: 0; }
 .skip-link { position: fixed; z-index: 100; left: 20px; top: -80px; background: var(--green-dark); color: white; padding: 12px 20px; border-radius: 8px; }
 .skip-link:focus { top: 16px; }
 .app-shell { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-height: 100dvh; }
-.sidebar { position: sticky; top: 0; align-self: start; height: 100dvh; min-height: 650px; padding: 34px 23px 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: #f0f1e8; }
+.sidebar { position: sticky; top: 0; align-self: start; height: 100dvh; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 34px 23px 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: #f0f1e8; }
 .brand { display: inline-flex; align-items: center; gap: 10px; width: fit-content; }
 .brand-mark { width: 43px; height: 43px; display: grid; place-items: center; color: var(--cream); background: var(--green); border-radius: 13px 13px 13px 3px; transform: rotate(-3deg); }
 .brand-mark svg { transform: rotate(3deg); }
@@ -554,7 +554,7 @@ code { font-family: "Cascadia Code", Consolas, monospace; font-size: .93em; back
 
 @media (max-width: 760px) {
   .app-shell { display: block; }
-  .sidebar { position: static; height: auto; min-height: 0; padding: 20px 24px 15px; display: flex; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid #dde3d2; align-items: center; }
+  .sidebar { position: static; height: auto; min-height: 0; overflow: visible; padding: 20px 24px 15px; display: flex; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid #dde3d2; align-items: center; }
   .brand { gap: 9px; }
   .brand-word { font-size: 36px; }
   .brand-mark { width: 34px; height: 36px; }

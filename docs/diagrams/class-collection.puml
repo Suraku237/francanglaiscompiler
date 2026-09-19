@@ -57,7 +57,7 @@ rectangle "collection.py <<module>>\nlist_entries(), create_entry()\nedit_entry(
 EntryCreate --|> RequestModel
 EntryPatch --|> RequestModel
 CollectionError --|> Exception
-DatasetResponse --> "0..*" DatasetEntry : entries
+DatasetResponse "0..*" --> "0..*" DatasetEntry : entries
 Collection ..> EntryCreate : validates create
 Collection ..> EntryPatch : applies changed fields
 Collection ..> DatasetResponse : returns list / global counts

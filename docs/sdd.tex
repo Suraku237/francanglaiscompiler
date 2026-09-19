@@ -1,501 +1,626 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
 \usepackage[a4paper,margin=2.25cm,headheight=15pt]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{iftex}
-\ifPDFTeX
-\usepackage[utf8]{inputenc}
-\fi
-\usepackage{lmodern}
-\usepackage{graphicx}
-\usepackage{booktabs,longtable,tabularx,array}
-\usepackage{enumitem}
-\usepackage{xcolor}
-\usepackage{fancyhdr}
-\usepackage{float}
-\usepackage{xurl}
-\usepackage{hyperref}
-\setlength{\emergencystretch}{2em}
+\ifPDFTeX\usepackage[utf8]{inputenc}\fi
+\usepackage{lmodern,microtype,graphicx,pdfpages}
+\usepackage{booktabs,longtable,tabularx,array,enumitem,xcolor,xurl,hyperref,fancyhdr}
+\setlength{\emergencystretch}{3em}
+\setlist{itemsep=2pt,topsep=5pt}
 \definecolor{accent}{HTML}{1E3A5F}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdfstartview=FitH,
   pdftitle={Francanglais Platform - Software Design Description}}
 \pagestyle{fancy}
-\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD v1.1}\cfoot{\thepage}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD v1.2}\cfoot{\thepage}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\newcommand{\placeholder}[1]{\textcolor{red}{\textbf{#1}}}
-\newcommand{\diagram}[3]{\begin{figure}[H]\centering
-  \includegraphics[width=#2\textwidth,height=0.79\textheight,keepaspectratio]{diagrams/#1.png}
-  \caption{#3}\label{fig:#1}\end{figure}}
-\newcommand{\viewtrace}[2]{\noindent\textbf{Trace:} #1.\par\noindent\textbf{Source evidence:} #2.\par}
-
+\newcommand{\viewtrace}[2]{\par\smallskip\noindent\textbf{Requirements:} #1.\par
+  \noindent\textbf{Source:} #2.\par\medskip}
+\newcommand{\diagram}[3]{\includepdf[pages=#2,fitpaper=true,
+  pagecommand={\thispagestyle{empty}\refstepcounter{figure}\label{fig:#1}
+  \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#3}}]{uml-atlas.pdf}}
 \title{\textbf{Software Design Description}\\[0.4em]
 \Large Francanglais Compiler and Dataset Platform\\[0.6em]
-\large Architecture and Explained UML Workflows}
-\author{Group members and matricules:\\[0.5em]
-\placeholder{Name 1 --- Matricule 1}\\
-\placeholder{Name 2 --- Matricule 2}\\
-\placeholder{Name 3 --- Matricule 3}}
-\date{Version 1.1 --- \today}
-
+\large Source-grounded Architecture and Explained UML}
+\author{Group members and matricules:\\[0.6em]
+Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
+Name 2: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}\\[0.5em]
+Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
+\date{Version 1.2 --- 19 September 2026}
 \begin{document}
-\maketitle
-\thispagestyle{empty}
-\begin{center}
-\textit{Group submission. Complete the names and matricules before submission.}
-\end{center}
+\maketitle\thispagestyle{empty}
+\begin{center}\textit{Engineering evidence, not a substitute for genuine fieldwork.}\end{center}
 \vfill
-\noindent\textbf{Design status:} the collector workflows are source-grounded.
-Compiler/service elements are explicitly proposed. Diagrams do not certify
-requirements or planned sprints as completed.
-\newpage
-\tableofcontents
-\newpage
-\listoffigures
-\newpage
+\noindent\textbf{Revision basis:} current working source based on
+\nolinkurl{ff7dcf7}, including the desktop, browser and verification completion
+changes. The first author's supplied details are preserved from the existing
+SDD; other identities and contributions are not invented.
+\par\medskip
+\noindent\textbf{Reading design:} A4 explanations are followed by 28 full-size
+UML sheets. Click a figure reference to inspect its sheet. The sheets retain
+readable label sizes rather than shrinking complex diagrams to tiny A4 text.
+Use actual-size or tiled printing for large sheets; the SRS remains A4.
+\newpage\tableofcontents\newpage\listoffigures\newpage
 
-\section{Design Basis and UML Reading Guide}
-\subsection{Evidence and scope}
-The verified source consists of \nolinkurl{data_collector/App.py},
-\nolinkurl{data_collector/dataset.py} and
-\nolinkurl{data_collector/audio_utils.py}. These implement a local tabbed
-CustomTkinter application, CSV helpers and optional audio support.
-The compiled frontend bundle and cached Python bytecode do not provide
-sufficient source evidence for current backend routes or compiler behavior.
+\section{Design Basis and UML Conventions}
+\subsection{Implemented system and scope}
+The source now contains the editable React frontend, FastAPI backend,
+deterministic lexer/parser and CustomTkinter collector. They are implemented,
+not proposed components. This document supersedes the old desktop-only SDD.
+The local CSV is shared; there is no database server, trained predictor,
+authenticated user model or public multi-tenant deployment.
 
-This revision explains all thirteen diagrams, including seven sequence
-diagrams. The SRS defines FR/NFR identifiers, sixteen user stories and
-four proposed two-week sprints. References here link design decisions to
-those requirements rather than inventing completed sprint history.
+Nine class views collectively cover \textbf{47 authored production classes}:
+45 Python class declarations, the factory-generated lexer \texttt{Token}, and
+the TypeScript \texttt{ApiError}. The machine-readable mapping is
+\nolinkurl{docs/diagrams/class-coverage.json}. Test helpers, maintenance tools,
+framework classes and erased TypeScript interfaces are outside that count.
+The remaining views are 13 sequences, two states, one activity, one use case,
+one component view and one deployment view.
 
-\subsection{Notation and abstraction}
+\subsection{How to read the models}
 \begin{itemize}
-\item A \textbf{class} rectangle lists selected attributes and operations.
-The hollow triangle points to a superclass; a filled diamond sits at the
-whole end of composition. Multiplicities apply to associations, not dependencies.
-\item \textbf{Stereotypes} distinguish external library classes, function
-modules, logical storage and dictionary records from real application classes.
-\item In \textbf{sequence views}, solid synchronous messages start receiver
-activations; dashed replies finish them. Nested self-calls have nested boxes.
-Actor activations span user interactions, not processor execution.
-\item \textbf{alt}, \textbf{opt} and \textbf{loop} fragments mean mutually
-exclusive alternatives, conditional behavior and repetition respectively.
-Notes describe internal computation or deliberately omitted low-level calls.
-\item In \textbf{activity/state views}, guards in brackets select paths.
-An activity final node ends the illustrated attempt, not the desktop process.
-\item Amber proposed architecture areas are not deployed baseline components.
-Dashed component dependencies do not describe message timing.
+\item A hollow triangle points to a superclass. A filled diamond identifies
+exclusive lifecycle ownership, used for the collector's optional recorder.
+Plain directed associations represent stored references or nested values.
+\item Target-end multiplicities express values held by one source instance.
+A reverse \texttt{0..*} allows independent/shared DTO instances: nesting in
+JSON does not establish exclusive Python object ownership. Inheritance and
+module dependencies have no cardinalities.
+\item Rectangles marked module/function/hook are not invented runtime classes.
+External framework classes and repeated reference nodes are labelled explicitly.
+Only selected fields and operations appear; inherited Pydantic validation and
+serialization need not be repeated in every box.
+\item Every shown synchronous call opens a receiver activation and has a
+matching dashed reply ending it. Nested calls to the same participant open
+nested boxes. Callers stay active while waiting. Actor boxes denote participation,
+not CPU execution. Callback delivery is distinguished from GUI execution.
+\item \texttt{alt}, \texttt{opt} and \texttt{loop} denote alternatives,
+conditional interaction and repetition. Notes summarize omitted widget,
+validation or low-level I/O steps; they are not messages without activations.
+\item Activity diamonds have exclusive guards. State labels model logical
+workflow or derived fields, not an imaginary implemented state enumeration.
+Completing an entry activity is not shutting down the application.
 \end{itemize}
-Module and file-I/O lifelines are functional abstractions. Repeated storage
-initialization, widget calls and \nolinkurl{load_all} calls can be condensed when their
-expansion would hide the scenario's purpose; this is stated beside each view.
-Shown communications retain explicit, balanced activations.
+The automated checker verifies class coverage and the explicit synchronous
+call/reply activation convention used here. Local rendering and review are
+still necessary; this checker is not a general-purpose UML theorem prover.
 
 \section{Architecture and Deployment}
 \subsection{Component dependencies}
-\viewtrace{FR-01--FR-14; proposed FR-15/FR-16; US-01--US-14}
-{imports and calls in \nolinkurl{App.py}; persistence/audio helper modules}
+Figure~\ref{fig:component} separates browser presentation, backend services,
+compiler libraries, desktop presentation and local artifacts. Read dependency
+arrows from the consumer toward the used responsibility. React request helpers
+own cancellation and safe error presentation. Routes delegate validated
+mutations, retrieval, imports and coursework work rather than treating the
+provider as the compiler.
 
-Figure~\ref{fig:component} answers \emph{which module depends on which
-responsibility?} Presentation owns form state and user commands. Dataset
-functions own row initialization, reading, appending, rewriting and counts.
-Audio utilities own recording, copying and playback. CSV and audio artifacts
-are separate stores, connected by a filename rather than a database foreign key.
-
-Read the dashed arrows from caller/dependent to supplier: the presentation
-calls both helper modules; the helpers access their respective local files.
-These are ordinary Python calls, not HTTP services. The proposed adapter and
-language-analysis pipeline are separate so a missing compiler does not
-prevent collection. Their read-only access is a design target, not a current API.
-
-\diagram{component}{0.98}{Component dependencies and the proposed analysis boundary}
+Both Python entry points call the same dataset module. The CSV symbol is a
+file artifact, not a relational database. Coursework uses the compiler and
+saved evidence; only explicit tutoring uses Gemini. Imports can produce
+candidates but cannot implicitly append a row. Browser speech has its own
+provider boundary, independent of Gemini and desktop recording.
+\viewtrace{FR-01, FR-06, FR-15--FR-16, FR-21--FR-36}
+{\nolinkurl{backend/main.py}, \nolinkurl{backend/coursework_api.py},
+\nolinkurl{backend/import_api.py}, \nolinkurl{frontend/src}, \nolinkurl{data_collector/App.py}}
 
 \subsection{Deployment topology}
-\viewtrace{NFR-04, NFR-05, NFR-08, NFR-12; proposed FR-15/FR-16}
-{module-relative paths and platform audio branches}
+Figure~\ref{fig:deployment} distinguishes the trusted workstation, execution
+environments, artifacts and external services. Development uses browser--Vite
+HTTP and the Vite API proxy. Built-preview mode serves the versioned frontend
+assets through Vite preview, whose API proxy is also configured. FastAPI exposes
+the API only; its root path does not serve the web interface. Production hosting
+needs a separate static server with matching API routing. The desktop process can run
+independently, using the same local CSV and audio directory.
 
-Figure~\ref{fig:deployment} answers \emph{where do code and data execute or
-reside?} A contributor workstation contains the Python/Tcl-Tk environment,
-source artifacts, CSV, media and OS audio services. A microphone is a device,
-not a dataset actor. Solid node connections identify device/communication
-paths; dashed artifact dependencies show imports and file access.
+Keys remain in server configuration, not browser assets. Optional HTTPS
+provider requests and browser-selected speech services cross the local boundary.
+There is no authentication or authorization: bind the backend to loopback or
+an explicitly trusted boundary. CORS is not access control. If someone moves
+the backend elsewhere, its stored files are on that server, not the browser's
+device. No cloud hosting service is silently assumed.
+\viewtrace{NFR-04--NFR-06, NFR-08, NFR-13; FR-35}
+{\nolinkurl{backend/main.py}, \nolinkurl{backend/config.py},
+\nolinkurl{frontend/vite.config.ts}, \nolinkurl{frontend/src/voice.ts}}
 
-The optional analysis host is explicitly future deployment. It would need an
-approved corpus copy and an agreed transfer process; it cannot read a user's
-local CSV merely because an arrow is drawn across machines. HTTP is only an
-option if a web adapter is selected. No hosting, synchronization, authentication
-or currently available endpoint is implied.
+\section{Class Structure and Relationships}
+\subsection{Desktop classes, optional devices and explicit errors}
+Figure~\ref{fig:class-domain} includes \texttt{App}, \texttt{Tooltip},
+\texttt{Recorder}, \texttt{AudioError} and \texttt{EntryNotFoundError}.
+\texttt{App} inherits CTk and owns at most one recorder; missing audio imports
+do not prevent text collection. A recorder retains at most one stream, including
+a handle whose close must be retried. \texttt{start}, \texttt{stop} and
+\texttt{close} define its lifecycle.
 
-\diagram{deployment}{0.98}{Single-workstation deployment and optional future analysis host}
+Tooltips retain a widget and an optional popup. Bound callbacks retain these
+helpers; there is no invented \texttt{App.tooltips} collection. Dataset/audio
+functions are module dependencies. Error subclasses connect device/storage
+failures to truthful UI handling. Draft-owned filenames and captured arrays
+are distinct from committed CSV audio references.
+\viewtrace{FR-08--FR-14, FR-17--FR-19; NFR-05, NFR-11}
+{\nolinkurl{data_collector/App.py}, \nolinkurl{data_collector/audio_utils.py},
+\nolinkurl{data_collector/dataset.py}}
 
-\section{Static Structure and Data Design}
-\subsection{Application classes and supporting modules}
-\viewtrace{FR-01--FR-14, FR-17/FR-18; NFR-02--NFR-05}
-{\nolinkurl{class App(ctk.CTk)}, \nolinkurl{class Recorder}, CSV field definitions}
+\subsection{Compiler objects versus function-based algorithms}
+Figure~\ref{fig:class-compiler} shows the actual namedtuple \texttt{Token},
+\texttt{GrammarError} and private \texttt{\_Transformations} class.
+The token class is generated, but is a real runtime class. Its two values
+represent the original token and assigned category. The transformation
+accumulator bounds work and retained before/after snapshots.
 
-Figure~\ref{fig:class-domain} includes both application-defined classes:
-\nolinkurl{App} and \nolinkurl{audio_utils.Recorder}. Selected external classes
-are \nolinkurl{customtkinter.CTk} and \nolinkurl{sounddevice.InputStream};
-individual widget classes are omitted to keep the domain relations visible.
+Grammar, productions, parse traces and most analysis results are dictionaries,
+lists or aliases. Tokenization, FIRST/FOLLOW computation and predictive parsing
+are functions; no fictitious \texttt{Grammar}, \texttt{Parser} or
+\texttt{LexerService} class is added merely to make a diagram look object-oriented.
+\viewtrace{FR-15--FR-16, FR-29--FR-31}
+{\nolinkurl{compiler/lexer/tokenizer.py}, \nolinkurl{compiler/parser/grammar.py},
+\nolinkurl{compiler/parser/analysis.py}, \nolinkurl{compiler/parser/predictive.py}}
 
-\begin{itemize}
-\item \textbf{App} inherits the window behavior of CTk. Its pending filename
-belongs to the unsaved draft; the selected ID/audio filename refer to a
-browse selection. Save, reset, recording, attachment and maintenance methods
-delegate to helpers rather than embedding CSV serialization in widgets.
-\item \textbf{Recorder} buffers sample arrays and tracks recording state.
-Start creates a stream; Stop closes it, clears its reference and returns an
-array or no data. The App, not the helper module, owns the recorder instance.
-\item \textbf{Dataset module} exposes static-looking UML operations for actual
-module-level Python functions. It is not an instantiated repository class.
-\item \textbf{Audio module} exposes save/copy/play functions and capability
-constants. Its functions do not own an App's recorder.
-\item \textbf{DatasetEntry} is the CSV/Python-dictionary schema. DatasetFile
-and AudioFile are logical storage entities, not invented Python classes.
-\end{itemize}
+\subsection{API request inheritance}
+Figure~\ref{fig:class-api-requests} makes the request hierarchy explicit.
+\nolinkurl{RequestModel} rejects extra fields. Its bounded-text subtype is
+\nolinkurl{AnalyzeRequest}; \nolinkurl{TranslationRequest} extends that subtype
+with direction and options validation. Chat history associates a request
+with zero through twelve messages. The additional alternating-pair invariant
+restricts valid lengths to 0, 2, \ldots, 12 and at most 24,000 history characters.
+Constrained text aliases are not separate classes.
+\viewtrace{FR-21, FR-24; NFR-14}{\nolinkurl{backend/schemas.py}}
 
-\diagram{class-domain}{0.98}{Application classes, module dependencies and cardinalities}
+\subsection{Public analysis and translation results}
+Figure~\ref{fig:class-api-results} connects a translation response to one
+analysis result, one coverage value and its evidence list. Analysis contains
+zero or more token results; translation content contains at most twelve
+vocabulary items. The response inherits the translation content rather than
+duplicating its fields. Chat also references evidence.
 
-\begin{longtable}{L{4.6cm}L{9.8cm}}
-\toprule
-\textbf{Association} & \textbf{Multiplicity and rationale}\\ \midrule
-\endhead
-App--Recorder & One app owns zero or one recorder, depending on optional imports. Every recorder constructed by the collector belongs to that app.\\
-Recorder--InputStream & A recorder owns zero or one live stream. Its reference is absent before Start and after Stop.\\
-DatasetFile--DatasetEntry & The local CSV contains zero or more row records; each stored row belongs to that file in this model.\\
-DatasetEntry--AudioFile & One row may reference zero or one filename. A file may be referenced by several rows or by none; filename uniqueness is not enforced across rows.\\
-\bottomrule
-\end{longtable}
+Evidence deliberately omits contributor, location, notes, timestamp and audio.
+Retrieval emits at most eight records, while the result DTO's list alone does
+not enforce that service-level bound. Associations are not composition:
+Pydantic objects can be reused by Python callers. Coverage indicates overlap,
+not an accuracy score.
+\viewtrace{FR-23--FR-24, FR-29; NFR-08}{\nolinkurl{backend/schemas.py}, \nolinkurl{backend/grounding.py}}
 
-The audio association is not composition: removing a row does not remove its
-file, and clearing a draft can leave staged media behind. A filename link
-also does not prove that its file exists. Dependency arrows have no cardinality,
-and inheritance is not an ownership relation.
+\subsection{Collection DTOs and mutation errors}
+Figure~\ref{fig:class-collection} groups the collection request and response
+models. Create and patch requests differ from stored-entry, list, health and
+metadata responses. The \nolinkurl{CollectionError} class carries safe failure
+details. A dataset response holds any number of entry DTOs.
+Aggregate counts describe the whole corpus, not only a search result.
 
-\subsection{Persistence and invariants}
-The canonical row has ten fields: ID, text, type, French gloss, English gloss,
-category, notes, audio filename, contributor and timestamp. Source constants
-define the three entry types and ten categories; the GUI controls their
-selection but the helper module does not validate arbitrary external CSV edits.
-IDs are ten hexadecimal characters derived from a UUID with no collision check.
+PATCH requires at least one field, rejects explicit null, and preserves
+omitted fields. Only editable values and the review decision are sent by the
+web editor. The API DTO is not the persistence representation: CSV functions
+use dictionaries. Health reports configured capability, not a successful live
+Gemini probe. Error objects carry safe status/detail values.
+\viewtrace{FR-21--FR-22, FR-25}{\nolinkurl{backend/schemas.py}, \nolinkurl{backend/collection.py}}
 
-\nolinkurl{append_entry} writes one row. \nolinkurl{update_entry} loads every
-row, updates the first matching ID, then rewrites all rows.
-\nolinkurl{delete_entry} filters all matching IDs and rewrites retained rows.
-\nolinkurl{save_all} is not transactional or failure-atomic. Backups,
-safe replacement and explicit mutation errors are target work in PB-11,
-not baseline invariants silently added to the diagrams.
+\subsection{Import candidates and coursework models}
+Figure~\ref{fig:class-import-coursework} groups four import models and five
+coursework models. A preview can carry at most 100 structured candidates;
+an AI suggestion result at most twelve. Candidates remain unreviewed.
+Importing an approval flag cannot bypass the review boundary.
 
-\section{User Goals and Control Flow}
-\subsection{Use-case diagram}
-\viewtrace{FR-02--FR-14, FR-18; US-02--US-10}
-{Collect, Browse \& Edit and Stats actions in \nolinkurl{App.py}}
+The profile has exactly three member strings; blanks are permitted for an
+unfinished group, while nonblank names must be distinct. Grammar requests
+extend to parse requests, then tutoring requests. Screenshot requests contain
+names and bounded data URLs; decoded image limits are enforced by storage
+logic, not inferred from string length alone.
+\viewtrace{FR-26--FR-28, FR-32, FR-36}
+{\nolinkurl{backend/import_models.py}, \nolinkurl{backend/coursework_models.py}}
 
-Figure~\ref{fig:use-case} models actor goals within the implemented collector.
-A contributor collects examples, finds them, plays audio and inspects
-statistics. A maintainer specializes the contributor role and also edits and
-deletes. The application does not authenticate these roles; the generalization
-describes responsibilities, not permissions.
+\subsection{Provider wire-response classes}
+Figure~\ref{fig:class-provider} follows the provider envelope from
+\texttt{GenerateResponse} to candidates, optional feedback, optional content
+and content parts. Optional values justify \texttt{0..1}; lists justify
+\texttt{0..*}. These classes validate upstream data, not corpus entities.
+The service requires acceptable finish status and nonempty non-thought text;
+a transport-level success alone is not a usable application answer.
+\viewtrace{FR-24, FR-27--FR-28, FR-36; NFR-14}{\nolinkurl{backend/gemini.py}}
 
-\textbf{Relationship reading:} collection and editing include non-empty-text
-validation; deletion includes confirmation for a selected row. These arrows
-point to required sub-behavior. Recording and attachment extend collection
-at the before-save extension point only when chosen. Extension arrows point
-from optional behavior to the base use case, never in the reverse direction.
-The text-only path remains complete without either extension.
+\subsection{Provider service, settings and local grounding}
+Figure~\ref{fig:class-services} shows the real \texttt{GeminiService},
+\texttt{Settings}, \texttt{AIError} and \texttt{Grounding} dataclass.
+Each service references one settings object and one injected HTTP client.
+The application lifespan owns client creation/closure, so that link is not
+service composition. Grounding references evidence and coverage and stores
+exact-match/ambiguity results.
 
-Storage files are not actors. Internal persistence is not presented as a
-standalone user goal. Proposed compiler-user stories remain in the SRS rather
-than appearing inside an already implemented collector boundary.
+Retrieval remains a module of deterministic functions. It is neither training
+nor a hidden translation model. Safe provider errors remain distinct from
+successful translations and explanations.
+\viewtrace{FR-23--FR-24; NFR-08, NFR-14}
+{\nolinkurl{backend/config.py}, \nolinkurl{backend/gemini.py}, \nolinkurl{backend/grounding.py}}
 
-\diagram{use-case}{0.98}{Collector actors, mandatory sub-behavior and optional audio extensions}
+\subsection{Frontend runtime class and functional modules}
+Figure~\ref{fig:class-frontend} identifies \texttt{ApiError} as the only authored
+TypeScript runtime class. Its status accompanies a normal JavaScript error.
+React components, hooks and interfaces are not misrepresented as classes.
 
-\subsection{Entry-collection activity diagram}
-\viewtrace{FR-02--FR-10, FR-17; US-02, US-03, US-07, US-09}
-{\nolinkurl{save_entry}, \nolinkurl{attach_audio_file}, \nolinkurl{toggle_recording}}
+Request hooks own cancellation, pending/error state and protection against
+late results. App coordinates hash navigation and draft handoff. Shared
+dialogs open before focusing the requested field, wrap Tab navigation, prevent
+dismissal while busy and restore an existing trigger on unmount. The desktop
+sidebar scrolls on short screens. Voice remains opt-in.
+\viewtrace{FR-35; NFR-15}
+{\nolinkurl{frontend/src/api.ts}, \nolinkurl{frontend/src/useRequest.ts},
+\nolinkurl{frontend/src/components.tsx}, \nolinkurl{frontend/src/App.tsx}}
 
-Figure~\ref{fig:activity-collect} follows one draft through a save attempt.
-The contributor supplies text, type, category and optional annotations, then
-may add audio. Recording and attachment are user choices; having a microphone
-does not force the recording path. Cancellation leaves the draft unchanged,
-and a no-frame capture does not create a new WAV.
+\section{Data Design, Transactions and Review Rules}
+\subsection{Storage schema and compatibility}
+Canonical CSV order is \nolinkurl{id}, \nolinkurl{text}, \nolinkurl{entry_type},
+\nolinkurl{french_gloss}, \nolinkurl{english_gloss}, \nolinkurl{category},
+\nolinkurl{source_location}, \nolinkurl{notes}, \nolinkurl{audio_filename},
+\nolinkurl{contributor}, \nolinkurl{timestamp}, \nolinkurl{language},
+\nolinkurl{review_status}, \nolinkurl{lexical_category}.
+The supported eleven-field prefix lacks review metadata; the ten-field legacy
+format also lacks source location. Exact header order and row shape are checked.
+Reads normalize legacy metadata in memory; a later mutation writes the
+fourteen-field schema. Stored wording is not silently normalized for matching.
 
-Validation happens when Save is requested, after optional media staging.
-Non-empty trimmed text generates a row ID/time, appends the row, refreshes
-recent/count displays and clears the form while preserving contributor.
-Empty text leaves the draft available for correction and displays a warning.
-The final node ends this attempt only. The app can accept another attempt.
+Language is Francanglais, Pidgin, mixed or unspecified. Approval is a local
+review decision, not a verified identity or certificate. Eligible reviewed
+Word annotations can affect lexical classification; mixed/unspecified or
+conflicting labels are not silently promoted to trusted evidence. Desktop and
+web forms choose unspecified/unreviewed for new drafts; the API's standalone
+create DTO retains its documented Francanglais default when language is omitted.
 
-The advisory duplicate warning is not a blocking decision. File/device
-exceptions are outside this normal-flow activity; recording a file before
-an invalid save can leave unreferenced media, which is not automatically deleted.
+\subsection{Transactional and identity boundaries}
+A path-keyed reentrant \texttt{FileLock}, with ten-second timeout, protects
+complete cooperative transactions. Every mutation writes a sibling temporary
+file, flushes/fsyncs it and uses \texttt{os.replace}. It is not a direct append.
+Pre-replacement failures preserve the old CSV. External manual writers and
+semantic last-writer-wins editing are outside that guarantee.
 
-\diagram{activity-collect}{0.94}{Collection activity with optional media and save-time validation}
+Desktop IDs are ten UUID hexadecimal characters; API IDs are full UUID strings.
+Desktop timestamps are local ISO seconds; API timestamps carry UTC offset.
+IDs/timestamps survive editing. The file is not a database enforcing every
+identity invariant: manually duplicated IDs can break GUI row identifiers and
+must not be treated as supported concurrent editing.
 
-\subsection{Entry workflow state diagram}
-\viewtrace{FR-02, FR-12, FR-17/FR-18; US-02, US-05, US-06}
-{draft fields, selected browse ID, edit and confirmation handlers}
+\subsection{Audio and review ownership}
+An entry references zero or one filename; a filename is not a foreign key or
+exclusive object owner. Only files created for the current unsaved draft enter
+its ownership set. Replacement/Clear/close remove those files with explicit
+cleanup errors. A committed name is removed from draft ownership before reset.
+Deleting a saved record retains its recording for deliberate separate cleanup.
 
-Figure~\ref{fig:state-entry} is a conceptual UI/persistence state model,
-not a Python enum or state-machine library. Draft means an unsaved form;
-Persisted means a row exists; Selected means its fields are loaded for editing.
-Audio staging is a Draft self-transition, not proof of a saved dataset entry.
+The recorder distinguishes active capture, unfinished stopping and captured
+samples awaiting publication. Save/attach/play guards prevent silent loss.
+An approval snapshot must equal the current evidence values, including queued
+GUI edits; editing evidence invalidates approval unless the exact revised
+values are explicitly reviewed. These protections do not authenticate reviewers.
 
-Save leads to a choice: empty text returns to Draft with a warning; non-empty
-text reaches Persisted through an append. A selected edit similarly branches
-on text validation, with both outcomes returning to Selected and only a valid
-one updating storage. Deletion waits for a choice: No preserves selection;
-Yes removes the row, clears selected state and ends that row's workflow.
-Mutually exclusive guards make each decision explicit.
+\section{Use Cases, Activity and State Models}
+\subsection{User goals and optional extensions}
+Figure~\ref{fig:use-case} groups contributor/maintainer and learner/reviewer
+goals inside the local platform. Solid actor associations indicate participation,
+not permissions. Optional local lookup and optional AI suggestion extend
+translation under explicit guards; cloud transcription extends preview only
+when needed and consented. The dashed extension arrow points toward its base
+use case. No include/extend relation turns review into automatic approval.
+Export is a draft-generation goal, not a completed research submission.
+\viewtrace{FR-02--FR-18, FR-23--FR-36; NFR-13, NFR-16}{UI commands and API routes}
 
-An edit does not create a new row ID or timestamp. Deleted does not mean that
-audio was destroyed. The model assumes successful I/O and deliberately omits
-unimplemented undo, concurrency and recovery states.
+\subsection{One collection/save activity}
+Figure~\ref{fig:activity-collect} reads from start to final node. Unfinished
+capture and blank text terminate the attempt with the draft preserved.
+Successful validation enters the locked mutation. A failed commit retains the
+draft/audio; a successful one releases committed ownership and resets the form.
+Cleanup and refresh failures are reported separately, never described as rollback.
+The final node ends this attempt only. Desktop duplicates remain advisory.
+\viewtrace{FR-02, FR-06--FR-10, FR-17--FR-19}{\nolinkurl{App.save_entry}}
 
-\diagram{state-entry}{0.96}{Conceptual draft, selection, edit and deletion states}
+\subsection{Logical entry and selected-editor states}
+Figure~\ref{fig:state-entry} follows an unsaved draft through creation,
+selection, edited values and confirmed deletion. Choice guards are exclusive.
+Stale-ID/write failures return to a recoverable editor, not a fictitious saved
+state. A selected editor may outlive a row removed by another process.
+Successful deletion clears selection but leaves saved audio. These are
+conceptual row/editor states; there is no corresponding enum in source.
+\viewtrace{FR-02, FR-12, FR-18--FR-19, FR-22}{desktop save/edit/delete handlers}
 
-\section{Sequence Diagrams and Interaction Explanations}
-\subsection{Common sequence conventions}
-All seven sequences show source-grounded collector interactions. The user
-initiates a handler; App activates; synchronous helper calls activate their
-receivers; replies close those executions. A module self-call adds a nested
-activation. A waiting App remains active until its handler returns.
-The actor's reply denotes completion of the visible interaction, not an
-additional network response.
+\subsection{Audio readiness and retry states}
+Figure~\ref{fig:state-audio} isolates the device lifecycle from row persistence.
+Ready may already have an attachment. Failed start cleanup or failed stop
+enters a retry state retaining usable handles/frames. Completed capture
+attempts WAV publication; write failure retains the array for retry without
+reopening the microphone. Clear is blocked during active recording, while
+confirmed close attempts resource cleanup. A failed close keeps the window
+available. A published WAV is still only staged until an entry is saved.
+\viewtrace{FR-08--FR-10, FR-17--FR-19; NFR-05}{\nolinkurl{Recorder}, desktop audio handlers}
 
-Successful disk operations are assumed unless a failure branch is explicitly
-drawn. A note may summarize repeated refresh/widget/library work; it does not
-claim those operations disappeared from the implementation. Unavailable
-compiler source is not replaced by fictional compiler sequence diagrams.
+\section{Sequence Views: Detailed Interaction Explanations}
+\subsection{Attachment and collection commit}
+Figure~\ref{fig:sequence-collect} separates optional attachment from entry
+creation. Copy failure preserves the previous attachment; success stages only
+a generated name. Save first checks unfinished audio and trimmed text, then
+passes a reviewed field snapshot to the dataset transaction. Only commit
+success releases the audio reference from draft ownership and resets the form.
+One subsequent snapshot drives all collection views. Refresh/cleanup errors
+do not retroactively turn a committed save into a failed write.
+\viewtrace{FR-02, FR-06, FR-09--FR-10, FR-17, FR-19}
+{\nolinkurl{App.attach_audio_file}, \nolinkurl{App.save_entry}, \nolinkurl{dataset.append_entry}}
 
-\subsection{Collect and save with optional attachment}
-\viewtrace{FR-01--FR-06, FR-09/FR-10, FR-17; US-01/US-02/US-07}
-{\nolinkurl{attach_audio_file}, \nolinkurl{save_entry}, \nolinkurl{append_entry}}
+\subsection{Search and cached selection}
+Figure~\ref{fig:sequence-search} loads before replacing the visible tree.
+A read error preserves the cache and editable draft. On success, case-folded
+substring matching covers all stored values; the ID cache retains all rows,
+including those hidden by the current filter. Selection uses this snapshot
+without a second CSV read. A disappeared selected ID produces feedback while
+preserving unsaved edits. An empty result is not a disguised storage failure.
+\viewtrace{FR-11, FR-18; NFR-10}{\nolinkurl{App._refresh_browse_list}, \nolinkurl{App._on_browse_select}}
 
-\textbf{Precondition:} the collector has initialized storage and the contributor
-is preparing a draft. Figure~\ref{fig:sequence-collect} begins with an optional
-selected-file attachment; cancellation is outside that successful optional fragment.
-\begin{enumerate}
-\item App asks the audio module to copy the selected source into the managed
-directory, receives a generated filename and stages it. No CSV row exists yet.
-\item Save strips the text. The empty branch displays a warning and never
-calls persistence. The valid branch builds a dictionary with metadata and
-the pending filename, or an empty audio field.
-\item The dataset module ensures storage, appends one CSV row and returns.
-Its initialization call has a nested activation inside the append operation.
-\item App retrieves total rows and recent entries, then clears the form with
-contributor retention. The final reply reflects warning or saved state.
-\end{enumerate}
-\textbf{Postcondition and limits:} a valid row is stored if I/O succeeds.
-An advisory duplicate may still be saved. Reset clears the pending reference
-but does not delete a file; filesystem errors are not converted into success.
+\subsection{Changed-field editing}
+Figure~\ref{fig:sequence-edit} rejects absent selection/blank text, computes
+changes against the loaded values and applies the exact-snapshot review rule.
+The dataset layer finds the ID while locked and rejects stale updates without
+rewriting. Expected failures preserve editor values. A successful update
+synchronizes the local snapshot and refreshes views, reporting later refresh
+failure independently. Unchanged identity, contributor, timestamp, whitespace
+and audio metadata are preserved by the desktop editor.
+\viewtrace{FR-06, FR-12, FR-18--FR-19, FR-22}
+{\nolinkurl{App._save_browse_edit}, \nolinkurl{dataset.update_entry}}
 
-\diagram{sequence-collect}{0.98}{Save interaction with optional attachment and validation branches}
+\subsection{Confirmed deletion}
+Figure~\ref{fig:sequence-delete} places the confirmation before any mutation.
+No/dismissed leaves the row, selection and media untouched. Yes invokes the
+locked deletion; missing IDs and storage failures cannot produce a success
+message. Only a committed deletion clears selection and refreshes views.
+The old saved recording is retained. Atomic replacement is not an undo system,
+and confirmation is not authorization.
+\viewtrace{FR-12, FR-18--FR-19}{\nolinkurl{App._delete_browse_entry}, \nolinkurl{dataset.delete_entry}}
 
-\subsection{Search and select an entry}
-\viewtrace{FR-11; US-04}
-{\nolinkurl{_refresh_browse_list}, \nolinkurl{_on_browse_select}}
+\subsection{Recording, callback delivery and publication}
+Figure~\ref{fig:sequence-record} first stops in-process playback, then opens
+mono 44,100 Hz capture. Failed startup restores a truthful inactive state;
+failed closure retains its handle for retry. Callback calls execute on the
+device thread between GUI events and copy frames only while recording.
+Stop returns samples, no samples or an explicit error. No samples preserve
+any old attachment. WAV-write failure retains captured samples; retrying
+publication does not start another recording. Save remains blocked while
+capture work is unfinished. Physical audibility is a separate acceptance gate.
+\viewtrace{FR-08, FR-10, FR-19; NFR-05}
+{\nolinkurl{Recorder.start}, \nolinkurl{Recorder.stop}, \nolinkurl{App._save_captured_audio}}
 
-Figure~\ref{fig:sequence-search} separates filtering from selection.
-\begin{enumerate}
-\item A search key release or Refresh invokes the handler. It strips/lowercases
-the query, removes old tree rows and resets the ID-to-entry cache.
-\item One dataset load returns CSV dictionaries. The loop tests a combined
-string of each row's text, category and contributor; an empty query accepts every row.
-\item Matches are added both to the cache and to the visible tree. A non-match
-is skipped; zero matches is a valid empty result, not a read failure.
-\item An optional row selection reads the cache, sets selected ID/audio and
-populates edit controls. It performs no new CSV read.
-\end{enumerate}
-\textbf{Postcondition and limits:} selection refers to a displayed cached
-entry. An absent selection/cache entry returns without a new mutation.
-External concurrent edits can make that cache stale; there is no locking.
+\subsection{Playback and external fallback}
+Figure~\ref{fig:sequence-playback} requires a filename and finished capture.
+Missing files return failure. Available libraries read/play audio; an unavailable
+or failed library path may launch the OS default player. The return value means
+that a request was accepted, not that sound was heard to completion.
+The GUI reports rejection or expected audio errors. In-process playback can
+be stopped during cleanup; the lifetime of an externally launched player is
+not controlled. No CSV mutation occurs.
+\viewtrace{FR-13; NFR-03}{\nolinkurl{audio_utils.play_audio}, \nolinkurl{App._play_audio_filename}}
 
-\diagram{sequence-search}{0.98}{Searching CSV entries and selecting a cached result}
+\subsection{Statistics from one snapshot}
+Figure~\ref{fig:sequence-stats} replaces the old three-read design. A successful
+read supplies a total and distributions by type, topic, language and review; batch refresh
+passes the same rows to other views. Read failure leaves prior bars intact.
+Each group sorts counts descending, uses a safe denominator and handles an
+empty corpus explicitly. The recorded benchmark measures these actual active
+handlers plus Tk idle rendering, not an isolated count helper.
+\viewtrace{FR-14, FR-17; NFR-10}{\nolinkurl{App._refresh_stats}, \nolinkurl{App._refresh_views}}
 
-\subsection{Edit an existing entry}
-\viewtrace{FR-06, FR-12, FR-18; US-05}
-{\nolinkurl{_save_browse_edit}, \nolinkurl{update_entry}, \nolinkurl{save_all}}
+\subsection{Shared CSV transaction}
+Figure~\ref{fig:sequence-storage} expands the common persistence boundary.
+Lock acquisition can time out before mutation. Within a successful acquisition,
+the same reentrant lock supports nested reads, ID/duplicate checks and mutation.
+Only completely written/fsynced sibling files reach atomic replacement.
+The finally path removes an incomplete sibling and context-manager exit releases
+the lock. Missing update/delete IDs never become successful rewrites.
+Lock activations show acquire/release execution, not the whole ownership interval.
+\viewtrace{FR-01, FR-06, FR-19, FR-25; NFR-11}{\nolinkurl{data_collector/dataset.py}, \nolinkurl{backend/collection.py}}
 
-Figure~\ref{fig:sequence-edit} shows three guarded cases: no selected ID,
-empty replacement text, and a valid selected edit. The first two show messages
-without writing. On the valid path:
-\begin{enumerate}
-\item App builds updates only for text, type, category, glosses and notes.
-\item The dataset helper calls \nolinkurl{load_all} on itself, updates the first
-matching ID, then calls \nolinkurl{save_all}. Both self-calls have nested boxes.
-\item The writer rewrites the header and all rows. After its return, App
-shows the status and refreshes browse/count/recent displays.
-\end{enumerate}
-\textbf{Postcondition and limits:} identity, original timestamp, contributor
-and audio link are preserved. If an ID has disappeared externally, the helper
-does not report a missing-ID error; it rewrites unchanged rows. The current
-direct rewrite can fail partway through, which FR-19/NFR-11 propose to address.
+\subsection{Dataset-first translation}
+Figure~\ref{fig:sequence-translation} shows explicit submission, reviewed
+retrieval and three outcome paths. An unambiguous full-entry alignment returns
+local wording without tone synthesis. Otherwise enabled AI may receive only
+selected evidence; disabled AI produces actionable 422 guidance. Storage
+failure does not fall through to a cloud request. Successful text is analyzed
+locally and labelled with origin/model/evidence/coverage.
+Cancellation prevents stale display, not guaranteed rollback of provider work.
+\viewtrace{FR-23--FR-24, FR-29, FR-35}{\nolinkurl{backend/main.py}, \nolinkurl{backend/grounding.py}}
 
-\diagram{sequence-edit}{0.98}{Selected-entry validation and read-modify-write editing}
+\subsection{Chat history and provider boundaries}
+Figure~\ref{fig:sequence-chat} uses only completed successful exchanges for
+bounded history. Optional retrieval uses whitelisted evidence. Missing keys
+fail before a network request; configured requests have a total deadline and
+at most one bounded retry for an initial 503. Safe errors distinguish quota,
+transport, timeout, blocked/truncated output and invalid content.
+Only a current successful result appends a user/assistant pair. Failed turns
+retain the draft. Clearing browser history does not erase provider-retained data.
+\viewtrace{FR-24, FR-35; NFR-08, NFR-14}
+{\nolinkurl{frontend/src/Assistant.tsx}, \nolinkurl{backend/gemini.py}}
 
-\subsection{Confirm or cancel deletion}
-\viewtrace{FR-12, FR-18; US-06}
-{\nolinkurl{_delete_browse_entry}, \nolinkurl{delete_entry}, confirmation dialog}
+\subsection{Import preview, suggestions and explicit saving}
+Figure~\ref{fig:sequence-imports} separates three actions. Preview validates a
+bounded upload and extracts supported documents locally. Media/OCR requiring
+cloud work must have explicit consent. A second action can request candidate
+suggestions; validated candidates remain unreviewed exact source quotations.
+Only an existing candidate deliberately opened, reviewed and saved reaches
+collection mutation. Translate/assistant handoff fills a draft without submitting.
+Original imports are not retained as managed collection files. A failed preview
+does not authorize an automatic candidate save.
+\viewtrace{FR-26--FR-28}{\nolinkurl{backend/import_api.py}, \nolinkurl{backend/imports.py}, \nolinkurl{frontend/src/Imports.tsx}}
 
-Figure~\ref{fig:sequence-delete} makes cancellation a real alternative, not
-a note following an unconditional deletion. With no selected ID, App only
-displays information. Otherwise the modal \nolinkurl{askyesno} call stays
-active while awaiting the maintainer's choice.
+\subsection{Grammar analysis and predictive parsing}
+Figure~\ref{fig:sequence-compiler} groups function-module interactions.
+Corpus analysis obtains a bounded saved snapshot before computation; practice
+parsing supplies one entered text. Grammar validation/transformation precedes
+FIRST/FOLLOW, table/conflict computation and category-token parsing.
+Lexical/storage failures prevent parsing. Conflicts or residual recursion
+produce rejection instead of choosing an arbitrary production. The stack
+machine records pre-action snapshots and requires complete input/end-marker
+agreement. Analysis uses current editor grammar without saving it. No provider
+decides acceptance, and acceptance is not proof of authentic speech.
+\viewtrace{FR-29--FR-33; NFR-06, NFR-14}
+{\nolinkurl{backend/coursework.py}, \nolinkurl{backend/coursework_api.py}, \nolinkurl{compiler/parser}}
 
-A No reply returns without persistence or selected-state changes. Yes calls
-the dataset helper, which loads rows, removes all rows matching the selected
-ID and writes the retained rows. App then clears its selected ID and audio
-reference and refreshes the displays.
+\subsection{Saved coursework snapshot and export}
+Figure~\ref{fig:sequence-coursework} begins with a profile snapshot sent to
+the API. Grammar validation and locked atomic JSON replacement precede the
+returned \texttt{ProjectProfile}. The frontend marks that submitted snapshot
+saved, not edits made while awaiting the response.
 
-\textbf{Postcondition and limits:} the confirmed row is no longer in the CSV
-if I/O succeeds; the audio file remains. There is no undo operation, deletion
-audit log or atomic replacement in this baseline. Low-level file helpers
-and repeated UI refresh reads are condensed in the figure.
+Export is a separate GET disabled during unsaved/busy work. It reads saved
+profile/grammar, current CSV and stored screenshots, computes artifacts and
+assembles a no-store ZIP response. Browser code validates a nonempty ZIP Blob,
+starts a named download and releases its object URL. No unsaved practice input
+or AI answer is included. Individual files are protected, but export is not one
+global multi-file transaction. A 25-section draft is not a certified 25--30-page
+research report, and slides still require personalization/rehearsal.
+\viewtrace{FR-32--FR-34; NFR-08, NFR-16}
+{\nolinkurl{backend/coursework_store.py}, \nolinkurl{backend/coursework_export.py}, \nolinkurl{frontend/src/CourseworkEvidence.tsx}}
 
-\diagram{sequence-delete}{0.98}{Selection guard, confirmation and conditional deletion}
+\section{HTTP Interfaces and Failure Contracts}
+\subsection{Complete application route inventory}
+The table covers all twenty application method/path combinations exposed by
+the generated OpenAPI schema. FastAPI additionally exposes its schema/docs
+framework routes. Frontend documents/assets are served separately through Vite
+or an explicitly configured static host, not by the API application.
+\begingroup\small
+\begin{longtable}{L{1.6cm}L{6.6cm}L{6.4cm}}
+\toprule\textbf{Method} & \textbf{Path} & \textbf{Successful contract}\\\midrule\endhead
+GET & \nolinkurl{/api/health} & 200 HealthResponse; configuration, no live probe.\\
+GET & \nolinkurl{/api/metadata} & 200 MetadataResponse.\\
+GET & \nolinkurl{/api/dataset} & 200 DatasetResponse; optional search, global counts.\\
+POST & \nolinkurl{/api/dataset} & 201 DatasetEntry; validated create.\\
+PATCH & \nolinkurl{/api/dataset/{entry_id}} & 200 DatasetEntry; changed editable fields.\\
+DELETE & \nolinkurl{/api/dataset/{entry_id}} & 204; no response body.\\
+POST & \nolinkurl{/api/analyze} & 200 AnalysisResult; deterministic local lexer.\\
+POST & \nolinkurl{/api/translate} & 200 TranslationResponse with origin/evidence.\\
+POST & \nolinkurl{/api/chat} & 200 ChatResponse.\\
+POST & \nolinkurl{/api/imports/preview} & 200 ImportPreview; multipart file/consent.\\
+POST & \nolinkurl{/api/imports/suggest} & 200 SuggestionResponse; no save.\\
+GET & \nolinkurl{/api/coursework} & 200 saved profile, brief, requirements, stats and screenshots.\\
+PUT & \nolinkurl{/api/coursework/project} & 200 ProjectProfile; not a boolean-only acknowledgement.\\
+POST & \nolinkurl{/api/coursework/analyze} & 200 grammar, lexical report, tests and readiness.\\
+POST & \nolinkurl{/api/coursework/parse} & 200 tokens and explicit parse result.\\
+POST & \nolinkurl{/api/coursework/explain} & 200 ChatResponse; optional unverified tutoring.\\
+POST & \nolinkurl{/api/coursework/screenshots} & 201 generated image ID/name metadata.\\
+GET & \nolinkurl{/api/coursework/screenshots/{image_id}} & 200 decoded/re-encoded PNG.\\
+DELETE & \nolinkurl{/api/coursework/screenshots/{image_id}} & 204; no response body.\\
+GET & \nolinkurl{/api/coursework/export} & 200 application/zip; attachment; Cache-Control: no-store.\\
+\bottomrule\end{longtable}\endgroup
 
-\subsection{Record and stage microphone audio}
-\viewtrace{FR-08/FR-10, NFR-05/NFR-11; US-09}
-{\nolinkurl{toggle_recording}, \nolinkurl{Recorder.start}, \nolinkurl{Recorder.stop}, \nolinkurl{save_recording}}
+\subsection{Validation, errors and bounded work}
+JSON request models reject extra fields and invalid lengths/values. PATCH
+rejects null/empty updates. Relevant failures include 400 invalid import/consent,
+404 missing entry/image, 409 duplicate conflict, 413 oversized input, 415
+unsupported formats, 422 validation/grammar/coverage problems, 429 quota,
+500 local storage failure, 502 invalid provider output, 503 busy/unconfigured
+service and 504 provider timeout. Not every route emits every code; safe detail
+messages remain actionable without returning secret-bearing provider bodies.
 
-Figure~\ref{fig:sequence-record} assumes optional imports succeeded, a recorder
-exists and the device opens. Record and Stop are separate user interactions.
-\begin{enumerate}
-\item Record starts a Recorder execution that clears prior frames, sets the
-recording flag and creates an InputStream with the callback, one channel and
-44,100 Hz sampling. The stream lifeline begins at its creation message.
-\item Starting the stream returns control to the UI, which shows recording
-status. Between user actions, callbacks copy frames while the flag is true.
-Those asynchronous callbacks are summarized, not misdrawn as a long blocking call.
-\item Stop clears the flag, stops/closes the stream and releases its reference.
-The helper concatenates buffered frames or returns no data.
-\item No frames yields an empty-capture message. Otherwise the audio module
-writes a generated WAV and returns the filename to stage in the draft.
-\end{enumerate}
-\textbf{Postcondition and limits:} a successful WAV still needs a separate
-form Save to become linked to a row. Import failure disables recording;
-device-open/stop/write failures are not caught by these handlers. Error
-hardening is target PB-09, and no unlimited-recording guarantee is made.
+Imports are limited to 12 MiB, 40 PDF pages, 40,000 extracted characters and
+4,000-character segments. Corpus analysis bounds 500 entries, 100,000 total
+text characters and 4,000 per entry. Grammar input is bounded to 12,000
+characters with additional expansion/snapshot/parse guards. Screenshots are
+limited to six, 2 MiB and twelve megapixels each; accepted images are re-encoded.
+The client also guards pending/listening/blank states but is not the only
+validation boundary.
 
-\diagram{sequence-record}{0.98}{Recorder start, stream lifetime, stop and staged WAV creation}
+An aborted or timed-out mutation may already have committed. The frontend
+preserves drafts and prompts refresh rather than promising rollback or blindly
+duplicating a request. A reported local approval or readiness flag is never an
+authenticated permission, independent research verification or grade.
 
-\subsection{Play audio and fall back to the operating system}
-\viewtrace{FR-13, NFR-03/NFR-05; US-08}
-{\nolinkurl{play_pending_audio}, \nolinkurl{_play_selected_audio}, \nolinkurl{play_audio}}
+\section{Verification, Recovery and Human Acceptance}
+\subsection{Recorded engineering checks}
+\begin{longtable}{L{3.8cm}L{10.8cm}}
+\toprule\textbf{Evidence} & \textbf{Result and limit}\\\midrule\endhead
+Python regression run & 252 tests passed after the inventory/activation checks were added. Includes 56 desktop tests and 33 maintenance/checker tests. Synthetic storage and mocked provider/device failures.\\
+Frontend checks & 77 component tests; 18 desktop/mobile Chromium workflows; app/test type-checking and production build passed. Browser API responses are controlled fixtures.\\
+Real WAV round-trip & Silent mono 44,100 Hz WAV written/read with 4,410 frames. This exercises codec/file I/O, not a microphone or audible playback.\\
+Desktop benchmark & 1,000 synthetic 500-character rows, one warm-up and 20 measured runs per operation. Search p95 53.31 ms; Stats p95 606.01 ms, both below 1,000 ms on the recorded machine.\\
+Recovery & Sixteen snapshot tests verify exact bytes, media/profile recovery, corruption rejection and refusal to overwrite an existing destination; five tests check timing/fixture methodology.\\
+Documentation & Local UML/LaTeX generation; 47-class mapping, explicit activations, 28 source/image references, full-size sheet mapping, embedded pixels and reference/layout checks.\\
+\bottomrule\end{longtable}
+The benchmark report at \nolinkurl{docs/evidence/collector-benchmark.json}
+records source hashes, raw samples, runtime and approximately 31.8 GiB RAM.
+It does \textbf{not} certify the SRS's original 8 GB/local-SSD reference setup.
+An earlier intermittent Windows storage-test failure was not reproduced in
+25 targeted retries; subsequent complete runs passed. No speculative retry
+patch or claim that its cause was proven is made.
 
-Figure~\ref{fig:sequence-playback} starts with a pending or selected filename.
-Without such a filename the GUI handler returns before this sequence.
-\begin{enumerate}
-\item App resolves the managed path and asks the audio module to play it.
-Missing files immediately produce a false result without trying a player.
-\item If optional libraries are available, soundfile reads the media and
-sounddevice receives a playback request. Successful invocation returns true.
-\item If libraries are unavailable or that attempt raises, the helper tries
-the platform default-player launch. An accepted launch returns true; an
-exception returns false.
-\item App shows ``Playback failed'' only for false; playback does not modify rows.
-\end{enumerate}
-\textbf{Result semantics:} true proves only that a library or OS accepted a
-request. It does not prove audible output, complete playback or remote-process
-success after launch. This distinction prevents a false end-to-end quality claim.
+\subsection{Reproducible commands and CI boundary}
+From the repository root:
+\begin{quote}\ttfamily\small
+.\textbackslash.venv\textbackslash Scripts\textbackslash python.exe -m tools.run\_python\_tests\\
+cd frontend\\
+npm test\\
+npm run typecheck\\
+npm run test:e2e\\
+npm run build\\
+cd ..\\
+.\textbackslash docs\textbackslash build.ps1 -PlantUmlJar .\textbackslash docs\textbackslash.tools\textbackslash plantuml.jar\\
+.\textbackslash.venv\textbackslash Scripts\textbackslash python.exe -m tools.check\_documentation
+\end{quote}
+The root README gives dependency setup, isolated benchmark and backup commands.
+CI configures Windows Python 3.11/3.14, Node 22 frontend/browser checks and
+fresh locally rendered documentation. The workflow was linted locally; its
+existence is not evidence that a remote Actions run has completed.
 
-\diagram{sequence-playback}{0.98}{Playback existence check, library attempt and OS fallback}
+\subsection{Backup, verify and restore procedure}
+Close the collector/API and finish uploads/recordings before a snapshot.
+The snapshot CLI copies CSV bytes, managed audio including unreferenced files,
+saved profile and screenshots into a new destination with a SHA-256 manifest.
+Keys, locks and incomplete temporary files are excluded. Missing/corrupt media,
+unsafe paths, links and detected concurrent changes fail explicitly.
 
-\subsection{Refresh statistics}
-\viewtrace{FR-14, NFR-10; US-10}
-{\nolinkurl{_refresh_stats}, \nolinkurl{count_by}, \nolinkurl{_render_bar_group}}
+Verify before restoring, and restore only into another new directory.
+Inspect restored rows/media before deliberately copying verified data back
+with all applications stopped; copy CSV last. Never overwrite the live
+collection directly through the restore tool. Protect backups as personal
+research material. Checksums establish integrity, not authentic provenance
+or permission to share.
 
-Figure~\ref{fig:sequence-stats} uses the explicit Refresh button, a verified
-entry point. It does not rely on the tab-change event being delivered by a
-particular widget version.
-\begin{enumerate}
-\item App removes old bars but keeps headings, then obtains the total row count.
-\item In order, it requests counts for entry type and category. Each
-\nolinkurl{count_by} rereads the dataset and uses ``(none)'' for missing/empty values.
-\item A nested render call shows ``No data yet'' for empty counts, otherwise
-sorts counts descending and draws a bar proportional to count/total with a
-zero-total guard.
-\end{enumerate}
-\textbf{Postcondition and limits:} the display represents the reads just
-performed. There are three CSV reads, not one atomic snapshot; concurrent
-writers could create inconsistent totals. No new rows or files are created
-apart from storage initialization if missing.
+\subsection{Remaining human and operational gates}
+The group must supply genuine 10--15 manually transcribed statements across
+the ten topics, known meanings/provenance/permission, the other two names and
+matricules, and actual individual contributions. It must review classifications,
+justify grammar against that corpus, interpret outcomes, provide genuine
+screenshots and finish the separate 25--30-page research report and rehearsed
+presentation. No synthetic test fixture is fieldwork.
 
-\diagram{sequence-stats}{0.98}{Statistics refresh, repeated grouping and safe empty-data rendering}
+Physical recording/playback, real mobile/assistive-technology use, authorized
+live-provider trials, the original reference-machine benchmark and group
+acceptance remain explicit gates. A trained unseen-word predictor is deferred.
+These boundaries remain visible in the SRS product/sprint backlogs.
 
-\section{Interfaces, Errors and Design Limitations}
-\begin{longtable}{L{6.8cm}L{7.8cm}}
-\toprule
-\textbf{Interface} & \textbf{Actual contract or explicitly proposed target}\\ \midrule
-\endhead
-\nolinkurl{dataset.append_entry(entry)} & Append a canonical dictionary as one row; I/O errors propagate.\\
-\nolinkurl{dataset.update_entry(id, fields)} & Update the first matching row and rewrite all; no missing-ID result.\\
-\nolinkurl{dataset.delete_entry(id)} & Filter matching IDs and rewrite retained rows; no audio cleanup.\\
-\nolinkurl{dataset.count_by(field)} & Return label/count pairs from a new CSV load, using ``(none)'' for empty values.\\
-\nolinkurl{audio_utils.attach_file(source, dir)} & Copy with generated filename and original extension; return filename, not a validated transcription.\\
-\nolinkurl{Recorder.stop()} & Clear recording, close/release stream, return concatenated frames or None.\\
-\nolinkurl{audio_utils.play_audio(path)} & Return accepted-start/launch boolean; no guarantee of completed playback.\\
-Proposed analysis adapter & Accept text/configuration and return lexical/sentence evidence without mutating corpus; no current route is asserted.\\
-\bottomrule
-\end{longtable}
+\clearpage\appendix
+\section{Full-size UML Sheets}
+The following sheets are the rendered source views referenced throughout
+this document. Large paper boxes preserve approximately nine-point default
+diagram labels at actual size. A separate \nolinkurl{uml-atlas.pdf} contains
+the same sheets without the explanatory text. Editable PlantUML and full
+resolution PNGs are retained in \nolinkurl{docs/diagrams}.
 
-\subsection{Failure boundaries}
-The diagrams show current guards and observable behavior, not a redesigned
-error layer. GUI save/edit reject empty text and deletion asks confirmation.
-Playback catches library/OS failures to attempt fallback or return false.
-CSV writes, attachment copies and recording operations do not consistently
-surface recoverable errors; target FR-19/NFR-11 require that hardening.
-
-Read-modify-write has neither locking nor atomic replacement. Cached IDs can
-be stale, duplicate IDs can affect more than one deletion, and orphan audio
-can remain after cancelled drafts or deleted rows. These are limitations,
-not features to hide behind optimistic success paths.
-
-\subsection{Privacy and operational boundaries}
-No secret environment values or raw personal recordings belong in diagrams
-or PDFs. Repository ignore rules reduce accidental inclusion but do not prove
-past history is free of data. Consent, access restrictions and controlled
-backup copies are team procedures with acceptance evidence in PB-11/PB-15.
-The proposed host requires explicit, approved corpus transfer.
-
-\section{Verification, Traceability and Change Impact}
-\begin{longtable}{L{4.5cm}L{3cm}L{6.9cm}}
-\toprule
-\textbf{Diagram} & \textbf{Stories} & \textbf{What its verification must establish}\\ \midrule
-\endhead
-Component, Fig.~\ref{fig:component} & US-01--US-14 & Local dependency directions and visibly proposed analysis boundary.\\
-Deployment, Fig.~\ref{fig:deployment} & US-07--US-15 & Correct workstation/device artifacts; no imaginary shared filesystem.\\
-Class, Fig.~\ref{fig:class-domain} & US-01--US-10 & Real classes/methods, justified multiplicities and labelled logical entities.\\
-Use case, Fig.~\ref{fig:use-case} & US-02--US-10 & Actor goals; include/extend/generalization direction.\\
-Activity, Fig.~\ref{fig:activity-collect} & US-02/US-07/US-09 & Optional media choice and validation at Save, not earlier.\\
-State, Fig.~\ref{fig:state-entry} & US-02/US-05/US-06 & Exclusive guards and retention of selection on edit/cancel.\\
-Save, Fig.~\ref{fig:sequence-collect} & US-01/US-02/US-07 & Conditional persistence and balanced nested calls.\\
-Search, Fig.~\ref{fig:sequence-search} & US-04 & Query filter, cache and no extra selection read.\\
-Edit, Fig.~\ref{fig:sequence-edit} & US-05 & Allowed-field update and preservation of metadata.\\
-Delete, Fig.~\ref{fig:sequence-delete} & US-06 & No write after cancellation and no media deletion.\\
-Record, Fig.~\ref{fig:sequence-record} & US-09 & Stream creation/start/stop and no WAV without frames.\\
-Playback, Fig.~\ref{fig:sequence-playback} & US-08 & Missing-path and fallback branches with honest return semantics.\\
-Stats, Fig.~\ref{fig:sequence-stats} & US-10 & Three reads, grouping order and safe empty rendering.\\
-\bottomrule
-\end{longtable}
-
-Documentation checks render each PlantUML source locally, check paired
-call/reply activations, compile both LaTeX documents and inspect the PDFs.
-Acceptance testing of the application is a separate backlog obligation:
-use temporary fixtures, mock audio interfaces, inject failures and record
-results rather than treating diagram compilation as proof of runtime behavior.
-
-When a handler or helper contract changes, update its sequence, related
-activity/state/class view, SRS acceptance criteria and affected backlog item.
-Keep the \nolinkurl{theme.iuml} include beside the PlantUML sources so rendering
-uses one consistent style. Group names/matricules remain placeholders until
-the team supplies them.
-
-\section{Proposed Evolution}
-PB-11 adds safe persistence, regressions and recovery procedures before
-analysis work relies on corpus quality. PB-13/PB-14 propose a read-only lexer,
-classifier and declared-rule sentence-analysis increment, not a production
-language standard. PB-16 retains unknown-word prediction as deferred research.
-If a web adapter or database is later approved, revise deployment, interfaces,
-privacy and concurrency requirements before treating it as implemented design.
-
+\diagram{component}{1}{Implemented component dependencies}
+\diagram{deployment}{2}{Trusted local deployment and optional services}
+\diagram{class-domain}{3}{Desktop classes and audio ownership}
+\diagram{class-compiler}{4}{Compiler classes and functional algorithms}
+\diagram{class-api-requests}{5}{API request hierarchy and chat cardinalities}
+\diagram{class-api-results}{6}{Translation and analysis result relationships}
+\diagram{class-collection}{7}{Collection DTOs and mutation errors}
+\diagram{class-import-coursework}{8}{Import and coursework class relationships}
+\diagram{class-provider}{9}{Provider wire-response hierarchy}
+\diagram{class-services}{10}{Provider service, settings and grounding values}
+\diagram{class-frontend}{11}{Frontend runtime class and functional modules}
+\diagram{use-case}{12}{User goals and guarded optional extensions}
+\diagram{activity-collect}{13}{Collection activity and failure decisions}
+\diagram{state-entry}{14}{Logical entry and selected-editor states}
+\diagram{state-audio}{15}{Audio readiness and retry states}
+\diagram{sequence-collect}{16}{Attachment and collection commit sequence}
+\diagram{sequence-search}{17}{Search and cached selection sequence}
+\diagram{sequence-edit}{18}{Changed-field edit sequence}
+\diagram{sequence-delete}{19}{Confirmed deletion sequence}
+\diagram{sequence-record}{20}{Recording, callbacks and WAV publication}
+\diagram{sequence-playback}{21}{Playback and OS fallback sequence}
+\diagram{sequence-stats}{22}{Single-snapshot statistics sequence}
+\diagram{sequence-storage}{23}{Shared locked CSV transaction sequence}
+\diagram{sequence-translation}{24}{Dataset-first translation sequence}
+\diagram{sequence-chat}{25}{Explicit chat and provider handling sequence}
+\diagram{sequence-imports}{26}{Preview, suggestion and reviewed import sequence}
+\diagram{sequence-compiler}{27}{Grammar analysis and predictive parsing sequence}
+\diagram{sequence-coursework}{28}{Saved coursework and draft export sequence}
 \end{document}

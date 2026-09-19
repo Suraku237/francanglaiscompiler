@@ -15,6 +15,7 @@ rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nhash navigat
 rectangle "Translator / Assistant / Collection\nImports / Coursework <<function components>>\nforms; reviewed results; local state" as Pages
 rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
 rectangle "voice.ts <<hook module>>\nuseDictation(), useReadAloud()\nbrowserVoiceLanguage()" as Voice
+rectangle "components.tsx <<functions>>\nModal(), OriginBadge(), EvidencePanel()\ninitial focus / Tab wrap / restore trigger" as Components
 ApiError --|> Error
 API ..> ApiError : throws status-bearing errors
 Request ..> API : cancellation / error text
@@ -22,6 +23,8 @@ Pages ..> Request : per-operation request state
 Pages ..> API : awaited HTTP
 App ..> Pages : renders / hides sections
 App ..> Voice : shared read-aloud
+App ..> Components
+Pages ..> Components
 Pages ..> Voice : opt-in dictation
 Evidence ..> API : error parsing / screenshot CRUD
 Evidence ..> ApiError : export HTTP failure

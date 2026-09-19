@@ -1,70 +1,83 @@
 @startuml
 !include theme.iuml
-title Record and Stage Microphone Audio
+title Retryable microphone capture and WAV staging
 hide footbox
 autonumber
 actor Contributor
 participant "app : App" as App
 participant "recorder : Recorder" as Recorder
+participant "sounddevice / InputStream\n<<external>>" as Device
 participant "audio_utils\n<<module>>" as Audio
-
-note over App, Recorder
-  Precondition: optional imports succeeded, recorder exists,
-  and the microphone can be opened. Recording is initially off.
-end note
 activate Contributor
 Contributor -> App : toggle_recording() (Record)
 activate App
-App -> Recorder : start()
-activate Recorder
-create participant "stream : InputStream" as Stream
-Recorder -> Stream : InputStream(44100 Hz, mono, callback)
-activate Stream
-Stream --> Recorder : Stream instance
-deactivate Stream
-Recorder -> Stream : start()
-activate Stream
-Stream --> Recorder : Capture started
-deactivate Stream
-Recorder --> App : None
-deactivate Recorder
-App --> Contributor : Show Stop / Recording; disable Play
+App -> Audio : stop_playback()
+activate Audio
+Audio --> App : Stopped or AudioError
+deactivate Audio
+opt Playback stopped and recording capability exists
+  App -> Recorder : start()
+  activate Recorder
+  Recorder -> Device : Open mono 44100 Hz InputStream; start()
+  activate Device
+  Device --> Recorder : Started stream or device error
+  deactivate Device
+  note over Recorder : On failure: recording=false, restore prior frames;\nclose partial stream, retaining handle if close fails.
+  Recorder --> App : Started or AudioError
+  deactivate Recorder
+end
+App --> Contributor : Stop/Recording, or explicit retryable error
 deactivate App
-
-note over Recorder, Stream
-  Between button events, the audio callback copies incoming frames
-  into recorder.frames while recording is true.
-  Asynchronous callback messages are abstracted, not shown as blocking calls.
-end note
-
-Contributor -> App : toggle_recording() (Stop)
+opt Stream started
+  loop Captured frames while recording=true
+    activate Device
+    Device -> Recorder : callback(indata, ...)
+    activate Recorder
+    note over Recorder : Copy incoming samples into frames.
+    Recorder --> Device : Callback returns
+    deactivate Recorder
+    deactivate Device
+  end
+end
+note over App, Device : Callbacks run on the device thread between GUI events;\nthey are not a blocking call from the GUI.
+opt Capture started or stop/close retry is pending
+Contributor -> App : toggle_recording() (Stop / Retry stop)
 activate App
 App -> Recorder : stop()
 activate Recorder
-note over Recorder : recording = false
-Recorder -> Stream : stop() then close()
-activate Stream
-Stream --> Recorder : Stream stopped and closed
-deactivate Stream
-note over Recorder : stream = None;\nconcatenate captured frames, if any.
-Recorder --> App : Audio array or None
-deactivate Recorder
-alt No frames / empty audio
-  note over App : Show "No audio captured"; do not save a new file.
-else Audio array contains samples
-  App -> Audio : save_recording(audio, AUDIO_DIR)
-  activate Audio
-  note over Audio : sf.write(): UUID-named WAV at 44100 Hz.
-  Audio --> App : Generated filename
-  deactivate Audio
-  note over App : Set pending_audio_path; enable Play.
+opt Stream handle exists
+Recorder -> Device : stop(); close() in finally
+activate Device
+Device --> Recorder : Closed or device error
+deactivate Device
 end
-App --> Contributor : Recording status displayed
+note over Recorder : recording=false; clear stream only after close succeeds.\nRetain frames so stop/concatenation can be retried.
+Recorder --> App : Samples / no samples / AudioError
+deactivate Recorder
+alt Stop failed
+  note over App : Retry stop; keep draft and frames.
+else No samples
+  note over App : No new file; preserve any previous attachment.
+else Samples available
+  App -> Audio : save_recording(samples, AUDIO_DIR)
+  activate Audio
+  note over Audio : Sibling WAV write, then atomic publication;\nremove an incomplete temporary file on failure.
+  Audio --> App : Generated filename or AudioError
+  deactivate Audio
+  alt Write failed
+    note over App : Retain captured array; offer Retry audio save.
+  else Write succeeded
+    note over App : Stage filename and release captured-array retry state;\nonly draft-owned superseded media may be removed.
+  end
+end
+App --> Contributor : Truthful status and synchronized controls
 deactivate App
+end
 deactivate Contributor
 legend bottom
-  Stream creation and synchronous calls have bounded activations.
-  Staging a WAV does not append a dataset row: saving the form is separate.
-  Library/device/write failures are not caught by these recording handlers.
+  Device activation spans each callback delivery interval below the start request.
+  Save, attach and playback are blocked while audio remains unfinished.
+  Retry audio save calls save_recording again without opening the microphone.
+  Clear/close deliberately discard draft-owned audio; saved recordings survive.
 endlegend
 @enduml

@@ -1,48 +1,51 @@
 @startuml
 !include theme.iuml
 title Trusted local deployment; explicit optional remote services
-node "Trusted workstation (default setup)" {
-  node "Browser" as Browser {
+node "Trusted workstation (default setup)" <<device>> {
+  node "Browser" as Browser <<executionEnvironment>> {
     artifact "React/Vite frontend\nin-memory drafts/history" as React
     artifact "Browser speech APIs\nopt-in dictation / read-aloud" as Speech
   }
-  node "Vite development server\nlocalhost:5173" as Vite
-  node "Python / FastAPI\nloopback:8000" as Backend {
+  node "Vite: development 5173\nor built preview 4173" as Vite <<executionEnvironment>> {
+    artifact "frontend source (development)\nor frontend/dist (preview)" as WebAssets
+  }
+  node "Python / FastAPI\nloopback:8000" as Backend <<executionEnvironment>> {
     artifact "Backend + compiler" as Python
     artifact "Server-only .env / environment\nGEMINI_API_KEY" as Secret
   }
-  node "Python / Tcl-Tk" as Tk {
+  node "Python / Tcl-Tk" as Tk <<executionEnvironment>> {
     artifact "App.py + audio_utils.py" as Collector
   }
-  folder "Local disk" {
+  node "Local storage" <<device>> {
     artifact "dataset.csv + cooperative lock" as CSV
     artifact "audio / generated filenames" as Audio
     artifact "coursework / profile + PNGs" as Coursework
     artifact "User-chosen draft ZIP / snapshot\nreview before sharing" as Export
   }
-  node "OS audio / default player" as OS
+  node "OS audio / default player" as OS <<executionEnvironment>>
 }
 node "Microphone / speakers" as Devices <<device>>
-cloud "Gemini API" as Gemini
-cloud "Browser-selected speech provider\nimplementation-dependent" as SpeechProvider
-Browser -- Vite : local HTTP
-Vite -- Backend : /api proxy
+node "Gemini API" as Gemini <<external service>>
+node "Browser-selected speech provider\nimplementation-dependent" as SpeechProvider <<external service>>
+Browser -- Vite : local UI / assets HTTP
+Vite -- Backend : configured /api proxy
 Python ..> CSV : locked I/O
 Python ..> Coursework : local I/O
 Python ..> Export : download bytes
 Collector ..> CSV : same lock protocol
 Collector ..> Audio : WAV / copy
-Collector -- OS : capture / play
+Tk -- OS : capture / play
 OS -- Devices
-Speech -- Devices : browser permissions
-Python -- Gemini : HTTPS; explicit AI requests
-Speech -- SpeechProvider : may use online speech
+Browser -- Devices : browser permissions
+Backend -- Gemini : HTTPS; explicit AI requests
+Browser -- SpeechProvider : may use online speech
 Secret ..> Python
 legend bottom
   No authentication or public multi-user deployment is supplied.
   CORS is not access control. Keep the backend on a trusted local boundary.
   If the backend is remote, its CSV/audio/profile live on that server.
-  A built frontend needs equivalent same-origin API routing; no hosted service is implied.
+  FastAPI exposes the API only; Vite serves development or built-preview UI.
+  Production hosting needs a separate static server and matching API routing.
   AI/provider access is optional; local compiler, CRUD and exact reviewed lookup work offline.
 endlegend
 @enduml

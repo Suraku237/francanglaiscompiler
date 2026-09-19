@@ -9,6 +9,7 @@ participant "import_api / imports\n<<functions>>" as Imports
 participant "service : GeminiService" as AI
 participant "dataset API / collection\n<<functions>>" as Collection
 
+activate User
 User -> Web : Preview selected file
 activate Web
 Web -> Imports : POST /api/imports/preview\nmultipart file + consent flag
@@ -51,6 +52,7 @@ opt User explicitly requests AI entry suggestions
   deactivate Web
 end
 
+opt A candidate exists and the user chooses to save it
 User -> Web : Review candidate, then explicitly Save
 activate Web
 note over Web : EntryEditor starts unreviewed; human edits\nlanguage/glosses/provenance and review decision.
@@ -61,6 +63,8 @@ Collection --> Web : 201 DatasetEntry / actionable error
 deactivate Collection
 Web --> User : Saved status only on success; draft on failure
 deactivate Web
+end
+deactivate User
 legend bottom
   Translate/Ask AI handoff fills a draft only (no network/save side effect).
   Original imports are not retained as collection attachments by the application.

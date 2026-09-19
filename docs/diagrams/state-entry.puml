@@ -1,28 +1,40 @@
 @startuml
 !include theme.iuml
-title Entry Workflow - Conceptual States and Guards
-state "Check new text" as CheckNew <<choice>>
-state "Check edited text" as CheckEdit <<choice>>
-state "Await delete confirmation" as ConfirmDelete
-
+title Logical entry and selected-editor lifecycle
+state "Unsaved draft" as Draft
+state "Check new entry" as CheckNew <<choice>>
+state "Stored entry\n(not necessarily approved)" as Persisted
+state "Selected editor\nmay contain unsaved changes" as Selected
+state "Check edit" as CheckEdit <<choice>>
+state "Await confirmation" as Confirm
+state "Deletion attempt" as DeleteAttempt
+state "Creation attempt" as CreateAttempt
+state "Edit attempt" as EditAttempt
+state "Deleted row" as Deleted
 [*] --> Draft
-Draft --> Draft : mediaAdded [successful] / stage filename
+Draft --> Draft : attachment staged / invalidate review
 Draft --> CheckNew : Save
-CheckNew --> Draft : [text empty] / show warning
-CheckNew --> Persisted : [text non-empty] / append row
-Persisted --> Selected : select browse row / populate editor
+CheckNew --> Draft : [blank or audio unfinished] / show warning
+CheckNew --> CreateAttempt : [valid and audio ready]
+CreateAttempt --> Draft : write failed / retain draft
+CreateAttempt --> Persisted : committed / reset Collect form
+Persisted --> Selected : select cached row / populate editor
+Selected --> Selected : evidence edited / invalidate approval
 Selected --> CheckEdit : Save changes
-CheckEdit --> Selected : [text empty] / show warning
-CheckEdit --> Selected : [text non-empty] / update row; refresh
-Selected --> ConfirmDelete : Delete
-ConfirmDelete --> Selected : No / leave row unchanged
-ConfirmDelete --> Deleted : Yes / remove row; clear selected id
+CheckEdit --> Selected : [blank] / retain edits
+CheckEdit --> EditAttempt : [valid]
+EditAttempt --> Selected : committed / refresh without changing identity
+EditAttempt --> Selected : stale ID or write failed / retain edits + error
+Selected --> Confirm : Delete
+Confirm --> Selected : No / no mutation
+Confirm --> DeleteAttempt : Yes
+DeleteAttempt --> Selected : stale ID or write failed / retain edits + error
+DeleteAttempt --> Deleted : committed / clear selection
 Deleted --> [*]
-
-legend bottom left
-  Conceptual UI/persistence workflow, not an implemented state enum.
-  Choice guards are mutually exclusive. Selection is required for edit/delete.
-  A deleted row's audio file is retained; no media destruction is implied.
-  I/O is assumed successful; atomic recovery is a proposed requirement.
+legend bottom
+  This is a logical row/editor model, not an implemented enum or whole-app lifecycle.
+  The selected editor may outlive a row removed by another writer; stale errors are explicit.
+  A successful commit is not reversed by later display/cleanup failure.
+  Audio staging has a separate lifetime; deleting a saved row retains its recording.
 endlegend
 @enduml

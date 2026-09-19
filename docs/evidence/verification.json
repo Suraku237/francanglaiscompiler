@@ -1,0 +1,101 @@
+{
+  "recorded_on": "2026-09-19",
+  "baseline_commit": "ff7dcf7",
+  "includes_uncommitted_completion_changes": true,
+  "scope": "Engineering verification with isolated synthetic data; not fieldwork certification",
+  "stages": {
+    "desktop_audio_software": "passed",
+    "python_frontend_browser_regressions": "passed",
+    "recovery_and_measured_performance": "passed_on_recorded_machine",
+    "documentation_and_backlog_reconciliation": "passed",
+    "final_integration_and_cleanup": "passed"
+  },
+  "python": {
+    "command": ".venv\\Scripts\\python.exe -m tools.run_python_tests --quiet",
+    "passed": 252,
+    "failed": 0,
+    "desktop_tests_included": 56,
+    "maintenance_tests_included": 33,
+    "final_run_seconds": 66.168,
+    "notice": "Expected fault-injection logs and an upstream Starlette/httpx deprecation notice are not failed assertions."
+  },
+  "frontend": {
+    "component_tests_passed": 77,
+    "component_test_files": 8,
+    "browser_tests_passed": 18,
+    "browser_profiles": ["Desktop Chromium", "Mobile Chromium emulation"],
+    "browser_api": "Controlled synthetic fixtures",
+    "application_and_test_typechecks": "passed",
+    "production_build": "passed",
+    "production_js_css_http_bytes_match_disk_sha256": true,
+    "preview_server": "Verified on owned loopback port 4188, then stopped",
+    "deployment": "Vite serves frontend development/preview; FastAPI is API-only"
+  },
+  "audio": {
+    "real_wav_round_trip": "passed",
+    "sample_rate_hz": 44100,
+    "channels": 1,
+    "frames": 4410,
+    "content": "Generated silence",
+    "physical_microphone_or_audibility_verified": false
+  },
+  "performance": {
+    "report": "collector-benchmark.json",
+    "rows": 1000,
+    "text_characters": 500,
+    "warmups_per_operation": 1,
+    "measured_runs_per_operation": 20,
+    "search_p95_ms": 53.3051,
+    "stats_p95_ms": 606.0055,
+    "limit_ms": 1000,
+    "original_8gb_ssd_reference_certified": false
+  },
+  "documentation": {
+    "command": ".venv\\Scripts\\python.exe -m tools.check_documentation",
+    "verified": true,
+    "production_classes": 47,
+    "explained_diagrams": 28,
+    "balanced_synchronous_sequence_views": 13,
+    "atlas_pages": 28,
+    "srs_pages": 25,
+    "sdd_pages": 44,
+    "functional_requirements": 36,
+    "nonfunctional_requirements": 16,
+    "user_stories": 23,
+    "product_backlog_items": 23,
+    "proposed_sprints": 4,
+    "evidence_labelled_sprint_tasks": 30,
+    "published_pdfs_match_build_hashes": true,
+    "embedded_pixels_sheet_mappings_and_references": "passed",
+    "latex_layout_checks": "passed",
+    "rendering": "Local PlantUML and Tectonic; no project source sent to an online renderer"
+  },
+  "integration": {
+    "transport": "Real FastAPI TestClient and isolated temporary storage",
+    "api_root_is_not_a_frontend_server": true,
+    "approved_local_translation": true,
+    "reviewed_word_to_lexer_to_parser": true,
+    "local_import_does_not_save": true,
+    "saved_profile_matches_project_response_shape": true,
+    "valid_generated_zip_files": 80,
+    "report_html_and_presentation_pptx_present": true,
+    "provider_requests": 0,
+    "real_csv_and_profile_hashes_unchanged": true
+  },
+  "ci": {
+    "configured": true,
+    "local_actionlint": "passed",
+    "remote_run_verified": false
+  },
+  "manual_gates": [
+    "Genuine 10-15 manually transcribed statements across the ten required topics",
+    "Known provenance, reviewed meanings, collection method and permission",
+    "Two remaining names/matricules and all actual member contributions",
+    "Corpus-grounded grammar rationale, interpretation and independent evaluation",
+    "Genuine research screenshots and final 25-30-page coursework report",
+    "Personalized slides, ten-minute rehearsal and group sign-off",
+    "Physical microphone/playback, real device and assistive-technology acceptance",
+    "Authorized live-provider trials and original 8 GB/local-SSD reference measurement"
+  ],
+  "deferred_scope": ["Trained and evaluated unseen-word predictor"]
+}

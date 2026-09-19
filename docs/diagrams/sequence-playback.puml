@@ -10,7 +10,7 @@ participant "File system" as Files
 participant "soundfile / sounddevice" as Backend
 participant "OS default player" as OS
 
-note over App : Precondition: a pending or selected filename is present.
+note over App : Precondition: filename present and no unfinished recording.\nOtherwise the handler returns with appropriate feedback.
 activate Contributor
 Contributor -> App : play_pending_audio()\n(or _play_selected_audio())
 activate App
@@ -24,7 +24,7 @@ alt File does not exist
   note over Audio : Result = false; skip all playback attempts.
 else File exists
   opt AUDIO_RECORDING_AVAILABLE
-    Audio -> Backend : sf.read(path); sd.play(data, sample_rate)
+    Audio -> Backend : Stop prior library playback;\nsf.read(path); sd.play(data, sample_rate)
     activate Backend
     Backend --> Audio : Started or library exception
     deactivate Backend
@@ -50,6 +50,7 @@ deactivate Contributor
 legend bottom
   true means a playback request was accepted, not that sound was heard to completion.
   OS launch acceptance is not playback completion; media decoding is external.
-  No CSV rows are changed by this interaction.
+  Expected audio errors are reported by the GUI; CSV is unchanged.
+  Clear/close can stop in-process playback, not an external OS player's lifetime.
 endlegend
 @enduml

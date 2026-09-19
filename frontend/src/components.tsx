@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { languageLabels, translationLanguages } from './types'
 import type { Analysis, AnswerOrigin, DatasetEvidence, Language, TranslationLanguage } from './types'
 import type { Dictation, ReadAloud } from './voice'
@@ -52,24 +52,51 @@ export function ErrorNotice({ message, onRetry }: { message: string; onRetry?: (
   return <div className="notice notice-error" role="alert"><Icon name="info" /><div>{message}</div>{onRetry && <button className="text-button" onClick={onRetry} type="button">Try again</button>}</div>
 }
 
-export function Modal({ title, children, onClose, busy = false, className = '' }: {
+export function Modal({ title, children, onClose, busy = false, className = '', initialFocus }: {
   title: string
   children: ReactNode
   onClose: () => void
   busy?: boolean
   className?: string
+  initialFocus?: RefObject<HTMLElement | null>
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
     const element = dialog.current
+    const previousFocus = document.activeElement
     element?.showModal()
-    return () => element?.close()
-  }, [])
+    initialFocus?.current?.focus({ preventScroll: true })
+    return () => {
+      element?.close()
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true })
+      }
+    }
+  }, [initialFocus])
   return (
     <dialog ref={dialog} className={`modal ${className}`} aria-labelledby={titleId} onCancel={(event) => {
       event.preventDefault()
       if (!busy) onClose()
+    }} onKeyDown={(event) => {
+      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return
+      const controls = [...event.currentTarget.querySelectorAll<HTMLElement>(
+        'button, a[href], input:not([type="hidden"]), select, textarea, [tabindex]',
+      )].filter((element) => element.tabIndex >= 0 && !element.matches(':disabled') &&
+        !element.closest('[hidden], [inert]'))
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (!first || !last) {
+        event.preventDefault()
+        event.currentTarget.focus()
+      } else if (event.shiftKey && (document.activeElement === first ||
+        document.activeElement === event.currentTarget)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }}>
       <div className="modal-heading">
         <h2 id={titleId}>{title}</h2>

@@ -24,7 +24,7 @@ package "Desktop collector" {
   component "App.py\nCustomTkinter UI" as Desktop
   component "audio_utils.py\nRecorder / file / playback" as Audio
 }
-database "dataset.csv\n14 fields; legacy-compatible" as CSV
+artifact "dataset.csv\n14 fields; legacy-compatible" as CSV <<file>>
 folder "Local audio" as AudioFiles
 folder "coursework\nproject.json / screenshots" as Project
 cloud "Gemini HTTPS\noptional explicit requests" as Cloud
@@ -38,6 +38,7 @@ Routes ..> Gemini
 Routes ..> Imports : included router
 Routes ..> Course : included router
 Routes ..> Lexer
+Routes ..> Dataset : analysis / retrieval snapshot
 Collection ..> Dataset
 Grounding ..> Lexer : normalize / tokenize
 Imports ..> Gemini : consented media / explicit suggestions

@@ -8,6 +8,7 @@ participant "dataset.py\n<<module>>" as Dataset
 participant "path-keyed FileLock\n<<external>>" as Lock
 participant "Local filesystem\n<<external>>" as Files
 
+activate Caller
 Caller -> Dataset : append_entry / update_entry / delete_entry\n(or collection's outer transaction)
 activate Dataset
 Dataset -> Lock : acquire(timeout=10)
@@ -25,7 +26,7 @@ alt Lock acquired
   Dataset --> Dataset : Normalized row dictionaries / error
   deactivate Dataset
   opt Read and mutation validation succeed
-    note over Dataset : Modify rows in memory; reset approval on changed\nfields unless review status is explicitly supplied.
+    note over Dataset : Missing update/delete IDs raise EntryNotFoundError.\nModify rows in memory; reset approval on changed\nfields unless review status is explicitly supplied.
     Dataset -> Dataset : _write_entries(entries)
     activate Dataset
     Dataset -> Files : Create sibling scratch file;\nwrite canonical header/rows; flush + fsync
@@ -51,6 +52,7 @@ else Lock timed out
 end
 Dataset --> Caller : Success or propagated exception
 deactivate Dataset
+deactivate Caller
 legend bottom
   collection functions take the same outer lock around duplicate/ID checks and write.
   Lock activation shows the acquire/release call, not the duration of file ownership.

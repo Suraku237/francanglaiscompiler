@@ -1,46 +1,40 @@
 @startuml
 !include theme.iuml
-title Collector Activity - One Save Attempt
+title One desktop save attempt, including failure boundaries
 start
-:Open Collect tab;
-:Enter text, type, category\nand optional annotations;
-if (Add audio before saving?) then (yes)
-  if (Choose recording?) then (yes)
-    if (Recording capability available?) then (yes)
-      :Record from microphone;
-      if (Frames captured?) then (yes)
-        :Save WAV; stage generated filename;
-      else (no)
-        :Show "No audio captured";
-      endif
-    else (no)
-      :Recording disabled;\nattachment remains available;
-    endif
-  else (attach)
-    :Open file chooser;
-    if (File selected?) then (yes)
-      :Copy file; stage generated filename;
-    else (cancel)
-      :Keep form unchanged;
-    endif
-  endif
-else (no)
-  :Continue with current draft;
-endif
+:Enter expression, annotations,\nlanguage and optional audio;
+:Review current evidence;\napprove only if justified;
 :Press Save / Ctrl+Enter;
-if (Trimmed text is non-empty?) then (yes)
-  :Generate entry id and timestamp;
-  :Append CSV row;
-  :Refresh count and recent entries;
-  :Clear form; preserve contributor;
+if (Recording, stop or audio save unfinished?) then (yes)
+  :Explain retry/finish or deliberate discard;\nkeep draft; do not append;
+  stop
 else (no)
-  :Show "Missing text" warning;
-  :Keep draft available for correction;
+endif
+if (Trimmed expression nonempty?) then (no)
+  :Show Missing text;\nkeep draft for correction;
+  stop
+else (yes)
+endif
+:Generate ID and timestamp;\naccept approval only for exact reviewed values;
+:Locked read-modify-write;\nwrite/fsync sibling and atomically replace CSV;
+if (Commit succeeded?) then (no)
+  :Report storage failure;\nretain draft and staged audio;
+  stop
+else (yes)
+endif
+:Release committed audio from draft ownership;\nreset form, retaining contributor;
+:Clean remaining draft-owned resources;\nreport any cleanup error for retry;
+:Load one snapshot for count,\nrecent entries, Browse and Stats;
+if (Refresh succeeded?) then (yes)
+  :Display refreshed views and Saved status;
+else (no)
+  :Preserve views; report read error;\ncommit remains successful;
 endif
 stop
 legend bottom
-  One activity completion is not application shutdown.
-  Duplicate warnings are advisory and do not block saving.
-  File/device exceptions are outside this normal-flow view.
+  Diamonds represent exclusive guarded decisions, not parallel work.
+  One final node ends this attempt, not the collector application.
+  Duplicate warnings are advisory on desktop; API duplicates return 409.
+  File staging is separate; recording details appear in the sequence view.
 endlegend
 @enduml

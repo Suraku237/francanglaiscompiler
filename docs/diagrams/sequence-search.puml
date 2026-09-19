@@ -1,51 +1,48 @@
 @startuml
 !include theme.iuml
-title Browse, Search and Select an Entry
+title Desktop search, preserved views and cached selection
 hide footbox
 autonumber
 actor Contributor
 participant "app : App" as App
 participant "dataset\n<<module>>" as Dataset
-participant "Local file I/O" as Files
-
 activate Contributor
-Contributor -> App : _refresh_browse_list()\n(search key release / Refresh)
+Contributor -> App : _refresh_browse_list()
 activate App
-note over App : Normalize query; clear tree and ID cache.
-App -> Dataset : load_all()
+App -> Dataset : load_all() through _load_entries()
 activate Dataset
-Dataset -> Files : Ensure storage; read UTF-8 CSV
-activate Files
-Files --> Dataset : Row dictionaries
-deactivate Files
-Dataset --> App : Entries
+note over Dataset : Same-path lock; validate header and row shape.\nLegacy metadata is normalized only in memory.
+Dataset --> App : Entries or storage exception
 deactivate Dataset
-loop Each loaded row
-  alt Query empty or substring matches text/category/contributor
-    note over App : Cache row by ID and insert a visible tree row.
-  else No match
-    note over App : Skip row.
+alt Read failed
+  note over App : Report Dataset unavailable; do not clear the tree,\ncache, selection or unsaved editor fields.
+else Read succeeded
+  note over App : Strip/casefold query; replace tree and cache.\nCache every loaded row by ID, not only visible matches.
+  loop Each entry
+    alt Query empty or substring in any stored value
+      note over App : Insert a visible tree row.
+    else No match
+      note over App : Keep cached, omit from visible tree.
+    end
   end
+  note over App : If the selected ID disappeared, report it;\nretain unsaved edits for recovery.
 end
-App --> Contributor : Matching rows (possibly none)
+App --> Contributor : Matching rows or retained view + error
 deactivate App
-
-opt Contributor selects a displayed row
+opt Contributor selects a visible row
   Contributor -> App : _on_browse_select(event)
   activate App
-  note over App
-    Resolve ID in the browse cache; populate editable fields.
-    Retain selected ID and optional audio filename.
-    Enable playback only when a filename is present.
-    No additional CSV read is performed by this handler.
-  end note
-  App --> Contributor : Selected entry displayed
+  App -> App : _populate_browse_entry(cached entry)
+  activate App
+  note over App : Fill evidence/review controls, ID and audio reference.\nUnchanged legacy strings are preserved.
+  App --> App : Selection and controls synchronized
+  deactivate App
+  App --> Contributor : Editable selection, with no second CSV read
   deactivate App
 end
 deactivate Contributor
 legend bottom
-  An empty query lists all rows; filtering is case-insensitive.
-  Selection without a cached row returns without changing the form.
-  The load helper and widget calls are abstracted; file errors are not handled here.
+  IDs should remain unique; manually corrupted identifiers are not repaired here.
+  Filtering is read-only. Empty results are distinct from a failed read.
 endlegend
 @enduml

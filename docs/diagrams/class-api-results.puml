@@ -52,12 +52,12 @@ class ChatResponse {
   origin: Origin = ai
 }
 TranslationResponse --|> TranslationContent
-TranslationContent --> "0..12" VocabularyItem : vocabulary
-TranslationResponse --> "1" AnalysisResult : analysis
-AnalysisResult --> "0..*" TokenResult : tokens
-TranslationResponse --> "1" Coverage : coverage
-TranslationResponse --> "0..*" Evidence : evidence
-ChatResponse --> "0..*" Evidence : evidence
+TranslationContent "0..*" --> "0..12" VocabularyItem : vocabulary
+TranslationResponse "0..*" --> "1" AnalysisResult : analysis
+AnalysisResult "0..*" --> "0..*" TokenResult : tokens
+TranslationResponse "0..*" --> "1" Coverage : coverage
+TranslationResponse "0..*" --> "0..*" Evidence : evidence
+ChatResponse "0..*" --> "0..*" Evidence : evidence
 note bottom of Evidence
   Whitelist intentionally omits contributor,
   location, notes, audio and timestamp.

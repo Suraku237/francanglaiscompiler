@@ -26,8 +26,8 @@ package "backend.import_models" {
     warnings: list[str]
     model: str
   }
-  ImportPreview --> "0..100" SuggestedEntry : drafts
-  SuggestionResponse --> "0..12" SuggestedEntry : drafts
+  ImportPreview "0..*" --> "0..100" SuggestedEntry : drafts
+  SuggestionResponse "0..*" --> "0..12" SuggestedEntry : drafts
 }
 package "backend.coursework_models" {
   ' @class backend.coursework_models.ProjectProfile

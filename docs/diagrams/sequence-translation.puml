@@ -10,6 +10,7 @@ participant "dataset / grounding\n<<modules>>" as Local
 participant "service : GeminiService" as AI
 participant "Gemini HTTPS" as Provider
 
+activate User
 User -> Web : submit()
 activate Web
 note over Web : Reject blank/listening/pending inputs;\nfreeze direction/options for this request.
@@ -24,6 +25,9 @@ else dataset use disabled
 end
 Local --> API : entries + Grounding, or storage error
 deactivate Local
+alt Storage failed
+  note over API : Return a safe storage error; no provider attempt.
+else Grounding available
 alt Unambiguous approved full-entry alignment
   API -> Local : local_translation(grounding, language)
   activate Local
@@ -55,10 +59,12 @@ opt Translation content obtained
   API --> API : AnalysisResult
   deactivate API
 end
+end
 API --> Web : TranslationResponse or safe HTTP error
 deactivate API
 Web --> User : Origin, evidence, coverage, tokens / error
 deactivate Web
+deactivate User
 legend bottom
   Awaited work is shown as a request/reply interval, not a blocked UI thread.
   Storage/validation/provider failure exits to an error; it never becomes a success.

@@ -1,51 +1,41 @@
 @startuml
 !include theme.iuml
-title Refresh Corpus Statistics
+title Consistent four-way statistics from one snapshot
 hide footbox
 autonumber
 actor Maintainer
 participant "app : App" as App
 participant "dataset\n<<module>>" as Dataset
-participant "Local file I/O" as Files
-
 activate Maintainer
-Maintainer -> App : _refresh_stats() (Refresh button)
+Maintainer -> App : _refresh_stats() or _refresh_views()
 activate App
-note over App : Remove old bars while retaining headings.
-App -> Dataset : total_count()
+App -> Dataset : load_all() through _load_entries()
 activate Dataset
-Dataset -> Files : load_all(): ensure storage and read CSV
-activate Files
-Files --> Dataset : Rows
-deactivate Files
-Dataset --> App : Total row count
+note over Dataset : Locked, validated CSV read.
+Dataset --> App : Shared normalized rows or storage exception
 deactivate Dataset
-loop field in entry_type, category (in that order)
-  App -> Dataset : count_by(field)
-  activate Dataset
-  Dataset -> Files : load_all(): read CSV again
-  activate Files
-  Files --> Dataset : Rows
-  deactivate Files
-  note over Dataset : Group values; absent/empty values use "(none)".
-  Dataset --> App : Map of label to count
-  deactivate Dataset
-  App -> App : _render_bar_group(frame, counts, total)
-  activate App
-  alt Counts are empty
-    note over App : Display "No data yet."
-  else Counts exist
-    note over App : Sort descending; draw count / total bars\n(use zero if total is zero).
+alt Read failed
+  note over App : Show Dataset unavailable; retain previous bars/total.
+else Snapshot available
+  note over App : Remove old bars but keep headings.\nTotal = len(snapshot).
+  loop Type, topic, language, review status
+    App -> App : _render_bar_group(frame, counts, total)
+    activate App
+    alt Empty counts
+      note over App : Display No data yet.
+    else Nonempty counts
+      note over App : Descending count labels and count / total bars.\nEmpty values use (none).
+    end
+    App --> App : Group rendered
+    deactivate App
   end
-  App --> App : Group rendered
-  deactivate App
 end
-App --> Maintainer : Display total, type and category distributions
+App --> Maintainer : Consistent distributions or preserved view + error
 deactivate App
 deactivate Maintainer
 legend bottom
-  Three CSV reads occur: total, entry types and categories.
-  Concurrent writers are unsupported; the three reads are not one atomic snapshot.
-  The explicit Refresh path is modeled, not an unverified tab-change event.
+  _refresh_views also supplies the same rows to count, recent and Browse views.
+  Direct Stats refresh loads once; count_by() is not called by this handler.
+  Performance evidence includes active-tab Tk idle rendering, not only CSV timing.
 endlegend
 @enduml

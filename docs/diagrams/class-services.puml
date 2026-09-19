@@ -38,11 +38,11 @@ class "Coverage\n(result view)" as Coverage <<reference>>
 rectangle "grounding.py <<module>>\nretrieve(), local_translation()\nwithout_dataset(), evidence_json()" as Retrieval
 Settings --|> BaseSettings
 AIError --|> Exception
-GeminiService --> "1" Settings : settings
-GeminiService --> "1" Client : client
+GeminiService "0..*" --> "1" Settings : settings
+GeminiService "0..*" --> "1" Client : client
 GeminiService ..> AIError : raises safe provider errors
-Grounding --> "0..*" Evidence : evidence
-Grounding --> "1" Coverage : coverage
+Grounding "0..*" --> "0..*" Evidence : evidence
+Grounding "0..*" --> "1" Coverage : coverage
 Retrieval ..> Grounding : constructs result
 GeminiService ..> Retrieval : serializes whitelisted evidence
 note bottom of Client

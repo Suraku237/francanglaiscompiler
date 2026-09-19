@@ -1,53 +1,50 @@
 @startuml
 !include theme.iuml
-title Confirm or Cancel Entry Deletion
+title Confirmed deletion without false success or media loss
 hide footbox
 autonumber
 actor Maintainer
 participant "app : App" as App
 participant "messagebox\n<<external>>" as Dialog
 participant "dataset\n<<module>>" as Dataset
-participant "Local file I/O" as Files
-
 activate Maintainer
 Maintainer -> App : _delete_browse_entry()
 activate App
 alt No selected ID
-  note over App : Show "No selection"; do not write.
-else An entry is selected
-  App -> Dialog : askyesno("Delete entry", prompt)
+  note over App : Explain selection requirement; do not write.
+else Entry selected
+  App -> Dialog : askyesno(Delete entry, prompt)
   activate Dialog
-  note over Dialog : Wait for the maintainer's Yes / No choice.
-  Dialog --> App : confirmed: bool
+  Dialog --> App : Yes / No
   deactivate Dialog
-  alt confirmed = false
-    note over App : Return; preserve row, selection and media.
-  else confirmed = true
+  alt No / dismissed
+    note over App : Preserve row, selection, draft and audio.
+  else Yes
     App -> Dataset : delete_entry(selected_id)
     activate Dataset
-    Dataset -> Files : Read rows through load_all()
-    activate Files
-    Files --> Dataset : Entries
-    deactivate Files
-    note over Dataset : Remove every row whose ID equals selected_id.
-    Dataset -> Files : save_all(): rewrite header and remaining rows
-    activate Files
-    Files --> Dataset : Write complete
-    deactivate Files
-    Dataset --> App : None
+    note over Dataset : Locked read; require a matching ID.\nRemove matching IDs and atomically replace CSV.
+    Dataset --> App : Commit / EntryNotFoundError / storage failure
     deactivate Dataset
-    note over App
-      Clear selected ID and audio filename.
-      Show "Entry deleted"; refresh list/count/recent.
-      Audio files are not removed.
-    end note
+    alt Missing ID or storage failure
+      note over App : Explain failure; preserve unsaved editor fields.\nNo Entry deleted success message.
+    else Commit succeeded
+      App -> App : _clear_browse_selection()
+      activate App
+      App --> App : Cleared selected ID, fields and audio reference
+      deactivate App
+      App -> Dataset : load_all() through _refresh_views()
+      activate Dataset
+      Dataset --> App : Shared snapshot or reported refresh error
+      deactivate Dataset
+      note over App : Report committed deletion.\nThe linked saved audio file is retained.
+    end
   end
 end
-App --> Maintainer : Return with current status
+App --> Maintainer : Current truthful status
 deactivate App
 deactivate Maintainer
 legend bottom
-  Nested alternatives ensure cancellation never reaches persistence.
-  File helpers and refresh reads are condensed; no undo or atomic rewrite exists.
+  Confirmation is a decision, not an authorization or authentication check.
+  Atomic replacement protects write integrity; there is no undo stack.
 endlegend
 @enduml

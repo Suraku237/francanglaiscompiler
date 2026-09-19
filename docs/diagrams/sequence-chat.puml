@@ -10,6 +10,7 @@ participant "grounding / dataset\n<<modules>>" as Local
 participant "service : GeminiService" as AI
 participant "httpx / Gemini" as Provider
 
+activate User
 User -> Web : Send message
 activate Web
 Web -> Web : makeHistory(successful messages)
@@ -24,6 +25,9 @@ opt use_dataset = true
   Local --> API : Whitelisted approved evidence / storage error
   deactivate Local
 end
+alt Storage failed
+  note over API : Return safe storage error; do not contact AI.
+else Grounding available or dataset disabled
 API -> AI : await chat(request, evidence)
 activate AI
 AI -> AI : await _generate(contents, structured=False)
@@ -54,6 +58,7 @@ deactivate AI
 note over AI : Reply must fit 4,000 characters.
 AI --> API : Reply or AIError
 deactivate AI
+end
 API --> Web : ChatResponse(origin, evidence, model) / error
 deactivate API
 alt Success and request still current
@@ -63,6 +68,7 @@ else Failure / cancelled or stale response
 end
 Web --> User : Reply / recoverable state
 deactivate Web
+deactivate User
 legend bottom
   Dataset-off excludes retrieved examples, not explicitly typed messages/history.
   The model never receives contributor/location/notes through retrieval.
