@@ -1,0 +1,167 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[a4paper,margin=2.25cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{float}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\pagestyle{fancy}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD}\cfoot{\thepage}
+\newcommand{\placeholder}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\diagram}[2]{\begin{figure}[H]\centering\includegraphics[width=#2\textwidth]{diagrams/#1.png}\caption{#1}\end{figure}}
+
+\title{\textbf{Software Design Description}\\[0.4em]
+\Large Francanglais Compiler and Dataset Platform}
+\author{Group members and matricules:\\[0.5em]
+\placeholder{Name 1 --- Matricule 1}\\
+\placeholder{Name 2 --- Matricule 2}\\
+\placeholder{Name 3 --- Matricule 3}}
+\date{Version 1.0 --- \today}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\begin{center}
+\textit{Group work document. Replace all red placeholders before submission.}
+\end{center}
+\newpage
+\tableofcontents
+\newpage
+
+\section{Design Basis and Evidence}
+The design is grounded in the source-controlled implementation:
+\texttt{data\_collector/App.py}, \texttt{dataset.py}, and
+\texttt{audio\_utils.py}. The collector uses a CustomTkinter tabbed interface,
+CSV persistence, and a managed audio directory. The repository also includes
+a compiled frontend bundle and local ignored backend/compiler artifacts; those
+are represented as integration boundaries, not as verified public APIs.
+
+\section{Architectural Overview}
+The system follows a local layered design:
+\begin{enumerate}
+\item \textbf{Presentation layer}: \texttt{App} builds Collect, Browse \& Edit,
+and Stats tabs and handles user commands.
+\item \textbf{Dataset layer}: \texttt{dataset.py} owns CSV initialization,
+reading, append, replacement, update, deletion, duplicate checks, and counts.
+\item \textbf{Audio layer}: \texttt{audio\_utils.py} records, copies, saves,
+and plays audio with graceful capability detection.
+\item \textbf{Compiler boundary}: a future lexer/classifier/parser consumes
+dataset evidence without coupling the UI directly to parsing internals.
+\end{enumerate}
+\diagram{component}{0.98}
+
+\section{Deployment View}
+The implemented collector is deployed on one contributor workstation with
+Python runtime, local CSV storage, and local audio files. A compiler service
+or API adapter is optional and is shown separately to prevent confusion
+between current and planned deployment.
+\diagram{deployment}{0.98}
+
+\section{Detailed Module Design}
+\subsection{App}
+\texttt{App} initializes the dataset file, configures the dark UI, creates
+three tabs, and owns transient form state such as the pending audio filename
+and selected browse row. \texttt{save\_entry} reads the form, creates an ID
+and timestamp, calls \texttt{dataset.append\_entry}, and refreshes visible
+state. Browse operations delegate persistence to dataset helpers. Audio
+controls delegate recording and playback to \texttt{audio\_utils}.
+
+\subsection{Dataset}
+The dataset module defines the canonical field list, entry types, and
+categories. \texttt{ensure\_dataset\_file} establishes the CSV header;
+\texttt{load\_all} returns dictionaries; \texttt{append\_entry} appends one
+row; \texttt{save\_all} rewrites the complete file for updates/deletes.
+\texttt{text\_exists} normalizes case and whitespace for duplicate detection.
+
+\subsection{Audio utilities}
+\texttt{AUDIO\_RECORDING\_AVAILABLE} is determined by optional imports.
+\texttt{Recorder} buffers microphone frames and returns one NumPy array.
+\texttt{save\_recording} writes a UUID-named WAV file. \texttt{attach\_file}
+copies an existing file to a UUID-named destination. \texttt{play\_audio}
+tries sounddevice/soundfile first and then the operating-system default
+player; it returns false when the path is missing or both paths fail.
+
+\subsection{Compiler boundary}
+The compiler design is intentionally staged: tokenize text, classify tokens
+using exact/fuzzy and learned lexical evidence, parse a mixed-language
+sentence with a grammar, and return a structured analysis. This boundary
+should be implemented behind an adapter so the collector remains usable
+without the compiler and so compiler analysis cannot silently rewrite data.
+
+\diagram{class-domain}{0.98}
+
+\section{Behavioral Design}
+\subsection{Use cases}
+\diagram{use-case}{0.98}
+
+\subsection{Entry collection activity}
+\diagram{activity-collect}{0.90}
+
+\subsection{Save sequence}
+\diagram{sequence-collect}{0.98}
+
+\subsection{Entry lifecycle}
+\diagram{state-entry}{0.90}
+
+\section{Interfaces and Contracts}
+\begin{longtable}{p{3.2cm}p{9.9cm}}
+\toprule
+\textbf{Interface} & \textbf{Contract}\\ \midrule
+\endhead
+\texttt{Dataset.append\_entry(entry)} & Receives a dictionary containing the canonical fields and appends one UTF-8 CSV row.\\
+\texttt{Dataset.update\_entry(id, fields)} & Loads rows, updates the matching ID, and rewrites the CSV.\\
+\texttt{Dataset.delete\_entry(id)} & Loads rows, removes matching ID, and rewrites the CSV.\\
+\texttt{AudioUtils.attach\_file(source, dir)} & Copies a source media file to the managed directory and returns its generated filename.\\
+\texttt{AudioUtils.play\_audio(path)} & Returns true only when playback was successfully started.\\
+\texttt{CompilerAdapter.analyse(text)} & Proposed contract returning tokens, token labels, parse status, and explanatory diagnostics.\\
+\bottomrule
+\end{longtable}
+
+\section{Persistence and Error Handling}
+The CSV header is created before reads or writes. Update and delete use
+read-modify-write semantics, which is suitable for a single desktop user but
+not for concurrent writers. Empty text is rejected at the UI boundary.
+Missing audio paths and playback failures are surfaced as false results and,
+for pending playback, a visible error dialog. Optional recording import
+failure disables recording while preserving attachment and data-management
+features.
+
+\section{Security and Privacy Design}
+Local environment files may contain credentials and are excluded from the
+documentation and Git history. Audio and linguistic entries can contain
+personal or culturally sensitive information; access should be restricted to
+the project team, contributor consent should be obtained, and exports should
+exclude secrets. A future service adapter must validate input, authenticate
+maintainer operations, and avoid logging raw audio or credentials.
+
+\section{Verification Strategy}
+\begin{itemize}
+\item Unit-test CSV initialization, UTF-8 round trips, append, update, delete,
+duplicate normalization, counts, and empty-input validation.
+\item Test audio capability-off behavior without a microphone, plus attach and
+missing-file playback paths.
+\item Test compiler tokenization and parsing against representative
+French/English/Pidgin mixtures and malformed input.
+\item Perform an end-to-end manual scenario covering Collect, Browse \& Edit,
+Stats, and audio playback.
+\item Regenerate diagrams from the PlantUML sources so the PNGs remain
+consistent with the design text.
+\end{itemize}
+
+\section{Design Decisions and Future Work}
+\begin{itemize}
+\item CSV is retained for transparent, portable Phase 1 collection.
+\item The compiler remains decoupled until the corpus and grammar are stable.
+\item A database, schema migration strategy, authentication, and service API
+are future work for multi-user deployment.
+\item The illustrative grammar in the coursework JSON requires linguistic
+validation before being promoted to a production parser.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,26 @@
+@startuml
+title Collect a Francanglais Entry - Activity Diagram
+start
+:Open Collect tab;
+:Enter word, phrase or sentence;
+if (Text is non-empty?) then (yes)
+  :Select entry type and category;
+  :Enter French/English glosses;
+  if (Audio wanted?) then (yes)
+    if (Live recording available?) then (yes)
+      :Record from microphone;
+      :Save WAV in audio directory;
+    else (no)
+      :Attach existing audio file;
+      :Copy file into audio directory;
+    endif
+  endif
+  :Create unique entry id and timestamp;
+  :Append CSV row;
+  :Refresh count and recent entries;
+  :Clear form (preserve contributor);
+else (no)
+  :Show "Missing text" warning;
+endif
+stop
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+title Francanglais Platform - Component Diagram
+skinparam componentStyle rectangle
+
+actor Contributor
+component "CustomTkinter Collector" as UI
+component "Dataset service\n(dataset.py)" as DS
+component "Audio service\n(audio_utils.py)" as AS
+database "dataset.csv" as DB
+folder "audio/" as FS
+component "Compiler pipeline\n(lexer / classifier / parser)" as CP
+component "Future API adapter" as API
+actor "Compiler client" as Client
+
+Contributor --> UI
+UI --> DS : CRUD entries / stats
+UI --> AS : record / attach / play
+DS --> DB : CSV read/write
+AS --> FS : audio files
+Client --> API
+API --> CP
+CP --> DS : load lexical evidence
+API --> UI : optional integration
+@enduml

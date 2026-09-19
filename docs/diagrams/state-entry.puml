@@ -1,0 +1,16 @@
+@startuml
+title Dataset Entry Lifecycle - State Diagram
+[*] --> Draft
+Draft --> Validating : save requested
+Validating --> Rejected : text empty
+Rejected --> Draft : user edits form
+Validating --> Persisted : valid entry
+Draft --> AudioPending : audio recorded/attached
+AudioPending --> Draft : audio selected
+Persisted --> Selected : browse row selected
+Selected --> Persisted : deselect
+Persisted --> Updated : save changes
+Updated --> Persisted
+Persisted --> Deleted : delete requested
+Deleted --> [*]
+@enduml

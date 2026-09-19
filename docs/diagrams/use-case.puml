@@ -1,0 +1,41 @@
+@startuml
+title Francanglais System - Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Contributor" as contributor
+actor "Project maintainer" as maintainer
+actor "Microphone / audio file" as audio
+actor "Compiler client" as client
+
+rectangle "Francanglais platform" {
+  usecase "Collect linguistic entry" as UC1
+  usecase "Record or attach audio" as UC2
+  usecase "Validate required text" as UC3
+  usecase "Persist dataset row" as UC4
+  usecase "Browse and search entries" as UC5
+  usecase "Edit or delete entry" as UC6
+  usecase "Play stored audio" as UC7
+  usecase "View statistics" as UC8
+  usecase "Tokenize input" as UC9
+  usecase "Classify tokens" as UC10
+  usecase "Parse sentence" as UC11
+  usecase "Return analysis" as UC12
+}
+
+contributor --> UC1
+contributor --> UC5
+contributor --> UC6
+contributor --> UC7
+contributor --> UC8
+audio --> UC2
+maintainer --> UC8
+client --> UC9
+client --> UC11
+UC1 .> UC3 : <<include>>
+UC1 .> UC4 : <<include>>
+UC1 .> UC2 : <<extend>>
+UC9 .> UC10 : <<include>>
+UC10 .> UC11 : <<include>>
+UC11 .> UC12 : <<include>>
+@enduml

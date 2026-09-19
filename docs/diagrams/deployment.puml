@@ -1,0 +1,25 @@
+@startuml
+title Francanglais Platform - Deployment Diagram
+node "Contributor workstation" as workstation {
+  node "Python runtime" as python {
+    artifact "data_collector/App.py" as app
+    artifact "dataset.py" as dataset
+    artifact "audio_utils.py" as audio
+  }
+  folder "Local project data" as data {
+    artifact "dataset.csv" as csv
+    folder "audio/" as audiodir
+  }
+}
+node "Optional service host" as host {
+  artifact "Compiler/API adapter" as api
+}
+node "Client browser or tool" as browser
+
+app --> dataset
+app --> audio
+dataset --> csv
+audio --> audiodir
+browser --> api : HTTP (future integration)
+api --> csv : lexical evidence
+@enduml

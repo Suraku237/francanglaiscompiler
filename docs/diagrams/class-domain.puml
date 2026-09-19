@@ -1,0 +1,65 @@
+@startuml
+title Francanglais Collector - Domain Class Diagram
+skinparam classAttributeIconSize 0
+
+class App {
+  - pending_audio_path: str
+  - selected_browse_id: str
+  - recorder: Recorder
+  + save_entry()
+  + clear_form()
+  + attach_audio_file()
+  + play_pending_audio()
+  + toggle_recording()
+}
+
+class Dataset {
+  {static} FIELDNAMES: list
+  {static} CATEGORIES: list
+  {static} ENTRY_TYPES: list
+  + ensure_dataset_file()
+  + load_all(): list
+  + append_entry(entry: dict)
+  + save_all(entries)
+  + update_entry(id, fields)
+  + delete_entry(id)
+  + text_exists(text, exclude_id)
+  + count_by(field): dict
+  + total_count(): int
+}
+
+class AudioUtils {
+  {static} AUDIO_RECORDING_AVAILABLE: bool
+  {static} SAMPLE_RATE: int
+  + save_recording(audio, audio_dir): str
+  + attach_file(source, audio_dir): str
+  + play_audio(path): bool
+}
+
+class Recorder {
+  - frames: list
+  - stream: InputStream
+  - recording: bool
+  + start()
+  + stop(): audio
+}
+
+class DatasetEntry {
+  id: str
+  text: str
+  entry_type: word|phrase|sentence
+  french_gloss: str
+  english_gloss: str
+  category: str
+  notes: str
+  audio_filename: str
+  contributor: str
+  timestamp: ISO-8601
+}
+
+App ..> Dataset : uses
+App ..> AudioUtils : uses
+AudioUtils *-- Recorder : creates when available
+Dataset "1" o-- "*" DatasetEntry : CSV rows
+DatasetEntry "0..1" --> "1" AudioUtils : audio file
+@enduml

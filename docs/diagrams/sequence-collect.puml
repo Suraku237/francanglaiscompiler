@@ -1,0 +1,31 @@
+@startuml
+title Save Collected Entry - Sequence Diagram
+actor Contributor
+participant "App (CustomTkinter)" as App
+participant "dataset.py" as Dataset
+participant "audio_utils.py" as Audio
+database "dataset.csv" as CSV
+participant "audio/ directory" as AudioDir
+
+Contributor -> App : Fill form and click Save
+App -> App : Read text and metadata
+App -> App : Reject empty text
+App -> Dataset : append_entry(entry)
+Dataset -> Dataset : ensure_dataset_file()
+Dataset -> CSV : Append DictWriter row
+CSV --> Dataset : File write complete
+Dataset --> App : Return
+App -> Dataset : total_count()
+Dataset -> CSV : Read rows
+CSV --> Dataset : Entries
+Dataset --> App : Count
+App --> Contributor : Show saved status and refresh UI
+
+opt Audio attached before save
+  Contributor -> App : Record or attach file
+  App -> Audio : save_recording()/attach_file()
+  Audio -> AudioDir : Write copied/generated file
+  AudioDir --> Audio : Filename
+  Audio --> App : pending_audio_path
+end
+@enduml

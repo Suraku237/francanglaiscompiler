@@ -1,0 +1,160 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\pagestyle{fancy}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS}\cfoot{\thepage}
+\newcommand{\placeholder}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\req}[1]{\textbf{#1}}
+
+\title{\textbf{Software Requirements Specification}\\[0.4em]
+\Large Francanglais Compiler and Dataset Platform}
+\author{Group members and matricules:\\[0.5em]
+\placeholder{Name 1 --- Matricule 1}\\
+\placeholder{Name 2 --- Matricule 2}\\
+\placeholder{Name 3 --- Matricule 3}}
+\date{Version 1.0 --- \today}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\begin{center}
+\textit{Group work document. Replace all red placeholders before submission.}
+\end{center}
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\subsection{Purpose}
+This document specifies the requirements for a Francanglais (Camfranglais)
+language data and analysis platform. The verified baseline is the
+CustomTkinter desktop collector in \texttt{data\_collector/}; the planned
+compiler pipeline consumes the collected lexical data for tokenization,
+classification, prediction, and sentence-level analysis.
+
+\subsection{Scope}
+The system shall allow contributors to collect words, phrases, and sentences
+with French and English glosses, categories, notes, contributor identity, and
+optional audio. It shall persist the records locally, support browsing,
+editing, deletion, audio playback, and statistics, and expose a clear
+integration boundary for the compiler pipeline.
+
+\subsection{Definitions}
+\begin{description}[leftmargin=3.2cm,style=nextline]
+\item[Francanglais] Code-mixed language using French, English, and Pidgin
+features in a Cameroonian context.
+\item[Entry] A dataset row containing linguistic metadata and optional audio.
+\item[Gloss] A standard-language meaning supplied in French or English.
+\item[Collector] The desktop application used to create and maintain entries.
+\item[Compiler pipeline] The lexer, classifier, predictor, and parser planned
+to analyze new input using collected evidence.
+\end{description}
+
+\section{Overall Description}
+\subsection{Product perspective}
+The collector is a local desktop application. It uses a CSV file as its
+primary store and an audio directory for media. The repository also contains
+a compiled frontend artifact; because backend/compiler source is not tracked
+in the current snapshot, this SRS treats that integration as an explicit
+future boundary rather than claiming implemented HTTP behavior.
+
+\subsection{User classes}
+\begin{itemize}
+\item \textbf{Contributor}: enters and annotates linguistic data.
+\item \textbf{Maintainer}: reviews, edits, removes, and monitors data quality.
+\item \textbf{Compiler client}: submits text for future lexical/syntactic analysis.
+\end{itemize}
+
+\subsection{Operating environment}
+The collector runs on Python with CustomTkinter. Optional recording uses
+\texttt{sounddevice}, \texttt{soundfile}, and NumPy. The project stores UTF-8
+CSV data and audio files on the local workstation. The documented build
+environment is Windows, although the audio playback helper includes Unix
+fallbacks.
+
+\section{Functional Requirements}
+\begin{longtable}{p{1.8cm}p{11.6cm}}
+\toprule
+\textbf{ID} & \textbf{Requirement}\\ \midrule
+\endhead
+\req{FR-01} & The system shall create the dataset file and audio directory when they do not exist.\\
+\req{FR-02} & The collector shall accept non-empty Francanglais text and reject an empty submission with a visible warning.\\
+\req{FR-03} & The contributor shall select one entry type: word, phrase, or sentence.\\
+\req{FR-04} & The contributor shall provide French gloss, English gloss, category, notes, and contributor fields.\\
+\req{FR-05} & The system shall assign a unique identifier and ISO-8601 timestamp to every saved entry.\\
+\req{FR-06} & The system shall append entries using the defined CSV field order without silently discarding fields.\\
+\req{FR-07} & The system shall warn about case-insensitive duplicate text before saving.\\
+\req{FR-08} & The contributor shall record microphone audio when the optional audio dependencies and device are available.\\
+\req{FR-09} & The contributor shall attach an existing audio file when recording is unavailable or undesired.\\
+\req{FR-10} & The system shall copy attached/recorded media into the managed audio directory and store its generated filename.\\
+\req{FR-11} & The contributor shall browse and search entries by text, category, or contributor.\\
+\req{FR-12} & The maintainer shall edit or delete a selected entry and persist the resulting complete CSV.\\
+\req{FR-13} & The system shall play an existing audio file using the audio library or operating-system fallback.\\
+\req{FR-14} & The system shall show counts by category and entry type.\\
+\req{FR-15} & The compiler boundary shall support tokenization, token classification, parsing, and an analysis result for future integration.\\
+\req{FR-16} & Compiler features shall not mutate the source dataset without an explicit data-management operation.\\
+\bottomrule
+\end{longtable}
+
+\section{Non-Functional Requirements}
+\begin{longtable}{p{1.8cm}p{11.6cm}}
+\toprule
+\textbf{ID} & \textbf{Requirement}\\ \midrule
+\endhead
+\req{NFR-01} & The UI shall remain usable at the documented minimum window size of 760 by 620 pixels.\\
+\req{NFR-02} & Dataset text shall be read and written as UTF-8 to preserve French and Camfranglais characters.\\
+\req{NFR-03} & A failed audio playback operation shall return a visible failure result rather than reporting success.\\
+\req{NFR-04} & File paths shall be derived from the project/data directories; user-supplied media shall be copied rather than referenced in place.\\
+\req{NFR-05} & The implementation shall keep optional audio support degradable: attach, browse, and edit remain available when recording dependencies fail.\\
+\req{NFR-06} & The compiler shall produce deterministic results for the same dataset, grammar, and input.\\
+\req{NFR-07} & Data-management operations shall be covered by automated tests for empty input, duplicate handling, CRUD, and CSV round trips.\\
+\req{NFR-08} & Secrets and local environment files shall not be included in documentation output or version control.\\
+\bottomrule
+\end{longtable}
+
+\section{Data Requirements}
+Each row shall contain the fields \texttt{id}, \texttt{text},
+\texttt{entry\_type}, \texttt{french\_gloss}, \texttt{english\_gloss},
+\texttt{category}, \texttt{notes}, \texttt{audio\_filename},
+\texttt{contributor}, and \texttt{timestamp}. Categories include greeting,
+everyday, slang, insult/banter, market/money, school/campus, food, family,
+proverb/expression, and other.
+
+\section{Use Cases}
+\begin{longtable}{p{1.7cm}p{2.5cm}p{8.9cm}}
+\toprule
+\textbf{ID} & \textbf{Actor} & \textbf{Success scenario}\\ \midrule
+\endhead
+UC-01 & Contributor & Enter a valid item, annotate it, optionally add audio, and save it to the dataset.\\
+UC-02 & Maintainer & Search for an item, select it, edit fields, and save changes.\\
+UC-03 & Maintainer & Select an item, request deletion, and see it removed from the CSV.\\
+UC-04 & Contributor & Select an audio item and play it through the available playback path.\\
+UC-05 & Maintainer & Open Stats and inspect counts by category and entry type.\\
+UC-06 & Compiler client & Submit text to the compiler boundary and receive tokens, classifications, and parse analysis.\\
+\bottomrule
+\end{longtable}
+
+\section{Constraints, Assumptions, and Limitations}
+\begin{itemize}
+\item The current verified persistence mechanism is CSV; concurrent multi-user writes are out of scope.
+\item Audio quality, microphone permissions, and codec support depend on the workstation.
+\item The teaching grammar in \texttt{data\_collector/coursework/project.json} is explicitly illustrative and must not be presented as a validated corpus grammar.
+\item Backend/compiler modules observed only as local ignored artifacts are not treated as released requirements.
+\item Collected audio and dataset rows are local project data and require a backup policy outside this document.
+\end{itemize}
+
+\section{Traceability}
+The SDD sections and diagrams map FR-01--FR-14 to the collector classes and
+FR-15--FR-16 to the compiler boundary. The sequence and activity diagrams
+describe the verified save flow; the component and deployment diagrams
+separate implemented components from optional/future integration.
+
+\end{document}
