@@ -140,7 +140,7 @@ class GeminiService:
         )
         try:
             async with asyncio.timeout(self.settings.gemini_timeout_seconds):
-                retry_available = True
+                attempt = 1
                 while True:
                     if self.before_request is not None:
                         await run_in_threadpool(self.before_request)
@@ -154,10 +154,11 @@ class GeminiService:
                         },
                         timeout=self.settings.gemini_timeout_seconds,
                     )
-                    if response.status_code != 503 or not retry_available:
+                    if response.status_code != 503 or attempt >= 3:
                         break
-                    retry_available = False
-                    await asyncio.sleep(1 + random.random())
+                    logger.warning("Gemini returned HTTP 503; retrying attempt %s of 3.", attempt + 1)
+                    await asyncio.sleep(2 ** (attempt - 1) + random.random())
+                    attempt += 1
         except (httpx.TimeoutException, TimeoutError) as exc:
             raise AIError(504, "Gemini timed out. Please try again.") from exc
         except httpx.RequestError as exc:

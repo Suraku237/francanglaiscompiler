@@ -124,12 +124,48 @@ class GeminiConfigurationTests(unittest.IsolatedAsyncioTestCase):
     async def test_persistent_unavailable_is_bounded_and_sanitized(self) -> None:
         self.responses = [
             httpx.Response(503, json={"error": {"message": "provider-private-response"}})
-            for _ in range(2)
+            for _ in range(3)
         ]
         with self.assertRaises(AIError) as raised:
             await self.service.chat(ChatRequest(message="Hello"))
         self.assertEqual(raised.exception.status_code, 502)
         self.assertNotIn("provider-private-response", raised.exception.detail)
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual(self.sleep.await_count, 2)
+
+    async def test_translation_recovers_on_third_attempt_with_increasing_backoff(self) -> None:
+        translation = {
+            "translation": "Hello.", "explanation": "A greeting.",
+            "vocabulary": [], "note": "Unreviewed AI suggestion.",
+        }
+        self.responses = [
+            httpx.Response(503, json={"error": "provider-private-response"}),
+            httpx.Response(503, json={"error": "provider-private-response"}),
+            httpx.Response(200, json=generated(json.dumps(translation))),
+        ]
+        with patch("backend.gemini.random.random", return_value=0.5):
+            with self.assertLogs("backend.gemini", level="WARNING") as captured:
+                result = await self.service.translate(TranslationRequest(
+                    text="Bonjour.", source_language="fr", target_language="en",
+                    use_dataset=False, use_dictionary=False,
+                ))
+        self.assertEqual(result.model_dump(), translation)
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual([call.args[0] for call in self.sleep.await_args_list], [1.5, 2.5])
+        for request in self.requests[1:]:
+            self.assertEqual(request.url, self.requests[0].url)
+            self.assertEqual(request.content, self.requests[0].content)
+        logged = "\n".join(captured.output)
+        self.assertIn("attempt 2 of 3", logged)
+        self.assertIn("attempt 3 of 3", logged)
+        self.assertNotIn("provider-private-response", logged)
+        self.assertNotIn("synthetic-test-key", logged)
+
+    async def test_provider_quota_error_stops_remaining_retries(self) -> None:
+        self.responses = [httpx.Response(503), httpx.Response(429)]
+        with self.assertRaises(AIError) as raised:
+            await self.service.chat(ChatRequest(message="Hello"))
+        self.assertEqual(raised.exception.status_code, 429)
         self.assertEqual(len(self.requests), 2)
         self.sleep.assert_awaited_once()
 
@@ -146,6 +182,25 @@ class GeminiConfigurationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(raised.exception.status_code, 504)
         self.assertEqual(len(self.requests), 1)
         self.sleep.assert_awaited_once()
+
+    async def test_second_backoff_uses_the_same_total_request_timeout(self) -> None:
+        waits = 0
+
+        async def delayed_second_retry(_: float) -> None:
+            nonlocal waits
+            waits += 1
+            if waits == 2:
+                await asyncio.Event().wait()
+
+        self.settings.gemini_timeout_seconds = 1
+        self.responses = [httpx.Response(503), httpx.Response(503)]
+        self.sleep.side_effect = delayed_second_retry
+        async with asyncio.timeout(2):
+            with self.assertRaises(AIError) as raised:
+                await self.service.chat(ChatRequest(message="Hello"))
+        self.assertEqual(raised.exception.status_code, 504)
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.sleep.await_count, 2)
 
     async def test_network_failure_is_sanitized_without_retry(self) -> None:
         with patch.object(self.client, "post", side_effect=httpx.ConnectError("provider-private-response")):

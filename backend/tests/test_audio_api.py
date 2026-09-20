@@ -1,21 +1,10 @@
-import io
 import json
-import wave
 from pathlib import Path
 from unittest.mock import patch
 
+from backend.tests.import_fixtures import wav_bytes
 from backend.tests.test_api import ApiTestCase
 from data_collector import dataset
-
-
-def wav_bytes() -> bytes:
-    output = io.BytesIO()
-    with wave.open(output, "wb") as audio:
-        audio.setnchannels(1)
-        audio.setsampwidth(2)
-        audio.setframerate(16000)
-        audio.writeframes(b"\x00\x00" * 1600)
-    return output.getvalue()
 
 
 class AudioApiTests(ApiTestCase):

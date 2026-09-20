@@ -19,17 +19,19 @@ import httpx
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
+from jwt.algorithms import RSAAlgorithm
 from pydantic import SecretStr, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.auth import AuthSettings, COOKIE, OAUTH_COOKIE, AuthError, digest
 from backend.config import Settings
 from backend.main import create_app
-from backend.tests.test_audio_api import wav_bytes
+from backend.tests.import_fixtures import wav_bytes
 from backend.workspace_backups import BackupRestore, maintenance_cycle, maintain_backups, preview_backup, restore_backup, snapshot, validate_archive
 from backend.workspaces import WorkspaceStore, HistoryInput
 from backend.collection import CollectionError
 from data_collector import dataset
+from data_collector.tests.support import synthetic_entry
 
 PASSWORD = "Workspace-test-password-2026!"
 HISTORY = {
@@ -64,7 +66,10 @@ class HostedCase(unittest.TestCase):
 
     def token(self, email):
         text = next(text for address, text in reversed(self.mail) if address == email)
-        return re.search(r"token=([A-Za-z0-9_-]+)", text).group(1)
+        match = re.search(r"token=([A-Za-z0-9_-]+)", text)
+        if match is None:
+            self.fail("The synthetic account email must contain a verification or recovery token.")
+        return match.group(1)
 
     def register(self, client=None, email="first@example.com"):
         client = client or self.client
@@ -93,6 +98,13 @@ class HostedCase(unittest.TestCase):
         response = client.post("/api/dataset", json={"text": text, "language": "francanglais", **values})
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
+
+    def legacy_directory(self):
+        directory = self.root / "legacy"
+        self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(directory / "dataset.csv")))
+        self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(directory / "audio")))
+        self.stack.enter_context(patch.object(dataset, "_LOCKS", {}))
+        return directory
 
 
 class AccountTests(HostedCase):
@@ -181,7 +193,10 @@ class AccountTests(HostedCase):
         with self.assertRaises(AuthError) as error:
             self.store.throttle("test", 1, 60)
         self.assertEqual(error.exception.status, 429)
-        self.assertGreater(error.exception.retry_after, 0)
+        retry_after = error.exception.retry_after
+        if retry_after is None:
+            self.fail("Rate-limited requests must include a retry interval.")
+        self.assertGreater(retry_after, 0)
         self.register()
         user_id = self.client.get("/api/auth/session").json()["user"]["id"]
         self.store.settings.ai_daily_user_limit = 1
@@ -190,13 +205,14 @@ class AccountTests(HostedCase):
             self.store.charge_ai(user_id)
 
     def test_production_configuration_cannot_use_file_mail_or_plain_http(self):
-        for changes in (
-            {"environment": "production", "public_url": "http://app.example", "mail_mode": "smtp", "smtp_host": "smtp.example", "mail_from": "app@example.com"},
-            {"environment": "production", "public_url": "https://app.example", "mail_mode": "file"},
-            {"google_client_id": "configured", "google_client_secret": SecretStr("")},
-        ):
-            with self.subTest(changes=changes), self.assertRaises(ValidationError):
-                AuthSettings(_env_file=None, **changes)
+        with patch.dict(AuthSettings.model_config, {"env_file": None}):
+            with self.subTest(case="plain HTTP"), self.assertRaises(ValidationError):
+                AuthSettings(environment="production", public_url="http://app.example",
+                             mail_mode="smtp", smtp_host="smtp.example", mail_from="app@example.com")
+            with self.subTest(case="file mail"), self.assertRaises(ValidationError):
+                AuthSettings(environment="production", public_url="https://app.example", mail_mode="file")
+            with self.subTest(case="unpaired Google credentials"), self.assertRaises(ValidationError):
+                AuthSettings(google_client_id="configured", google_client_secret=SecretStr(""))
 
 
 class PrivateWorkspaceTests(HostedCase):
@@ -309,12 +325,24 @@ class PrivateWorkspaceTests(HostedCase):
                                          json={"expected_version": state["workspace_version"]}).status_code, 409)
 
     def test_legacy_files_are_not_imported_or_modified(self):
+        self.legacy_directory().mkdir()
+        dataset.append_entry(synthetic_entry(text="Legacy-only synthetic expression"))
         path = Path(dataset.DATASET_PATH)
         before = path.read_bytes()
         self.register()
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         self.entry()
+        self.assertEqual(self.client.get("/api/dataset").json()["total"], 1)
         self.assertEqual(path.read_bytes(), before)
+
+    def test_missing_legacy_files_are_not_created(self):
+        directory = self.legacy_directory()
+        self.assertFalse(directory.exists())
+        self.register()
+        self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
+        self.entry()
+        self.assertEqual(self.client.get("/api/dataset").json()["total"], 1)
+        self.assertFalse(directory.exists())
 
     def test_audio_upload_and_range_read_are_private(self):
         self.register()
@@ -495,11 +523,12 @@ class GoogleSignInTests(HostedCase):
     def setUp(self):
         super().setUp()
         self.key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(self.key.public_key()))
+        jwk = json.loads(RSAAlgorithm.to_jwk(self.key.public_key()))
         jwk.update(kid="test-key", alg="RS256", use="sig")
         self.jwks = {"keys": [jwk]}
         self.claims = {}
         self.network = []
+        self.provider_responses: dict[str, httpx.Response] = {}
         self.settings.google_client_id = "test-google-client"
         self.settings.google_client_secret = SecretStr("test-secret-not-real")
         app = create_app(
@@ -513,6 +542,8 @@ class GoogleSignInTests(HostedCase):
 
     def google(self, request):
         self.network.append(request)
+        if request.url.path in self.provider_responses:
+            return self.provider_responses[request.url.path]
         if request.url.path == "/token":
             return httpx.Response(200, json={"id_token": jwt.encode(self.claims, self.key, algorithm="RS256", headers={"kid": "test-key"})})
         return httpx.Response(200, json=self.jwks)
@@ -544,6 +575,68 @@ class GoogleSignInTests(HostedCase):
         state = self.start()
         self.assertEqual(self.callback(state, self.other()).status_code, 400)
         self.assertEqual(self.network, [])
+
+    def test_google_client_rejection_is_actionable_without_logging_credentials(self):
+        state = self.start()
+        self.provider_responses["/token"] = httpx.Response(401, json={
+            "error": "invalid_client",
+            "error_description": self.settings.google_client_secret.get_secret_value(),
+            "id_token": "private-identity-token",
+        })
+        with self.assertLogs("backend.auth", level="WARNING") as captured:
+            response = self.callback(state)
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("client ID and client secret", response.json()["detail"])
+        logged = "\n".join(captured.output)
+        self.assertIn("stage=token_exchange", logged)
+        self.assertIn("status=401", logged)
+        self.assertIn("error=invalid_client", logged)
+        for private in ("test-secret-not-real", "private-identity-token", "fake-code", state):
+            self.assertNotIn(private, logged + response.text)
+        self.assertEqual([request.url.path for request in self.network], ["/token"])
+        self.assertIsNone(self.client.get("/api/auth/session").json()["user"])
+
+    def test_google_rejected_code_requires_a_fresh_attempt(self):
+        state = self.start()
+        self.provider_responses["/token"] = httpx.Response(400, json={"error": "invalid_grant"})
+        with self.assertLogs("backend.auth", level="WARNING") as captured:
+            response = self.callback(state)
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("Start a new Google sign-in", response.json()["detail"])
+        self.assertIn("error=invalid_grant", "\n".join(captured.output))
+        self.assertEqual(self.callback(state).status_code, 400)
+        self.assertEqual([request.url.path for request in self.network], ["/token"])
+        self.assertIsNone(self.client.get("/api/auth/session").json()["user"])
+
+    def test_google_signing_key_failure_is_distinguished_from_client_rejection(self):
+        state = self.start()
+        self.provider_responses["/oauth2/v3/certs"] = httpx.Response(
+            503, json={"error": "temporarily_unavailable"},
+        )
+        with self.assertLogs("backend.auth", level="WARNING") as captured:
+            response = self.callback(state)
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("temporarily unavailable", response.json()["detail"])
+        self.assertIn("stage=signing_keys", "\n".join(captured.output))
+        self.assertIn("status=503", "\n".join(captured.output))
+        self.assertIsNone(self.client.get("/api/auth/session").json()["user"])
+
+    def test_google_unknown_error_payloads_are_never_exposed(self):
+        for failure, marker in (
+            (httpx.Response(400, json={"error": "private-provider-value"}), "unrecognized"),
+            (httpx.Response(400, text="private-provider-value"), "invalid_json"),
+            (httpx.Response(400, json=["private-provider-value"]), "unrecognized"),
+        ):
+            with self.subTest(marker=marker):
+                state = self.start()
+                self.provider_responses["/token"] = failure
+                with self.assertLogs("backend.auth", level="WARNING") as captured:
+                    response = self.callback(state)
+                self.assertEqual(response.status_code, 502)
+                logged = "\n".join(captured.output)
+                self.assertIn("error=" + marker, logged)
+                self.assertNotIn("private-provider-value", logged + response.text)
+                self.assertIsNone(self.client.get("/api/auth/session").json()["user"])
 
     def test_google_nonce_audience_issuer_expiry_and_verified_email_are_required(self):
         for change in (

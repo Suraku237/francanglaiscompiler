@@ -49,7 +49,7 @@ else No exact answer and allow_ai = true
   activate Provider
   Provider --> AI : Response or transport failure
   deactivate Provider
-  note over AI : Validate response/finish status; one bounded\n503 retry is expanded in the chat/provider view.
+  note over AI : Validate response/finish status; up to two bounded\n503 retries (3 attempts total) are expanded in the chat/provider view.
   AI --> AI : JSON text or AIError
   deactivate AI
   AI --> API : Validated TranslationContent or AIError

@@ -1,0 +1,237 @@
+{
+  "recorded_on": "2026-09-20",
+  "baseline_commit": "cb25902824ca37b613c5bd75ff300d1f079b16ec",
+  "earlier_implementation_baseline": "bba4926b4714c69878a06704cab53eafedcb8e88",
+  "includes_uncommitted_completion_changes": true,
+  "scope": "Local verification of the hosted business application: isolated synthetic automated tests and an explicitly recorded owner-assisted live Google sign-in; not public-launch approval",
+  "google_sign_in_follow_up": {
+    "recorded_on": "2026-09-20",
+    "earlier_record_note": "The full-suite totals and fingerprints in the sections below describe the earlier verification run, before this callback-diagnostics change.",
+    "command": ".venv\\Scripts\\python.exe -m unittest backend.tests.test_hosted backend.tests.test_web -q",
+    "passed": 46,
+    "failed": 0,
+    "run_seconds": 17.641,
+    "regression_coverage": "Recognized client/code rejections, signing-key failures, redaction of unknown/non-JSON provider payloads, no signing-key request after token-exchange rejection, and unchanged account/identity/web-boundary tests.",
+    "pylance_and_editor_errors": 0,
+    "identity_checks_relaxed": false,
+    "initial_live_result": {
+      "stage": "token_exchange",
+      "http_status": 401,
+      "oauth_error": "invalid_client",
+      "sign_in_succeeded": false,
+      "effective_credentials_match_backend_env": true,
+      "environment_override_present": false,
+      "outer_whitespace_present": false,
+      "public_signing_keys_endpoint_http_status": 200,
+      "resolution": "The owner updated the private server configuration. Mboa was restarted to load it, and a fresh Google sign-in succeeded. No real credential values or provider response bodies are recorded."
+    },
+    "latest_live_result": {
+      "recorded_on": "2026-09-20",
+      "origin": "http://127.0.0.1:8000",
+      "sign_in_succeeded": true,
+      "owner_confirmed_workspace_opened": true,
+      "callback_http_status": 303,
+      "session_http_status": 200,
+      "authenticated": true,
+      "google_linked": true,
+      "email_verified": true,
+      "private_projects_http_status": 200,
+      "server_restarted_after_configuration_save": true,
+      "connectivity_checks": "After an ERR_ADDRESS_UNREACHABLE screenshot, the public Google sign-in host responded from Windows and its public OpenID configuration loaded in the same VS Code browser. No network or firewall settings were changed.",
+      "evidence": "User completed a fresh Google flow and confirmed the workspace opened. Redacted server logs show callback/session/projects success; an independent same-origin browser session request returned authenticated, Google-linked and verified-email flags. Account identifiers, email addresses, secrets, authorization codes and tokens are omitted.",
+      "limitations": "One real local sign-in was verified. This does not establish production Google consent/redirect configuration, explicit linking to an existing password account, SMTP delivery, live Gemini behavior or Ubuntu VPS readiness."
+    },
+    "restarted_local_server": {
+      "homepage_http_status": 200,
+      "health": "ok",
+      "google_enabled": true,
+      "email_enabled": true
+    },
+    "artifact_sha256": {
+      "backend/auth.py": "8e1ccffa2ab60f1c90025aa29ebdace567d561753144b1e15061e1460133daa8",
+      "backend/tests/test_hosted.py": "a578fde3f75580bdbc2b884bf66fa3d9e026d903b4d1a7c05a3cd0c2295a11d4"
+    }
+  },
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "python": "3.14.6",
+    "node": "22.23.1",
+    "npm": "10.9.8",
+    "physical_memory_bytes": 34166005760,
+    "python_311_executed_locally": false,
+    "linux_executed_locally": false
+  },
+  "python": {
+    "command": ".venv\\Scripts\\python.exe -m tools.run_python_tests --quiet",
+    "passed": 360,
+    "failed": 0,
+    "final_run_seconds": 44.297,
+    "clean_checkout_verified": true,
+    "execution_context": "Temporary git archive of baseline_commit, with the final backend/tests/test_hosted.py overlaid. No ignored legacy CSV, real environment file or pre-existing workspace was present. Inherited MBOA/Gemini settings were removed and AI disabled. The owned temporary checkout was removed after the run.",
+    "ci_regression_fixed": "The legacy-isolation test now supplies synthetic fixtures and separately checks present and absent legacy files; it never assumes the operator's ignored CSV exists.",
+    "dependency_command": ".venv\\Scripts\\python.exe -m pip check",
+    "dependency_consistency": "passed",
+    "scope": "Accounts, signed mock Google identity, CSRF, quotas, private storage, APIs, audio, imports, backups, maintenance, desktop compatibility and tools",
+    "notice": "Expected fault-injection logs and the upstream Starlette/httpx deprecation notice are not failed assertions."
+  },
+  "frontend": {
+    "working_directory": "frontend",
+    "component_command": "npm.cmd test",
+    "component_tests_passed": 124,
+    "component_test_files": 15,
+    "component_run_seconds": 54.42,
+    "typecheck_command": "npm.cmd run typecheck",
+    "application_and_test_typechecks": "passed",
+    "build_command": "npm.cmd run build",
+    "production_build": "passed",
+    "mocked_browser_command": "npm.cmd run test:e2e -- --workers=2",
+    "mocked_browser_tests_passed": 30,
+    "mocked_browser_tests_failed": 0,
+    "mocked_browser_workers": 2,
+    "mocked_browser_retries": 0,
+    "mocked_browser_server": "Vite preview serving the production bundle",
+    "mocked_browser_profiles": ["Desktop Chromium", "Pixel 7 Chromium emulation"],
+    "additional_mobile_startup_repetitions_passed": 5,
+    "startup_regression_note": "A previous development-server run timed out before initial mocked account/workspace responses finished. The browser suite now tests the built production bundle; assertions and timeouts were not relaxed.",
+    "live_browser_command": "npm.cmd run test:e2e:live",
+    "live_browser_tests_passed": 6,
+    "live_browser_tests_failed": 0,
+    "live_browser_workers": 1,
+    "live_browser_retries": 0,
+    "live_browser_scope": [
+      "Registration, private local-mail verification, login and reload persistence",
+      "Private account isolation and HttpOnly session cookies",
+      "Cross-tab sign-out and private-state clearing",
+      "Exact local translation, explicit saved work and projects",
+      "Terminology revision recovery and verified backup download/restore",
+      "Password recovery, session revocation and replacement credentials"
+    ],
+    "live_browser_transport": "Real FastAPI/Uvicorn, production frontend, SQLite and cookies on loopback port 4190",
+    "live_browser_test_data": "Isolated temporary synthetic accounts and local mail; no real SMTP, Google, Gemini or physical hardware",
+    "last_owned_live_server_process_stopped": true
+  },
+  "performance": {
+    "report": "hosted-benchmark.json",
+    "command": ".venv\\Scripts\\python.exe -m tools.benchmark_workspace --output docs\\evidence\\hosted-benchmark.json",
+    "passed_on_recorded_machine": true,
+    "rows": 1000,
+    "text_characters": 500,
+    "warmups_per_operation": 1,
+    "measured_runs_per_operation": 20,
+    "list_all_p95_ms": 190.7827,
+    "search_one_p95_ms": 93.4533,
+    "create_verified_backup_p95_ms": 787.6769,
+    "limit_ms": 1000,
+    "includes": "Real authenticated ASGI handlers, SQLite, serialization and verified ZIP writes",
+    "excludes": "TCP/TLS, browser rendering, public concurrent-user load and external providers",
+    "original_8gb_ssd_reference_certified": false
+  },
+  "documentation": {
+    "build_command": "docs\\build.ps1 -PlantUmlJar docs\\.tools\\plantuml.jar",
+    "verification_command": ".venv\\Scripts\\python.exe -m tools.check_documentation",
+    "verified": true,
+    "production_classes": 75,
+    "diagrams": 35,
+    "class_views": 11,
+    "balanced_sequence_views": 17,
+    "atlas_pages": 35,
+    "srs_pages": 9,
+    "sdd_pages": 46,
+    "business_functional_requirements": 19,
+    "business_nonfunctional_requirements": 6,
+    "published_pdfs_match_build_hashes": true,
+    "embedded_image_pixels_and_sheet_mappings": "passed",
+    "latex_layout_and_reference_checks": "passed",
+    "plantuml_raster_limit": 8192,
+    "largest_image_pixels": [5679, 2418],
+    "visual_checks": "Accounts, private workspace, Google sequence, component and deployment views inspected; clipped architecture images were rerendered completely",
+    "rendering": "Local PlantUML and Tectonic; no source uploaded to an online renderer",
+    "notice": "Portable Tectonic emitted its nonfatal Fontconfig configuration notice; all PDFs compiled and the unchanged strict checker passed."
+  },
+  "source_fingerprints": {
+    "method": "SHA-256 over sorted UTF-8 repository-relative POSIX path, NUL, and 32-byte file SHA-256 for each file",
+    "python_sources_scope": "*.py under backend, compiler, data_collector and tools, excluding tests, __pycache__, virtual environments, node_modules, audio and coursework directories",
+    "python_tests_scope": "*.py under the four package tests directories, excluding __pycache__",
+    "frontend_sources_scope": "*.ts, *.tsx and *.css under frontend/src plus frontend/index.html",
+    "frontend_tests_scope": "*.ts and *.tsx under frontend/tests plus both Playwright configurations",
+    "python_sources": {
+      "files": 46,
+      "sha256": "b00894fd314450681548d1debc278ddb716801337922cabbaabb918a67687182"
+    },
+    "python_tests": {
+      "files": 26,
+      "sha256": "ecb605f628922c22e10dcd5894dc9f4d7dea2422874dd47327f3536a6d86adb4"
+    },
+    "frontend_sources": {
+      "files": 36,
+      "sha256": "d88b77e8b6ea6cc8860cddb4627109af37535871dfd4e5191afd5b49794f5734"
+    },
+    "frontend_tests": {
+      "files": 30,
+      "sha256": "0d33495822e0e64711da0c8eb4d1c809b9e92e3f411a2c9cc71cd5b2b7deb578"
+    }
+  },
+  "artifact_sha256": {
+    "backend/tests/test_hosted.py": "64b6a5dc6ad3b16bc81b1867e2660712c863ed335d7507c35c88f108faf91015",
+    "backend/requirements.txt": "2c0f63454dd3c62bed7f68d64ba82ec23d587d3528a65c3965d0615c581c0538",
+    "frontend/package.json": "0a199629c5467bad789432ddad041c28030c1c81279109c5a1109dc0dfb4ea3e",
+    "frontend/package-lock.json": "db0ab7fc8b6f16a31c34f4afa418616c583787dd4fe4fa59a8314ba765cdf1c6",
+    "frontend/dist/index.html": "672b67c49dd1962ce86f9d5cbd1899667e6994f715335b7de275eb75608cc558",
+    "frontend/dist/assets/index-CMi4sQxV.js": "d6b3a1b561623be1d0545e27362216ef2e87d2f24fa88f62eb7a80f3f73fccfb",
+    "frontend/dist/assets/index-CXXuMEny.css": "19e24e23aeb75e8e8696d0bd05b8869c81b764cd77802887b0e56ebf1572a6b8",
+    "docs/build.ps1": "8ac1361f48e0dc337680ed963b62ce21df05d9d5265a8136465301d6756ada25",
+    ".github/workflows/ci.yml": "5e45688af5af5b1ccdb624c2adaa637dcf36f2937c280523877b59e2a3377fa5",
+    "docs/srs.pdf": "e43c03a30f6a24045eb89711476050c9a43e5fd85336c9fbae39485a95549d1c",
+    "docs/sdd.pdf": "12795a0bd5c82923eb7bdfae4bf82c5863dafcd7ddd8f601fee04205cda2719e",
+    "docs/uml-atlas.pdf": "7ef679769e1387258b8ef3a65b2cd15643a9706b167785c81f92f4c9a0b657ec"
+  },
+  "preserved_data_sha256": {
+    "data_collector/dataset.csv": "bfbf5c12e1f4664472335c0ea6231e697af2d3e62571bbe7e89e7a2ad8d79ec2",
+    "data_collector/coursework/project.json": "1c05ffc0de030159dc992e1d87a3573817b70d38e81bed553bdba5abb78b284d",
+    "examples/camfranglais_statements.csv": "8d481890c214930838f30012e20a6b9fcea3b68f294040da0e95c66fd07800c0"
+  },
+  "release_hygiene": {
+    "real_environment_file_inspected_or_edited": false,
+    "private_databases_mail_and_runtime_storage_tracked": false,
+    "live_browser_reports_ignored": true,
+    "changed_core_file_editor_diagnostics": "passed",
+    "whitespace_command": "git -c core.whitespace=cr-at-eol --no-pager diff --check",
+    "whitespace_check": "passed"
+  },
+  "ci": {
+    "configured": true,
+    "targets": ["Windows Python 3.11", "Windows Python 3.14", "Linux hosted API", "Frontend and browser workflows", "UML and LaTeX"],
+    "local_actionlint": "passed",
+    "remote_run_verified_for_final_local_fix": false,
+    "assistant_committed_or_pushed": false,
+    "latest_inspected_run_id": 35502314890,
+    "latest_inspected_run_url": "https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890",
+    "latest_inspected_run_commit": "cb25902824ca37b613c5bd75ff300d1f079b16ec",
+    "frontend_and_browser_job": "passed",
+    "documentation_job": "passed",
+    "windows_python_311_job": "failed only because the old isolation test tried to read the ignored CSV",
+    "windows_python_314_job": "failed only because the old isolation test tried to read the ignored CSV",
+    "linux_hosted_api_job": "failed only because the old isolation test tried to read the ignored CSV",
+    "remaining_action": "Publish the local test-fixture fix and verification records, then obtain a passing complete workflow. The fixed suite passed locally in a clean tracked-source checkout."
+  },
+  "owner_gates": [
+    "Choose hosting, domain, HTTPS, persistent private storage, trusted proxy and monitoring; approve capacity and recovery targets.",
+    "Configure SMTP credentials and sender privately; accept real verification and password-reset delivery.",
+    "Configure the Google web client, consent screen, authorized domain and callback; accept real sign-in and explicit account linking.",
+    "Configure the Gemini account and budget; authorize non-sensitive live trials and review translation/transcription quality.",
+    "Approve business terminology, French meanings and redistribution rights for supplied references.",
+    "Test physical recording/playback, permissions, disconnects, real mobile devices, browser speech and assistive technology.",
+    "Approve privacy, retention/deletion rules, terms, support contacts and the final launch.",
+    "Provide the agreed reference environment for performance acceptance or formally approve a changed hardware/capacity requirement.",
+    "Publish the final local test-fixture fix and verification records; obtain passing remote CI, including Windows Python 3.11 and Linux."
+  ],
+  "not_claimed": [
+    "Public hosting or production launch",
+    "Real SMTP, Google consent or Gemini service acceptance",
+    "Physical-device or real assistive-technology acceptance",
+    "Original 8 GB reference-machine compliance or concurrent-user load certification",
+    "An independent penetration test or compliance certification",
+    "Completed academic fieldwork, research report or presentation"
+  ]
+}

@@ -242,11 +242,40 @@ CORS is **not** access control.
 or commit it. The default model is configurable; access and charges depend on
 the provider account. User/global daily limits default to 100/2,000 actual
 outbound attempts, including retries. Exact local lookups consume no allowance.
+HTTP 503 responses permit at most two retries on the same configured model
+(three attempts total), with 1-2 then 2-3 seconds of jittered backoff. All attempts
+and waits share the configured total timeout (45 seconds by default), and every
+outbound attempt must pass the daily allowance check. Other errors are not
+automatically retried; exhaustion remains an explicit error, never a fabricated
+translation or an unannounced model change.
 The health indicator reports configuration, not successful provider acceptance.
 
 Configuration precedence: explicit test settings, environment, `backend/.env`,
 root `.env`, defaults. The example is not loaded automatically. Restart after
 changes. No production mail, Google or Gemini credentials are included.
+
+### Google sign-in troubleshooting
+
+Always start a fresh attempt using **Continue with Google**. The callback's
+authorization code and browser-bound state are single-use; refreshing or copying
+the callback URL is not a valid retry.
+
+The server logs the failing stage, HTTP status and a recognized OAuth error code,
+never the provider response body, authorization code, tokens or client secret.
+`invalid_client` means the operator must check the configured Web client ID and
+secret. `invalid_grant` requires a fresh sign-in attempt; persistent failures need
+the client, redirect and server configuration checked. `redirect_uri_mismatch`
+requires the exact `<MBOA_PUBLIC_URL>/api/auth/google/callback` registration.
+The signing-key stage is distinguished from token exchange, and a rejected token
+exchange makes no signing-key request. Identity checks are never bypassed.
+
+If the original full secret is unavailable, open the Web client's **Information
+and summary** panel in Google Cloud, then **Client secrets > Add client secret**.
+Copy the newly issued secret immediately; Google does not reveal it again.
+Save it privately as `MBOA_GOOGLE_CLIENT_SECRET` alongside that same client's
+`MBOA_GOOGLE_CLIENT_ID` and restart Mboa before retrying. Do not disable a shared
+old secret until every application using it has been migrated and verified.
+See [Google's client-secret rotation guidance](https://support.google.com/cloud/answer/15549257).
 
 ## API and automated verification
 
@@ -295,9 +324,96 @@ devices are not used. Browser fixtures do not write into real user workspaces.
 Full-stack success is not proof of real email, Google consent, live AI quality or
 physical-device acceptance.
 
+For the local-document browser cases only, run
+`npm.cmd run test:e2e:live -- --grep "local document"` from `frontend`.
+The focused backend command is
+`.\.venv\Scripts\python.exe -m unittest backend.tests.test_imports -q`.
+The checked-in synthetic PDF, DOCX, image and WAV fixtures can be regenerated with
+`.\.venv\Scripts\python.exe -m backend.tests.import_fixtures`; this uses existing
+test dependencies and does not load account configuration or contact providers.
+
 Both browser suites use the production bundle. Run `npm.cmd run build` after
 frontend edits and before either suite; the mocked suite serves it with Vite
 preview rather than exercising development-server compilation.
+
+### Recorded local results
+
+The [hosted verification record](docs/evidence/hosted-verification.json), dated
+2026-09-20, records the source fingerprints, commands and boundaries:
+
+| Check | Observed result |
+| --- | --- |
+| Complete Python suite on Windows / Python 3.14.6, clean checkout | 360 passed |
+| Frontend unit/component tests | 124 passed across 15 files |
+| Mocked desktop/mobile browser workflows | 30 passed |
+| Real local desktop/mobile account and recovery workflows | 6 passed |
+| App/test TypeScript checks, production build and dependency consistency | Passed |
+| Workflow syntax and strict documentation verification | Passed |
+
+These results cover published application commit `cb25902` plus the final local
+test-fixture correction. The full Python suite was rerun in a clean tracked-source
+checkout without the operator's ignored CSV or environment files.
+
+Afterward, the Google callback diagnostics update passed **46 account/web-boundary
+tests**. An owner-assisted **real Google sign-in** also passed locally after the
+private configuration was updated and the server restarted: the callback
+succeeded, the authenticated session was Google-linked with a verified email,
+and the private workspace opened. This is recorded separately from the synthetic
+test suites and does not certify production OAuth configuration or SMTP delivery.
+
+The subsequent Gemini retry update passed **197 backend tests** and strict UML/PDF
+verification. A real AI-only French-to-English business message preserved its
+identifier, quantity and prohibition on early shipment. The remaining language
+matrix is **not complete**: provider overloads and a quota/rate-limit response
+blocked further checks. See the [partial live translation record](docs/evidence/translation-verification.json)
+for the successful sample, failed/unattempted directions and exact limitations.
+Changing the reporting period in AI Studio does not increase or reset quotas.
+
+The [real email acceptance record](docs/evidence/email-verification.json) adds
+**22 passing HTTP checks** against an isolated temporary server with real SMTP.
+The owner confirmed both verification emails and the password-reset email in
+their inbox. Single-use links, password changes, revocation of two old sessions,
+new-password access and private-data preservation passed. The main Google
+account stayed signed in; temporary accounts/storage were removed. This does
+not certify email delivery from the Ubuntu VPS or every inbox provider.
+
+The [local document acceptance record](docs/evidence/document-verification.json)
+adds **23 passing import tests** and **4 real desktop/mobile-layout browser
+workflows**, with app/test type checks passing. TXT, Markdown, CSV, JSON, DOCX and
+text-layer PDF previews passed, along with corrected draft handoff, unreviewed
+candidate saving, invalid-file errors and consent gating. A PDF character-count
+bug was reproduced and fixed: 40,000 extracted characters are now accepted,
+including multi-page separators, while 40,001 are rejected. The local app was
+restarted and the original Google session still works. These runs used isolated
+synthetic accounts, file mail and no Gemini calls; they do not verify cloud OCR,
+media transcription, physical devices or every document layout.
+
+The later [audio acceptance record](docs/evidence/audio-verification.json)
+records **72 targeted backend tests**, **19 audio unit tests**, **4 mocked audio
+browser tests**, and **all 10 current real desktop/mobile-layout workflows**
+passing, with app/test type checks passing. The real suite now checks native
+browser recording/playback, exact private upload/download bytes, HTTP range
+responses, account/session isolation, microphone-denial recovery, explicit
+attachment removal and transcription consent. It uses synthetic audio and muted
+playback, not a physical microphone or speaker. No production audio change was
+needed. Browser dictation, audible speech output and Gemini transcription still
+need separate acceptance.
+
+In the subsequent human check, the owner confirmed microphone recording and
+audible playback work in Chrome/Edge, with failure only in VS Code's embedded
+browser. A separate synthetic local probe reproduced that editor's WebM
+playback failure (`MEDIA_ERR_SRC_NOT_SUPPORTED`, FFmpeg demuxer open failure),
+despite advertised codec support. Use Chrome/Edge for audio acceptance. This
+does not certify the editor preview, browser dictation, read-aloud or cloud
+transcription, and the underlying editor/media-pipeline cause is not established.
+
+In [GitHub run 35502314890](https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890),
+the frontend/browser and documentation jobs passed. The Windows Python 3.11/3.14
+and Linux API jobs exposed one test that incorrectly required the ignored legacy
+CSV. That test now uses synthetic fixtures and checks both present and absent
+legacy files. Publish this last fix and rerun CI before claiming a passing
+complete workflow. Earlier evidence files describe earlier versions, not current
+hosted release totals or public-launch approval.
 
 For repeatable private API measurements with 1,000 synthetic 500-character
 entries, one warm-up and 20 measured runs:
@@ -311,6 +427,10 @@ local p95 budget. It uses a temporary account and real SQLite/ASGI handlers, not
 live business data. It excludes network/TLS/browser rendering and is neither
 concurrent-user load certification nor an 8 GB reference-machine result.
 
+The [recorded hosted benchmark](docs/evidence/hosted-benchmark.json) passed all
+three operations on the recorded machine; preserve its environment and
+limitations when comparing results.
+
 See [the documentation register](docs/README.md), [SRS](docs/srs.pdf),
 [SDD](docs/sdd.pdf) and [UML atlas](docs/uml-atlas.pdf). Generated evidence records
 describe their actual machine and test boundaries; remote CI is a separate gate.
@@ -319,8 +439,10 @@ describe their actual machine and test boundaries; remote CI is a separate gate.
 
 - Supply the hosting account, domain/HTTPS, durable storage, monitoring and
   off-host backup destination; approve capacity and recovery targets.
-- Supply SMTP sender credentials and Google OAuth configuration; verify real
-  account emails, Google consent, account linking and recovery.
+- Local SMTP verification/recovery and Google sign-in passed. Repeat account-email
+  checks from the VPS, verify the production sender/domain and delivery, configure
+  production Google consent/domain/redirect settings, and verify explicit account
+  linking and sign-in on the deployed HTTPS origin.
 - Decide the Gemini budget and authorize non-sensitive live trials; review
   translations/transcriptions with competent Francanglais/Pidgin speakers.
 - Supply approved business terminology, reviewed French meanings and permission
@@ -329,8 +451,11 @@ describe their actual machine and test boundaries; remote CI is a separate gate.
   real mobile devices and assistive technology.
 - Approve privacy/retention/terms, support contacts and the final public launch.
   Decide how long deleted records, media and safety backups must be retained.
-- Authorize publishing these changes and verify all remote CI jobs. A passing
-  local run does not establish Windows 3.11/Linux or production-host acceptance.
+- Provide the agreed reference machine for performance acceptance, or formally
+  approve a changed hardware/capacity requirement; this run used about 31.8 GiB RAM.
+- Publish the final local regression-test fix and verification records, then
+  verify all remote CI jobs. A passing local run does not establish Windows
+  3.11/Linux or production-host acceptance.
 
 ## Preserved legacy scope
 

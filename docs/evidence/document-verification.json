@@ -1,0 +1,178 @@
+{
+  "recorded_on": "2026-09-20",
+  "status": "passed_local_document_scope",
+  "scope": "Local document extraction and review with real authenticated HTTP/browser workflows, not cloud OCR or transcription",
+  "base_commit": "cb25902824ca37b613c5bd75ff300d1f079b16ec",
+  "tested_uncommitted_changes": true,
+  "later_follow_up": {
+    "record": "audio-verification.json",
+    "note": "The later ten-workflow live run reruns both document scenarios on both profiles and adds audio checks. Fingerprints below describe the original document run; shared test fixtures evolved afterward."
+  },
+  "environment": {
+    "python": "3.14.6",
+    "test_origin": "http://127.0.0.1:4190",
+    "main_app_origin": "http://127.0.0.1:8000",
+    "production_frontend_bundle": true,
+    "isolated_identity_and_workspace_storage": true,
+    "synthetic_verified_accounts": 4,
+    "file_mail_messages": 4,
+    "real_smtp_messages": 0,
+    "google_disabled_in_fixture": true,
+    "gemini_disabled_in_fixture": true,
+    "physical_devices_used": false,
+    "profiles": [
+      {"name": "live-chromium", "device": "Desktop Chrome"},
+      {"name": "live-mobile", "device": "Pixel 7 Chromium emulation"}
+    ]
+  },
+  "confirmed_bug_and_fix": {
+    "file": "backend/imports.py",
+    "function": "_pdf_text",
+    "cause": "The incremental character count added two separator characters for every page, including the first; the returned string has separators only between pages.",
+    "unchanged_inclusive_text_limit": 40000,
+    "old_single_page_results": [
+      {"characters": 39998, "http_status": 200},
+      {"characters": 39999, "http_status": 413},
+      {"characters": 40000, "http_status": 413},
+      {"characters": 40001, "http_status": 413}
+    ],
+    "regression_before_fix": {
+      "test_methods": 2,
+      "failed_valid_input_subtests": 6,
+      "failure": "HTTP 413 instead of HTTP 200",
+      "page_lengths": [[39999], [40000], [20000, 19998], [0, 39998], [39998, 0], [19997, 0, 19999]]
+    },
+    "correction": "Add the two-character separator only when an earlier page is present.",
+    "regression_after_fix": {
+      "accepted_single_page_lengths": [39998, 39999, 40000],
+      "accepted_multi_page_joined_length": 40000,
+      "empty_first_last_and_middle_pages_covered": true,
+      "rejected_joined_length": 40001,
+      "returned_text_and_concatenated_segments_match_input": true,
+      "every_segment_at_most_4000_characters": true,
+      "provider_calls_for_boundary_tests": 0,
+      "preview_did_not_save_records_or_source_files": true
+    }
+  },
+  "validation": {
+    "backend": {
+      "command": ".\\.venv\\Scripts\\python.exe -m unittest backend.tests.test_imports -q",
+      "passed": 23,
+      "duration_seconds": 4.305,
+      "scope": "Import API regressions, including local formats, size limits, consent, malformed content and mock-provider cases; not a fresh full backend suite.",
+      "note": "Editor test discovery was unavailable; the repository unittest command was used. An existing Starlette/httpx deprecation warning did not fail the run."
+    },
+    "typescript": {
+      "working_directory": "frontend",
+      "command": "npm.cmd run typecheck",
+      "app_and_test_type_checks_passed": true
+    },
+    "browsers": {
+      "working_directory": "frontend",
+      "command": "npm.cmd run test:e2e:live -- --grep \"local document\"",
+      "passed": 4,
+      "displayed_duration": "1.5m",
+      "app_api_responses_mocked": false,
+      "cases": [
+        {"profile": "live-chromium", "scenario": "Six formats, corrected draft handoff and explicit reviewed saving", "passed": true},
+        {"profile": "live-chromium", "scenario": "Exact limits, invalid inputs, missing consent and recovery", "passed": true},
+        {"profile": "live-mobile", "scenario": "Six formats, corrected draft handoff and explicit reviewed saving", "passed": true},
+        {"profile": "live-mobile", "scenario": "Exact limits, invalid inputs, missing consent and recovery", "passed": true}
+      ],
+      "scope": "Only the four new document workflows were selected; the six earlier account/recovery workflows were not rerun in this command."
+    },
+    "editor_diagnostics": {
+      "changed_python_and_typescript_files": "No errors"
+    },
+    "documentation_consistency": {
+      "command": ".\\.venv\\Scripts\\python.exe -m tools.check_documentation",
+      "verified": true,
+      "production_classes": 75,
+      "diagrams": 35,
+      "sequence_diagrams": 17,
+      "atlas_pages": 35,
+      "srs_pages": 9,
+      "sdd_pages": 46
+    }
+  },
+  "browser_assertions": {
+    "local_formats": ["TXT", "Markdown", "CSV", "JSON", "DOCX", "text-layer PDF"],
+    "original_text_preserved": true,
+    "utf8_bom_accents_and_crlf_checked_in_text_formats": true,
+    "docx_body_paragraphs_tabs_accents_and_line_breaks_checked": true,
+    "pdf_fixture_scope": "Synthetic single-page standard-font text, plus exact-size and no-text-layer PDFs",
+    "imported_approval_forced_unreviewed": true,
+    "contributor_and_notes_not_copied_to_imported_drafts": true,
+    "raw_preview_still_contains_the_original_source_content": true,
+    "editing_passage_does_not_change_original_preview": true,
+    "corrected_passage_fills_translator_and_assistant_drafts": true,
+    "automatic_translation_chat_or_suggestion_requests": 0,
+    "records_before_explicit_save": 0,
+    "candidate_saved_once_as_unreviewed_and_visible_after_reload": true,
+    "txt_and_pdf_40000_characters_accepted": true,
+    "txt_and_pdf_40001_characters_rejected_with_413": true,
+    "ten_complete_4000_character_passages_and_last_passage_checked": true,
+    "file_byte_boundary": {
+      "inclusive_maximum": 12582912,
+      "button_enabled_at_exact_maximum": true,
+      "one_byte_over_rejected_before_upload": true,
+      "exact_maximum_file_uploaded_in_browser": false
+    },
+    "negative_cases": [
+      "Empty file blocked in the browser",
+      "Whitespace-only text rejected with HTTP 422",
+      "Invalid UTF-8 rejected with HTTP 422",
+      "Malformed JSON rejected with HTTP 422",
+      "Duplicate CSV headers rejected with HTTP 422",
+      "Unsupported extension rejected with HTTP 415",
+      "No-text-layer PDF rejected with HTTP 422 without cloud consent",
+      "Valid PNG rejected with HTTP 422 without cloud consent"
+    ],
+    "failed_preview_does_not_leave_stale_preview_visible": true,
+    "valid_preview_succeeds_after_invalid_inputs": true,
+    "no_horizontal_page_overflow_at_checked_desktop_and_mobile_states": true
+  },
+  "main_app_after_restart": {
+    "verified_owned_launcher_restarted": true,
+    "loopback_health_http_status": 200,
+    "session_http_status": 200,
+    "same_account_as_before_restart": true,
+    "google_linked": true,
+    "email_verified": true,
+    "private_projects_route": "/api/workspace/projects",
+    "private_projects_http_status": 200,
+    "owner_workspace_not_used_for_document_fixtures": true,
+    "probe_note": "An initial read-only smoke probe used the nonexistent /api/projects path and returned 404. The actual route was checked in the source and returned 200."
+  },
+  "cleanup": {
+    "isolated_server_stopped_and_port_4190_absent": true,
+    "owned_temporary_accounts_workspace_databases_and_mail_removed": true,
+    "method": "Identified the current run's directory and four verified synthetic accounts, then removed only that directory after the listener stopped. Other temporary directories were left untouched.",
+    "synthetic_document_fixtures_retained_for_regression_tests": true,
+    "fixture_regeneration_command": ".\\.venv\\Scripts\\python.exe -m backend.tests.import_fixtures"
+  },
+  "artifact_sha256": {
+    "backend/imports.py": "b4e1797673cf1d32414603ef3aca727d119f15ad25874609195af911675e6bc6",
+    "backend/tests/test_imports.py": "e93152c2f422b07c0417473873a4b4c00b9daaf2bb446915bfd6f9eee7ce6344",
+    "backend/tests/import_fixtures.py": "b50349a432d9e43fe8135fef53096f6140e82c36440251e1c022fe780e1ca6ce",
+    "frontend/tests/live/hosted.spec.ts": "cb758db6f2a17b11d6fc1f9ab9cf3ebcab09dfc8ed51a4ec30b78a03ec803802",
+    "frontend/playwright.live.config.ts": "7030267186d0f26a97d086c692b0b28fd3bdaade592c8966f9daf508f5af2683",
+    "tools/live_test_server.py": "844d1016bf1a8be7fcb66cac027f7ef207b189e2a29605ef00af9a68723f0561",
+    "frontend/dist/index.html": "672b67c49dd1962ce86f9d5cbd1899667e6994f715335b7de275eb75608cc558",
+    "frontend/tests/fixtures/imports/business.pdf": "e03bb8aba535240f26775ce3c984424d7da36816bf2b3dd831b873d0053ce327",
+    "frontend/tests/fixtures/imports/at-limit.pdf": "ff8bafd87af87cd9ec02e8f228e03b9063e59324e07b12d7454ea54113192dcc",
+    "frontend/tests/fixtures/imports/over-limit.pdf": "aaee600a6d86d5bae5f394135d54d8d6864ed5909da43b42115613599e5381bf",
+    "frontend/tests/fixtures/imports/no-text-layer.pdf": "b3e44df802e407df3d586bb3d4b3a7db17bc868565f04a061077f7d8de3e44bd",
+    "frontend/tests/fixtures/imports/business.docx": "4cb13ed5239d0b7ad596027c90ace9b37c9d734c74c66bf247dff21441b981da",
+    "frontend/tests/fixtures/imports/image.png": "47c0b232b83e0aaf92d46f39b9066c67528fc4c31fc88bc50d7d8e2291137145"
+  },
+  "limitations": [
+    "Synthetic representative documents do not certify every PDF font, layout, DOCX feature or document variant; the UI's extraction warnings still apply.",
+    "Image/scanned-document OCR and media transcription were not exercised against Gemini. Consent rejection is not successful OCR acceptance.",
+    "The language translation matrix and real assistant acceptance remain incomplete because provider availability/quota was previously exhausted; no extra provider requests were made here.",
+    "Chromium mobile emulation is not real-device, microphone, speaker, browser speech or assistive-technology acceptance.",
+    "The main app was restarted locally, not deployed to Ubuntu or exposed publicly.",
+    "No new LaTeX or UML changes were needed for this parser correction; no claim of a new documentation PDF build.",
+    "Changes and evidence remain local and uncommitted; no new remote CI run or deployment certification is claimed."
+  ]
+}

@@ -1,9 +1,6 @@
 import { test, expect } from './fixtures'
+import { installSyntheticMicrophone } from '../browserAudio'
 import { entry } from '../fixtures'
-
-declare global {
-  interface Window { recordedTestBytes?: number }
-}
 
 test('records synthetic audio locally and uploads it only with an explicit collection save', async ({ page, api }) => {
   api.entries = []
@@ -17,40 +14,7 @@ test('records synthetic audio locally and uploads it only with an explicit colle
     await route.fulfill({ status: 201, json: saved })
   })
   await page.goto('/#collection')
-  await page.evaluate(() => {
-    window.recordedTestBytes = 0
-    const NativeRecorder = MediaRecorder
-    window.MediaRecorder = class extends NativeRecorder {
-      constructor(stream: MediaStream, options?: MediaRecorderOptions) {
-        super(stream, options)
-        this.addEventListener('dataavailable', (event) => {
-          window.recordedTestBytes = (window.recordedTestBytes ?? 0) + event.data.size
-        })
-      }
-    }
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: {
-        async getUserMedia() {
-          const context = new AudioContext()
-          const oscillator = context.createOscillator()
-          const destination = context.createMediaStreamDestination()
-          oscillator.connect(destination)
-          oscillator.start()
-          await context.resume()
-          for (const track of destination.stream.getTracks()) {
-            const originalStop = track.stop.bind(track)
-            track.stop = () => {
-              originalStop()
-              oscillator.stop()
-              void context.close()
-            }
-          }
-          return destination.stream
-        },
-      },
-    })
-  })
+  await installSyntheticMicrophone(page)
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Add terminology' })
   await dialog.getByRole('textbox', { name: /^Expression/ }).fill('Synthetic audio test')

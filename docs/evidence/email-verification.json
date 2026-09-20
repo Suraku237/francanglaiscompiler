@@ -1,0 +1,104 @@
+{
+  "recorded_on": "2026-09-20",
+  "status": "passed_locally",
+  "scope": "Real SMTP account-email acceptance using an owner-approved Gmail test alias, isolated storage and a temporary loopback Mboa server",
+  "production_code_changed_for_this_check": false,
+  "approval": {
+    "separate_test_alias_approved": true,
+    "maximum_test_emails": 3,
+    "existing_google_account_not_reset": true
+  },
+  "environment": {
+    "python": "3.14.6",
+    "test_origin": "http://127.0.0.1:46669",
+    "main_app_origin": "http://127.0.0.1:8000",
+    "isolated_identity_and_workspace_storage": true,
+    "google_sign_in_disabled_in_test_instance": true,
+    "gemini_disabled_in_test_instance": true,
+    "ai_requests_by_test": 0
+  },
+  "smtp": {
+    "configuration": "Existing effective private SMTP settings; no credentials copied into this report",
+    "starttls_probe_status": 220,
+    "authentication_probe_status": 235,
+    "tls_certificate_verification_disabled": false,
+    "local_file_mail_mode": false,
+    "send_attempts": 3,
+    "messages_accepted": 3,
+    "verification_messages": 2,
+    "password_reset_messages": 1,
+    "test_subject_prefix": "[Mboa TEST]",
+    "recipient_confirmed_all_three_in_inbox": true,
+    "owner_confirmation": "All three arrived in my inbox"
+  },
+  "method": {
+    "transport": "Real HTTP to a temporary Uvicorn server and real SMTP delivery",
+    "mail_hook": "The factory mailer hook restricted delivery to the approved alias and three attempts, marked messages as tests, called the production deliver_email function, and captured the original subjects/bodies only in memory after SMTP acceptance.",
+    "tokens": "Taken from the actual generated message content and submitted to the isolated server; never printed or persisted.",
+    "passwords": "Randomly generated only for the temporary account and held in process memory; the owner's password was neither requested nor changed.",
+    "ui_scope": "The built frontend was served successfully. This run used HTTP clients for account actions, not a new browser-form or inbox-link-click test.",
+    "test_links": "Explicitly labelled as automatically consumed test links; the owner was asked not to click or share them."
+  },
+  "checks": [
+    {"name": "built_frontend_served", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "server_healthy", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "anonymous_session", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "register_and_send_verification", "http_status": 202, "expected_http_status": 202, "passed": true},
+    {"name": "unverified_login_rejected", "http_status": 403, "expected_http_status": 403, "passed": true},
+    {"name": "resend_verification", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "superseded_link_rejected", "http_status": 400, "expected_http_status": 400, "passed": true},
+    {"name": "verify_latest_link", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "verification_replay_rejected", "http_status": 400, "expected_http_status": 400, "passed": true},
+    {"name": "verified_password_login", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "create_private_recovery_sample", "http_status": 201, "expected_http_status": 201, "passed": true},
+    {"name": "second_active_session", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "send_password_reset", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "consume_password_reset", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "first_session_revoked", "http_status": 401, "expected_http_status": 401, "passed": true},
+    {"name": "second_session_revoked", "http_status": 401, "expected_http_status": 401, "passed": true},
+    {"name": "reset_replay_rejected", "http_status": 400, "expected_http_status": 400, "passed": true},
+    {"name": "old_password_rejected", "http_status": 401, "expected_http_status": 401, "passed": true},
+    {"name": "new_password_login", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "workspace_after_recovery", "http_status": 200, "expected_http_status": 200, "passed": true},
+    {"name": "logout", "http_status": 204, "expected_http_status": 204, "passed": true},
+    {"name": "logout_session_invalidated", "http_status": 401, "expected_http_status": 401, "passed": true}
+  ],
+  "additional_assertions": {
+    "passed_http_checks": 22,
+    "generated_link_origins_match_test_server": true,
+    "verification_and_reset_routes_correct": true,
+    "single_use_tokens_verified": true,
+    "same_account_after_reset": true,
+    "private_sample_data_preserved_after_reset": true,
+    "httponly_and_samesite_lax_cookie_verified": true,
+    "time_based_token_expiry_exercised_live": false
+  },
+  "main_app_after_test": {
+    "health": "ok",
+    "session_http_status": 200,
+    "signed_in": true,
+    "original_account_email_matches": true,
+    "google_linked": true,
+    "email_verified": true
+  },
+  "cleanup": {
+    "temporary_server_stopped": true,
+    "temporary_listener_absent": true,
+    "temporary_account_and_workspace_data_removed": true,
+    "tokens_and_passwords_not_persisted": true,
+    "harness": "Session-only helper; removed after its sanitized results were verified",
+    "harness_sha256": "c7dc4663c04367285557eab8a1097ce84990e7a8a977ccaa3c14bbfe74ab891a"
+  },
+  "artifact_sha256": {
+    "backend/auth.py": "8e1ccffa2ab60f1c90025aa29ebdace567d561753144b1e15061e1460133daa8",
+    "backend/main.py": "0c2a4a466d9f01ddbf089a1327eb5f0385e9832d8774f2b32f0d8440bb992f02",
+    "frontend/src/AuthGate.tsx": "e5757022b1eb46dfe2d43ba460c8e22c4ef1c6f70fb100e83ee0b972480845cd",
+    "frontend/dist/index.html": "672b67c49dd1962ce86f9d5cbd1899667e6994f715335b7de275eb75608cc558"
+  },
+  "limitations": [
+    "Observed delivery is to one owner-controlled Gmail inbox from the current Windows machine, not every mail provider.",
+    "Production-domain links, Ubuntu VPS SMTP connectivity, sender-domain authentication, bounce handling and ongoing deliverability still require deployment acceptance.",
+    "This adds real SMTP and inbox evidence to existing account/UI tests; it is not a fresh end-to-end browser form run.",
+    "No claim that Gemini quota limitations, other AI features or the remaining deployment gates are resolved."
+  ]
+}

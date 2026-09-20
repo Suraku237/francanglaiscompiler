@@ -1,0 +1,161 @@
+{
+  "recorded_on": "2026-09-20",
+  "scope": "Owner-authorized live text translation checks using short synthetic business messages; not linguistic certification or public-launch approval",
+  "status": "incomplete_provider_rate_limited",
+  "baseline_commit": "cb25902824ca37b613c5bd75ff300d1f079b16ec",
+  "includes_uncommitted_changes": true,
+  "provider": {
+    "model": "gemini-3.6-flash",
+    "model_changed": false,
+    "models_catalog_http_status": 200,
+    "configured_model_listed": true,
+    "maximum_generation_attempts": 3,
+    "retryable_http_status": 503,
+    "backoff_seconds": ["1-2", "2-3"],
+    "shared_total_timeout_seconds": 45,
+    "every_outbound_attempt_checks_allowance": true,
+    "provider_429_automatically_retried": false,
+    "billing_changed": false
+  },
+  "automated_verification": {
+    "command": ".venv\\Scripts\\python.exe -m unittest discover -s backend\\tests -t . -q",
+    "passed": 197,
+    "failed": 0,
+    "run_seconds": 53.068,
+    "execution_context": "Current working tree, isolated test fixtures and mocked providers; this is the backend suite, not a new full-project clean-checkout run",
+    "regressions": [
+      "Recovery on the third generation attempt with the same model and payload",
+      "Backoff of 1.5 and 2.5 seconds with deterministic test jitter",
+      "At most three attempts during persistent HTTP 503 failures",
+      "Both backoff waits remain within one total timeout",
+      "Every retry checks the allowance; a rejected allowance prevents the provider request",
+      "Provider quota/authentication errors are not retried",
+      "Provider bodies and keys are not exposed by retry logs",
+      "Existing translation, chat, media, grounding, account and workspace regressions"
+    ],
+    "pylance_and_editor_errors": 0
+  },
+  "documentation_verification": {
+    "command": ".venv\\Scripts\\python.exe -m tools.check_documentation",
+    "passed": true,
+    "production_classes": 75,
+    "diagrams": 35,
+    "balanced_sequence_diagrams": 17,
+    "atlas_pages": 35,
+    "srs_pages": 9,
+    "sdd_pages": 46,
+    "affected_views": ["sequence-chat", "sequence-translation"]
+  },
+  "live_test_contract": {
+    "origin": "http://127.0.0.1:8000",
+    "authentication": "Existing signed-in browser session; credentials and tokens are not recorded",
+    "tone": "polite",
+    "explanation_language": "en",
+    "allow_ai": true,
+    "use_dataset": false,
+    "use_dictionary": false,
+    "use_examples": false,
+    "assistant_saved_history_or_terminology": false,
+    "expected_origin": "ai",
+    "expected_evidence_count": 0,
+    "expected_meaning": "Order TEST-1042 contains 3 items. Do not send it before Tuesday. Preserve the identifier, quantity, negation and earliest-send constraint; do not replace the constraint with a requirement to send exactly on Tuesday.",
+    "source_texts": {
+      "fr": "La commande TEST-1042 contient 3 articles. Ne l'exp\u00e9diez pas avant mardi.",
+      "en": "Order TEST-1042 contains 3 items. Do not send it before Tuesday.",
+      "francanglais": "La commande TEST-1042 a 3 articles. Faut pas send \u00e7a avant mardi.",
+      "pidgin": "Order TEST-1042 get 3 things. Make you no send am before Tuesday."
+    },
+    "source_warning": "The Francanglais and Pidgin source examples are constructed test inputs, not collected or independently approved native-speaker references."
+  },
+  "live_results": [
+    {
+      "direction": "fr-en",
+      "status": "passed",
+      "http_status": 200,
+      "elapsed_ms": 5868,
+      "model": "gemini-3.6-flash",
+      "origin": "ai",
+      "source_language": "fr",
+      "target_language": "en",
+      "translation": "Order TEST-1042 contains 3 items. Please do not ship it before Tuesday.",
+      "explanation_nonempty": true,
+      "vocabulary_items": 4,
+      "evidence_count": 0,
+      "unreviewed_note_present": true,
+      "fact_review": "Identifier, quantity, negation and earliest-send constraint preserved in this sample."
+    },
+    {
+      "direction": "fr-francanglais",
+      "status": "provider_unavailable",
+      "http_status": 502,
+      "elapsed_ms": 10351,
+      "detail": "Gemini is temporarily unavailable or overloaded. Please try again later."
+    },
+    {"direction": "fr-pidgin", "status": "not_attempted"},
+    {
+      "direction": "en-fr",
+      "status": "provider_unavailable",
+      "http_status": 502,
+      "elapsed_ms": 13980,
+      "detail": "Gemini is temporarily unavailable or overloaded. Please try again later."
+    },
+    {
+      "direction": "en-francanglais",
+      "status": "provider_rate_limited",
+      "http_status": 429,
+      "elapsed_ms": 13371,
+      "detail": "Gemini quota or rate limit reached. Check your quota or try later."
+    },
+    {"direction": "en-pidgin", "status": "not_attempted"},
+    {"direction": "francanglais-fr", "status": "not_attempted"},
+    {"direction": "francanglais-en", "status": "not_attempted"},
+    {"direction": "francanglais-pidgin", "status": "not_attempted"},
+    {"direction": "pidgin-fr", "status": "not_attempted"},
+    {"direction": "pidgin-en", "status": "not_attempted"},
+    {"direction": "pidgin-francanglais", "status": "not_attempted"}
+  ],
+  "summary": {
+    "planned_directions": 12,
+    "measured_directions": 4,
+    "passed": 1,
+    "provider_failures": 3,
+    "not_attempted": 8,
+    "all_directions_verified": false,
+    "generation_requests_paused_after_429": true
+  },
+  "additional_observations": [
+    "Before the change, a controlled browser submission returned 502 after upstream Gemini HTTP 503; the draft was preserved and Translate was re-enabled.",
+    "One additional post-change diagnostic request had a result-capture error in the inspection script. Its response body was not captured; it is not counted as a pass or included in matrix timing statistics.",
+    "Successful post-change live evidence is an authenticated same-origin API call, not a completed successful browser-form rendering test.",
+    "Other requests were present during the session and are not attributed to the controlled matrix."
+  ],
+  "provider_dashboard_observation": {
+    "selected_project_tier": "Free",
+    "model": "Gemini 3.6 Flash",
+    "requests_per_minute_limit": 5,
+    "requests_per_day_limit": 20,
+    "displayed_peak_rpm": 5,
+    "displayed_peak_rpd": 20,
+    "window_when_read": "28 days",
+    "selected_project_verified_against_configured_key": false,
+    "limitation": "These are limits and historical peaks for the selected dashboard project, not proof of the remaining quota in the application's exact current window. Selecting 90 days only changes the reporting period.",
+    "reference": "https://ai.google.dev/gemini-api/docs/rate-limits"
+  },
+  "remaining": [
+    "Confirm the quota window and project associated with Mboa's Gemini key; wait for sufficient quota or obtain owner-approved capacity.",
+    "Re-test the three provider-blocked directions and test the eight remaining directions without disabling quota protections.",
+    "Verify successful rendering through the browser translation form with a real response.",
+    "Review representative language quality, particularly Francanglais and Cameroon Pidgin, with competent speakers."
+  ],
+  "artifact_sha256": {
+    "backend/gemini.py": "78eff9d113815988e2cb96a15520290f4a9f8422502efdcaa3953d578014e9b1",
+    "backend/config.py": "2eb1e2e1d0720c5cdc341434585a1a90f09ada05e4cbec59e6366f4c1fac7f89",
+    "backend/tests/test_gemini_config.py": "101f8664ab2fce5db65cfc24cd9582aa055a5d4f8abd6628b9527d6fad77aa9a",
+    "backend/tests/test_ai_limits.py": "32a6534dd02f51c34cd026f1f2e266353ba133cdb843c765b30cf7ba8c07bfb7",
+    "docs/diagrams/sequence-chat.puml": "7ea5965fa966122813d7a8330dd2c63aba22a3e4e3fb271b7aa12078e0174ffc",
+    "docs/diagrams/sequence-translation.puml": "1f0a96801c5031feedf7ea29c3597f214d590c736e53c65bf50c56409259923b",
+    "docs/srs.pdf": "749493495f9bacf02f89c9710793a98a3b8ef9dc3089215297ef61043ad3893f",
+    "docs/sdd.pdf": "1351ab493dc3b6b63ed16a201c197e47c9e9b3c03a5d6db0f5663878565a036a",
+    "docs/uml-atlas.pdf": "b56ee5157962fa7802677a655d04a4d0730897ebaa365104d4f9b92b58ee83c5"
+  }
+}

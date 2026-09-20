@@ -3,7 +3,6 @@ import io
 import json
 import tempfile
 import unittest
-import zipfile
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
@@ -13,49 +12,13 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import SecretStr
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from backend.config import Settings
-from backend.import_models import MAX_FILE_BYTES
+from backend.import_models import MAX_EXTRACTED_TEXT, MAX_FILE_BYTES
 from backend.imports import split_segments
 from backend.main import create_app
+from backend.tests.import_fixtures import docx_bytes, pdf_bytes
 from data_collector import dataset
-
-
-def pdf_bytes(text: bool = True, pages: int = 1, encrypted: bool = False) -> bytes:
-    writer = PdfWriter()
-    for _ in range(pages):
-        page = writer.add_blank_page(595, 842)
-        if text:
-            stream = DecodedStreamObject()
-            stream.set_data(b"BT /F1 12 Tf 72 720 Td (Cameroon language sample.) Tj ET")
-            page[NameObject("/Contents")] = stream
-            page[NameObject("/Resources")] = DictionaryObject({
-                NameObject("/Font"): DictionaryObject({
-                    NameObject("/F1"): DictionaryObject({
-                        NameObject("/Type"): NameObject("/Font"),
-                        NameObject("/Subtype"): NameObject("/Type1"),
-                        NameObject("/BaseFont"): NameObject("/Helvetica"),
-                    }),
-                }),
-            })
-    if encrypted:
-        writer.encrypt("local-password")
-    output = io.BytesIO()
-    writer.write(output)
-    return output.getvalue()
-
-
-def docx_bytes(xml: str | None = None) -> bytes:
-    output = io.BytesIO()
-    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", "<Types/>")
-        archive.writestr("word/document.xml", xml or (
-            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-            '<w:body><w:p><w:r><w:t>Bonjour</w:t><w:tab/><w:t>Cameroon</w:t></w:r></w:p>'
-            '<w:p><w:r><w:t>Second line.</w:t></w:r></w:p></w:body></w:document>'
-        ))
-    return output.getvalue()
 
 
 class ImportTests(unittest.TestCase):
@@ -158,6 +121,45 @@ class ImportTests(unittest.TestCase):
         for data, status in ((pdf_bytes(pages=41), 413), (pdf_bytes(encrypted=True), 422), (b"%PDF-1.7\nbroken", 422)):
             self.assertEqual(self.upload("source.pdf", data).status_code, status)
         self.assertEqual(self.requests, [])
+
+    def test_pdf_character_limit_counts_only_separators_between_pages(self) -> None:
+        cases = [
+            ["A" * (MAX_EXTRACTED_TEXT - 2)],
+            ["A" * (MAX_EXTRACTED_TEXT - 1)],
+            ["A" * MAX_EXTRACTED_TEXT],
+            ["A" * 20_000, "B" * 19_998],
+            ["", "B" * (MAX_EXTRACTED_TEXT - 2)],
+            ["A" * (MAX_EXTRACTED_TEXT - 2), ""],
+            ["A" * 19_997, "", "B" * 19_999],
+        ]
+        for pages in cases:
+            expected = "\n\n".join(pages)
+            with self.subTest(page_lengths=[len(page) for page in pages]):
+                response = self.upload("boundary.pdf", pdf_bytes(page_texts=pages))
+                self.assertEqual(response.status_code, 200, response.text)
+                preview = response.json()
+                self.assertEqual(preview["method"], "local")
+                self.assertEqual(preview["text"], expected)
+                self.assertEqual("".join(preview["segments"]), expected)
+                self.assertTrue(all(0 < len(part) <= 4000 for part in preview["segments"]))
+                self.assertEqual(self.requests, [])
+        self.assert_nothing_saved()
+
+    def test_pdf_character_limit_rejects_one_character_over_including_separators(self) -> None:
+        cases = [
+            ["A" * (MAX_EXTRACTED_TEXT + 1)],
+            ["A" * 20_000, "B" * 19_999],
+            ["", "A" * (MAX_EXTRACTED_TEXT - 1)],
+            ["A" * (MAX_EXTRACTED_TEXT - 1), ""],
+        ]
+        for pages in cases:
+            with self.subTest(page_lengths=[len(page) for page in pages]):
+                self.assertEqual(len("\n\n".join(pages)), MAX_EXTRACTED_TEXT + 1)
+                response = self.upload("too-long.pdf", pdf_bytes(page_texts=pages))
+                self.assertEqual(response.status_code, 413, response.text)
+                self.assertIn("40,000 characters", response.json()["detail"])
+                self.assertEqual(self.requests, [])
+        self.assert_nothing_saved()
 
     def test_mixed_pdf_discloses_missing_text_and_uses_ocr_only_with_consent(self) -> None:
         writer = PdfWriter()

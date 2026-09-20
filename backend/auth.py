@@ -529,6 +529,7 @@ def install_auth(
             return RedirectResponse(settings.public_url + "/#signin?error=google-cancelled", 303)
         if saved["user_id"] and (not request.state.user or request.state.user.id != saved["user_id"]):
             raise AuthError(403, "The account changed. Start Google linking again.")
+        stage = "token_exchange"
         try:
             async with httpx.AsyncClient(transport=transport, timeout=15) as client:
                 tokens = await client.post("https://oauth2.googleapis.com/token", data={
@@ -537,9 +538,11 @@ def install_auth(
                     "redirect_uri": settings.public_url + "/api/auth/google/callback",
                     "grant_type": "authorization_code", "code_verifier": saved["verifier"],
                 })
+                tokens.raise_for_status()
+                stage = "signing_keys"
                 keys = await client.get("https://www.googleapis.com/oauth2/v3/certs")
-            tokens.raise_for_status()
-            keys.raise_for_status()
+                keys.raise_for_status()
+            stage = "identity_token"
             encoded = tokens.json()["id_token"]
             header = jwt.get_unverified_header(encoded)
             keyset = jwt.PyJWKSet.from_json(keys.text)
@@ -553,8 +556,34 @@ def install_auth(
                     not isinstance(claims["sub"], str) or len(claims["sub"]) > 255):
                 raise ValueError("Invalid identity")
             email = str(EmailInput(email=claims["email"]).email).casefold()
+        except httpx.HTTPStatusError as exc:
+            try:
+                failure = exc.response.json()
+            except ValueError:
+                provider_error = "invalid_json"
+            else:
+                reported = failure.get("error") if isinstance(failure, dict) else None
+                provider_error = reported if isinstance(reported, str) and reported in {
+                    "invalid_client", "invalid_grant", "invalid_request", "unauthorized_client",
+                    "unsupported_grant_type", "redirect_uri_mismatch", "access_denied",
+                    "temporarily_unavailable", "server_error",
+                } else "unrecognized"
+            logger.warning(
+                "Google sign-in HTTP failure: stage=%s status=%s error=%s",
+                stage, exc.response.status_code, provider_error,
+            )
+            detail = "Google sign-in could not be verified. Please start again."
+            if stage == "token_exchange" and provider_error in {"invalid_client", "unauthorized_client"}:
+                detail = "Google rejected the configured OAuth client. The operator must check the client ID and client secret."
+            elif stage == "token_exchange" and provider_error == "invalid_grant":
+                detail = "Google rejected or expired this authorization code. Start a new Google sign-in from Mboa; do not refresh this callback page."
+            elif stage == "token_exchange" and provider_error == "redirect_uri_mismatch":
+                detail = "Google rejected the callback URL. The operator must register the exact Mboa callback URL for this OAuth client."
+            elif exc.response.status_code == 429 or exc.response.status_code >= 500:
+                detail = "Google is temporarily unavailable. Please try signing in again later."
+            raise AuthError(502, detail) from exc
         except (httpx.HTTPError, jwt.PyJWTError, KeyError, TypeError, ValueError, StopIteration) as exc:
-            logger.warning("Google identity verification failed (%s)", type(exc).__name__)
+            logger.warning("Google identity verification failed (%s; stage=%s)", type(exc).__name__, stage)
             raise AuthError(502, "Google sign-in could not be verified. Please start again.") from exc
 
         with store.connection() as db:

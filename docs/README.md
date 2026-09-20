@@ -64,9 +64,75 @@ or existing archived source.
 
 ## Verification boundaries
 
-Run the commands in the [main README](../README.md). The verification record
-in [evidence](evidence) must identify the actual source/environment and executed
-results; older files remain historical evidence, not current totals.
+The current [hosted verification record](evidence/hosted-verification.json)
+records an earlier full run of 360 passing Python tests, 124 frontend unit/component tests, 30 mocked
+browser tests and six real local desktop/mobile workflows. App/test types,
+production build, dependency consistency, workflow syntax and the unchanged
+strict documentation checker passed.
+
+The final Python suite also passed from clean tracked sources without private
+CSV/environment files. The [published CI run](https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890)
+passed its frontend/browser and documentation jobs, but exposed a Python test
+that depended on the ignored local CSV. The synthetic-fixture correction is
+verified locally; it still needs publication and a passing full CI rerun.
+
+The subsequent Google callback diagnostics update passed **46 account/web-boundary
+tests**. A separate owner-assisted **real Google sign-in** succeeded on loopback
+after reloading the updated private configuration. The callback, authenticated
+Google-linked/verified-email session and private workspace access were checked.
+This local success does not verify production consent/redirect settings,
+explicit account linking, SMTP delivery or the VPS deployment.
+
+The later bounded Gemini retry change passed **197 backend tests**. The
+[live translation record](evidence/translation-verification.json) contains one
+successful AI-only French-to-English sample; three measured directions failed
+with provider availability/quota errors, and eight were not attempted. It is
+not an all-language or native-speaker quality certification. The two affected
+sequence views and all published PDFs were rebuilt and strictly verified.
+
+The [real email acceptance record](evidence/email-verification.json) adds
+**22 passing HTTP checks** with real SMTP and owner-confirmed receipt of three
+test messages. Verification/resend, single-use links, password recovery,
+revocation of old sessions and preserved private data passed in isolated
+temporary storage. The owner's Google account was unaffected. This is local
+SMTP/API acceptance, not a new browser-form run or production VPS mail approval.
+
+The [local document acceptance record](evidence/document-verification.json)
+adds **23 passing import tests** and **4 real desktop/mobile-layout browser
+workflows** with passing app/test type checks. All six local formats passed
+representative previews, draft handoff and explicit unreviewed saving. A
+reproduced PDF page-separator counting defect was corrected at the exact
+40,000-character boundary. Invalid files and missing cloud consent produce
+explicit errors; test accounts and temporary storage were removed. The local
+server was restarted without losing the owner's Google session. No Gemini
+calls or real emails were used, and cloud OCR/transcription remain unverified.
+
+The [audio acceptance record](evidence/audio-verification.json) subsequently
+records **72 targeted backend tests**, **19 audio unit tests**, **4 mocked audio
+browser tests**, and **all 10 current real desktop/mobile-layout workflows**
+passing. Native recording, muted playback, byte-preserving private audio
+storage/download, range requests, access controls, explicit attachment removal
+and consent errors were checked without AI or real SMTP. Existing live accounts
+were reused for the audio scenarios without relaxing production rate limits.
+Only test fixtures/coverage changed for audio; physical devices, browser
+dictation, audible speech output and cloud transcription remain separate gates.
+
+The owner subsequently confirmed physical microphone recording and audible
+playback in Chrome/Edge. The reported VS Code-only playback failure was also
+reproduced with a synthetic local WebM blob in its embedded browser, yielding
+media error 4 and an FFmpeg demuxer open failure. This is recorded separately
+from the automated results; use Chrome/Edge for audio acceptance. Browser
+dictation, read-aloud, physical-mobile and cloud-transcription checks remain.
+
+The published SRS has **9 pages**, the SDD **46 pages**, and the atlas **35 sheets**.
+All 75 production classes and 17 explicitly activated sequence views passed
+the source/PDF checks. Published PDFs match the final build byte-for-byte.
+
+Run the commands in the [main README](../README.md) to repeat verification.
+The [hosted performance measurements](evidence/hosted-benchmark.json) cover
+1,000 synthetic entries and real private API/SQLite/ZIP operations. All three
+local p95 values are below the 1,000 ms budget on the recorded machine.
+Older files in [evidence](evidence) remain historical, not current totals.
 
 The automated layers are:
 
@@ -75,23 +141,29 @@ The automated layers are:
 2. Frontend app/test type checks, unit/component regressions and production build.
 3. Mocked desktop/mobile browser workflows, including synthetic audio capture.
 4. Real local desktop/mobile browser accounts, local-email verification/reset,
-   cross-tab sign-out, private data, history, revisions and backup replacement.
+   cross-tab sign-out, private data, history, revisions, backup replacement and
+   local document extraction/review and native synthetic audio capture/playback.
 5. Workflow syntax, diagram rendering, LaTeX and strict PDF verification.
 
 No automated check here establishes real SMTP deliverability, Google consent,
 Gemini quality, physical microphone/speaker operation, assistive-technology
 acceptance, reference-machine compliance or hosted availability. The original
 desktop benchmark was measured on approximately 31.8 GiB RAM, not 8 GB.
+The hosted benchmark used that same memory configuration and excludes
+network/TLS, browser rendering and concurrent-user load certification.
 
 ## Release-owner checklist
 
 - Hosting/domain/HTTPS, durable private storage, trusted proxy, monitoring,
   service account and protected off-host recovery.
-- SMTP sender credentials and real delivery; Google OAuth client, consent and
-  authorized redirect; provider budget and authorized non-sensitive trials.
+- Production VPS SMTP delivery/recovery and sender/domain checks (local SMTP and
+  inbox acceptance passed); production Google consent/domain/redirect settings
+  and explicit account linking (local Google sign-in passed); provider budget
+  and authorized non-sensitive trials.
 - Reviewed business terminology/French meanings and redistribution permission
   for supplied references.
 - Physical devices, real mobile browsers, browser voice and assistive technology.
 - Privacy, retention/deletion, terms/support and approved capacity/recovery goals.
-- Authorization to publish changes, a passing remote CI workflow and launch
-  approval. Local success is not remote CI or a public deployment.
+- Publication of the final local test fix and verification records, a passing
+  complete remote CI workflow and launch approval. Local success is not a public
+  deployment.

@@ -23,7 +23,7 @@ data_collector/.dataset-*.tmp
 data_collector/coursework/
 data_collector/audio/*
 !data_collector/audio/.gitkeep
-.backups/
+.backups/                                              
 .mboa/
 
 # Local documentation tools and intermediate LaTeX output.

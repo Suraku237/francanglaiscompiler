@@ -169,7 +169,7 @@ def _pdf_text(data: bytes) -> tuple[str, list[str], bool]:
         for page in reader.pages:
             text = page.extract_text()
             empty_pages += not bool(text.strip())
-            length += len(text) + 2
+            length += len(text) + (2 if pages else 0)
             if length > MAX_EXTRACTED_TEXT:
                 raise CollectionError(413, "The PDF text exceeds 40,000 characters. Split the document first.")
             pages.append(text)

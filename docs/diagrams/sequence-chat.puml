@@ -36,13 +36,14 @@ activate AI
 alt API key missing
   note over AI : Raise AIError 503 without network request.
 else Configured
+  note over AI : Hosted allowance must pass before every\noutbound attempt, including retries.
   AI -> Provider : POST generateContent
   activate Provider
   Provider --> AI : HTTP response or transport error
   deactivate Provider
-  opt First response is 503, within total deadline
-    note over AI : Wait 1-2 seconds; only one retry.
-    AI -> Provider : Repeat same request once
+  loop (0, 2) [Response is 503 and total deadline permits]
+    note over AI : Backoff: 1-2 seconds, then 2-3 seconds.\nCheck hosted allowance before contacting provider.
+    AI -> Provider : Repeat same request (at most 3 attempts total)
     activate Provider
     Provider --> AI : HTTP response or transport error
     deactivate Provider
