@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect } from '../e2e/fixtures'
 import { health, translation } from '../fixtures'
 
 test('constructed examples support French practice without creating research records', async ({ page, api }) => {

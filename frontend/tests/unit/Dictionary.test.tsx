@@ -26,7 +26,7 @@ describe('separate reference dictionary', () => {
     expect(screen.getByText('a test meaning')).toBeInTheDocument()
     expect(screen.getByText('1 matching entry')).toBeInTheDocument()
     expect(screen.getByText(/No French translations were supplied/)).toBeInTheDocument()
-    expect(screen.getByText(/not collected fieldwork/)).toBeInTheDocument()
+    expect(screen.getByText(/not approved terminology/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next entries' })).toBeDisabled()
   })
 

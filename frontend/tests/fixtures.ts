@@ -40,6 +40,10 @@ export function dataset(entries = [entry()]): Dataset {
     total: entries.length,
     by_category: Object.fromEntries(metadata.categories.map((category) => [category, entries.filter((item) => item.category === category).length])),
     by_type: Object.fromEntries(metadata.entry_types.map((type) => [type, entries.filter((item) => item.entry_type === type).length])),
+    by_review_status: {
+      approved: entries.filter((item) => item.review_status === 'approved').length,
+      unreviewed: entries.filter((item) => item.review_status === 'unreviewed').length,
+    },
   }
 }
 

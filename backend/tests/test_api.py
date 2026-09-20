@@ -30,6 +30,8 @@ def generated(text: str, finish: str = "STOP") -> dict[str, object]:
 
 
 class ApiTestCase(unittest.TestCase):
+    include_academic = False
+
     def setUp(self) -> None:
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
@@ -54,7 +56,10 @@ class ApiTestCase(unittest.TestCase):
             gemini_timeout_seconds=5,
             cors_origins=["http://localhost:5173"],
         )
-        app = create_app(settings, transport=httpx.MockTransport(self.respond))
+        app = create_app(
+            settings, transport=httpx.MockTransport(self.respond),
+            include_academic=self.include_academic,
+        )
         return self.stack.enter_context(TestClient(app))
 
     def translate(self, **changes: object) -> httpx.Response:

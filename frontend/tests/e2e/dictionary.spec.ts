@@ -25,7 +25,7 @@ test('dictionary lookup hands off a draft and translates locally without populat
     }],
   }))
   await page.goto('/#dictionary')
-  await expect(page).toHaveTitle('Dictionary — Mboa language learning')
+  await expect(page).toHaveTitle('Dictionary — Mboa Workspace')
   await expect(page.getByRole('heading', { name: 'tchop', exact: true })).toBeVisible()
   await expect(page.getByText(/No French translations were supplied/)).toBeVisible()
   await page.getByRole('searchbox', { name: 'Search reference dictionary' }).fill('tchop')
@@ -38,13 +38,13 @@ test('dictionary lookup hands off a draft and translates locally without populat
   expect(api.calls('/api/translate')).toHaveLength(0)
   await page.getByRole('button', { name: 'Translate', exact: true }).click()
   await expect(page.getByText('Reference dictionary · local', { exact: true })).toBeVisible()
-  await expect(page.getByText(/fixture.md:4 · not fieldwork/)).toBeVisible()
+  await expect(page.getByText(/fixture.md:4 · not reviewed terminology/)).toBeVisible()
   await expect(page.getByText(/No Gemini translation request was needed/)).toBeVisible()
   expect(api.calls('/api/translate')[0]?.body).toMatchObject({
     text: 'tchop', source_language: 'francanglais', target_language: 'en', use_dictionary: true, allow_ai: false,
   })
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Add your first expression' })).toBeVisible()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Terminology', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Add your first entry' })).toBeVisible()
   expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
 })
 

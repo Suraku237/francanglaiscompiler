@@ -45,29 +45,29 @@ describe('separate constructed practice material', () => {
     expect(await screen.findByRole('heading', { name: 'Mon mbom, tu es where?' })).toBeInTheDocument()
   })
 
-  it('keeps examples off by default and enables them only for an explicit practice handoff', async () => {
+  it('never exposes or enables archived practice sources in the business translator', async () => {
     const props = {
       active: true, aiAvailable: false,
       speech: { supported: false, activeId: null, error: '', stop: vi.fn(), speak: vi.fn() },
       onOpenAssistant: vi.fn(), onOpenCollection: vi.fn(), onOpenImports: vi.fn(),
     }
     const view = render(<Translator {...props} />)
-    const source = screen.getByRole('checkbox', { name: 'Use constructed practice examples (not fieldwork)' })
-    expect(source).not.toBeChecked()
+    expect(screen.queryByRole('checkbox', { name: /constructed practice/ })).not.toBeInTheDocument()
     view.rerender(<Translator {...props} incomingText={{
       id: 1, text: 'Mon mbom, tu es where?', source: 'francanglais', target: 'fr', kind: 'examples',
     }} />)
-    expect(source).toBeChecked()
+    expect(screen.queryByRole('checkbox', { name: /constructed practice/ })).not.toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(translation({
-      translation: 'Mon pote, tu es où ?', origin: 'examples', model: 'local-examples',
+      translation: 'Mon pote, tu es où ?', origin: 'dataset', model: 'local-dataset',
       source_language: 'francanglais', target_language: 'fr',
     })))
     await userEvent.setup().click(screen.getByRole('button', { name: 'Translate' }))
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toMatchObject({
-      text: 'Mon mbom, tu es where?', use_examples: true, allow_ai: false,
+      text: 'Mon mbom, tu es where?', allow_ai: false,
       source_language: 'francanglais', target_language: 'fr',
     })
-    expect(await screen.findByText('Constructed practice example · local')).toBeInTheDocument()
+    expect(requestBody(vi.mocked(fetch).mock.calls[0])).not.toHaveProperty('use_examples')
+    expect(screen.queryByText('Constructed practice example · local')).not.toBeInTheDocument()
   })
 })

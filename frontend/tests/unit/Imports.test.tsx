@@ -85,11 +85,11 @@ describe('import consent, review and handoff', () => {
     await user.upload(fileInput(), fixtureFile())
     await user.click(previewButton())
     await user.click(await screen.findByRole('button', { name: 'Review and save candidate' }))
-    expect(screen.getByRole('dialog', { name: 'Add an expression to learn' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Add terminology' })).toBeInTheDocument()
     expect(screen.getByLabelText(/^Expression/)).toHaveValue('Imported fixture expression')
     expect(screen.getByLabelText(/^Language$/)).toHaveValue('pidgin')
     expect(screen.getByLabelText(/^Context & notes/)).toHaveValue(
-      'Source file: fixture.txt. Locally extracted text, not proof of fieldwork. Imported alignment; human review required.',
+      'Source file: fixture.txt. Locally extracted text; source and context need review. Imported alignment; human review required.',
     )
     expect(screen.getByLabelText(/^Source location/)).toHaveValue('')
     expect(screen.getByLabelText(/^Contributor/)).toHaveValue('')
@@ -98,7 +98,7 @@ describe('import consent, review and handoff', () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(entry({ review_status: 'unreviewed' })))
     await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
-    expect(await screen.findByText(/It remains unreviewed and is not trusted translation evidence/)).toBeInTheDocument()
+    expect(await screen.findByText(/Review this entry before using it as approved terminology/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Saved - manage in Collection' })).toBeDisabled()
     expect(requestBody(vi.mocked(fetch).mock.calls[2])).toEqual(expect.objectContaining({
       review_status: 'unreviewed', source_location: '', contributor: '',

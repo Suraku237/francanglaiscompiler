@@ -247,6 +247,7 @@ class DatasetResponse(BaseModel):
     total: int
     by_category: dict[str, int]
     by_type: dict[str, int]
+    by_review_status: dict[str, int] = Field(default_factory=dict)
 
 
 class HealthResponse(BaseModel):

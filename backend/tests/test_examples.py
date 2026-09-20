@@ -62,6 +62,8 @@ class PracticeLoaderTests(unittest.TestCase):
 
 
 class PracticeApiTests(ApiTestCase):
+    include_academic = True
+
     def test_sources_are_opt_in_and_do_not_write_collection(self):
         dataset.ensure_dataset_file()
         before = Path(dataset.DATASET_PATH).read_bytes()

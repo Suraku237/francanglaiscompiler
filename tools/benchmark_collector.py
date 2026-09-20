@@ -120,14 +120,14 @@ def run_benchmark(
             try:
                 app.title("Synthetic collector benchmark - do not interact")
                 app.geometry("920x780")
-                app.tabs.set("\U0001f50d  Browse & Edit")
+                app.tabs.set(desktop.BROWSE_TAB)
                 app.search_entry.delete(0, "end")
                 app.search_entry.insert(0, "Synthetic benchmark")
                 app.update()
                 search = measure(app._refresh_browse_list, app.update_idletasks, runs)
                 if len(app.tree.get_children()) != rows:
                     raise RuntimeError("The search benchmark did not display every matching fixture row.")
-                app.tabs.set("\U0001f4ca  Stats")
+                app.tabs.set(desktop.STATS_TAB)
                 app.update()
                 stats = measure(app._refresh_stats, app.update_idletasks, runs)
                 if not str(app.stats_total_label.cget("text")).endswith(str(rows)):

@@ -9,9 +9,9 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
 
   return <section className="page dictionary-page" aria-labelledby="dictionary-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow"><span className="eyebrow-line" />REFERENCE VOCABULARY</div><h1 id="dictionary-title">Find the words.<br /><em>Keep the context.</em></h1><p>Search the supplied Camfranglais dictionaries by word, listed variant, or English meaning. Every entry keeps its source, topic, and original meaning.</p></div>
+      <div><div className="eyebrow">REFERENCE LIBRARY</div><h1 id="dictionary-title">Dictionary</h1><p>Look up Francanglais words, variants and English meanings with traceable references.</p></div>
     </div>
-    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>A dictionary, not collected fieldwork.</strong> These references do not populate the collection, approve records, or increase coursework totals. No French translations were supplied. Origins such as “French” describe etymology, not a French meaning or a grammatical label.</p></div>
+    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not approved terminology.</strong> Source meanings remain separate from your reviewed terms. No French translations were supplied. The origin describes etymology, not a translation. Review context before using a reference in business communications.</p></div>
     <div className="collection-tools">
       <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="dictionary-query">Search reference dictionary</label><input id="dictionary-query" type="search" maxLength={200} value={query} placeholder="Try tchop, motard, pasho, or an English meaning" onChange={(event) => { setQuery(event.target.value); setOffset(0) }} /></div>
       <button type="button" className="icon-button" aria-label="Refresh reference dictionary" disabled={pending} onClick={refresh}><Icon name="refresh" size={19} /></button>
@@ -39,6 +39,6 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening a word only fills a translation draft. It does not submit an AI request or save a collection entry. Conflicting senses remain visible instead of being silently replaced.</p>
+    <p className="helper-text">Opening an entry fills a translation draft without submitting a request or saving terminology. Conflicting meanings remain visible for review.</p>
   </section>
 }

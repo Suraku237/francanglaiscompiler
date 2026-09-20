@@ -1,35 +1,36 @@
-# Mboa — Francanglais & Cameroon Pidgin learning studio
+# Mboa — Language Workspace
 
-A Python + React language workspace for understanding Francanglais (Camfranglais)
-and **Cameroon Pidgin**, comparing expressions with French and English, and growing
-a reviewed local dataset. Translation works in both directions between the four
-languages, using approved collection evidence and a separate reference dictionary
-before clearly labeled Gemini
-suggestions for gaps. Documents, images, audio and video can supply text for
-review, translation, conversation or new dataset entries.
+A local professional workspace for translation, terminology management and
+document/audio processing in French, English, Francanglais (Camfranglais) and
+Cameroon Pidgin. The five application areas are **Translate**, **Assistant**,
+**Terminology**, **Dictionary** and **Documents & audio**.
+
+Translations prefer complete, unambiguous approved terminology or dictionary
+matches before optional, clearly labelled Gemini suggestions. Review output
+before using it in customer communications, contracts or other business content.
+This is a **local workspace**, not an authenticated multi-user service. Keep it
+on localhost or a trusted private network; there are no accounts or access roles.
 
 Francanglais and Cameroon Pidgin are distinct, variable ways of speaking, not
 interchangeable labels or Nigerian Pidgin defaults. This is **not a dictionary of
-every possible word**: the compiler exposes unknown vocabulary and grammar limits,
-while people review and extend the evidence. The CS4110 compiler lab remains a
-separate educational workspace within the app.
+every possible word**. Reference coverage is finite and source wording requires
+context-specific review. Existing academic source files and records are retained,
+but are not exposed through the business interface or default academic API routes.
 
 ## Web application
 
 ### What is included
 
-- **Python / FastAPI backend** in `backend/`: dataset-first translation,
-  evidence-grounded Gemini chat, local lexical analysis, reviewed file imports,
-  and CSV collection CRUD.
-- **React / TypeScript / Vite frontend** in `frontend/`: translation with
-  everyday, polite or street registers, vocabulary explanations, assistant
-  conversations with evidence, language comparison, import previews, and
-  collection search/editing/statistics.
+- **Python / FastAPI backend** in `backend/`: local-source translation,
+  evidence-grounded assistant requests, reviewed imports and terminology CRUD.
+- **React / TypeScript / Vite frontend** in `frontend/`: source-labelled
+  translation, wording review, dictionary lookup, audio, searchable terminology,
+  approval counts and JSON export of the currently displayed entries.
 - **Voice assistance**: dictate French or English in supported browsers, review
   the transcript, then explicitly submit it. Read translations and assistant
   replies aloud with the browser's voices, or stop playback.
 - **Local audio recording and attachments**: record, review, play and download
-  audio in the collection editor or Import & learn. Collection saves can attach
+  audio in the terminology editor or Documents & audio. Explicit saves can attach
   the recording locally; recording alone never uploads or transcribes it.
 - **Shared data**: the web app, optional desktop collector and lexer all use
   `data_collector/dataset.csv`. No migration or overwrite of existing entries is
@@ -38,15 +39,15 @@ separate educational workspace within the app.
   The next explicit save upgrades the header without inventing approval or
   language labels. CSV writes use a cross-process lock and atomic replacement.
 
-### The learning loop
+### Terminology workflow
 
-1. Collect an expression exactly as observed, or open **Import & learn** to
+1. Add an expression with its original wording, or open **Documents & audio** to
    preview a file. Imported data and AI candidates are **unreviewed**.
 2. Review its language, French/English meanings and context in the collection
    editor. Optionally label the lexical category of a **Word**.
 3. Explicitly approve the record after checking it. Approval is a local human
    decision, not a guarantee of universal spelling or meaning.
-4. Translate with the desired **Use approved dataset matches** and **Use reference
+4. Translate with the desired **Use approved terminology** and **Use reference
    dictionary** switches enabled. An unambiguous supplied whole-entry
    alignment can be returned locally, without a Gemini call. Matching separate
    words is not treated as a reliable full-sentence translation.
@@ -103,25 +104,34 @@ The two files are versioned project resources, so no Downloads path or import
 step is required after cloning. Coursework bundles retain them under
 `source/dictionary`, separately from the exported corpus.
 
-### Constructed bilingual practice statements
+### Preserved academic material
 
-Open **Practice examples** (`#examples`) to search the 26 supplied statements in
+The 26 supplied constructed statements remain preserved in
 [camfranglais_statements.csv](examples/camfranglais_statements.csv). They include
 both French and English meanings, original topics and explicit constructed-example
 notes. They are **not recorded or verified real-speaker statements**.
 
-**Practice in French/English** fills a translator draft and enables the separate
-**Use constructed practice examples (not fieldwork)** option. That option is off
-by default in translation and chat. Complete, unambiguous supplied alignments work
-locally in either direction; a partial word match never fabricates a sentence.
-Examples retain a distinct source label, including when selected for an explicit
-AI request. They do not alter the research CSV, human approval, coursework
-counts, lexical categories or the saved grammar. Coursework ZIPs retain the
-original file under `source/examples`, not among collected statements.
+The professional UI no longer loads Compiler lab, practice pages, student names,
+matricules, submission checklists or report/slide exports. Old `#coursework` and
+`#examples` links redirect to Translate. Default `/api/coursework/*` and
+`/api/examples` routes return 404; attempts to enable the archived practice source
+in translation/chat return an explicit 422.
+
+For maintenance of the preserved academic code, the Python factory accepts the
+explicit developer-only `create_app(..., include_academic=True)` option. Archive
+backend/component regressions still run separately from the business UI contract.
+Historical browser scenarios under `frontend/tests/archived` are not included in
+the default professional browser suite. No old CSV, profile, screenshots or audio
+files are deleted or silently migrated by this change.
+
+Terminology uses business categories while retaining the categories and metadata
+on existing records. **Export results (JSON)** downloads only the displayed
+entries, including review status and context; it references audio by filename
+without embedding recordings. Review recipient permissions before sharing.
 
 ### Recording and reviewing audio
 
-In **Collection**, add or edit an expression, choose **Record audio**, then
+In **Terminology**, add or edit an expression, choose **Record audio**, then
 **Stop recording**. Play or download the draft before explicitly saving the
 entry. **Attach an audio file** accepts WAV, MP3, M4A, OGG, FLAC and WebM up to
 12 MB. Replacing/removing audio clears approval for review; removal detaches the
@@ -135,7 +145,7 @@ tab hiding and competing audio activity stop capture. Microphone disconnection,
 empty output, size limits and codec/playback failures are reported explicitly.
 Local preview URLs and media tracks are released when no longer needed.
 
-**Import & learn** can also record a file, but Gemini transcription requires
+**Documents & audio** can also record a file, but Gemini transcription requires
 both fresh cloud-processing consent and an explicit **Preview source text**
 action. Selecting a new file resets consent. Recording is distinct from browser
 dictation, which may use the browser vendor's speech service.
@@ -147,7 +157,7 @@ and real local file I/O; they do not certify a physical microphone or speaker.
 
 ### Supported file inputs
 
-Open **Import & learn**, choose a file, and press **Preview source text**:
+Open **Documents & audio**, choose a file, and press **Preview source text**:
 
 | Input | Processing |
 | --- | --- |
@@ -352,7 +362,6 @@ synthetic temporary fixtures, never the group's actual corpus.
 | POST | `/api/translate` | `text`, source/target languages (`fr`/`en`/`francanglais`/`pidgin`), `explanation_language`, `tone`, independent `use_dataset`/`use_dictionary`/`use_examples`, `allow_ai`; translation, origin, evidence, coverage and lexer output |
 | POST | `/api/chat` | `message`, explanation `language`, bounded `history`, source/target languages and the three independent source switches; assistant reply and supplied evidence |
 | GET | `/api/dictionary` | Read-only reference vocabulary; `query`, `offset`, `limit` (1-100) |
-| GET | `/api/examples` | Read-only constructed bilingual statements; `query`, `offset`, `limit` (1-100) |
 | POST | `/api/analyze` | Analyze `text` locally with reviewed word categories and the base lexer |
 | POST | `/api/imports/preview` | Multipart `file` and `allow_cloud_processing=true/false`; transcript, passages, warnings and unreviewed structured drafts |
 | POST | `/api/imports/suggest` | Reviewed `text` and language context; unreviewed AI vocabulary candidates, never a save |

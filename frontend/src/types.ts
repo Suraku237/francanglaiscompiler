@@ -4,7 +4,7 @@ export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified
 export type ReviewStatus = 'unreviewed' | 'approved'
 export type AnswerOrigin = 'dataset' | 'dictionary' | 'examples' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
 export type Tone = 'everyday' | 'polite' | 'street'
-export type Page = 'translator' | 'assistant' | 'dictionary' | 'examples' | 'collection' | 'imports' | 'coursework'
+export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports'
 
 export function isLocalOrigin(origin?: AnswerOrigin): boolean {
   return origin === 'dataset' || origin === 'dictionary' || origin === 'examples' || origin === 'local_sources'
@@ -165,6 +165,7 @@ export interface Dataset {
   total: number
   by_category: Record<string, number>
   by_type: Record<string, number>
+  by_review_status?: Record<ReviewStatus, number>
 }
 
 export interface Metadata {
@@ -176,16 +177,16 @@ export interface Metadata {
 
 export const defaultMetadata: Metadata = {
   categories: [
-    'Taxi / Commuting',
-    'Internet Connectivity',
-    'Electricity Supply',
-    'Market Bargaining',
-    'Rainy Season',
-    'Fuel Scarcity',
-    'Roadside Business',
-    'Bendskin Communication',
-    'Security Checkpoint',
-    'Campus Life',
+    'Customer Service',
+    'Sales',
+    'Marketing',
+    'Operations',
+    'Logistics',
+    'Finance',
+    'Human Resources',
+    'Product & Technical',
+    'Legal & Compliance',
+    'General Communication',
     'Other',
   ],
   entry_types: ['Word', 'Phrase', 'Sentence'],

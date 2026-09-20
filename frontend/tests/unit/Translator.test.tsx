@@ -38,11 +38,11 @@ describe('translator trust and submission boundaries', () => {
     })))
     const { user } = renderTranslator({ aiAvailable: false })
     await user.type(sourceText(), 'fixture')
-    await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Use approved terminology' }))
     expect(submit()).toBeEnabled()
     await user.click(submit())
     expect(await screen.findByText('Reference dictionary · local')).toBeInTheDocument()
-    expect(screen.getByText(/fixture.md:4 · not fieldwork/)).toBeInTheDocument()
+    expect(screen.getByText(/fixture.md:4 · not reviewed terminology/)).toBeInTheDocument()
     expect(screen.getByText('No French gloss recorded')).toBeInTheDocument()
     expect(screen.getByText(/No Gemini translation request was needed/)).toBeInTheDocument()
     expect(screen.queryByText('Exact approved match · local')).not.toBeInTheDocument()
@@ -56,7 +56,7 @@ describe('translator trust and submission boundaries', () => {
     expect(sourceText()).toHaveValue('pasho')
     expect(screen.getByLabelText('From')).toHaveValue('francanglais')
     expect(screen.getByLabelText('To')).toHaveValue('en')
-    expect(screen.getByText(/A reference word is in your draft/)).toBeInTheDocument()
+    expect(screen.getByText(/Dictionary entry loaded/)).toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -82,7 +82,7 @@ describe('translator trust and submission boundaries', () => {
 
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toEqual({
       text: 'Sens de test', source_language: 'fr', target_language: 'francanglais',
-      explanation_language: 'fr', tone: 'everyday', use_dataset: true, use_dictionary: true, use_examples: false, allow_ai: false,
+      explanation_language: 'fr', tone: 'everyday', use_dataset: true, use_dictionary: true, allow_ai: false,
     })
     expect(await screen.findByText('Exact approved match · local')).toBeInTheDocument()
     expect(screen.getByText('Local fixture result')).toBeInTheDocument()
@@ -124,11 +124,11 @@ describe('translator trust and submission boundaries', () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(translation({ translation: 'Result to invalidate' })))
     const { user } = renderTranslator({ aiAvailable: false })
     await user.type(sourceText(), 'Fixture')
-    await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Use approved terminology' }))
     await user.click(screen.getByRole('checkbox', { name: 'Use reference dictionary' }))
     expect(submit()).toBeDisabled()
     expect(fetch).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('checkbox', { name: 'Use approved dataset matches' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Use approved terminology' }))
     await user.click(submit())
     expect(await screen.findByText('Result to invalidate')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Swap source and target languages' }))

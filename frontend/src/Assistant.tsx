@@ -19,9 +19,9 @@ interface DisplayMessage extends ChatMessage {
 }
 
 const starters: { icon: 'translate' | 'collection' | 'globe'; title: string; subtitle: string; fr: string; en: string }[] = [
-  { icon: 'collection', title: 'Unpack an expression', subtitle: 'A little context goes a long way.', fr: 'Que signifie « on est ensemble » au Cameroun ? Donne-moi un exemple de conversation.', en: 'What does “on est ensemble” mean in Cameroon? Show me how to use it in a conversation.' },
-  { icon: 'translate', title: 'Compare both languages', subtitle: 'Francanglais is not Cameroon Pidgin.', fr: 'Compare le Francanglais et le pidgin camerounais avec le français et l’anglais. Distingue les exemples attestés dans la collection de tes suggestions.', en: 'Compare Francanglais and Cameroon Pidgin with French and English. Distinguish examples attested in the collection from your suggestions.' },
-  { icon: 'globe', title: 'Practice Cameroon Pidgin', subtitle: 'Meaning, usage, and what needs checking.', fr: 'Aide-moi à apprendre une salutation en pidgin camerounais. Compare son sens en français et en anglais et indique les points à vérifier avec un locuteur.', en: 'Help me learn a greeting in Cameroon Pidgin. Compare its French and English meanings and explain what I should check with a speaker.' },
+  { icon: 'collection', title: 'Clarify terminology', subtitle: 'Understand meaning and context.', fr: 'Explique le sens et les ambiguïtés de cette expression dans le contexte indiqué : ', en: 'Explain the meaning and ambiguity of this expression in its business context: ' },
+  { icon: 'translate', title: 'Review a message', subtitle: 'Check tone, clarity and intent.', fr: 'Vérifie la clarté et le ton de ce message professionnel, sans changer les noms, nombres ou engagements : ', en: 'Review this business message for clarity and tone without changing names, numbers or commitments: ' },
+  { icon: 'globe', title: 'Compare translations', subtitle: 'Identify differences before sharing.', fr: 'Compare ces traductions et indique les différences de sens et les points à vérifier : ', en: 'Compare these translations and identify differences in meaning and points requiring review: ' },
 ]
 
 function makeHistory(messages: DisplayMessage[]): ChatMessage[] {
@@ -38,7 +38,6 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
   const [target, setTarget] = useState<TranslationLanguage>('fr')
   const [useDataset, setUseDataset] = useState(true)
   const [useDictionary, setUseDictionary] = useState(true)
-  const [useExamples, setUseExamples] = useState(false)
   const [draft, setDraft] = useState('')
   const [importNotice, setImportNotice] = useState(false)
   const [messages, setMessages] = useState<DisplayMessage[]>([])
@@ -114,7 +113,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
     void run(
       (signal) => api<ChatReply>('/chat', {
         method: 'POST',
-        body: { message: content, language, history, use_dataset: useDataset, use_dictionary: useDictionary, use_examples: useExamples, source_language: source, target_language: target },
+        body: { message: content, language, history, use_dataset: useDataset, use_dictionary: useDictionary, source_language: source, target_language: target },
         signal, timeout: 60000,
       }),
       (response) => {
@@ -136,8 +135,8 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
 
   return <section className="page assistant-page" aria-labelledby="assistant-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow"><span className="eyebrow-line" />COMPARE · ASK · PRACTICE · REVIEW</div><h1 id="assistant-title">Learn the words.<br /><em>Explore the context.</em></h1><p>A learning assistant for Cameroon Francanglais and Cameroon Pidgin, with French and English explanations. Dataset matches and AI suggestions stay visibly distinct.</p></div>
-      <span className="intro-badge"><Icon name="sparkles" size={18} />AI learning suggestions</span>
+      <div><div className="eyebrow">WRITING & LANGUAGE SUPPORT</div><h1 id="assistant-title">Assistant</h1><p>Review wording, clarify terminology and compare translations before using them in your business communications.</p></div>
+      <span className="intro-badge"><Icon name="sparkles" size={18} />AI-assisted · Review required</span>
     </div>
     <div className="chat-workspace">
       <div className="chat-toolbar">
@@ -153,18 +152,17 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
           setSource(nextSource)
           setTarget(nextTarget)
         }} />
-        <label className="checkbox-label"><input type="checkbox" checked={useDataset} disabled={pending} onChange={(event) => { clearError(); setUseDataset(event.target.checked) }} />Use approved dataset matches for this answer</label>
+        <label className="checkbox-label"><input type="checkbox" checked={useDataset} disabled={pending} onChange={(event) => { clearError(); setUseDataset(event.target.checked) }} />Use approved terminology for this answer</label>
         <label className="checkbox-label"><input type="checkbox" checked={useDictionary} disabled={pending} onChange={(event) => { clearError(); setUseDictionary(event.target.checked) }} />Use reference dictionary for this answer</label>
-        <label className="checkbox-label"><input type="checkbox" checked={useExamples} disabled={pending} onChange={(event) => { clearError(); setUseExamples(event.target.checked) }} />Use constructed practice examples (not fieldwork)</label>
         <p className="helper-text">The direction guides translation questions; your explanation language is separate. Changing controls does not rewrite earlier answers.</p>
-        {!aiAvailable && <p className="helper-text">Chat needs configured AI. You can still <a href="#translator">look up exact approved translations</a> or <a href="#collection">review the local collection</a>.</p>}
+        {!aiAvailable && <p className="helper-text">The assistant requires AI configuration. <a href="#translator">Local translation</a> and <a href="#collection">terminology management</a> are still available.</p>}
       </div>
       <div className={`chat-thread ${!messages.length && !pending ? 'is-empty' : ''}`} ref={thread} role="log" aria-label="Conversation with the AI assistant" aria-live="polite" aria-relevant="additions">
         {!messages.length && !pending ? <div className="chat-welcome">
           <span className="assistant-avatar large-avatar"><Icon name="sparkles" size={34} /></span>
-          <span className="small-caps">NO QUESTION IS TOO SMALL</span>
-          <h2>A phrase, a feeling,<br /><em>or a “how do I say…?”</em></h2>
-          <p>Ask for a comparison, a usage explanation, or a short practice exercise. Suggestions may need correction; the collection does not know every expression.</p>
+          <span className="small-caps">START A CONVERSATION</span>
+          <h2>Get a second view on your wording</h2>
+          <p>Add the text and business context you want reviewed. Suggested changes are not applied or saved automatically.</p>
           <div className="chat-starters">{starters.map((starter) => <button type="button" key={starter.title} onClick={() => {
             cancelVoice()
             clearError()
@@ -179,7 +177,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
           {messages.map((message) => <article className={`chat-message message-${message.role}`} key={message.id} aria-label={message.role === 'user' ? 'Your message' : 'Assistant reply'}>
             <span className={`message-avatar ${message.role === 'assistant' ? 'assistant-avatar' : ''}`}>{message.role === 'assistant' ? <Icon name="sparkles" size={19} /> : 'You'}</span>
             <div className="message-body">
-              <div className="message-byline">{message.role === 'assistant' ? 'Mboa learning assistant' : 'You'}</div>
+              <div className="message-byline">{message.role === 'assistant' ? 'Mboa assistant' : 'You'}</div>
               {message.role === 'assistant' && <><OriginBadge origin={message.origin} /><div className="answer-direction">{languageLabels[message.source]} → {languageLabels[message.target]} · Explanations: {languageLabels[message.language]}</div></>}
               <p>{message.content}</p>
               {message.role === 'assistant' && <>
@@ -202,7 +200,7 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
         <form className="chat-compose" onSubmit={submit}>
           <label className="sr-only" htmlFor="chat-draft">Message for the assistant</label>
           <textarea id="chat-draft" ref={draftInput} value={draft} maxLength={MAX_TEXT} disabled={pending} rows={3}
-            lang={language} placeholder={language === 'fr' ? 'Une question ? On est ensemble…' : 'Something on your mind? Let’s talk…'}
+            lang={language} placeholder={language === 'fr' ? 'Saisissez votre message et son contexte…' : 'Enter your message and its business context…'}
             aria-describedby="chat-privacy chat-keyboard-hint"
             onChange={(event) => { setDraft(event.target.value); clearError(); setVoiceLimit(false); setImportNotice(false) }}
             onKeyDown={(event) => {
@@ -234,8 +232,8 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
         <p className="helper-text">Dictation follows your source selection using {voiceLanguage === 'fr' ? 'a French' : 'an English'} recognizer. Review Francanglais and Pidgin spellings yourself. {speech.supported ? 'Read-aloud follows the explanation language, not a native Francanglais or Pidgin voice; pronunciation is approximate.' : 'Read-aloud is not supported in this browser.'}</p>
       </div>
     </div>
-    <div className="learning-next-steps"><div><strong>A useful answer is a starting point, not an approved entry.</strong><p>Check wording and meaning with a speaker. <a href="#collection">Review and grow the collection</a> or <a href="#imports">import learning material</a>. No answer is saved automatically.</p></div></div>
+    <div className="learning-next-steps"><div><strong>Review AI output before external use.</strong><p>Confirm terminology and context before sharing. <a href="#collection">Manage approved terms</a> or <a href="#imports">import source content</a>. Replies are not saved automatically.</p></div></div>
     <div className="chat-context-note"><Icon name="info" size={16} /><span>Only successful exchanges are remembered. AI context includes up to 6 recent exchanges, within 24,000 characters. Clearing removes this browser conversation, not provider-side records. A changed direction applies to the next request; clear history explicitly if you want a fresh topic.</span></div>
-    <p className="privacy-caption" id="chat-privacy"><Icon name="shield" size={15} /><span>Pressing Send shares your message and recent chat history with Gemini. With dataset use enabled, selected approved text/gloss matches may also be sent—not contributor names, source locations, notes, or the full corpus. Optional dictation may send audio to your browser’s speech provider. Importing or dictating text never sends it automatically.</span></p>
+    <p className="privacy-caption" id="chat-privacy"><Icon name="shield" size={15} /><span>Send shares your message, recent history and selected enabled source matches with Gemini. Stored contributor details and private notes are excluded from retrieved matches. Browser dictation may use an external speech service. Review sensitive content before submitting.</span></p>
   </section>
 }

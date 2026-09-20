@@ -120,7 +120,7 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
         english_gloss: draft?.english_gloss ?? '',
         lexical_category: draft?.lexical_category ?? '',
         review_status: 'unreviewed',
-        notes: `Source file: ${preview.filename}. ${preview.method === 'gemini' ? 'AI transcript/OCR, not manual transcription.' : 'Locally extracted text, not proof of fieldwork.'} ${origin}`,
+        notes: `Source file: ${preview.filename}. ${preview.method === 'gemini' ? 'AI transcript/OCR; check against the original.' : 'Locally extracted text; source and context need review.'} ${origin}`,
       },
     })
   }
@@ -132,10 +132,10 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
 
   return <section className="page imports-page" aria-labelledby="imports-title">
     <div className="page-intro">
-      <div><div className="eyebrow"><span className="eyebrow-line" />LISTEN. READ. REVIEW. LEARN.</div><h1 id="imports-title">More ways<br />to <em>understand.</em></h1><p>Bring documents, voices and conversations into your Francanglais and Cameroon Pidgin workspace. Nothing becomes trusted knowledge without your review.</p></div>
+      <div><div className="eyebrow">CONTENT PROCESSING</div><h1 id="imports-title">Documents & audio</h1><p>Extract text, transcribe permitted media and prepare content for translation or terminology review.</p></div>
     </div>
     <form className="import-card" onSubmit={extract}>
-      <div className="import-heading"><Icon name="collection" size={23} /><div><h2>1. Choose your source</h2><p>Up to 12 MB per file. PDFs: up to 40 pages. Extracted text: up to 40,000 characters.</p></div></div>
+      <div className="import-heading"><Icon name="upload" size={23} /><div><h2>Source file</h2><p>Up to 12 MB per file · 40 PDF pages · 40,000 extracted characters</p></div></div>
       <div className="field"><label htmlFor="language-file">Document, image, audio or video</label><input ref={fileInput} id="language-file" type="file" accept={IMPORT_ACCEPT} disabled={pending || recording} onChange={(event) => selectFile(event.target.files?.[0] ?? null)} /></div>
       <AudioRecorder active={active} disabled={pending} file={file && isAudioFile(file) ? file : null} showPicker={false} onBusyChange={setRecording} onFile={(recorded) => {
         if (fileInput.current) fileInput.current.value = ''
@@ -144,13 +144,13 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
       <div className="import-formats"><p><strong>Local text extraction:</strong> TXT, Markdown, CSV, JSON, text PDFs and DOCX.</p><p><strong>Gemini transcription / OCR:</strong> PNG, JPEG, WebP, MP3, WAV, M4A, OGG, FLAC, MP4, WebM, MOV and scanned PDFs. Use short clips; long transcripts can exceed the AI response limit. Unsupported files are rejected, not silently converted.</p></div>
       <label className="import-consent"><input type="checkbox" checked={allowCloud} disabled={pending || recording || !aiAvailable} onChange={(event) => setAllowCloud(event.target.checked)} /><span>I consent to sending this file to Gemini when transcription or OCR is needed. I have permission to process its content.</span></label>
       {!aiAvailable && <p className="helper-text">Gemini is unavailable. Local documents still work; media transcription needs a configured API key.</p>}
-      <p className="helper-text">Files are processed temporarily and not kept by this app. Nothing is saved to the collection or translated automatically. Provider data policies apply to cloud processing.</p>
+      <p className="helper-text">Source files are processed temporarily. No terminology is saved and no translation is submitted automatically. Provider data policies apply to cloud processing.</p>
       <ErrorNotice message={validation || error} />
       <div className="import-actions"><button type="submit" className="button button-primary" disabled={!file || pending || recording || file.size > MAX_IMPORT_BYTES}>{pending ? <Spinner label="Extracting or transcribing" /> : <Icon name="code" size={18} />}{pending ? 'Processing source...' : 'Preview source text'}</button>{pending && <button type="button" className="text-button" onClick={cancel}>Cancel</button>}</div>
     </form>
 
     {preview && <section className="import-card" aria-labelledby="import-preview-title">
-      <div className="import-heading"><Icon name="code" size={23} /><div><h2 id="import-preview-title">2. Review what was heard or read</h2><p>{preview.filename} · {preview.method === 'local' ? 'Extracted locally' : 'Unreviewed AI transcript'} · {preview.text.length.toLocaleString()} characters</p></div></div>
+      <div className="import-heading"><Icon name="collection" size={23} /><div><h2 id="import-preview-title">Content preview</h2><p>{preview.filename} · {preview.method === 'local' ? 'Extracted locally' : 'Unreviewed AI transcript'} · {preview.text.length.toLocaleString()} characters</p></div></div>
       {preview.warnings.map((warning, index) => <div className="notice notice-subtle" key={index}><Icon name="info" size={17} /><span>{warning}</span></div>)}
       <details className="import-original"><summary>Original extracted text (read-only)</summary><pre>{preview.text}</pre><CopyButton text={preview.text} /></details>
       <div className="field"><label htmlFor="import-segment">Choose a passage</label><select id="import-segment" value={segment} onChange={(event) => {
@@ -167,7 +167,7 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
     </section>}
 
     {preview && <section className="import-card" aria-labelledby="import-learn-title">
-      <div className="import-heading"><Icon name="leaf" size={23} /><div><h2 id="import-learn-title">3. Grow the dataset, carefully</h2><p>Compare the original expression with French and English meanings, correct language labels, then explicitly approve a record in the review form.</p></div></div>
+      <div className="import-heading"><Icon name="collection" size={23} /><div><h2 id="import-learn-title">Terminology extraction</h2><p>Review source expressions and their meanings before adding them to your terminology library.</p></div></div>
       <ErrorNotice message={metadataError} />
       <div className="field"><label htmlFor="import-language">Language context for new entries</label><select id="import-language" value={language} onChange={(event) => {
         const next = event.target.value
@@ -185,11 +185,11 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
       </article>)}</div>}
       {notice && <p className="import-save-notice" role="status">{notice}</p>}
       <button type="button" className="text-button" onClick={onOpenCollection}>Open collection to review saved records</button>
-      <p className="helper-text">Approving an entry means you reviewed it, not that it is universally correct. Keep regional context and uncertainty in notes. Machine transcription is not the manually collected fieldwork required by the coursework brief.</p>
+      <p className="helper-text">Approval records your review, not universal correctness. Keep regional context, source restrictions and uncertainty in the entry notes.</p>
     </section>}
     {review && <EntryEditor entry={null} metadata={metadata} initialDraft={review.fields} onClose={() => setReview(null)} onSaved={(entry) => {
       setSaved((previous) => new Set(previous).add(review.key))
-      setNotice(`Saved record ${entry.id}. ${entry.review_status === 'approved' ? 'Your approved language evidence is now available to dataset-backed requests.' : 'It remains unreviewed and is not trusted translation evidence.'}`)
+      setNotice(`Saved record ${entry.id}. ${entry.review_status === 'approved' ? 'Approved terminology is now available for matching.' : 'Review this entry before using it as approved terminology.'}`)
       setReview(null)
     }} />}
   </section>

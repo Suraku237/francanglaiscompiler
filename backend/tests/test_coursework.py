@@ -40,7 +40,9 @@ class CourseworkTests(unittest.TestCase):
             })
 
         settings = Settings(gemini_api_key=SecretStr("fake-coursework-test-key"))
-        self.client = self.stack.enter_context(TestClient(create_app(settings, transport=httpx.MockTransport(respond))))
+        self.client = self.stack.enter_context(TestClient(create_app(
+            settings, transport=httpx.MockTransport(respond), include_academic=True,
+        )))
         self.profile = {
             "group_members": ["", "", ""], "grammar": DEFAULT_GRAMMAR,
             "manual_transcription_confirmed": False, "grammar_rationale": "", "discussion": "",

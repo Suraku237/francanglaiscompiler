@@ -51,8 +51,8 @@ test('records synthetic audio locally and uploads it only with an explicit colle
       },
     })
   })
-  await page.getByRole('button', { name: 'Add expression', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add an expression to learn' })
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add terminology' })
   await dialog.getByRole('textbox', { name: /^Expression/ }).fill('Synthetic audio test')
   await dialog.getByRole('button', { name: 'Record audio', exact: true }).click()
   await expect(dialog.getByRole('button', { name: 'Save unreviewed' })).toBeDisabled()
@@ -83,8 +83,8 @@ test('denied microphone permission is actionable and does not prevent text-only 
       value: { getUserMedia: () => Promise.reject(new DOMException('Denied in isolated test', 'NotAllowedError')) },
     })
   })
-  await page.getByRole('button', { name: 'Add expression', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add an expression to learn' })
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add terminology' })
   await dialog.getByRole('button', { name: 'Record audio', exact: true }).click()
   await expect(dialog.getByRole('alert')).toContainText('Microphone permission was denied')
   await dialog.getByRole('textbox', { name: /^Expression/ }).fill('Text after denied permission')

@@ -50,6 +50,12 @@ CATEGORIES = [
     "Campus Life", "Other",
 ]
 
+BUSINESS_CATEGORIES = [
+    "Customer Service", "Sales", "Marketing", "Operations", "Logistics",
+    "Finance", "Human Resources", "Product & Technical", "Legal & Compliance",
+    "General Communication", "Other",
+]
+
 ENTRY_TYPES = ["Word", "Phrase", "Sentence"]
 
 _LOCKS: dict[str, FileLock] = {}

@@ -49,7 +49,8 @@ def analyze(text: str, entries: list[dict[str, str]] | None = None) -> AnalysisR
 
 
 def create_app(
-    settings: Settings | None = None, *, transport: httpx.AsyncBaseTransport | None = None
+    settings: Settings | None = None, *, transport: httpx.AsyncBaseTransport | None = None,
+    include_academic: bool = False,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
 
@@ -60,8 +61,8 @@ def create_app(
             yield
 
     app = FastAPI(
-        title="Mboa - Francanglais and Cameroon Pidgin",
-        description="Local collection and reference dictionary translation, reviewed imports and compiler analysis.",
+        title="Mboa Language Workspace",
+        description="Local translation, terminology, reference lookup and reviewed document/audio processing.",
         version="1.0.0",
         lifespan=lifespan,
     )
@@ -86,6 +87,8 @@ def create_app(
 
     @app.post("/api/translate", response_model=TranslationResponse)
     async def translate(payload: TranslationRequest, request: Request) -> TranslationResponse:
+        if payload.use_examples and not include_academic:
+            raise collection.CollectionError(422, "This source is not available in the professional workspace.")
         service: GeminiService = request.app.state.gemini
         def get_grounding():
             entries = dataset.load_all() if payload.use_dataset else []
@@ -135,6 +138,8 @@ def create_app(
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
+        if payload.use_examples and not include_academic:
+            raise collection.CollectionError(422, "This source is not available in the professional workspace.")
         service: GeminiService = request.app.state.gemini
         evidence = []
         if payload.use_dataset or payload.use_dictionary or payload.use_examples:
@@ -159,7 +164,8 @@ def create_app(
     @app.get("/api/metadata", response_model=MetadataResponse)
     def metadata() -> MetadataResponse:
         return MetadataResponse(
-            categories=dataset.CATEGORIES, entry_types=dataset.ENTRY_TYPES,
+            categories=dataset.CATEGORIES if include_academic else dataset.BUSINESS_CATEGORIES,
+            entry_types=dataset.ENTRY_TYPES,
             lexical_categories=dataset.LEXICAL_CATEGORIES, dataset_languages=dataset.DATASET_LANGUAGES,
         )
 
@@ -167,7 +173,6 @@ def create_app(
     def get_dataset(query: str = Query(default="", max_length=200)) -> DatasetResponse:
         return storage_operation(lambda: collection.list_entries(query))
 
-    @app.get("/api/examples", response_model=PracticeResponse)
     def get_examples(
         query: str = Query(default="", max_length=200),
         offset: int = Query(default=0, ge=0), limit: int = Query(default=25, ge=1, le=100),
@@ -195,7 +200,9 @@ def create_app(
         storage_operation(lambda: collection.remove_entry(entry_id))
         return Response(status_code=204)
 
-    app.include_router(coursework_router)
+    if include_academic:
+        app.include_router(coursework_router)
+        app.add_api_route("/api/examples", get_examples, response_model=PracticeResponse, methods=["GET"])
     app.include_router(import_router)
     app.include_router(audio_router)
     return app

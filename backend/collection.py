@@ -48,6 +48,10 @@ def list_entries(query: str) -> DatasetResponse:
         total=len(entries),
         by_category=dict(Counter(entry["category"] or "(none)" for entry in entries)),
         by_type=dict(Counter(entry["entry_type"] or "(none)" for entry in entries)),
+        by_review_status={
+            status: sum(entry["review_status"] == status for entry in entries)
+            for status in ("approved", "unreviewed")
+        },
     )
 
 
@@ -63,7 +67,7 @@ def _check_duplicate(
 
 
 def create_entry(request: EntryCreate, *, audio_filename: str = "") -> DatasetEntry:
-    if request.category not in dataset.CATEGORIES:
+    if request.category not in (*dataset.BUSINESS_CATEGORIES, *dataset.CATEGORIES):
         raise CollectionError(422, "Select one of the available collection categories.")
     with dataset.dataset_lock():
         entries = dataset.load_all()
@@ -88,7 +92,9 @@ def edit_entry(
             raise CollectionError(404, "This collection entry no longer exists.")
         if request.entry_type is not None and request.entry_type not in (*dataset.ENTRY_TYPES, entry["entry_type"]):
             raise CollectionError(422, "Select one of the available collection entry types.")
-        if request.category is not None and request.category not in (*dataset.CATEGORIES, entry["category"]):
+        if request.category is not None and request.category not in (
+            *dataset.BUSINESS_CATEGORIES, *dataset.CATEGORIES, entry["category"],
+        ):
             raise CollectionError(422, "Select one of the available collection categories.")
         text = request.text if request.text is not None else entry["text"]
         language = request.language if request.language is not None else entry["language"]

@@ -161,11 +161,11 @@ export function EvidencePanel({ evidence, origin, compact = false }: {
     <summary><Icon name="collection" size={17} /><span>Local source matches <strong>({evidence.length})</strong></span><Icon name="chevron" size={15} /></summary>
     <div className="evidence-content">
       <p className="helper-text">{isLocalOrigin(origin)
-        ? 'Sources are labelled individually. Approved collection records reflect human review; dictionary references and constructed examples are not collected fieldwork or a guarantee of universal correctness.'
+        ? 'Sources are identified below. Approved terminology records a local review; reference meanings are separate and require context-specific checking.'
         : 'These are retrieved records, not a verification of the entire AI answer. A phrase or token match does not establish the meaning of a whole sentence.'}</p>
       {evidence.length ? <div className="evidence-list">{evidence.map((entry, index) => <article className="evidence-record" key={`${entry.id}-${index}`}>
         <div className="evidence-byline"><code>ID: {entry.id}</code><span>{entry.match_type} match</span></div>
-        <div className="evidence-byline">{entry.source === 'examples' ? <span>Constructed example · {entry.source_document}:{entry.source_line} · not fieldwork</span> : entry.source === 'dictionary' ? <span>Reference dictionary · {entry.source_document}:{entry.source_line} · not fieldwork</span> : <span>Human-approved collection record</span>}</div>
+        <div className="evidence-byline">{entry.source === 'examples' ? <span>Illustrative source · {entry.source_document}:{entry.source_line} · unverified</span> : entry.source === 'dictionary' ? <span>Reference dictionary · {entry.source_document}:{entry.source_line} · not reviewed terminology</span> : <span>Approved terminology record</span>}</div>
         <dl className="evidence-comparison">
           <div><dt>{languageLabels[entry.language] ?? entry.language}</dt><dd>{entry.text}</dd></div>
           <div><dt>French · FR</dt><dd lang="fr">{entry.french_gloss || 'No French gloss recorded'}</dd></div>

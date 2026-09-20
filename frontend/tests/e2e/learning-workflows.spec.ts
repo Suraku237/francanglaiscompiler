@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { emptyZip, test, expect } from './fixtures'
-import { courseworkAnalysis, courseworkState, health, importPreview, project, translation } from '../fixtures'
+import { test, expect } from './fixtures'
+import { health, importPreview, translation } from '../fixtures'
 
 test('local import hands reviewed text to the translator without submitting or approving it automatically', async ({ page, api }) => {
   api.health = health(false)
@@ -53,41 +52,11 @@ test('media import requires explicit consent and a separate retry before a cloud
   expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
 })
 
-test('coursework analysis does not save, and native ZIP download requires the saved editor snapshot', async ({ page, api }) => {
-  api.reply('POST', '/api/coursework/analyze', courseworkAnalysis())
-  const saved = project({ group_members: ['Synthetic collaborator', '', ''] })
-  api.on('PUT', '/api/coursework/project', async (route, request) => {
-    expect(request.body).toEqual(saved)
-    api.coursework = courseworkState(saved)
-    await route.fulfill({ json: saved })
-  })
-  api.on('GET', '/api/coursework/export', async (route) => {
-    await route.fulfill({ contentType: 'application/zip', body: emptyZip })
-  })
-
+test('old coursework links redirect without reading or exposing academic records', async ({ page, api }) => {
   await page.goto('/#coursework')
-  await page.getByLabel('Group member 1').fill('Synthetic collaborator')
-  const downloadButton = page.getByRole('button', { name: 'Download coursework draft (.zip)' })
-  await expect(downloadButton).toBeDisabled()
-  await page.getByRole('button', { name: 'Analyze grammar & saved corpus' }).click()
-  await expect(page.getByRole('heading', { name: 'Computed grammar', exact: true })).toBeVisible()
-  expect(api.calls('/api/coursework/project', 'PUT')).toHaveLength(0)
-  await expect(downloadButton).toBeDisabled()
-
-  await page.getByRole('button', { name: 'Save project', exact: true }).click()
-  await expect(page.getByText('No unsaved editor changes', { exact: true })).toBeVisible()
-  await expect(downloadButton).toBeEnabled()
-  const downloadEvent = page.waitForEvent('download')
-  await downloadButton.click()
-  const download = await downloadEvent
-  expect(await download.failure()).toBeNull()
-  expect(download.suggestedFilename()).toBe('francanglais-coursework.zip')
-  const path = await download.path()
-  if (!path) throw new Error('The browser did not create the isolated fixture download.')
-  expect(await readFile(path)).toEqual(emptyZip)
-  expect(api.calls('/api/coursework/export')).toHaveLength(1)
-
-  await page.getByLabel('Linguistic discussion').fill('Still an unsaved synthetic draft.')
-  await expect(downloadButton).toBeDisabled()
-  expect(api.calls('/api/coursework/project', 'PUT')).toHaveLength(1)
+  await expect(page).toHaveURL(/#translator$/)
+  await expect(page).toHaveTitle('Translate — Mboa Workspace')
+  await expect(page.getByLabel('Group member 1')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Download coursework draft (.zip)' })).toHaveCount(0)
+  expect(api.requests.filter((request) => request.path.startsWith('/api/coursework'))).toHaveLength(0)
 })

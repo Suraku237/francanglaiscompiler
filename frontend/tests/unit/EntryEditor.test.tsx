@@ -118,7 +118,7 @@ describe('collection entry review', () => {
   it('clears a word-only lexical category when the entry becomes a phrase', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(entry({ entry_type: 'Phrase', review_status: 'unreviewed' })))
     const { user } = renderEditor({ entry: entry({ entry_type: 'Word', lexical_category: 'NOUN' }) })
-    expect(screen.getByLabelText(/^Lexical category/)).toHaveValue('NOUN')
+    expect(screen.queryByLabelText(/^Lexical category/)).not.toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText(/^Entry type$/), 'Phrase')
     expect(screen.queryByLabelText(/^Lexical category/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))

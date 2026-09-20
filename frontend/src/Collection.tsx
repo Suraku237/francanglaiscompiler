@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, isCancelled, messageOf } from './api'
 import { AudioPlayer, AudioRecorder } from './AudioRecorder'
-import { ErrorNotice, Icon, Modal, Spinner, TokenAnalysis } from './components'
+import { ErrorNotice, Icon, Modal, Spinner } from './components'
 import { defaultMetadata, languageLabels, MAX_TEXT } from './types'
-import type { Analysis, Dataset, DatasetEntry, DatasetLanguage, EditableEntry, Metadata, ReviewStatus } from './types'
+import type { Dataset, DatasetEntry, DatasetLanguage, EditableEntry, Metadata, ReviewStatus } from './types'
 import { useRequest } from './useRequest'
+import { useDownload } from './useDownload'
 
 const emptyEntry: EditableEntry = {
   text: '',
@@ -66,7 +67,6 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
   const categories = uniqueOptions([...metadata.categories, draft.category])
   const entryTypes = uniqueOptions([...metadata.entry_types, draft.entry_type])
   const datasetLanguages = uniqueOptions([...(metadata.dataset_languages ?? defaultMetadata.dataset_languages), draft.language])
-  const lexicalCategories = uniqueOptions([...(metadata.lexical_categories ?? []), draft.lexical_category])
 
   function update<K extends keyof EditableEntry>(field: K, value: EditableEntry[K]) {
     clearError()
@@ -118,8 +118,8 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
     )
   }
 
-  return <Modal title={entry ? 'Review this expression' : 'Add an expression to learn'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
-    <p className="modal-description">{entry ? 'Review the wording, language, and meanings. Only changed fields and your review decision are submitted; other stored values are preserved.' : 'Keep Cameroon Francanglais and Cameroon Pidgin distinct. Save a draft, or approve after a human review.'} <span>An expression is required. Missing context is okay; never invent a speaker, location, or fieldwork source.</span></p>
+  return <Modal title={entry ? 'Review terminology' : 'Add terminology'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
+    <p className="modal-description">{entry ? 'Review wording, language and meanings. Unchanged metadata and existing attachments are preserved.' : 'Add a term, phrase or reusable sentence. Save it for review, or explicitly approve it after checking the wording.'} <span>Only source text is required. Record context when known.</span></p>
     <form onSubmit={submit}>
       <div className="form-fields">
         <div className="field">
@@ -133,14 +133,13 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
         </div>
         <div className="field-grid">
           <div className="field"><label htmlFor="entry-category">Category</label><select id="entry-category" value={draft.category} disabled={pending} onChange={(event) => update('category', event.target.value)}>{!draft.category && <option value="">Not recorded (legacy)</option>}{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></div>
-          {draft.entry_type === 'Word' && <div className="field"><label htmlFor="entry-lexical-category">Lexical category <span>optional</span></label><select id="entry-lexical-category" value={draft.lexical_category} disabled={pending} onChange={(event) => update('lexical_category', event.target.value)}><option value="">No lexical category</option>{lexicalCategories.map((category) => <option value={category} key={category}>{category}</option>)}</select><span className="field-hint">A local lexer terminal, not proof of meaning or language.</span></div>}
         </div>
         <div className="field-grid">
           <div className="field"><label htmlFor="entry-french">French meaning <span>optional</span></label><textarea id="entry-french" rows={3} maxLength={MAX_TEXT} value={draft.french_gloss} lang="fr" disabled={pending} onChange={(event) => update('french_gloss', event.target.value)} placeholder="Le sens en français…" /></div>
           <div className="field"><label htmlFor="entry-english">English meaning <span>optional</span></label><textarea id="entry-english" rows={3} maxLength={MAX_TEXT} value={draft.english_gloss} lang="en" disabled={pending} onChange={(event) => update('english_gloss', event.target.value)} placeholder="The meaning in English…" /></div>
         </div>
         <div className="field-grid">
-          <div className="field"><label htmlFor="entry-location">Source location <span>optional</span></label><input id="entry-location" maxLength={200} value={draft.source_location} disabled={pending} onChange={(event) => update('source_location', event.target.value)} placeholder="e.g. Yaoundé, campus" /></div>
+          <div className="field"><label htmlFor="entry-location">Source location <span>optional</span></label><input id="entry-location" maxLength={200} value={draft.source_location} disabled={pending} onChange={(event) => update('source_location', event.target.value)} placeholder="Document, meeting or customer reference" /></div>
           <div className="field"><label htmlFor="entry-contributor">Contributor <span>optional</span></label><input id="entry-contributor" maxLength={200} value={draft.contributor} disabled={pending} onChange={(event) => update('contributor', event.target.value)} placeholder="Name or alias" /></div>
         </div>
         <div className="field"><label htmlFor="entry-notes">Context & notes <span>optional</span></label><textarea id="entry-notes" rows={3} maxLength={2000} value={draft.notes} disabled={pending} onChange={(event) => update('notes', event.target.value)} placeholder="When is it used? What makes it special?" /></div>
@@ -161,8 +160,8 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
           }}>{removeAudio ? 'Keep the existing attachment' : 'Remove attachment on save'}</button>
         </div>}
         <div className="entry-review">
-          <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, and meanings. Approve this entry for dataset-backed learning.</span></label>
-          <p>Changing a field clears approval so you can review the new version. Unchecked entries are saved as <strong>Unreviewed</strong> and excluded from trusted translation/chat matches. Approval is your review, not a claim that every usage is correct.</p>
+          <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, and meanings. Approve this entry for terminology matching.</span></label>
+          <p>Edits clear approval until you review the new version. <strong>Unreviewed</strong> entries are excluded from approved-source matching. Approval records your decision, not independent certification.</p>
           <p>Approved text and glosses may be selected for an explicitly submitted AI request with dataset use enabled. Names, locations, notes, and other record metadata stay local.</p>
         </div>
         {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>}
@@ -186,31 +185,6 @@ function DeleteConfirmation({ entry, onClose, onDeleted }: { entry: DatasetEntry
   </Modal>
 }
 
-function LexerLab({ active }: { active: boolean }) {
-  const [text, setText] = useState('')
-  const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const { pending, error, run, cancel, clearError } = useRequest()
-  useEffect(() => {
-    if (!active) cancel()
-  }, [active, cancel])
-  return <details className="lexer-lab">
-    <summary><span className="lexer-icon"><Icon name="code" size={22} /></span><span><strong>Look inside the language</strong><span>Explore tokens with the local lexer. No AI, no external request.</span></span><span className="local-badge">LOCAL TOOL</span><Icon name="chevron" size={18} /></summary>
-    <div className="lexer-content">
-      <form onSubmit={(event) => {
-        event.preventDefault()
-        if (!text.trim() || pending) return
-        setAnalysis(null)
-        void run((signal) => api<Analysis>('/analyze', { method: 'POST', body: { text: text.trim() }, signal }), setAnalysis)
-      }}>
-        <div className="field"><label htmlFor="lexer-text">An expression to inspect</label><textarea id="lexer-text" rows={3} value={text} maxLength={MAX_TEXT} onChange={(event) => { cancel(); clearError(); setAnalysis(null); setText(event.target.value) }} placeholder="Paste a Francanglais expression…" /><span className="field-hint">{text.length.toLocaleString()} / 4,000 characters</span></div>
-        <div className="lexer-submit"><p className="helper-text">Only sent to your local backend. Your collection isn’t analyzed automatically.</p><div className="submit-actions">{pending && <button type="button" className="text-button" onClick={cancel}>Cancel</button>}<button type="submit" className="button button-primary" disabled={!text.trim() || pending}>{pending ? <Spinner label="Analyzing expression" /> : <Icon name="code" size={18} />}{pending ? 'Analyzing…' : 'Analyze expression'}</button></div></div>
-      </form>
-      <ErrorNotice message={error} />
-      {analysis && <TokenAnalysis analysis={analysis} />}
-    </div>
-  </details>
-}
-
 export function Collection({ active }: { active: boolean }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
@@ -226,6 +200,7 @@ export function Collection({ active }: { active: boolean }) {
   const [editor, setEditor] = useState<{ entry: DatasetEntry | null } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DatasetEntry | null>(null)
   const [notice, setNotice] = useState('')
+  const { download, error: downloadError } = useDownload()
 
   useEffect(() => {
     if (!active) {
@@ -292,20 +267,19 @@ export function Collection({ active }: { active: boolean }) {
 
   return <section className="page collection-page" aria-labelledby="collection-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow"><span className="eyebrow-line" />COLLECT · COMPARE · REVIEW</div><h1 id="collection-title">Build what<br /><em>we can learn.</em></h1><p>Your local Francanglais and Cameroon Pidgin collection, aligned with French and English meanings. Only human-approved entries support trusted retrieval.</p></div>
-      <button type="button" className="button button-primary" onClick={() => setEditor({ entry: null })}><Icon name="plus" size={18} />Add expression</button>
+      <div><div className="eyebrow">LANGUAGE ASSETS</div><h1 id="collection-title">Terminology</h1><p>Manage approved terms and reusable phrases, keep source context and track items awaiting review.</p></div>
+      <button type="button" className="button button-primary" onClick={() => setEditor({ entry: null })}><Icon name="plus" size={18} />Add entry</button>
     </div>
     <div className="collection-stats" aria-label="Counts across the entire local dataset">
-      <div><span className="stat-icon"><Icon name="collection" size={23} /></span><div><strong>{dataset ? dataset.total.toLocaleString() : '—'}</strong><span>expressions collected</span></div><span className="stat-index" aria-hidden="true">01</span></div>
-      <div><span className="stat-icon peach"><Icon name="globe" size={23} /></span><div><strong>{dataset ? Object.values(dataset.by_category).filter((count) => count > 0).length : '—'}</strong><span>everyday categories</span></div><span className="stat-index" aria-hidden="true">02</span></div>
-      <div><span className="stat-icon lavender"><Icon name="shield" size={23} /></span><div><strong className="stat-word">Yours.</strong><span>stored locally, always in reach</span></div><span className="stat-index" aria-hidden="true">03</span></div>
+      <div><span className="stat-icon"><Icon name="collection" size={23} /></span><div><strong>{dataset ? dataset.total.toLocaleString() : '—'}</strong><span>Total entries</span></div></div>
+      <div><span className="stat-icon"><Icon name="check" size={23} /></span><div><strong>{dataset?.by_review_status?.approved ?? '—'}</strong><span>Approved</span></div></div>
+      <div><span className="stat-icon"><Icon name="edit" size={23} /></span><div><strong>{dataset?.by_review_status?.unreviewed ?? '—'}</strong><span>Awaiting review</span></div></div>
     </div>
     <div className="collection-summary"><span className="helper-text">Counts cover your whole collection, not just the search results.</span>{dataset && <div className="type-counts">{Object.entries(dataset.by_type).map(([type, count]) => <span key={type}>{type || 'Unspecified'} <strong>{count}</strong></span>)}</div>}</div>
-    <p className="helper-text">Looking for the supplied word lists? <a href="#dictionary">Open the reference dictionary</a>. Its entries stay separate and are not included in these collection totals.</p>
-    <div className="notice notice-subtle"><Icon name="shield" size={18} /><p><strong>Saved is not the same as approved.</strong> Legacy records without a review status remain unreviewed; records without a language remain unspecified. Mixed-language entries are distinct. Review missing details rather than guessing. <a href="#imports">Import material to preview and review</a>.</p></div>
+    <p className="helper-text">Dictionary references are separate from your terminology. <a href="#dictionary">Search dictionary</a> or <a href="#imports">import a document</a> to review additional terms.</p>
 
     <div className="collection-tools">
-      <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="collection-query">Search your collection</label><input id="collection-query" type="search" maxLength={200} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search expressions, meanings, stories…" /></div>
+      <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="collection-query">Search terminology</label><input id="collection-query" type="search" maxLength={200} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search terms, meanings or context" /></div>
       <div className="collection-filters">
         <label className="sr-only" htmlFor="language-filter">Filter by dataset language</label><select id="language-filter" value={language} onChange={(event) => setLanguage(event.target.value as DatasetLanguage | '')}><option value="">All languages</option>{datasetLanguages.map((value) => <option key={value} value={value}>{languageLabels[value as DatasetLanguage] ?? value}</option>)}</select>
         <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · trusted</option><option value="unreviewed">Unreviewed</option></select>
@@ -316,15 +290,22 @@ export function Collection({ active }: { active: boolean }) {
     </div>
     <ErrorNotice message={metadataError} onRetry={() => setRevision((value) => value + 1)} />
     {notice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{notice}</span><button className="icon-button" type="button" aria-label="Dismiss notification" onClick={() => setNotice('')}><Icon name="close" size={16} /></button></div>}
-    <div className="collection-list-heading"><h2>The collection <span>{loading ? 'Updating…' : error ? 'Unavailable' : `${entries.length.toLocaleString()} ${entries.length === 1 ? 'expression' : 'expressions'}`}</span></h2>{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>Clear filters <Icon name="close" size={14} /></button>}</div>
+    <div className="collection-list-heading"><h2>Terminology library <span>{loading ? 'Updating…' : error ? 'Unavailable' : `${entries.length.toLocaleString()} ${entries.length === 1 ? 'entry' : 'entries'}`}</span></h2><div className="submit-actions">{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>Clear filters <Icon name="close" size={14} /></button>}<button type="button" className="button button-secondary" disabled={loading || Boolean(error) || !entries.length} onClick={() => {
+      const data = { exported_at: new Date().toISOString(), entries }
+      if (download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), 'mboa-terminology.json')) {
+        setNotice(`Export started for ${entries.length} entries. Audio filenames are included, not the audio files themselves.`)
+      }
+    }}>Export results (JSON)<Icon name="arrow" size={15} /></button></div></div>
+    <p className="helper-text">Exports include the displayed entries and their context/contributor details. Share only with authorized recipients.</p>
+    <ErrorNotice message={downloadError} />
 
     <div className="collection-results" aria-busy={loading}>
-      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading your collection" /><p>Finding the stories in your collection…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
-        error ? <div className="collection-error"><Icon name="collection" size={34} /><h3>Your collection is still yours.</h3><p>We just couldn’t load it right now.</p><ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} /></div> :
-          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No expressions found.' : 'A language lives in its stories.'}</h3><p>{hasFilters ? 'Try another word or a different category. There might be a story just around the corner.' : 'Your collection is ready for its first expression. Start with something you hear every day.'}</p><button type="button" className="button button-secondary" onClick={hasFilters ? resetFilters : () => setEditor({ entry: null })}>{hasFilters ? 'Clear all filters' : 'Add your first expression'}<Icon name={hasFilters ? 'refresh' : 'plus'} size={16} /></button></div> :
+      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading terminology" /><p>Loading your terminology library…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
+        error ? <div className="collection-error"><Icon name="collection" size={34} /><h3>Terminology unavailable</h3><p>Check the connection and retry. No records were changed.</p><ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} /></div> :
+          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No matching terminology' : 'Build your terminology library'}</h3><p>{hasFilters ? 'Adjust your search or filters to see other entries.' : 'Add reusable terms, phrases and their meanings. Review entries before approving them for translation.'}</p><button type="button" className="button button-secondary" onClick={hasFilters ? resetFilters : () => setEditor({ entry: null })}>{hasFilters ? 'Clear all filters' : 'Add your first entry'}<Icon name={hasFilters ? 'refresh' : 'plus'} size={16} /></button></div> :
             <div className="entry-grid">{entries.map((entry) => <article className="entry-card" key={entry.id}>
               <div className="entry-topline"><div className="entry-badges"><span className="entry-type">{entry.entry_type || 'Unspecified'}</span><span className="entry-category">{entry.category || 'No category'}</span></div><div className="entry-actions"><button type="button" className="icon-button" aria-label={`Edit expression: ${entry.text.slice(0, 80)}`} title="Edit expression" onClick={() => setEditor({ entry })}><Icon name="edit" size={17} /></button><button type="button" className="icon-button delete-button" aria-label={`Delete expression: ${entry.text.slice(0, 80)}`} title="Delete expression" onClick={() => setDeleteTarget(entry)}><Icon name="trash" size={17} /></button></div></div>
-              <div className="entry-trust-line"><span className="entry-language">{languageLabels[entry.language ?? 'unspecified'] ?? entry.language}</span><span className={`review-badge ${entry.review_status === 'approved' ? 'review-approved' : 'review-unreviewed'}`}>{entry.review_status === 'approved' ? 'Approved · trusted' : 'Unreviewed'}</span>{entry.lexical_category && <code>{entry.lexical_category}</code>}</div>
+              <div className="entry-trust-line"><span className="entry-language">{languageLabels[entry.language ?? 'unspecified'] ?? entry.language}</span><span className={`review-badge ${entry.review_status === 'approved' ? 'review-approved' : 'review-unreviewed'}`}>{entry.review_status === 'approved' ? 'Approved' : 'Unreviewed'}</span></div>
               <h3>{entry.text}</h3>
               <div className="entry-glosses">
                 {entry.french_gloss && <p lang="fr"><span aria-label="French meaning">FR</span>{entry.french_gloss}</p>}
@@ -336,11 +317,10 @@ export function Collection({ active }: { active: boolean }) {
               <div className="entry-footer"><span><Icon name="location" size={14} />{entry.source_location || 'Location not recorded'}</span><time title={entry.timestamp}>{displayDate(entry.timestamp)}</time></div>
             </article>)}</div>}
     </div>
-    <LexerLab active={active} />
-    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Collection records are stored on your backend’s local disk. Browsing, saving, and local lexer analysis do not send them to Gemini. Explicit AI requests with dataset use enabled may share selected approved text/gloss matches only; contributor, provenance, notes, and the full corpus are not included.</span></p>
+    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Terminology is stored on your local backend. Browsing, saving and exporting do not contact Gemini. Explicit AI requests may use selected approved terms and meanings, not stored contributor details, private notes or the full library.</span></p>
 
     {active && editor && <EntryEditor entry={editor.entry} metadata={metadata} onClose={() => setEditor(null)} onSaved={(saved) => {
-      setNotice(saved.review_status === 'approved' ? 'Saved locally as approved. This entry is eligible for trusted dataset matching.' : 'Saved locally as unreviewed. Review and approve before trusted dataset matching.')
+      setNotice(saved.review_status === 'approved' ? 'Saved locally as approved terminology.' : 'Saved locally. This entry is awaiting review.')
       setEditor(null)
       setRevision((value) => value + 1)
     }} />}

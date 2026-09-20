@@ -249,17 +249,17 @@ def local_translation(result: Grounding, explanation_language: str) -> Translati
             ),
             vocabulary=[],
             note=(
-                "Les sens et variantes du dictionnaire sont conservés. Ce n'est pas une observation de terrain "
+                "Les sens et variantes de référence sont conservés. Ce n'est pas une terminologie approuvée "
                 "ni une traduction mot à mot de phrase; aucune adaptation du ton."
-                if french else "Dictionary meanings and alternatives are preserved. This is not collected fieldwork "
+                if french else "Reference meanings and alternatives are preserved. This is not approved terminology "
                 "or word-for-word sentence translation; no tone adaptation."
             ),
         )
     return TranslationContent(
         translation=result.exact_translation,
         explanation=(
-            "Traduction reprise d'un alignement complet approuvé dans le jeu de données, sans IA."
-            if french else "Translation copied from an approved full-entry dataset alignment, without AI."
+            "Traduction reprise d'un alignement terminologique complet approuvé, sans IA."
+            if french else "Translation copied from an approved full-entry terminology alignment, without AI."
         ),
         vocabulary=[],
         note=(

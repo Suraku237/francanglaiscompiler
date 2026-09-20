@@ -1,15 +1,11 @@
 """
-Francanglais Dataset Collector
+Mboa Terminology Manager
 --------------------------------
-A desktop GUI (CustomTkinter) for collecting the CS4110 course dataset:
-words, phrases and sentences manually transcribed from real speech
-around Yaoundé, each tagged with a topic category (matching the
-assignment's required topics), French/English glosses, where it was
-heard, and optional audio (recorded live or attached from a file) as
-extra raw material for the word-prediction extension.
+A local desktop workspace for managing reusable terms, phrases and
+sentences with French/English meanings, business context, review status
+and optional audio.
 
-Designed to be usable by every group member, technical or not — plain
-language, grouped fields, and a built-in Help dialog (❓ top-right).
+Grouped fields and an integrated Help dialog support nontechnical users.
 
 Three tabs:
   - Collect         : add new entries (with duplicate warning + recent list)
@@ -51,18 +47,20 @@ NO_LEXICAL_CATEGORY = "(none)"
 REVIEW_STATUSES = ["unreviewed", "approved"]
 DATASET_ERRORS = (OSError, ValueError, csv.Error, Timeout)
 AUDIO_ERRORS = (audio_utils.AudioError, OSError)
+COLLECT_TAB = "Add entries"
+BROWSE_TAB = "Browse & edit"
+STATS_TAB = "Overview"
 
 HELP_TEXT = """WHAT IS THIS APP FOR?
 
-We're collecting real, everyday speech from around Yaoundé — the mix
-of French, English, Pidgin and slang people actually use — for our
-CS4110 compiler project. This app is just a notebook for that speech:
-it doesn't judge or auto-correct anything you type.
+Manage terminology and reusable phrases for French, English,
+Francanglais and Cameroon Pidgin communication. Data is saved locally
+and shared with your Mboa web workspace.
 
-THE GOLDEN RULE
-Type exactly what was said. Keep the slang, the accent, the mixed-up
-grammar, even mistakes. "Correcting" it defeats the whole point —
-we're studying real speech, not proper French or English.
+REVIEW BEFORE USE
+Keep original wording and source context. Check language and meanings
+before approving an entry. Approval records your review, not
+independent certification or suitability for every business context.
 
 THE THREE TABS
 
@@ -76,9 +74,7 @@ THE THREE TABS
    entry you added by mistake. Click any row to load it below.
 
 3) Stats
-   A quick look at how balanced the collection is — e.g. if you have
-   loads of "Market Bargaining" but nothing for "Rainy Season" yet,
-   this tab shows it at a glance.
+   Review counts by business category, language and approval status.
 
 TIPS
 • Duplicate warning: if the same text is saved in this language, you'll see a
@@ -87,9 +83,8 @@ TIPS
   from Francanglais and Pidgin.
 • Entries start "unreviewed". Choose "approved" only after human review.
   Editing evidence resets approval; explicitly approve again after editing.
-  A lexical category is optional and applies to Word entries.
-• Audio is entirely optional. The assignment only requires you to
-  write down what you heard. Stop recording before saving or attaching.
+• Audio is optional. Record only with permission.
+  Stop recording before saving or attaching.
   If audio saving fails, use "Retry audio save"; your draft stays intact.
 • Clear/close discards unsaved audio copies, never the original attachment
   or audio already saved with an entry.
@@ -170,7 +165,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Francanglais Dataset Collector — CS4110")
+        self.title("Mboa — Terminology Manager")
         self.geometry("920x780")
         self.minsize(780, 640)
 
@@ -197,13 +192,13 @@ class App(ctk.CTk):
 
         self.tabs = ctk.CTkTabview(self, command=self._on_tab_changed)
         self.tabs.pack(fill="both", expand=True, padx=14, pady=(0, 14))
-        self.tabs.add("📝  Collect")
-        self.tabs.add("🔍  Browse & Edit")
-        self.tabs.add("📊  Stats")
+        self.tabs.add(COLLECT_TAB)
+        self.tabs.add(BROWSE_TAB)
+        self.tabs.add(STATS_TAB)
 
-        self._build_collect_tab(self.tabs.tab("📝  Collect"))
-        self._build_browse_tab(self.tabs.tab("🔍  Browse & Edit"))
-        self._build_stats_tab(self.tabs.tab("📊  Stats"))
+        self._build_collect_tab(self.tabs.tab(COLLECT_TAB))
+        self._build_browse_tab(self.tabs.tab(BROWSE_TAB))
+        self._build_stats_tab(self.tabs.tab(STATS_TAB))
         self._watch_evidence_fields()
         self._loading_forms = False
         self._sync_audio_controls()
@@ -226,16 +221,16 @@ class App(ctk.CTk):
         title_box = ctk.CTkFrame(header, fg_color="transparent")
         title_box.grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
-            title_box, text="🗣️  Francanglais Dataset Collector",
+            title_box, text="Mboa Terminology Manager",
             font=ctk.CTkFont(size=22, weight="bold"),
         ).pack(anchor="w")
         ctk.CTkLabel(
-            title_box, text="CS4110 — Lexical & Syntactic Analysis of Yaoundé Speech",
+            title_box, text="Local terminology, reference context and audio",
             font=ctk.CTkFont(size=12), text_color="gray60",
         ).pack(anchor="w")
 
         ctk.CTkButton(
-            header, text="❓ Help", command=self._show_help, width=90, height=32,
+            header, text="Help", command=self._show_help, width=90, height=32,
             fg_color="gray30", hover_color="gray20",
         ).grid(row=0, column=1, sticky="e")
 
@@ -298,14 +293,10 @@ class App(ctk.CTk):
         self.language_menu.grid(row=r, column=1, sticky="w", padx=14, pady=4)
         r += 1
 
-        ctk.CTkLabel(sec1, text="Lexical category").grid(row=r, column=0, sticky="w", padx=14, pady=4)
         self.lexical_menu = ctk.CTkOptionMenu(
             sec1, values=[NO_LEXICAL_CATEGORY, *dataset.LEXICAL_CATEGORIES],
             command=self._on_collect_evidence_change, width=220,
         )
-        self.lexical_menu.grid(row=r, column=1, sticky="w", padx=14, pady=4)
-        Tooltip(self.lexical_menu, "Optional lexer category for a Word; this is not proof of meaning or language.")
-        r += 1
 
         ctk.CTkLabel(sec1, text="Review").grid(row=r, column=0, sticky="w", padx=14, pady=(4, 12))
         self.review_menu = ctk.CTkOptionMenu(
@@ -340,7 +331,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(sec3, text="Topic").grid(row=r3, column=0, sticky="w", padx=14, pady=4)
         self.category_menu = ctk.CTkOptionMenu(
-            sec3, values=dataset.CATEGORIES, command=self._on_collect_evidence_change,
+            sec3, values=dataset.BUSINESS_CATEGORIES, command=self._on_collect_evidence_change,
         )
         self.category_menu.grid(row=r3, column=1, sticky="w", padx=14, pady=4)
         r3 += 1
@@ -364,7 +355,7 @@ class App(ctk.CTk):
         # --- Section 4: Audio (optional) ---
         sec4, r4 = section_frame(
             scroll, "🎙️  Audio (optional)",
-            "Not required by the assignment — nice-to-have extra material.",
+            "Optional recording or attachment. Capture audio only with permission.",
         )
         sec4.grid(row=3, column=0, sticky="ew", padx=4, pady=(0, 10))
 
@@ -712,7 +703,7 @@ class App(ctk.CTk):
             if not keep_contributor:
                 self.contributor_entry.delete(0, "end")
             self.type_menu.set(dataset.ENTRY_TYPES[0])
-            self.category_menu.set(dataset.CATEGORIES[0])
+            self.category_menu.set(dataset.BUSINESS_CATEGORIES[0])
             self.language_menu.set("unspecified")
             self.review_menu.set("unreviewed")
             self.lexical_menu.set(NO_LEXICAL_CATEGORY)
@@ -837,7 +828,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(edit, text="Topic").grid(row=er, column=2, sticky="w", padx=14, pady=4)
         self.edit_category = ctk.CTkOptionMenu(
-            edit, values=dataset.CATEGORIES, command=self._on_browse_evidence_change,
+            edit, values=dataset.BUSINESS_CATEGORIES, command=self._on_browse_evidence_change,
         )
         self.edit_category.grid(row=er, column=3, sticky="w", padx=14, pady=4)
         er += 1
@@ -856,13 +847,10 @@ class App(ctk.CTk):
         Tooltip(self.edit_review, "Any evidence change resets approval. Review the final edit, then explicitly approve.")
         er += 1
 
-        ctk.CTkLabel(edit, text="Lexical category").grid(row=er, column=0, sticky="w", padx=14, pady=4)
         self.edit_lexical = ctk.CTkOptionMenu(
             edit, values=[NO_LEXICAL_CATEGORY, *dataset.LEXICAL_CATEGORIES],
             command=self._on_browse_evidence_change, width=220,
         )
-        self.edit_lexical.grid(row=er, column=1, columnspan=3, sticky="w", padx=14, pady=4)
-        er += 1
 
         ctk.CTkLabel(edit, text="French").grid(row=er, column=0, sticky="w", padx=14, pady=4)
         self.edit_fr = ctk.CTkEntry(edit)
@@ -949,7 +937,7 @@ class App(ctk.CTk):
                 widget.insert(0, entry.get(field, ""))
             for menu, field, options in (
                 (self.edit_type, "entry_type", dataset.ENTRY_TYPES),
-                (self.edit_category, "category", dataset.CATEGORIES),
+                (self.edit_category, "category", dataset.BUSINESS_CATEGORIES),
             ):
                 value = entry.get(field, "")
                 menu.configure(values=list(dict.fromkeys([*options, value])))
@@ -1048,7 +1036,7 @@ class App(ctk.CTk):
             for widget in (self.edit_text, self.edit_fr, self.edit_en, self.edit_source_location, self.edit_notes):
                 widget.delete(0, "end")
             self.edit_type.set(dataset.ENTRY_TYPES[0])
-            self.edit_category.set(dataset.CATEGORIES[0])
+            self.edit_category.set(dataset.BUSINESS_CATEGORIES[0])
             self.edit_language.set("unspecified")
             self.edit_review.set("unreviewed")
             self.edit_lexical.set(NO_LEXICAL_CATEGORY)
@@ -1123,9 +1111,9 @@ class App(ctk.CTk):
         if self._loading_forms:
             return
         current = self.tabs.get()
-        if current == "📊  Stats":
+        if current == STATS_TAB:
             self._refresh_stats()
-        elif current == "🔍  Browse & Edit":
+        elif current == BROWSE_TAB:
             self._refresh_browse_list()
 
     def _refresh_stats(self, entries=None):
