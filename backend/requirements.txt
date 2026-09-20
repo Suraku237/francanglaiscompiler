@@ -7,3 +7,6 @@ python-pptx>=1.0,<2.0
 pypdf>=6.17,<7.0
 python-multipart>=0.0.20,<1.0
 Pillow>=11.0,<13.0
+argon2-cffi>=23.1,<26.0
+PyJWT[crypto]>=2.10,<3.0
+email-validator>=2.2,<3.0

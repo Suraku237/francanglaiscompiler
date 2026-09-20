@@ -1,0 +1,110 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Private projects, saved work and recovery: actual classes
+hide empty members
+package "backend.workspaces" {
+  rectangle "install_workspace() <<route functions>>" as Routes
+  class WorkspaceInput {
+    model_config: extra=forbid
+  }
+  class ProjectInput {
+    name: str [1..100, nonblank]
+  }
+  class SavedTranslation {
+    source_text; source_language; target_language
+    translation; explanation; note
+  }
+  class SavedMessage {
+    role: user | assistant
+    content: str [1..4000]
+  }
+  class SavedConversation
+  class HistoryInput {
+    kind: translation | conversation
+    title: str [1..100, nonblank]
+    document(): dict
+  }
+  class RestoreRevision {
+    expected_version: int >= 0
+  }
+  class WorkspaceStore {
+    root; path; audio_dir: Path
+    project: str
+    lock(): FileLock
+    connection()
+    load_all(): list[dict]
+    save_all(entries, action)
+    change_project(name, project_id)
+    save_history(payload)
+    restore_revision(id, expected_version)
+    export_document(): dict
+    import_document(document, expected_version)
+    check_audio_capacity(additional)
+  }
+}
+package "backend.workspace_backups" {
+  rectangle "workspace_backups.py <<functions>>\nsnapshot(), validate_archive(), preview_backup()\nrestore_backup(), maintenance_cycle()" as Backups
+  class BackupSettings {
+    automatic: bool = false
+    interval_hours: 24 | 168
+    keep_last: int [1..10]
+  }
+  class BackupRestore {
+    token: str [32 hex characters]
+    expected_version: int >= 0
+    confirmation: REPLACE
+  }
+}
+class "DatasetStorage" as DatasetStorage <<protocol>> {
+  audio_dir: Path
+  lock(): FileLock
+  ensure()
+  load_all(): list[dict]
+  save_all(entries)
+  append_entry(entry)
+  check_audio_capacity(additional)
+}
+class "pydantic.BaseModel" as BaseModel <<external>>
+class "filelock.FileLock" as FileLock <<external>>
+class "DatasetEntry\n(collection view)" as DatasetEntry <<reference>>
+rectangle "dataset.py <<module>>\nuse_storage() / request ContextVar" as Adapter
+WorkspaceInput --|> BaseModel
+ProjectInput --|> WorkspaceInput
+SavedTranslation --|> WorkspaceInput
+SavedMessage --|> WorkspaceInput
+SavedConversation --|> WorkspaceInput
+HistoryInput --|> WorkspaceInput
+RestoreRevision --|> WorkspaceInput
+BackupSettings --|> WorkspaceInput
+BackupRestore --|> WorkspaceInput
+WorkspaceStore ..|> DatasetStorage : structural conformance
+WorkspaceStore "0..*" -left-> "1" FileLock : _lock
+SavedConversation "0..*" --> "1..100" SavedMessage : messages
+HistoryInput "0..*" --> "0..1" SavedTranslation : content\n{xor}
+HistoryInput "0..*" --> "0..1" SavedConversation : content\n{xor}
+WorkspaceStore ..> HistoryInput : validates saved content
+WorkspaceStore ..> DatasetEntry : validates persisted entries
+WorkspaceStore ..> ProjectInput : validates restored projects
+Adapter ..> DatasetStorage : delegates current request
+Backups ..> WorkspaceStore : versioned logical snapshot
+Backups ..> BackupSettings : validates scheduling
+Backups ..> BackupRestore : validates confirmation
+Routes ..> RestoreRevision : validates restore request
+Routes ..> WorkspaceStore : invokes selected private store
+note bottom of HistoryInput
+  Exactly one content alternative is present and matches kind.
+  Nested DTOs are references, not exclusive composition.
+end note
+note bottom of WorkspaceStore
+  Each request selects a server-owned account directory.
+  Project IDs must exist in that account's SQLite database.
+  Projects/backups management is account-scoped.
+  Tables persist JSON/rows, not live DTO instances.
+end note
+legend bottom
+  Generalization/realization point toward the base contract.
+  The CSV fallback is used only without a hosted storage context.
+  Audio and SQLite are coordinated, not one filesystem-wide ACID transaction.
+endlegend
+@enduml

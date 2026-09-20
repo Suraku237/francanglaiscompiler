@@ -1,0 +1,75 @@
+@startuml
+!include theme.iuml
+title Google sign-in / explicit linking: authorization-code flow with PKCE
+hide footbox
+autonumber
+actor User
+participant Browser
+participant "auth.py\n<<route functions>>" as Auth
+participant "AuthStore / identity SQLite" as Store
+participant "Google OAuth / JWKS" as Google
+
+activate User
+User -> Browser : Continue with Google / Link Google
+activate Browser
+Browser -> Auth : GET /auth/google/start [link=true]
+activate Auth
+Auth -> Store : store expiring state, browser digest, verifier and nonce
+activate Store
+Store --> Auth : stored; signed-in owner if explicit linking
+deactivate Store
+Auth --> Browser : 302 authorization URL + HttpOnly state cookie
+deactivate Auth
+Browser -> Google : authorize with code challenge, state and nonce
+activate Google
+note over Google : Human account selection and consent are outside automated mock acceptance.
+Google --> Browser : redirect with authorization code and state, or denial
+deactivate Google
+Browser -> Auth : GET /auth/google/callback
+activate Auth
+Auth -> Store : consume matching state and browser binding
+activate Store
+Store --> Auth : one-time verifier + nonce + optional linking owner
+deactivate Store
+alt valid callback state
+  Auth -> Google : exchange code + PKCE verifier + configured client
+  activate Google
+  Google --> Auth : ID token or provider error
+  deactivate Google
+  Auth -> Google : obtain signing keys
+  activate Google
+  Google --> Auth : JWKS or provider error
+  deactivate Google
+  Auth -> Auth : verify signature, issuer, audience, expiry,\nnonce and verified email
+  activate Auth
+  Auth --> Auth : validated claims or rejection
+  deactivate Auth
+  alt verified claims
+    Auth -> Store : resolve subject / create account / explicitly link
+    activate Store
+    note over Store : Equal email alone never links a password account.\nExplicit linking must match the authenticated owner.
+    Store --> Auth : account or link-required conflict
+    deactivate Store
+    opt account accepted
+      Auth -> Store : create session
+      activate Store
+      Store --> Auth : new random session
+      deactivate Store
+    end
+  else invalid identity token
+    note over Auth : No identity or session is created.
+  end
+else missing, expired or replayed state
+  note over Auth : No provider exchange is authorized.
+end
+Auth --> Browser : redirect + session cookie, or safe account error
+deactivate Auth
+Browser --> User : signed-in workspace / actionable sign-in outcome
+deactivate Browser
+deactivate User
+legend bottom
+  Redirects are HTTP replies; following them begins a new request.
+  Code, verifier, nonce and credentials are not written to browser storage.
+  Query values are redacted from application access logs.
+endlegend
+@enduml

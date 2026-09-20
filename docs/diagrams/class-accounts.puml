@@ -1,0 +1,106 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Hosted accounts: actual classes and selected operations
+hide empty members
+package "backend.auth" {
+  class AuthSettings {
+    environment: development | production
+    data_dir: Path
+    public_url; mail_mode
+    smtp_password; google_client_secret: SecretStr
+    ai_daily_user_limit; ai_daily_global_limit
+    valid_deployment(): Self
+  }
+  class AuthStore {
+    path: Path
+    dummy_hash: str
+    connection()
+    session(raw): UserIdentity | None
+    new_session(user_id): str
+    issue_token(user_id, purpose): str
+    consume_token(raw, purpose, password)
+    throttle(key, maximum, seconds)
+    charge_ai(user_id)
+  }
+  class UserIdentity {
+    id; email; display_name
+    email_verified: bool
+    google_linked: bool
+  }
+  class AuthInput {
+    model_config: extra=forbid
+  }
+  class EmailInput {
+    email: EmailStr
+  }
+  class LoginInput {
+    password: str [1..128]
+  }
+  class RegisterInput {
+    display_name: str [1..100]
+    password: str [12..128]
+  }
+  class TokenInput {
+    token: str [20..200]
+  }
+  class ResetInput {
+    password: str [12..128]
+  }
+  class ProfileInput {
+    display_name: str [1..100]
+  }
+  class AuthError {
+    status: int
+    detail: str
+    retry_after: int | None
+  }
+}
+package "backend.web" {
+  class WebBoundaryMiddleware {
+    production: bool
+    async __call__(scope, receive, send)
+  }
+  class PrivateQueryFilter {
+    filter(record): bool
+  }
+}
+class "pydantic.BaseModel" as BaseModel <<external>>
+class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
+class "logging.Filter" as Filter <<external>>
+class Exception <<external>>
+class "ASGI application" as ASGI <<external protocol>>
+rectangle "install_auth() / route functions\n<<module functions>>" as Auth
+rectangle "create_app() / install_web()\n<<module functions>>" as Factory
+AuthSettings --|> BaseSettings
+UserIdentity --|> BaseModel
+AuthInput --|> BaseModel
+EmailInput --|> AuthInput
+LoginInput --|> EmailInput
+RegisterInput --|> LoginInput
+TokenInput --|> AuthInput
+ResetInput --|> TokenInput
+ProfileInput --|> AuthInput
+AuthError --|> Exception
+PrivateQueryFilter --|> Filter
+AuthStore "0..*" --> "1" AuthSettings : settings
+WebBoundaryMiddleware "0..*" --> "1" ASGI : app
+AuthStore ..> UserIdentity : returns validated identity
+AuthStore ..> AuthError : raises
+Auth ..> AuthStore : session, tokens and quota
+Auth ..> AuthInput : validates concrete request types
+Auth ..> UserIdentity : request ContextVar
+Factory ..> Auth : installs account routes
+Factory ..> WebBoundaryMiddleware : installs
+Factory ..> PrivateQueryFilter : redacts query strings
+note bottom of AuthStore
+  One store is retained in app.state per application.
+  SQLite rows are not retained UserIdentity objects.
+  Tokens/sessions are hashed; passwords use Argon2id.
+end note
+legend bottom
+  Hollow triangles: inheritance. Dashed arrows: dependencies, not object ownership.
+  Associations describe actual stored references and include multiplicities.
+  Secrets stay server-side; UserIdentity is the public account DTO.
+endlegend
+@enduml

@@ -141,7 +141,7 @@ export function Imports({ active, aiAvailable, onUseText, onAskAI, onOpenCollect
         if (fileInput.current) fileInput.current.value = ''
         selectFile(recorded)
       }} />
-      <div className="import-formats"><p><strong>Local text extraction:</strong> TXT, Markdown, CSV, JSON, text PDFs and DOCX.</p><p><strong>Gemini transcription / OCR:</strong> PNG, JPEG, WebP, MP3, WAV, M4A, OGG, FLAC, MP4, WebM, MOV and scanned PDFs. Use short clips; long transcripts can exceed the AI response limit. Unsupported files are rejected, not silently converted.</p></div>
+      <div className="import-formats"><p><strong>Server-side extraction without AI:</strong> TXT, Markdown, CSV, JSON, text PDFs and DOCX. Preview uploads your selected file to this server.</p><p><strong>Gemini transcription / OCR:</strong> PNG, JPEG, WebP, MP3, WAV, M4A, OGG, FLAC, MP4, WebM, MOV and scanned PDFs. Use short clips; long transcripts can exceed the AI response limit. Unsupported files are rejected, not silently converted.</p></div>
       <label className="import-consent"><input type="checkbox" checked={allowCloud} disabled={pending || recording || !aiAvailable} onChange={(event) => setAllowCloud(event.target.checked)} /><span>I consent to sending this file to Gemini when transcription or OCR is needed. I have permission to process its content.</span></label>
       {!aiAvailable && <p className="helper-text">Gemini is unavailable. Local documents still work; media transcription needs a configured API key.</p>}
       <p className="helper-text">Source files are processed temporarily. No terminology is saved and no translation is submitted automatically. Provider data policies apply to cloud processing.</p>

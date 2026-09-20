@@ -1,0 +1,53 @@
+@startuml
+!include theme.iuml
+title Private workspace restore: guarded replacement and failure paths
+start
+:Signed-in owner selects backup ZIP;
+:Validate byte limits, paths, manifest,\nrecord schema and referenced audio;
+if (Archive valid?) then (yes)
+  :Show counts and replacement warning;\nstore one-hour owner-scoped preview;
+else (no)
+  :Report validation error;\nleave live data unchanged;
+  stop
+endif
+if (Owner types REPLACE and confirms?) then (yes)
+  :Acquire account workspace lock;
+else (no)
+  :Keep current workspace;\npreview expires without applying it;
+  stop
+endif
+if (Preview valid and version unchanged?) then (yes)
+  :Revalidate archive and create\nverified pre-restore safety backup;
+else (no)
+  :Release lock; report expiry/conflict;
+  stop
+endif
+if (Safety backup succeeded?) then (yes)
+  :Stage missing audio immutably;\nremap conflicting filenames;
+else (no)
+  :Release lock; report failure;\nleave logical data unchanged;
+  stop
+endif
+if (Audio staging succeeded?) then (yes)
+  :Replace logical rows in one\nversion-checked SQLite transaction;
+else (no)
+  :Remove only newly staged files;\nrelease lock and report failure;
+  stop
+endif
+if (Transaction committed?) then (yes)
+  :Invalidate preview; retain safety backup\nand previous committed media;
+  if (Post-commit cleanup succeeded?) then (yes)
+    :Release lock; reopen General;\nreview restored information;
+  else (no)
+    :Release lock; report uncertain completion;\nrefresh saved state, do not restore blindly;
+  endif
+else (no)
+  :Rollback rows; remove newly staged files;\nrelease lock and report failure;
+endif
+stop
+legend bottom
+  Branch guards are exclusive; each final node ends this attempt.
+  A cleanup error is explicit and does not imply a committed transaction rolled back.
+  This activity does not delete account credentials or other users' workspaces.
+endlegend
+@enduml

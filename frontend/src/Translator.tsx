@@ -7,6 +7,7 @@ import type { IncomingText, Language, Tone, Translation, TranslationLanguage } f
 import { browserVoiceLanguage, useDictation } from './voice'
 import type { ReadAloud } from './voice'
 import { useRequest } from './useRequest'
+import { SaveWorkButton } from './SavedWork'
 
 export function Translator({ active, aiAvailable, speech, incomingText, onOpenAssistant, onOpenCollection, onOpenImports }: {
   active: boolean
@@ -185,6 +186,9 @@ export function Translator({ active, aiAvailable, speech, incomingText, onOpenAs
           {result.translation && <div className="result-actions">
             <ReadButton speech={speech} id="translation-result" text={result.translation} language={browserVoiceLanguage(result.target_language ?? target)} disabled={voice.listening} />
             <CopyButton text={result.translation} />
+            <SaveWorkButton key={`${text}:${result.translation}`} kind="translation" title={text}
+              content={{ source_text: text, source_language: result.source_language, target_language: result.target_language,
+                translation: result.translation, explanation: result.explanation, note: result.note }} />
           </div>}
           <p className="helper-text pronunciation-note">{speech.supported ? `Uses ${browserVoiceLanguage(result.target_language ?? target) === 'fr' ? 'a French' : 'an English'} browser voice. Francanglais and Cameroon Pidgin pronunciation are approximations, not native voice models.` : 'Read-aloud isn’t available in this browser. You can still copy the translation.'}</p>
           {result.explanation && <div className="result-explanation"><span className="small-caps">TRANSLATION NOTES</span><p>{result.explanation}</p></div>}

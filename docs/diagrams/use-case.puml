@@ -1,47 +1,66 @@
 @startuml
 !include theme.iuml
 left to right direction
-title Implemented user goals and explicit optional processing
-actor "Contributor / maintainer" as Contributor
-actor "Learner / group reviewer" as Learner
-rectangle "Francanglais platform (local trust boundary)" {
-  usecase "Collect / search / edit /\nconfirm deletion" as Collect
-  usecase "Stage or play desktop audio" as Audio
-  usecase "Review language, glosses\nand approval status" as Review
-  usecase "Preview an import" as Preview
-  usecase "Cloud transcription / OCR" as CloudImport
-  usecase "Translate with visible origin\nand evidence coverage" as Translate
-  usecase "Approved collection /\nreference dictionary lookup" as Lookup
-  usecase "Search reference vocabulary\nand open a translation draft" as Dictionary
-  usecase "AI translation suggestion" as AITranslate
-  usecase "Explicit learning chat" as Chat
-  usecase "Analyze lexer / CFG /\nFIRST-FOLLOW / parse trace" as Analyze
-  usecase "Optional compiler tutoring" as Tutor
-  usecase "Save coursework profile /\nupload genuine screenshots" as Project
-  usecase "Export saved coursework draft" as Export
+title Hosted business user goals and supporting services
+actor "Visitor (signed out)" as Visitor
+actor "Account owner (signed in)" as Owner
+actor "Email service" as Mail
+actor "Google identity service" as Google
+actor "Gemini provider" as AI
+rectangle "Mboa private language workspace" {
+  usecase "Register and verify email" as Register
+  usecase "Sign in with password" as Login
+  usecase "Sign in / explicitly link Google" as OAuth
+  usecase "Recover password" as Recover
+  usecase "Manage private projects\nand terminology" as Terms
+  usecase "Record / attach / play audio" as Audio
+  usecase "Review terminology approval" as Review
+  usecase "Preview documents or media" as Preview
+  usecase "Consented cloud transcription" as Cloud
+  usecase "Translate with source labels" as Translate
+  usecase "Optional AI suggestion" as Suggest
+  usecase "Search reference dictionary" as Dictionary
+  usecase "Ask the business assistant" as Chat
+  usecase "Save / reopen / export /\ndelete selected work" as History
+  usecase "Restore a terminology revision" as Revision
+  usecase "Create / schedule / download backup" as Backup
+  usecase "Preview and confirm workspace restore" as Restore
+  usecase "Validate archive integrity\nand record limits" as Validate
 }
-Contributor -- Collect
-Contributor -- Audio
-Contributor -- Review
-Contributor -- Preview
-Learner -- Translate
-Learner -- Dictionary
-Learner -- Chat
-Learner -- Analyze
-Learner -- Tutor
-Learner -- Project
-Learner -- Export
-Lookup ..> Translate : <<extend>>\n[use_dataset or use_dictionary]
-AITranslate ..> Translate : <<extend>>\n[no exact answer and allow_ai]
-CloudImport ..> Preview : <<extend>>\n[needed and consented]
-note bottom of Review
+Visitor -- Register
+Visitor -- Login
+Visitor -- OAuth
+Visitor -- Recover
+Owner -- OAuth
+Owner -- Terms
+Owner -- Audio
+Owner -- Review
+Owner -- Preview
+Owner -- Translate
+Owner -- Dictionary
+Owner -- Chat
+Owner -- History
+Owner -- Revision
+Owner -- Backup
+Owner -- Restore
+Mail -- Register
+Mail -- Recover
+Google -- OAuth
+AI -- Suggest
+AI -- Cloud
+AI -- Chat
+Suggest ..> Translate : <<extend>>\n[no exact answer and AI enabled]
+Cloud ..> Preview : <<extend>>\n[needed and explicitly consented]
+Backup ..> Validate : <<include>>
+Restore ..> Validate : <<include>>
+note bottom of Owner
+  These are session states, not team-access roles.
+  Private goals require a verified account.
   Saved does not mean approved.
-  Preview/handoff never auto-saves.
-  Roles are not authentication permissions.
-  Dictionary search/handoff does not create fieldwork.
 end note
-note bottom of Export
-  Draft generation is not completed fieldwork,
-  final report pagination or group sign-off.
-end note
+legend bottom
+  Include points to mandatory reused behavior; extend points to its base use case.
+  Preview never automatically saves or approves terminology.
+  Scheduling requires a running server; infrastructure operations are not an in-app admin role.
+endlegend
 @enduml

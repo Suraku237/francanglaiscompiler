@@ -10,9 +10,10 @@ class ApiError {
 }
 class "JavaScript Error" as Error <<external>>
 rectangle "api.ts <<function module>>\napi<T>(), errorDetail(), messageOf()\nisCancelled()" as API
+rectangle "AuthGate.tsx <<function component>>\nsession gate; project switching;\ncross-tab identity change; draft clearing" as Gate
 rectangle "useRequest.ts <<hook module>>\nuseRequest(): run / cancel / pending / error" as Request
 rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nhash navigation; draft handoff; health" as App
-rectangle "Translator / Assistant / Collection\nDictionary / Imports / Coursework <<function components>>\nforms; source-labelled results; local state" as Pages
+rectangle "Translator / Assistant / Collection\nDictionary / Imports / SavedWork / WorkspaceSettings\n<<function components>>" as Pages
 rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
 rectangle "voice.ts <<hook module>>\nuseDictation(), useReadAloud()\nbrowserVoiceLanguage()" as Voice
 rectangle "components.tsx <<functions>>\nModal(), OriginBadge(), EvidencePanel()\ninitial focus / Tab wrap / restore trigger" as Components
@@ -22,6 +23,8 @@ Request ..> API : cancellation / error text
 Pages ..> Request : per-operation request state
 Pages ..> API : awaited HTTP
 App ..> Pages : renders / hides sections
+Gate ..> App : authenticated session only
+Gate ..> API : session / projects / logout
 App ..> Voice : shared read-aloud
 App ..> Components
 Pages ..> Components
@@ -30,12 +33,14 @@ Evidence ..> API : error parsing / screenshot CRUD
 Evidence ..> ApiError : export HTTP failure
 note bottom of Pages
   Interfaces in types.ts, importTypes.ts,
-  courseworkTypes.ts and browser speech typings
+  accountTypes.ts, courseworkTypes.ts and browser speech typings
   erase at runtime: they are not classes.
 end note
 legend bottom
   ApiError is the only authored production TypeScript class.
   React function components and hooks must not be recast as service classes.
   Module dependencies have no association multiplicities.
+  CourseworkEvidence is preserved archive code, not a business navigation destination.
+  api.ts attaches CSRF/project context and rejects responses from older account generations.
 endlegend
 @enduml

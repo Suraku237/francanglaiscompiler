@@ -1,701 +1,347 @@
-# Mboa — Language Workspace
+# Mboa — Private Language Workspace
 
-A local professional workspace for translation, terminology management and
+Mboa is an account-based web application for translation, terminology and
 document/audio processing in French, English, Francanglais (Camfranglais) and
-Cameroon Pidgin. The five application areas are **Translate**, **Assistant**,
-**Terminology**, **Dictionary** and **Documents & audio**.
+Cameroon Pidgin. Its seven areas are **Translate**, **Assistant**, **Terminology**,
+**Dictionary**, **Documents & audio**, **History** and **Workspace settings**.
 
-Translations prefer complete, unambiguous approved terminology or dictionary
-matches before optional, clearly labelled Gemini suggestions. Review output
-before using it in customer communications, contracts or other business content.
-This is a **local workspace**, not an authenticated multi-user service. Keep it
-on localhost or a trusted private network; there are no accounts or access roles.
+Each individual user has a private workspace and separate projects. Email and
+password access includes email verification and recovery. Google sign-in is
+available when the operator configures it. Local operation is for testing the
+same application before hosting, not a separate unauthenticated product.
 
-Francanglais and Cameroon Pidgin are distinct, variable ways of speaking, not
-interchangeable labels or Nigerian Pidgin defaults. This is **not a dictionary of
-every possible word**. Reference coverage is finite and source wording requires
-context-specific review. Existing academic source files and records are retained,
-but are not exposed through the business interface or default academic API routes.
+**Deployment status:** the software includes hosting controls and automated
+tests, but a public launch still needs the owner's infrastructure, provider
+configuration, human acceptance and operating policies listed below. There is
+no claim of certified translation accuracy, production capacity or availability.
+Payments, subscriptions and shared-team roles are not part of this release.
 
-## Web application
+## Run the complete app locally
 
-### What is included
-
-- **Python / FastAPI backend** in `backend/`: local-source translation,
-  evidence-grounded assistant requests, reviewed imports and terminology CRUD.
-- **React / TypeScript / Vite frontend** in `frontend/`: source-labelled
-  translation, wording review, dictionary lookup, audio, searchable terminology,
-  approval counts and JSON export of the currently displayed entries.
-- **Voice assistance**: dictate French or English in supported browsers, review
-  the transcript, then explicitly submit it. Read translations and assistant
-  replies aloud with the browser's voices, or stop playback.
-- **Local audio recording and attachments**: record, review, play and download
-  audio in the terminology editor or Documents & audio. Explicit saves can attach
-  the recording locally; recording alone never uploads or transcribes it.
-- **Shared data**: the web app, optional desktop collector and lexer all use
-  `data_collector/dataset.csv`. No migration or overwrite of existing entries is
-  required. Older CSV headers are read with safe defaults: missing language is
-  `unspecified`, review status is `unreviewed`, and lexical category is empty.
-  The next explicit save upgrades the header without inventing approval or
-  language labels. CSV writes use a cross-process lock and atomic replacement.
-
-### Terminology workflow
-
-1. Add an expression with its original wording, or open **Documents & audio** to
-   preview a file. Imported data and AI candidates are **unreviewed**.
-2. Review its language, French/English meanings and context in the collection
-   editor. Optionally label the lexical category of a **Word**.
-3. Explicitly approve the record after checking it. Approval is a local human
-   decision, not a guarantee of universal spelling or meaning.
-4. Translate with the desired **Use approved terminology** and **Use reference
-   dictionary** switches enabled. An unambiguous supplied whole-entry
-   alignment can be returned locally, without a Gemini call. Matching separate
-   words is not treated as a reliable full-sentence translation.
-5. When coverage is incomplete or ambiguous, enabled AI fallback receives only
-   bounded relevant source-labelled expressions and glosses, and returns a labeled
-   suggestion. Evidence cards identify the supplied records; they do **not**
-   certify every generated word. Disable fallback for a strict local lookup.
-6. Ask the assistant to translate or explain using the selected sources. Select the
-   translation direction; its reply includes the evidence supplied to Gemini.
-   New model output is never automatically added to the dataset.
-
-Approved word-category entries can extend local lexical classification. This
-does not train or fine-tune Gemini, guarantee full language coverage, or make an
-arbitrary sentence satisfy the editable coursework grammar. Unreviewed collection
-records remain available for human review, not trusted collection translation.
-
-### Supplied reference dictionary
-
-Open **Dictionary** in the sidebar (`#dictionary`). The project now uses the
-two supplied Markdown files directly:
-
-- [Core Camfranglais vocabulary](dictionary/camfranglais.md): **143 source entries**.
-- [Supplementary vocabulary](dictionary/extra_lexicon.md): **36 source entries**.
-
-These are **179 source rows**, not 179 unique words or collected statements.
-Search words, listed forms, English meanings, topics or origins. Results keep
-their source filename/line; repeated headwords and conflicting senses remain
-visible. Slash-separated forms, explicitly optional parenthesized wording and
-terminal `!`/`?` variants support lookup without changing the stored headword.
-
-**No French translations are present in these files.** The `Origin` column
-describes etymology; it is not a French gloss or a part-of-speech annotation.
-Nothing is guessed to fill these gaps. The dictionary does not modify
-[the collection CSV](data_collector/dataset.csv), approve entries, change
-reviewed lexer categories, train a model or increase coursework corpus totals.
-An empty collection can therefore coexist with a working reference dictionary.
-
-Use **Open in translator** to fill a Francanglais-to-English draft, then explicitly
-press **Translate**. For example, `tchop` returns `to eat`, `motard` returns
-`a motorcycle taxi rider`, and `pasho` finds the supplied `pater / pasho` entry.
-These exact lookups work without an AI key. Reverse lookup requires the complete
-supplied English meaning; matching one word inside a definition is not an exact
-translation. Conflicting full-entry meanings return 422 when AI is disabled,
-rather than silently choosing a sense. English-only references do not veto an
-otherwise valid approved French alignment.
-
-The collection and dictionary switches are independent, including in chat.
-When AI is enabled, only selected evidence from enabled sources is supplied;
-dictionary citations are never labelled human-approved fieldwork. Missing or
-malformed reference files cause an explicit, retryable 503, not an empty success.
-`GET /api/dictionary` accepts `query` (up to 200 characters), `offset` (nonnegative)
-and `limit` (1-100; default 50). The UI uses 25-entry pages and cancels stale searches.
-The two files are versioned project resources, so no Downloads path or import
-step is required after cloning. Coursework bundles retain them under
-`source/dictionary`, separately from the exported corpus.
-
-### Preserved academic material
-
-The 26 supplied constructed statements remain preserved in
-[camfranglais_statements.csv](examples/camfranglais_statements.csv). They include
-both French and English meanings, original topics and explicit constructed-example
-notes. They are **not recorded or verified real-speaker statements**.
-
-The professional UI no longer loads Compiler lab, practice pages, student names,
-matricules, submission checklists or report/slide exports. Old `#coursework` and
-`#examples` links redirect to Translate. Default `/api/coursework/*` and
-`/api/examples` routes return 404; attempts to enable the archived practice source
-in translation/chat return an explicit 422.
-
-For maintenance of the preserved academic code, the Python factory accepts the
-explicit developer-only `create_app(..., include_academic=True)` option. Archive
-backend/component regressions still run separately from the business UI contract.
-Historical browser scenarios under `frontend/tests/archived` are not included in
-the default professional browser suite. No old CSV, profile, screenshots or audio
-files are deleted or silently migrated by this change.
-
-Terminology uses business categories while retaining the categories and metadata
-on existing records. **Export results (JSON)** downloads only the displayed
-entries, including review status and context; it references audio by filename
-without embedding recordings. Review recipient permissions before sharing.
-
-### Recording and reviewing audio
-
-In **Terminology**, add or edit an expression, choose **Record audio**, then
-**Stop recording**. Play or download the draft before explicitly saving the
-entry. **Attach an audio file** accepts WAV, MP3, M4A, OGG, FLAC and WebM up to
-12 MB. Replacing/removing audio clears approval for review; removal detaches the
-reference but retains the previously committed file, as desktop deletion does.
-A failed save keeps the browser draft. Interrupted requests may have completed:
-refresh the collection before retrying an uncertain mutation.
-
-Recording requires localhost/HTTPS, permission and MediaRecorder support.
-Permission requests can be cancelled; late grants are released. Navigation,
-tab hiding and competing audio activity stop capture. Microphone disconnection,
-empty output, size limits and codec/playback failures are reported explicitly.
-Local preview URLs and media tracks are released when no longer needed.
-
-**Documents & audio** can also record a file, but Gemini transcription requires
-both fresh cloud-processing consent and an explicit **Preview source text**
-action. Selecting a new file resets consent. Recording is distinct from browser
-dictation, which may use the browser vendor's speech service.
-
-The desktop recorder uses its device's actual sample rate when saving WAV files
-and surfaces overflow or unexpected device stops rather than silently calling
-partial capture complete. Tests use mocked devices, generated audio streams
-and real local file I/O; they do not certify a physical microphone or speaker.
-
-### Supported file inputs
-
-Open **Documents & audio**, choose a file, and press **Preview source text**:
-
-| Input | Processing |
-| --- | --- |
-| UTF-8 TXT, Markdown, CSV, JSON | Local text extraction; CSV with a `text` column and JSON record arrays / `{"entries": [...]}` also preview aligned entries |
-| PDF | Local text-layer extraction; scanned pages require consented Gemini OCR |
-| DOCX | Local body text and tables; images, headers, footnotes and text boxes may need manual transcription |
-| PNG, JPEG, WebP | Gemini OCR, only with explicit cloud-processing consent |
-| MP3, WAV, M4A, OGG, FLAC | Gemini transcription, only with explicit consent |
-| MP4, WebM, MOV | Gemini dialogue transcription / visible text, only with explicit consent |
-
-Limits: **12 MB per file**, **40 PDF pages**, **12 megapixels per image**,
-**40,000 extracted characters**, and **100 aligned records per structured import**.
-Use short media clips; an AI response cut off by its output limit is an error,
-not a successful partial transcript. Unsupported extensions, invalid signatures,
-encrypted PDFs, oversized files, malformed records and unreadable text produce
-explicit errors. A container extension alone cannot guarantee codec compatibility.
-Renaming an unsupported file does not convert it.
-
-Long text is split into complete passages of at most 4,000 characters without
-silently dropping the rest. Review every passage separately. The translator and
-assistant receive only the passage you explicitly open and submit. Local PDF
-layout order and AI transcription can be wrong: verify accents, slang, negation
-and speaker wording against the source. Textless PDF pages are disclosed.
-
-You can review a passage as an entry or ask Gemini for vocabulary candidates.
-Candidates must quote text actually present in the passage; their glosses and
-language/category labels still need human review. CSV/JSON approval flags cannot
-bypass that review. Previews live only in the browser tab until reload; this app
-does not retain uploaded raw files, and does not use Gemini's persistent Files
-API. Provider data policies still apply to inline media requests. Import only
-content you have permission to process.
-
-### Start locally (PowerShell)
-
-Requirements: Python 3.11+ and Node.js 22.12+ (or a supported newer LTS).
-Run the following from the repository root:
+Requirements: Python 3.11+ and Node.js 22.12+ or a supported newer LTS. From the
+repository root, install dependencies once:
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-if (-not (Test-Path backend\.env)) {
-    Copy-Item backend\.env.example backend\.env
+Push-Location frontend
+try { npm ci } finally { Pop-Location }
+if (-not (Test-Path -LiteralPath backend\.env)) {
+    Copy-Item -LiteralPath backend\.env.example -Destination backend\.env
 }
 ```
 
-Edit `backend/.env` locally and set `GEMINI_API_KEY` to your key from
-[Google AI Studio](https://aistudio.google.com/apikey). **Do not paste the key
-into the React app, a chat, or version control.** Never use a `VITE_` variable
-for this secret. The server reads this file regardless of its working directory.
-
-```dotenv
-GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-3.6-flash
-```
-
-The model is configurable: choose an available text-generation model supporting
-Gemini `generateContent` structured JSON output. Access, pricing and quotas
-depend on your Google account. Restart the backend after changing configuration.
-
-**Terminal 1, from the repository root:**
+Start the website and API together:
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+.\start.ps1 -Build
 ```
 
-**Terminal 2:**
+Open **http://127.0.0.1:8000**. Use this exact origin consistently rather than
+switching between `localhost` and `127.0.0.1`. For later starts without source
+changes, use `.\start.ps1`. Stop with **Ctrl+C**.
+
+The cross-platform equivalent, using the selected Python environment, is:
 
 ```powershell
-cd frontend
-npm install
-npm run dev
+.\.venv\Scripts\python.exe -m tools.run_app --build
 ```
 
-Open **http://localhost:5173**. Vite forwards `/api` to
-`http://127.0.0.1:8000`. Interactive backend API docs are at
-**http://127.0.0.1:8000/docs**. Both processes must be running.
+The launcher does not silently install dependencies. It refuses non-loopback
+development access and production code reload. `-Port 8001` / `--port 8001` is
+supported; an explicitly configured `MBOA_PUBLIC_URL` must match the origin.
+The built frontend is served by **FastAPI**, on the same origin as `/api`.
+Vite is not required to remain running.
 
-To inspect the built bundle locally, use `npm run build` followed by
-`npm run preview` in `frontend`; preview also proxies `/api` to the backend.
-FastAPI does **not** serve the frontend at `/`. Vite preview is a local
-verification server, not a public production-hosting solution; production
-hosting needs a separate static server and matching API routing.
+### Test your account
 
-Without a Gemini key, dictionary search, collection, local document preview,
-lexical analysis and unambiguous local translations still work. Unsupported local lookups
-and requests requiring Gemini give a clear error; there are no fabricated
-offline translations.
-The health indicator checks whether a key is configured, not whether Google has
-validated it.
+1. Select **Create an account**, use an email address you control and a unique
+   password of at least 12 characters.
+2. In default development mode, email is written to the private
+   `.mboa\mail` outbox, **not sent to the internet**. Open your own generated
+   `.eml` file, follow its verification link and press **Verify email**.
+3. Sign in. New accounts start with an empty **General** project. No historical
+   CSV data, student identities or other users' records are imported.
+4. Try Dictionary → search `tchop` → **Open in translator** → **Translate**.
+   The supplied `to eat` lookup works without an AI key.
+5. Use **Save translation** to retain the result in **History**. Unsubmitted
+   drafts disappear on reload; saving is always explicit.
 
-Configuration precedence is: explicitly supplied settings (tests), process
-environment variables, `backend/.env`, root `.env`, then defaults. A blank key
-in a higher-priority source intentionally disables AI. `.env.example` is a
-blank template and is **not loaded**. Put the actual key in `.env`, not in the
-example; the example may be committed. If a key was ever published, rotate it
-in Google AI Studio.
+Verification and recovery links are secrets. Do not publish the development
+outbox or forward links to others. Production configuration rejects file-mail
+mode and requires actual SMTP delivery.
 
-The default model is `gemini-3.6-flash`; model access may change with your
-account or provider availability. A transient provider HTTP 503 is retried
-once against the same model, within the original total request timeout.
-Authentication, quota and other errors are surfaced without automatic model
-substitution or fabricated answers.
+### Optional development servers
 
-### Voice, privacy and translation quality
+For frontend hot reload, keep the API on port 8000 and run `npm run dev` in
+`frontend`. Vite proxies `/api` from port 5173. Configure `MBOA_PUBLIC_URL` to
+the browser origin for verification and Google callbacks, and use the same
+hostname consistently. Add only required development origins to `CORS_ORIGINS`.
+For a release-like local test, prefer the one-origin launcher above.
 
-- Microphone access requires **localhost or HTTPS**, permission, and a browser
-  implementing speech recognition (try a current Chrome or Edge). Feature
-  availability depends on the browser/OS; typing always remains available.
-- Recognition may send audio to the browser vendor's speech service. It is not
-  guaranteed offline. Browser dictation does not upload recordings to this app;
-  explicit file imports are a separate consented workflow. Existing collected
-  audio filenames are preserved.
-- Submitting translation/chat sends that text and, for chat, recent conversation
-  context to **Google Gemini** when AI is needed. With dataset grounding enabled,
-  selected approved expression/gloss matches are also sent. The full CSV,
-  contributor names, source locations, notes and collected recordings are not
-  attached to these requests. Turn dataset use off to omit retrieved examples.
-  Do not submit sensitive data.
-- Chat uses a bounded recent history; clearing the chat resets the browser
-  conversation. AI output is not automatically saved as collected research data.
-- Browser voices are not native Francanglais or Cameroon Pidgin voices; French
-  and English recognition/read-aloud are approximations for these languages.
-  Pronunciation and regional slang vary.
-- AI translations are suggestions, not a verified Francanglais/Pidgin dictionary.
-  Review them with local speakers. The existing lexer is also heuristic, and
-  labels unknown words rather than pretending they are known.
+## Use the workspace
 
-### Configuration and deployment
+### Translation and terminology
 
-`backend/.env.example` documents the key, model, timeout (default 45 seconds),
-and allowed frontend origins (`CORS_ORIGINS`, a JSON array).
-The frontend uses relative `/api` requests and never needs a Gemini key.
+- Exact, unambiguous approved terminology or supplied dictionary alignments
+  take precedence over optional AI. Matching unrelated words is not a complete
+  sentence translation. Ambiguous or unavailable local-only results produce an
+  explicit error, not a fabricated answer.
+- AI suggestions are labelled and carry the selected supporting evidence.
+  Approval means **your review**, not independent linguistic certification.
+  Editing evidence invalidates its previous approval.
+- Projects separate terminology and saved work inside one account. Project
+  switching and sign-out warn before clearing unsaved drafts and recordings.
+- **Export results (JSON)** includes only displayed terminology and its review
+  metadata. Referenced audio is not embedded; use a full backup for that.
+- **History** stores explicitly saved translations/conversations. Open, search,
+  rename, download, reuse as a draft or delete them. Reusing text never silently
+  sends an AI request.
+- **Workspace settings** exposes terminology revisions. Restoring one creates
+  another revision and marks the term **unreviewed**. A stale workspace version
+  prevents overwriting changes made since the recovery view was loaded.
+- An empty project can be deleted after switching to another project. General
+  cannot be deleted. A project with terminology, revisions or saved work is not
+  silently destroyed.
 
-```powershell
-cd frontend
-npm run build
-npm run preview
+### Dictionary and source limitations
+
+The [core dictionary](dictionary/camfranglais.md) has 143 source rows and the
+[supplement](dictionary/extra_lexicon.md) has 36: **179 references**, not 179
+unique words or approved terminology. Repeated words and competing meanings
+remain visible. Search retains source filename/line, topic and supplied origin.
+
+These references have **English meanings only**. Etymological origin is neither
+a French translation nor a part-of-speech annotation. French glosses and business
+usage need human review. The dictionary is read-only and never populates private
+terminology automatically. Confirm redistribution permissions before launch.
+
+### Audio and documents
+
+Browser recording is distinct from browser dictation and AI transcription:
+
+- **Record audio** captures locally in the current tab. Stop, preview and
+  download it before deciding to save. Recording alone does not upload anything.
+- An explicit terminology save uploads the attachment privately to your account.
+  Failed saves preserve the draft and report errors. Existing recordings are not
+  silently deleted when a term or attachment reference is removed.
+- Documents & audio uploads a chosen file to the application server on
+  **Preview source text**. Text formats, DOCX and text-layer PDFs are extracted
+  without AI. This is server processing, not on-device extraction.
+- Images, scanned PDFs and media require fresh cloud-processing consent and an
+  explicit preview action. Changing the file resets consent. Raw import uploads
+  are temporary; save reviewed terms/results separately.
+- Browser dictation/read-aloud may use browser-vendor services and approximate
+  Francanglais/Pidgin with French/English voices. HTTPS or loopback and browser
+  permission are required for microphone features. Typing and file selection
+  remain available when recording is unsupported.
+
+Inputs include UTF-8 TXT/Markdown/CSV/JSON, PDF, DOCX, PNG/JPEG/WebP,
+MP3/WAV/M4A/OGG/FLAC and MP4/WebM/MOV. Limits are 12 MiB per input, 40 PDF
+pages, 12 megapixels per image, 40,000 extracted characters and 100 structured
+draft records. Translation input is at most 4,000 characters. Review each
+complete passage; unsupported codecs or truncated provider output are errors.
+
+## Private storage and recovery
+
+The default private data root is `.mboa`; production should set `MBOA_DATA_DIR`
+to an **absolute persistent directory outside the public web root**:
+
+```text
+.mboa\
+  auth.sqlite3
+  mail\                         development only
+  workspaces\<account UUID>\
+    workspace.sqlite3
+    audio\
+    backups\
+      previews\
 ```
 
-The build is in `frontend/dist/`. Preview requires the Python backend too.
-For deployment, serve that directory using your web host and reverse-proxy
-`/api` to FastAPI, or configure explicit frontend origins for a separate host.
-Use HTTPS for voice access. **This is a local/trusted-user app, not an
-authenticated public service.** Before exposing it publicly, add authentication,
-authorization for dataset changes, request/rate limits and deployment-level
-secret management. CORS alone is not access control.
+Account and workspace data use SQLite transactions. Per-account file locks
+coordinate media/backup operations; request-local storage contexts prevent
+process-global account/project switching. The server operator can access the
+underlying infrastructure: this is account isolation, **not end-to-end
+encryption**. Use restricted service-account/NTFS permissions or Unix permissions,
+encrypted storage and off-host backups.
 
-Back up the CSV and audio directory. Do not edit the CSV manually while an app
-is writing to it. All API writes preserve existing IDs, timestamps and audio
-metadata when editing; malformed CSV files produce an error rather than being
-silently replaced.
+Per-account limits are 20 projects, 10,000 terminology entries, 500 saved items,
+20,000 terminology revisions and 1,000 recordings / 128 MiB aggregate audio.
+Saved conversations contain at most 100 messages. Limits produce explicit
+errors; histories and revisions are not silently truncated to make a save succeed.
 
-### Verified backup and recovery
+### In-app backups
 
-Close the desktop collector and stop the API before taking a snapshot, including
-any recording or screenshot upload. Store backups in an access-restricted
-location; they contain collected text, contributor details and recordings.
-Checksums detect changes, not the authenticity of fieldwork or the trustworthiness
-of an unknown backup.
+In **Workspace settings**:
 
-From the repository root, choose **new** destination names:
+1. **Create verified backup**, then download the ZIP to protected storage.
+2. Optionally enable daily or weekly backups with 1–10 automatic copies.
+   The server checks schedules every minute while running. Failures are logged
+   and the workspace displays the last failure; a later cycle retries.
+3. To restore, select a ZIP and **Validate and preview backup**. Review counts
+   and the replacement warning.
+4. Type **REPLACE**. Restore requires an unchanged workspace version and creates
+   a verified **pre-restore safety backup** before replacing logical records.
+
+Backups include all projects, terminology, revisions, saved work and recordings,
+but not account passwords, sessions or server provider configuration. A SHA-256
+manifest detects tampering; it does **not** authenticate the archive's author.
+Unsafe paths, duplicates, links, malformed data and missing audio are rejected.
+Changed media with colliding filenames is remapped, not overwritten.
+
+An in-app ZIP is limited to 32 MiB compressed / 160 MiB expanded; server backups
+are capped at 512 MiB per account. At most three one-hour restore previews may
+be pending. Manual and safety backups are not automatically pruned. Download
+and deliberately delete old backups when necessary. Larger workspaces need
+operator-level backup. Deleted records/media can remain in revisions and backups.
+
+**Disaster recovery is separate:** in-app backups on the same disk do not protect
+against disk loss. Stop the application or use a database-consistent snapshot
+process to back up the entire data root, including `auth.sqlite3`, and protect
+configuration separately. Rehearse restoration to an isolated instance before
+reopening service. A workspace ZIP alone cannot recover account identities.
+
+## Hosted deployment
+
+This release targets **one durable application host**, behind an HTTPS reverse
+proxy. It is not a stateless or multi-host shared-database service. Do not place
+private SQLite data on ephemeral deployment storage or assume network filesystems
+provide the required locking semantics.
+
+1. Choose a host, domain and persistent storage; install server dependencies.
+2. Build the frontend with `npm ci` and `npm run build`.
+3. Configure secrets using environment variables or a restricted server-only
+   environment file. See [the safe template](backend/.env.example).
+4. Set `MBOA_ENVIRONMENT=production`, `MBOA_PUBLIC_URL=https://your-domain`
+   and an absolute `MBOA_DATA_DIR`.
+5. Configure SMTP with STARTTLS, a sender address and your provider's credentials.
+   Test real verification and recovery delivery, including spam handling.
+6. Optionally configure a Google **Web application** OAuth client. Register
+   `https://your-domain/api/auth/google/callback` as its redirect URI and complete
+   the authorized-domain/consent configuration. Existing password accounts must
+   explicitly link Google while signed in; matching emails alone are not linked.
+7. Start with `python -m tools.run_app` under a supervised service account. Bind
+   to loopback when the reverse proxy is on the same host. For a controlled
+   internal proxy network, explicitly set `--host` and firewall the backend.
+8. Proxy **all paths**, not only `/api`, to the application. Terminate HTTPS,
+   preserve the public Host header and set forwarded protocol/client address.
+   Configure Uvicorn's `FORWARDED_ALLOW_IPS` to the actual trusted proxy addresses;
+   never trust arbitrary forwarded headers from the internet.
+9. Set proxy upload limits consistently with the 32 MiB backup upload plus
+   multipart overhead. Set request timeouts to accommodate approved media work.
+   Avoid logging query strings: they can contain OAuth codes or search text.
+10. Configure restart-on-failure, disk and error monitoring, TLS renewal,
+    restricted/off-host backups, retention and a tested recovery procedure.
+
+Production enables Secure/HttpOnly/SameSite cookies, origin and CSRF checks,
+HTTPS enforcement, trusted hosts, restrictive browser headers, request bounds
+and persistent rate limits. Interactive API documentation is disabled.
+CORS is **not** access control.
+
+`GEMINI_API_KEY` is optional and server-only. Do not place it in `VITE_` variables
+or commit it. The default model is configurable; access and charges depend on
+the provider account. User/global daily limits default to 100/2,000 actual
+outbound attempts, including retries. Exact local lookups consume no allowance.
+The health indicator reports configuration, not successful provider acceptance.
+
+Configuration precedence: explicit test settings, environment, `backend/.env`,
+root `.env`, defaults. The example is not loaded automatically. Restart after
+changes. No production mail, Google or Gemini credentials are included.
+
+## API and automated verification
+
+Except health and account-access endpoints, APIs require the account cookie.
+Mutations require the matching `X-CSRF-Token` from `/api/auth/session` and the
+configured Origin. Scoped requests use `X-Mboa-Project`; native media URLs can
+use `?project=<id>`. Projects and full-workspace backups are account-scoped.
+Never choose an account directory from a client-supplied identifier.
+
+| Area | Endpoints |
+| --- | --- |
+| Accounts | `/api/auth/session`, `/register`, `/login`, `/logout`, `/verify-email`, `/resend-verification`, `/forgot-password`, `/reset-password`, `/profile`, `/google/start`, `/google/callback` under `/api/auth` |
+| Language services | `/api/translate`, `/api/chat`, `/api/analyze`, `/api/dictionary` |
+| Terminology/audio | `/api/metadata`, `/api/dataset`, `/api/dataset/{id}`, `/api/dataset/audio`, `/api/dataset/{id}/audio` |
+| Imports | `/api/imports/preview`, `/api/imports/suggest` |
+| Private organization | `/api/workspace/projects`, `/history`, `/revisions` under `/api/workspace` |
+| Recovery | `/api/workspace/revisions/{id}/restore`, `/api/workspace/backups` with settings, preview, restore and download subroutes |
+
+Run the existing checks from the repository root:
 
 ```powershell
-New-Item -ItemType Directory -Force .backups | Out-Null
-.\.venv\Scripts\python.exe -m tools.data_snapshot backup --destination .backups\before-review
-.\.venv\Scripts\python.exe -m tools.data_snapshot verify .backups\before-review
-.\.venv\Scripts\python.exe -m tools.data_snapshot restore .backups\before-review --destination .backups\restore-check
-.\.venv\Scripts\python.exe -m tools.data_snapshot verify .backups\restore-check
-```
-
-The [snapshot tool](tools/data_snapshot.py) preserves CSV bytes (including
-supported legacy headers), managed audio including unreferenced recordings,
-the saved coursework profile, and screenshots. Configuration files such as the
-root `.env`, locks and incomplete atomic-write files are not part of that
-payload. A SHA-256 manifest verifies the complete file inventory and referenced
-audio. Missing media, corrupt files, unsafe paths, links and detected concurrent
-changes are explicit failures. A failed snapshot is not published.
-
-Restore refuses an existing destination: it **never overwrites the live
-collection**. To recover real data, first preserve the current data, verify a
-snapshot, restore to a new directory, and inspect the restored rows/media.
-Only then, with all apps still stopped, deliberately copy the verified data
-and corresponding media/profile files into the managed data directory. Copy
-the CSV last; do not copy the snapshot manifest or delete unrelated files.
-Reopen the application and check the expected counts and referenced recordings.
-Keep the pre-recovery copy until those checks pass. Access permissions and
-encryption for the backup location remain the operator's responsibility.
-If the current CSV is already malformed, preserve a separate manual copy
-before troubleshooting: the tool deliberately refuses to label a malformed
-CSV as a verified snapshot.
-
-`.backups/` is ignored by Git, but an external protected backup location is
-preferable for disaster recovery. `--source <folder>` supports rehearsal with
-an isolated data directory. Automated round-trip and corruption tests use
-synthetic temporary fixtures, never the group's actual corpus.
-
-### API overview
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/api/health` | API status, configured-model name, key-present flag |
-| POST | `/api/translate` | `text`, source/target languages (`fr`/`en`/`francanglais`/`pidgin`), `explanation_language`, `tone`, independent `use_dataset`/`use_dictionary`/`use_examples`, `allow_ai`; translation, origin, evidence, coverage and lexer output |
-| POST | `/api/chat` | `message`, explanation `language`, bounded `history`, source/target languages and the three independent source switches; assistant reply and supplied evidence |
-| GET | `/api/dictionary` | Read-only reference vocabulary; `query`, `offset`, `limit` (1-100) |
-| POST | `/api/analyze` | Analyze `text` locally with reviewed word categories and the base lexer |
-| POST | `/api/imports/preview` | Multipart `file` and `allow_cloud_processing=true/false`; transcript, passages, warnings and unreviewed structured drafts |
-| POST | `/api/imports/suggest` | Reviewed `text` and language context; unreviewed AI vocabulary candidates, never a save |
-| GET | `/api/metadata` | Collection topics, entry types, dataset languages and lexical categories |
-| GET | `/api/dataset?query=...` | Search entries; whole-collection counts |
-| POST | `/api/dataset` | Create a reviewed or unreviewed entry; language, aligned glosses, review status and optional word category |
-| PATCH | `/api/dataset/{id}` | Edit supplied fields, preserving other metadata |
-| DELETE | `/api/dataset/{id}` | Delete a collection entry |
-| POST | `/api/dataset/audio` | Multipart `file` and JSON `fields`; create an entry with a local audio attachment atomically |
-| PATCH | `/api/dataset/{id}/audio` | Multipart JSON changed `fields` and either `file` or `remove_audio=true`; never both |
-| GET | `/api/dataset/{id}/audio` | Play/download the attached local file, including byte-range requests |
-
-Text inputs are limited to 4,000 characters. Chat accepts at most six complete
-user/assistant exchanges (12 messages, 24,000 history characters).
-Duplicate collection text within the same language returns HTTP 409.
-Validation failures return 422, oversized imports 413, unsupported formats 415,
-missing configuration 503, provider/network errors 502, quota limits 429 and
-provider timeouts 504. Provider response bodies and keys are not exposed.
-
-### Verification
-
-From the repository root:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
-if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }
 .\.venv\Scripts\python.exe -m tools.run_python_tests
-if ($LASTEXITCODE -ne 0) { throw "Python tests failed." }
+.\.venv\Scripts\python.exe -m pip check
 Push-Location frontend
 try {
-    npm ci
-    if ($LASTEXITCODE -ne 0) { throw "Frontend installation failed." }
-    npm test
-    if ($LASTEXITCODE -ne 0) { throw "Frontend component tests failed." }
     npm run typecheck
-    if ($LASTEXITCODE -ne 0) { throw "Application or test type-checking failed." }
+    npm test
     npm run build
-    if ($LASTEXITCODE -ne 0) { throw "Frontend build failed." }
-    npx playwright install chromium
-    if ($LASTEXITCODE -ne 0) { throw "Browser installation failed." }
-    npm run test:e2e
-    if ($LASTEXITCODE -ne 0) { throw "Frontend browser tests failed." }
-}
-finally {
-    Pop-Location
-}
+    npm run test:e2e -- --workers=2
+    npm run test:e2e:live
+} finally { Pop-Location }
 ```
 
-Python tests use temporary CSV files and a mocked Gemini HTTP transport:
-they make **no real Gemini requests**, require no API key and do not modify
-your collected dataset. They cover language directions, approved local matching,
-evidence privacy, chat, malformed/blocked AI responses, timeouts, quotas, imports
-and review gates, input validation, CRUD, concurrent/atomic CSV writes, and
-collector/lexer behavior. Desktop audio/device failures are mocked; snapshot
-tests verify exact-byte recovery, missing/corrupt media and refusal to overwrite
-existing data. Frontend component and browser tests use controlled API fixtures,
-not a running research backend or live AI service.
+The complete Python suite includes preserved desktop regressions and therefore
+needs `requirements-desktop.txt`. Install that optional manifest for the full
+suite, not for normal web hosting. For server-only checks use
+`python -m unittest discover -s backend -p "test_*.py" -t .`.
+If Chromium is missing, install the existing test dependency with
+`npx playwright install chromium` from `frontend`.
 
-Browser workflows exercise desktop and mobile Chromium, including review and
-approval changes, failed mutations, stale searches, keyboard focus, short-screen
-navigation, consent before media processing, import-to-translator handoff, and a
-native ZIP download whose bytes are checked. Coursework analysis cannot silently
-save an editor draft, and unsaved changes keep export disabled. The native
-dialog restores its trigger on dismissal and applies the editor's initial focus
-only after opening.
+Unit tests isolate storage/providers/devices. Mocked browser tests verify UI
+contracts; the separate live suite runs the real built website, account API,
+SQLite, cookies, local email outbox and backup downloads on loopback port 4190.
+Its accounts/content are synthetic, external processing is disabled and physical
+devices are not used. Browser fixtures do not write into real user workspaces.
+Full-stack success is not proof of real email, Google consent, live AI quality or
+physical-device acceptance.
 
-[CI](.github/workflows/ci.yml) runs Python regressions on Windows with Python
-3.11 and 3.14, frontend/component/browser checks on Node.js 22, and a fresh
-PlantUML/LaTeX build with checksum-verified tools. Its documentation check compares
-the production-class inventory with Python declarations/namedtuple factories
-and frontend runtime class declarations, checks sequence activations and every
-diagram reference, and verifies that the current diagram pixels are embedded
-in the published SDD. A workflow definition is not evidence that a remote
-GitHub run has already completed; inspect the repository's Actions results.
+Both browser suites use the production bundle. Run `npm.cmd run build` after
+frontend edits and before either suite; the mocked suite serves it with Vite
+preview rather than exercising development-server compilation.
 
-The [SRS](docs/srs.pdf), [SDD](docs/sdd.pdf) and
-[full-size UML atlas](docs/uml-atlas.pdf) are rebuilt from local sources.
-The [documentation guide](docs/README.md) separates verified software,
-proposed sprint allocations and genuine human acceptance inputs.
-
-For an isolated performance measurement, use a graphical desktop session and
-do not interact with the temporary benchmark window:
+For repeatable private API measurements with 1,000 synthetic 500-character
+entries, one warm-up and 20 measured runs:
 
 ```powershell
-.\.venv\Scripts\python.exe -m tools.benchmark_collector --output docs\evidence\collector-benchmark.json
+.\.venv\Scripts\python.exe -m tools.benchmark_workspace --output docs\evidence\hosted-benchmark.json
 ```
 
-This exercises the actual active-tab search and Stats handlers, including Tk
-idle rendering, over 1,000 synthetic 500-character entries. Each operation has
-one warm-up and 20 measured runs; the reported p95 is the nearest-rank value
-and the default limit is 1,000 ms. The report records hardware, runtime, raw
-timings and source hashes, and exits unsuccessfully if the limit is exceeded.
-The real CSV is never used or replaced. Passing on one recorded machine is
-not a claim of identical performance on all machines.
+This checks exact response counts and verified backup creation against a 1,000 ms
+local p95 budget. It uses a temporary account and real SQLite/ASGI handlers, not
+live business data. It excludes network/TLS/browser rendering and is neither
+concurrent-user load certification nor an 8 GB reference-machine result.
 
-The [recorded benchmark](docs/evidence/collector-benchmark.json) measured search
-p95 **53.31 ms** and Stats p95 **606.01 ms**, both below 1,000 ms, on the recorded
-Windows machine with approximately **31.8 GiB RAM**. This is measured evidence
-for that source snapshot, not certification of the SRS's original 8 GB/local-SSD
-reference configuration. That hardware acceptance check remains separate.
+See [the documentation register](docs/README.md), [SRS](docs/srs.pdf),
+[SDD](docs/sdd.pdf) and [UML atlas](docs/uml-atlas.pdf). Generated evidence records
+describe their actual machine and test boundaries; remote CI is a separate gate.
 
-Rebuild and verify the documentation separately:
+## Owner actions before public launch
 
-```powershell
-.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
-.\.venv\Scripts\python.exe -m tools.check_documentation
-```
+- Supply the hosting account, domain/HTTPS, durable storage, monitoring and
+  off-host backup destination; approve capacity and recovery targets.
+- Supply SMTP sender credentials and Google OAuth configuration; verify real
+  account emails, Google consent, account linking and recovery.
+- Decide the Gemini budget and authorize non-sensitive live trials; review
+  translations/transcriptions with competent Francanglais/Pidgin speakers.
+- Supply approved business terminology, reviewed French meanings and permission
+  to redistribute the supplied reference material.
+- Test microphone/speakers, denied permissions, disconnects, browser voices,
+  real mobile devices and assistive technology.
+- Approve privacy/retention/terms, support contacts and the final public launch.
+  Decide how long deleted records, media and safety backups must be retained.
+- Authorize publishing these changes and verify all remote CI jobs. A passing
+  local run does not establish Windows 3.11/Linux or production-host acceptance.
 
-Actual translation quality, account/model access and physical microphone
-behavior require a live check on your machine. Before release, exercise mic
-permission denial, missing/disconnected devices, Record/Stop, attachment and
-playback, browser dictation availability, network/provider errors and a reviewed
-translation example. Use non-sensitive examples and explicit cloud consent;
-passing mocked tests is not proof of provider access or linguistic accuracy.
+## Preserved legacy scope
 
----
+The [historical guide](README.legacy.md), desktop collector, compiler research
+and [26 explicitly constructed examples](examples/camfranglais_statements.csv)
+remain available for maintenance. They are not business onboarding or a genuine
+fieldwork corpus. Hosted users never inherit the global CSV, academic profile,
+student identities or screenshots.
 
-## CS4110 SET A coursework workspace
-
-The **Compiler lab** workspace maps the application to the three-page
-*Compiler Construction SET A Summer 2026* brief supplied for this project.
-Translation, chat and voice are extensions; they do **not** replace the compiler
-assignment or its fieldwork.
-
-| Brief requirement | Application support | Your group's remaining responsibility |
-| --- | --- | --- |
-| Three members; 10-15 real manually transcribed statements | Group profile, collection provenance, sentence count, ten-topic coverage and explicit authenticity confirmation | Actually listen and transcribe; preserve the exact wording and document contributions |
-| Nouns, verbs, slang and code-mixing | Per-entry token tables, verb/slang phrases and inferred language transitions | Review classifications and extend the small lexicons using field evidence |
-| Custom lexical specification | Python regex lexer, visible rules, and source export | Explain the classification choices and their limitations |
-| Frequency and variation | Corpus frequencies, category totals, unknown terms and observed spelling/case/accent groups | Interpret the results; spelling groups are not semantic equivalences |
-| CFG tied to collected language | Editable grammar plus a saved design rationale | Adapt the teaching starter to your own observations |
-| Remove left recursion and left-factor | Calculated transformations with before/after rules | Explain which transformations apply and why |
-| FIRST/FOLLOW and parsing table | Fixed-point sets, LL(1) table and explicit conflict detection | Resolve conflicts or document limitations; LL(1) is the selected alternative to LR/SLR |
-| Working parser over tokenized inputs | Table-driven stack trace, full-input acceptance/rejection, corpus-wide tests | Review expected outcomes and explain rejected examples |
-| Report, screenshots and discussion | Printable 25-section HTML report draft, genuine screenshot attachments, original write-up fields, CSV/JSON appendices | Complete and proofread the report; verify final print/PDF is 25-30 pages and no more than 30 |
-| Source and own-data test cases | Actual source bundle and generated regression cases from the saved corpus | Independently check expectations; snapshots are not linguistic ground truth |
-| PowerPoint and demonstration | Editable `.pptx` with ten minutes of timing notes | Personalize/rehearse: three minutes per member, then a shared one-minute wrap-up |
-
-### Suggested workflow
-
-1. In **Collection**, enter your group's exact manual transcriptions. Mark
-   full statements as `Sentence`, choose topics, and record contributors and
-   source locations. Words and phrases are useful but do not inflate the
-   required 10-15 sentence count.
-2. In **Compiler lab**, enter three distinct names, your collection method,
-   grammar rationale, original discussion and limitations. Confirm manual
-   transcription only if true. Save the profile.
-3. Edit the CFG and run the analyzer. Each line uses
-   `Nonterminal -> symbol symbol | epsilon`; the first left-hand side is
-   the start symbol. Terminals are lexer category names, not quoted words.
-   Use `epsilon` explicitly for an empty production.
-4. Inspect transformation steps, FIRST/FOLLOW, table conflicts, lexical
-   reports and each collected entry's parser result. Test individual
-   expressions without adding them to the dataset. Unknown symbols are
-   retained; the parser never silently discards them.
-5. **Ask AI** only when desired. This sends the grammar, practice text,
-   question and selected calculated results to Gemini. It does not
-   automatically include the collection, group profile or screenshots.
-   AI suggestions do not change the saved grammar or override the parser.
-6. Upload actual PNG/JPEG screenshots of the running analyzer (up to six,
-   2 MB and 12 megapixels each). These remain local.
-7. Save before exporting. The ZIP uses the **saved** grammar/profile and
-   current collected CSV. It includes `report.html`, `presentation.pptx`,
-   lexical/parser CSV and JSON files, screenshots, source, and own-data
-   regression tests. No `.env` files or API keys are included. The archive
-   **does include your collected text and contributor names**; share it
-   only with authorized course recipients.
-
-The report is an editable/printable **draft**, not a claim that the assignment is
-finished. Its 25 sections are not a guarantee of 25 printed pages: long tables,
-grammar steps and screenshots can add pages. Check print preview and revise
-layout/content to satisfy the 25-30 page requirement. Missing fieldwork and
-discussion are explicitly marked rather than fabricated. Full tables remain
-in appendix files if a report section shows only a bounded preview.
-
-Project metadata and screenshots persist in `data_collector/coursework/`
-(ignored by Git). The coursework analyzer is designed for a small course
-corpus, with limits of 500 entries and 100,000 text characters. Grammar and
-parser limits produce explicit errors instead of hanging.
-
-### Fieldwork information the group must provide
-
-The software can prepare and verify the workflow, but must not invent these
-inputs. A CSV, spreadsheet or clearly structured text table is sufficient:
-
-| Input | What to provide |
-| --- | --- |
-| Group identity | Three names, matricules, and each member's actual contribution |
-| Genuine speech | 10-15 exact manually transcribed full statements, not dictionary/AI/demo substitutes; keep the original spelling and code mixing |
-| Topic and language | One required topic per statement and the observed language; use `mixed` or `unspecified` when genuinely uncertain |
-| Provenance | Who in the group collected it, general location/context and when it was heard, where known; omit unnecessary speaker-identifying details |
-| Meanings | French/English glosses only where known, with uncertainty or ambiguity noted |
-| Method and permission | How transcription and review were performed, appropriate permission/consent, and any restrictions on sharing text or audio |
-| Interpretation | Observed patterns, grammar rationale, discussion, limitations and independently reviewed expected parser outcomes |
-
-Audio is optional. The application generates record IDs and timestamps;
-do not invent collection dates, identities, permissions or findings to fill
-blanks. Mark approval and manual transcription only after genuine human review.
-The SRS/SDD retain the first author's already supplied name and matricule;
-the other two identities, all contributions and research-dependent deliverables
-remain pending until supplied. They are separate from the required
-25-30-page coursework report.
-
-Additional endpoints: `GET /api/coursework`,
-`PUT /api/coursework/project`, `POST /api/coursework/analyze`,
-`POST /api/coursework/parse`, `POST /api/coursework/explain`,
-`POST /api/coursework/screenshots`,
-`GET /api/coursework/screenshots/{image_id}`,
-`DELETE /api/coursework/screenshots/{image_id}`, and `GET /api/coursework/export`.
-The API docs describe the request shapes.
-
-Run the coursework, compiler and existing API tests:
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s backend\tests -v
-.\.venv\Scripts\python.exe -m unittest discover -s compiler\tests -v
-```
-
-## Original CS4110 project
-
-**Lexical and Syntactic Analysis of Informal Urban Communication in Yaoundé**
-CS4110 Compiler Construction, Summer 2026, ICT University — due Tue Sept 29, 2026.
-
-Yaoundé speech mixes French, English, Pidgin, and local-language slang
-("Francanglais" / Camfranglais). This project builds a mini-language
-analyzer for it: collect real, manually transcribed statements, then
-run lexical analysis (tokenizing + classifying) and syntactic analysis
-(a hand-built grammar + a working parser) over them.
-
-## Phase 1 — Dataset Collection ✅
-
-`data_collector/` is a CustomTkinter desktop app for building the
-dataset, split into three files:
-- `app.py` — the GUI (three tabs: Collect, Browse & Edit, Stats)
-- `dataset.py` — all dataset CRUD (load/append/update/delete/count)
-- `audio_utils.py` — recording, saving, and playback helpers
-
-**Optional desktop setup** (separate GUI/audio dependencies):
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
-.\.venv\Scripts\python.exe data_collector\App.py
-```
-
-**Collect tab** — add new entries into `data_collector/dataset.csv`:
-- `text` — the exact words transcribed, slang/accent/mistakes included
-- `entry_type` — word, phrase, or sentence
-- `french_gloss`, `english_gloss` — standard-language meaning
-- `category` — one of the assignment's 10 required topics: taxi/commuting,
-  internet connectivity, electricity supply, market bargaining, rainy
-  season, fuel scarcity, roadside business, bendskin communication,
-  security checkpoint, campus life (+ "other")
-- `source_location` — where it was heard, e.g. "taxi, Mvan" / "Marché
-  Mokolo" / "ICT campus"
-- `notes` — register, accent, incomplete-sentence notes
-- `audio_filename` — optional; recorded live (mic) or attached from
-  an existing file. **Not required by the assignment** (which calls
-  for manual transcription), but kept as extra raw material for the
-  word-prediction extension below
-- `contributor` (group name/members), `timestamp`
-- `language`, `review_status`, `lexical_category` — review metadata shared with
-  the web collection. New material is unreviewed; unspecified language is not
-  silently interpreted as Francanglais. Review changes before approving them.
-
-A duplicate warning appears if the text you're typing already exists
-in the dataset. A "Recently added" list shows your last few entries.
-Shortcuts: `Ctrl+Enter` saves, `Esc` clears the form.
-
-**Browse & Edit tab** — search, edit, delete, and play back audio for
-any existing entry via a sortable table.
-
-**Stats tab** — live counts by entry type and by category, so you can
-see coverage gaps (e.g. "no rainy-season entries yet") while collecting.
-
-Live recording needs `sounddevice`/`soundfile` and a working mic
-backend (PortAudio). If that's not available, "Attach file..." works
-with zero extra setup. Playback falls back to your OS's default
-player if `sounddevice` isn't available.
-
-Target: **10–15 real-life statements per group of 3**, spread across
-the 10 topics above.
-
-## Phase 2 — Lexical Analysis ✅
-
-`compiler/lexer/` implements the custom lexical specification:
-- `lexicon.py` — word lists (nouns, verbs, slang, Pidgin markers,
-  French/English function words) and the multi-word verb-phrase
-  patterns. **Grow these from your real collected data.**
-- `tokenizer.py` — the segmentation regex + per-token classifier +
-  code-mixed span detection + verb-phrase matching
-- `frequency.py` — token frequency and category-composition counts
-- `regex_specification.md` — the written spec for the report (exactly
-  what the assignment asks for under "Create a custom lexical
-  specification using regular expressions for token types")
-
-**Run it**
-```bash
-python compiler/run_lexer.py
-```
-It reads `data_collector/dataset.csv`. If that's still empty, it runs
-against 10 built-in placeholder sentences instead (clearly logged as
-such) so the pipeline is testable before real data collection is done
-— **replace these with your group's real data before writing up
-results**. Output goes to `compiler/output/`:
-- `token_table.csv` — every token from every sentence, tagged
-- `frequency_report.csv` — token frequency, most common first
-
-A console summary also prints category counts, code-mixed span count,
-and the top 15 most frequent tokens.
-
-## Phase 3 — Syntactic Analysis
-
-Implemented under `compiler/parser/` and exposed in the Compiler lab:
-editable CFGs, left-recursion removal, factoring, FIRST/FOLLOW, LL(1)
-table construction with conflict detection, predictive parsing, and
-accept/reject traces on your collected data. The default is a teaching
-starter, not a grammar inferred from observations you have not collected.
-
-## Phase 4 — Deliverables
-
-- **Report (25–30 pages)**: raw statements, token tables, regex
-  rules, grammar rules, the parsing table/automaton, screenshots of
-  the working analyzer, and a discussion of why Yaoundé communication
-  is linguistically complex.
-- **Source code**: lexer, parser, and test cases drawn from the
-  group's own data.
-- **Slide deck**: presentation/demo material.
-
-Use the coursework export to assemble these artifacts, then supply/review
-your group's own evidence, discussion, final pagination and demonstration.
-
-## Stretch — Word/Sentence Prediction (extension, not graded)
-
-Once there's a real dataset (and optionally audio), a rule-based +
-statistical model can be trained on the known French↔English blending
-patterns to guess whether a novel word plausibly *is* Francanglais,
-and to generate new sentences in the same style. This sits outside
-the CS4110 rubric — built after the required phases are solid.
+The default API excludes academic routes. Isolated archive maintenance requires
+the explicit `create_app(require_auth=False, include_academic=True)` factory;
+there is no environment switch disabling hosted authentication, and production
+rejects that combination. The standalone desktop collector still uses the legacy
+CSV/audio storage, not a signed-in hosted workspace.

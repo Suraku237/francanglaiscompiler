@@ -9,6 +9,7 @@ dist/
 # The prebuilt web bundle is versioned with the application.
 !frontend/dist/
 *.tsbuildinfo
+frontend/playwright-live-report/
 
 # Local environment files can contain API keys.
 .env
@@ -23,6 +24,7 @@ data_collector/coursework/
 data_collector/audio/*
 !data_collector/audio/.gitkeep
 .backups/
+.mboa/
 
 # Local documentation tools and intermediate LaTeX output.
 docs/.tools/

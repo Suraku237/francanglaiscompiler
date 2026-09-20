@@ -1,0 +1,104 @@
+@startuml
+!include theme.iuml
+title Email account access and private request binding
+hide footbox
+autonumber
+actor User
+participant "AuthGate\n<<React function>>" as Web
+participant "auth.py\n<<routes / middleware>>" as Auth
+participant "store : AuthStore" as Store
+participant "SMTP / development outbox" as Mail
+participant "workspaces.py\n<<context factory>>" as Context
+participant "workspace : WorkspaceStore" as Workspace
+participant "Private API route" as API
+
+activate User
+User -> Web : submit registration
+activate Web
+Web -> Auth : POST /auth/register
+activate Auth
+Auth -> Store : throttle; create identity; issue verification token
+activate Store
+note over Store : Password hashing and database work run off the event loop.\nStore only password hashes and token digests.
+Store --> Auth : eligible identity + one-time token, or no new identity
+deactivate Store
+opt new account
+  Auth -> Mail : deliver verification link
+  activate Mail
+  Mail --> Auth : accepted or explicit delivery error
+  deactivate Mail
+end
+Auth --> Web : generic 202 message or service error
+deactivate Auth
+Web --> User : check email
+deactivate Web
+
+User -> Web : open verification link and press Verify
+activate Web
+Web -> Auth : POST /auth/verify-email {token}
+activate Auth
+Auth -> Store : consume_token(token, verify)
+activate Store
+Store --> Auth : verified or expired/used error
+deactivate Store
+Auth --> Web : outcome
+deactivate Auth
+Web --> User : sign-in form or actionable error
+deactivate Web
+
+User -> Web : submit email and password
+activate Web
+Web -> Auth : POST /auth/login
+activate Auth
+Auth -> Store : verify password + verified status; create session
+activate Store
+Store --> Auth : identity + random session, or failure
+deactivate Store
+Auth --> Web : HttpOnly cookie + session-specific CSRF token
+deactivate Auth
+Web --> User : private workspace
+deactivate Web
+
+User -> Web : create terminology in selected project
+activate Web
+Web -> Auth : POST /api/dataset\ncookie, Origin, CSRF, project header
+activate Auth
+Auth -> Store : validate session and enforce request allowance
+activate Store
+Store --> Auth : verified identity or rejection
+deactivate Store
+alt valid session, origin and CSRF
+  Auth -> Context : enter async private workspace context
+  activate Context
+  Context -> Workspace : initialize/validate account and project off event loop
+  activate Workspace
+  Workspace --> Context : store or storage error
+  deactivate Workspace
+  Context --> Auth : request-local storage binding
+  deactivate Context
+  Auth -> API : dispatch validated request
+  activate API
+  API -> Workspace : locked transactional mutation
+  activate Workspace
+  Workspace --> API : saved entry + recorded revision, or failure
+  deactivate Workspace
+  API --> Auth : response
+  deactivate API
+  Auth -> Context : exit context
+  activate Context
+  Context --> Auth : previous ContextVars restored
+  deactivate Context
+else access rejected
+  note over Auth : No private route executes; return 401 / 403 / 429.
+end
+Auth --> Web : result or explicit error
+deactivate Auth
+Web --> User : saved state or retained draft + error
+deactivate Web
+deactivate User
+legend bottom
+  Registration, verification and login are separate interactions, not automatic sign-in.
+  Synchronous/awaited messages all have explicit activation boxes and matching replies.
+  Password reset uses the same single-use token boundary and revokes every prior session.
+endlegend
+@enduml

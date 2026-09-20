@@ -4,7 +4,7 @@ export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified
 export type ReviewStatus = 'unreviewed' | 'approved'
 export type AnswerOrigin = 'dataset' | 'dictionary' | 'examples' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
 export type Tone = 'everyday' | 'polite' | 'street'
-export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports'
+export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports' | 'history' | 'settings'
 
 export function isLocalOrigin(origin?: AnswerOrigin): boolean {
   return origin === 'dataset' || origin === 'dictionary' || origin === 'examples' || origin === 'local_sources'

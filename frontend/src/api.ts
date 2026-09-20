@@ -5,6 +5,25 @@ export class ApiError extends Error {
   }
 }
 
+let csrfToken = ''
+let projectId = 'default'
+let accountVersion = 0
+
+export function configureSession(token: string | null): void {
+  csrfToken = token ?? ''
+  projectId = 'default'
+  accountVersion++
+}
+
+export function selectProject(id: string): void {
+  projectId = id
+  accountVersion++
+}
+
+export function nativeApiUrl(path: string): string {
+  return `/api${path}${projectId === 'default' ? '' : `?project=${encodeURIComponent(projectId)}`}`
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -39,12 +58,16 @@ interface RequestOptions {
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const version = accountVersion
   const controller = new AbortController()
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
-    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots') && options.method === 'POST')
+    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' ||
+      path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
   const recovery = path.startsWith('/coursework')
     ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
-    : 'Close this dialog and refresh the collection before trying again.'
+    : path.startsWith('/workspace/') || path.startsWith('/auth/')
+      ? 'Refresh the saved state before trying again; do not repeat a restore blindly.'
+      : 'Close this dialog and refresh the collection before trying again.'
   let timedOut = false
   const cancel = () => controller.abort()
   if (options.signal?.aborted) controller.abort()
@@ -56,15 +79,25 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   try {
     const multipart = options.body instanceof FormData
+    const headers: Record<string, string> = {}
+    if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
+    if (csrfToken && options.method && options.method !== 'GET') headers['X-CSRF-Token'] = csrfToken
+    if (projectId !== 'default' && !path.startsWith('/auth/')) headers['X-Mboa-Project'] = projectId
     const response = await fetch(`/api${path}`, {
       method: options.method ?? 'GET',
-      headers: options.body === undefined || multipart ? undefined : { 'Content-Type': 'application/json' },
+      headers: Object.keys(headers).length ? headers : undefined,
       body: multipart ? options.body as FormData : options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: controller.signal,
       cache: 'no-store',
+      credentials: 'same-origin',
     })
+    if (version !== accountVersion) throw new DOMException('Workspace changed', 'AbortError')
+    if (response.status === 401 && (!path.startsWith('/auth/') || path === '/auth/profile' || path === '/auth/logout')) {
+      window.dispatchEvent(new Event('mboa:session-expired'))
+    }
     if (response.status === 204 && response.ok) return undefined as T
     const body: unknown = await response.json().catch(() => null)
+    if (version !== accountVersion) throw new DOMException('Workspace changed', 'AbortError')
     if (!response.ok) {
       throw new ApiError(
         errorDetail(body) ??
@@ -87,8 +120,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     if (controller.signal.aborted) throw new DOMException('Request cancelled', 'AbortError')
     if (error instanceof TypeError) {
       throw new Error(isMutation
-        ? `The connection was interrupted. The change may have completed. ${recovery} Make sure the backend is running on port 8000.`
-        : 'Cannot reach the local server. Make sure the backend is running on port 8000, then try again.')
+        ? `The connection was interrupted. The change may have completed. ${recovery}`
+        : 'Cannot reach the server. Check your connection, then try again. For local testing, make sure Mboa is running.')
     }
     throw error
   } finally {

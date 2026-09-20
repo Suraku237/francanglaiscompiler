@@ -77,7 +77,7 @@ Dictionary ..> DictionaryResponse : search and pagination
 Dictionary ..> CollectionError : raises safe 503 on load failure
 Collection ..> EntryCreate : validates create
 Collection ..> EntryPatch : applies changed fields
-Collection ..> DatasetResponse : returns list / global counts
+Collection ..> DatasetResponse : returns list / selected-project counts
 Collection ..> CollectionError : raises 404 / 409 / 422
 note bottom of EntryPatch
   At least one field; explicit null is rejected.
@@ -88,7 +88,8 @@ legend bottom
   The six response DTOs directly extend pydantic.BaseModel.
   EntryCreate/EntryPatch inherit extra=forbid via RequestModel.
   DatasetEntry is an API DTO, not the storage representation:
-  CSV helpers use dictionaries, not a repository/model class.
+  Hosted storage serializes dictionaries to private SQLite JSON rows.
+  Desktop fallback helpers still persist dictionaries as CSV.
   Reference entries are read-only, not approved corpus entries.
   Their etymological origin does not supply a French gloss or POS.
 endlegend

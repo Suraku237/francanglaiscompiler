@@ -27,7 +27,7 @@ class CourseworkTests(unittest.TestCase):
     def setUp(self):
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2])))
+        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(prefix="mboa-archive-test-")))
         self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
         self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
         self.stack.enter_context(patch.object(coursework_store, "PROJECT_DIR", self.directory / "coursework"))
@@ -41,7 +41,7 @@ class CourseworkTests(unittest.TestCase):
 
         settings = Settings(gemini_api_key=SecretStr("fake-coursework-test-key"))
         self.client = self.stack.enter_context(TestClient(create_app(
-            settings, transport=httpx.MockTransport(respond), include_academic=True,
+            settings, transport=httpx.MockTransport(respond), include_academic=True, require_auth=False,
         )))
         self.profile = {
             "group_members": ["", "", ""], "grammar": DEFAULT_GRAMMAR,

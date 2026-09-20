@@ -1,0 +1,102 @@
+@startuml
+!include theme.iuml
+title Validated account backup restore with a safety copy
+hide footbox
+autonumber
+actor User
+participant "WorkspaceSettings\n<<React function>>" as Web
+participant "workspace_backups.py\n<<routes / functions>>" as Backup
+participant "workspace : WorkspaceStore" as Store
+participant "Private filesystem" as Files
+
+activate User
+User -> Web : select ZIP and request preview
+activate Web
+Web -> Backup : POST /backups/preview\ncookie + Origin + CSRF
+activate Backup
+note over Backup : Authenticated account context precedes this domain interaction.
+Backup -> Backup : validate size, paths, hashes, schema and media
+activate Backup
+Backup --> Backup : validated document or rejection
+deactivate Backup
+opt valid archive
+  Backup -> Files : publish bounded preview ZIP atomically
+  activate Files
+  Files --> Backup : staged or explicit I/O error
+  deactivate Files
+  opt archive staged
+    Backup -> Store : read version and record expiring owner-scoped preview
+    activate Store
+    Store --> Backup : version / preview metadata
+    deactivate Store
+  end
+end
+Backup --> Web : counts, warnings, token and version, or error
+deactivate Backup
+Web --> User : inspect replacement scope
+deactivate Web
+
+User -> Web : type REPLACE and confirm
+activate Web
+Web -> Backup : POST /backups/restore\n{token, expected_version, confirmation}
+activate Backup
+Backup -> Store : acquire account lock; verify token and version
+activate Store
+Store --> Backup : current snapshot or conflict
+deactivate Store
+alt preview valid and workspace unchanged
+  Backup -> Files : reread and validate staged archive
+  activate Files
+  Files --> Backup : valid archive or rejection
+  deactivate Files
+  Backup -> Backup : snapshot current workspace as pre-restore backup
+  activate Backup
+  Backup --> Backup : verified safety backup ID or failure
+  deactivate Backup
+  opt safety snapshot and archive validation succeeded
+    Backup -> Files : stage immutable audio; remap conflicting names
+    activate Files
+    Files --> Backup : staged files or error
+    deactivate Files
+    alt audio staged
+    Backup -> Store : import_document(document, expected_version)
+    activate Store
+    Store --> Backup : committed new version or rolled-back SQL transaction
+    deactivate Store
+    alt logical data committed
+      Backup -> Store : invalidate preview token
+      activate Store
+      Store --> Backup : token removed
+      deactivate Store
+      Backup -> Files : remove used preview
+      activate Files
+      Files --> Backup : cleaned up or explicit error
+      deactivate Files
+    else logical commit failed
+      Backup -> Files : remove only newly staged audio
+      activate Files
+      Files --> Backup : original committed media retained
+      deactivate Files
+    end
+    else audio staging failed
+      Backup -> Files : remove only newly staged audio
+      activate Files
+      Files --> Backup : original committed media retained
+      deactivate Files
+    end
+  end
+else expired preview or changed workspace
+  note over Backup : Reject without logical replacement; user must preview again.
+end
+note over Backup, Store : Release account lock on exit.\nNever report a failed/uncertain commit as success.
+Backup --> Web : restored counts + safety ID, or explicit error
+deactivate Backup
+Web --> User : reopen General and review restored content,\nor preserve error/recovery guidance
+deactivate Web
+deactivate User
+legend bottom
+  Backups replace logical workspace data, not account credentials or server settings.
+  Late client cancellation does not promise server rollback.
+  Existing committed media remains available for recovery; this is not a cross-file ACID transaction.
+endlegend
+@enduml

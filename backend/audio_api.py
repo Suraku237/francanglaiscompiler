@@ -77,7 +77,8 @@ def _store_audio_entry(
     try:
         if content is not None:
             extension = _audio_extension(filename, content)
-            directory = Path(dataset.AUDIO_DIR)
+            dataset.check_audio_capacity(len(content))
+            directory = dataset.audio_directory()
             directory.mkdir(parents=True, exist_ok=True)
             path = directory / f"{uuid4().hex}{extension}"
             atomic_write(path, content)
@@ -152,7 +153,7 @@ def _audio_response(entry_id: str) -> FileResponse:
     filename = entry["audio_filename"]
     if not filename or "/" in filename or "\\" in filename or filename in (".", ".."):
         raise CollectionError(404, "No readable audio is attached to this entry.")
-    directory = Path(dataset.AUDIO_DIR).resolve()
+    directory = dataset.audio_directory().resolve()
     path = (directory / filename).resolve()
     if path.parent != directory or not path.is_file():
         raise CollectionError(404, "The attached audio file is missing or outside the audio folder.")

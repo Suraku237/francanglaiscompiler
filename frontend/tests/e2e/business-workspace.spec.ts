@@ -8,7 +8,7 @@ test('business navigation excludes school features and retired practice links do
   await expect(page).toHaveURL(/#translator$/)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
   await expect(navigation.getByRole('link')).toHaveText([
-    'Translate', 'Assistant', 'Terminology', 'Dictionary', 'Documents & audio',
+    'Translate', 'Assistant', 'Terminology', 'Dictionary', 'Documents & audio', 'History', 'Workspace settings',
   ])
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Translate')
   await expect(page.getByRole('checkbox', { name: /practice examples/ })).toHaveCount(0)

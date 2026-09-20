@@ -1,6 +1,6 @@
 @startuml
 !include theme.iuml
-title Import and coursework request/result classes
+title Import models and preserved academic request/result classes
 hide empty members
 package "backend.import_models" {
   ' @class backend.import_models.SuggestedEntry
@@ -60,14 +60,30 @@ package "backend.coursework_models" {
   ParseRequest --|> GrammarRequest
   ExplainRequest --|> ParseRequest
 }
+package "backend.schemas (archived practice route)" {
+  class PracticeEntry {
+    id; text
+    language: francanglais
+    french_gloss; english_gloss; topic; notes
+    source_document; source_line
+    constructed: true
+  }
+  class PracticeResponse {
+    total; matched; offset; limit
+    sources: list[str]
+  }
+  PracticeResponse "0..*" --> "0..100" PracticeEntry : entries
+}
 GrammarRequest -[hidden]down- ProjectProfile
 ProjectProfile -[hidden]down- ScreenshotRequest
 legend bottom
   SuggestRequest and all coursework classes inherit RequestModel
   (directly, except ParseRequest and ExplainRequest as drawn).
   Other import classes directly inherit BaseModel.
+  PracticeEntry and PracticeResponse also inherit BaseModel.
   SuggestedEntry additionally forbids extra fields; approval cannot be imported.
   Three member strings may initially be blank; nonblank names must be distinct.
   UI type aliases/interfaces are not additional runtime model classes.
+  Academic DTOs remain in source but are not exposed by the hosted application.
 endlegend
 @enduml

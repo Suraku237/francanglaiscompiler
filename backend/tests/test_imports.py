@@ -73,7 +73,9 @@ class ImportTests(unittest.TestCase):
         self.finish = "STOP"
         self.provider_status = 200
         settings = Settings(gemini_api_key=SecretStr("test-key-not-real"), gemini_timeout_seconds=5)
-        self.client = self.stack.enter_context(TestClient(create_app(settings, transport=httpx.MockTransport(self.respond))))
+        self.client = self.stack.enter_context(TestClient(create_app(
+            settings, transport=httpx.MockTransport(self.respond), require_auth=False,
+        )))
 
     def respond(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)

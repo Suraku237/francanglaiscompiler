@@ -1,695 +1,427 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[a4paper,margin=2.25cm,headheight=15pt]{geometry}
+\usepackage[a4paper,margin=2.3cm,headheight=15pt]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{iftex}
 \ifPDFTeX\usepackage[utf8]{inputenc}\fi
 \usepackage{lmodern,microtype,graphicx,pdfpages}
 \usepackage{booktabs,longtable,tabularx,array,enumitem,xcolor,xurl,hyperref,fancyhdr}
-\setlength{\emergencystretch}{3em}
-\setlist{itemsep=2pt,topsep=5pt}
-\definecolor{accent}{HTML}{1E3A5F}
+\definecolor{accent}{HTML}{17645E}
 \hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,
-  pdftitle={Francanglais Platform - Software Design Description}}
-\pagestyle{fancy}
-\fancyhf{}\lhead{Francanglais Compiler}\rhead{SDD v1.3}\cfoot{\thepage}
+ pdftitle={Mboa - Hosted Business Software Design Description}}
+\setlength{\emergencystretch}{3em}
+\setlist{itemsep=3pt,topsep=5pt}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\newcommand{\viewtrace}[2]{\par\smallskip\noindent\textbf{Requirements:} #1.\par
-  \noindent\textbf{Source:} #2.\par\medskip}
+\pagestyle{fancy}
+\fancyhf{}\lhead{Mboa Private Workspace}\rhead{SDD v2.0}\cfoot{\thepage}
 \newcommand{\diagram}[3]{\includepdf[pages=#2,fitpaper=true,
-  pagecommand={\thispagestyle{empty}\refstepcounter{figure}\label{fig:#1}
-  \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#3}}]{uml-atlas.pdf}}
-\title{\textbf{Software Design Description}\\[0.4em]
-\Large Francanglais Compiler and Dataset Platform\\[0.6em]
-\large Source-grounded Architecture and Explained UML}
-\author{Group members and matricules:\\[0.6em]
-Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
-Djemtchimo Noukui Bruno Jonatan --- ICTU20241585\\[0.5em]
-Name 3: \underline{\hspace{3.2cm}}\quad Matricule: \underline{\hspace{2.5cm}}}
-\date{Version 1.3 --- 19 September 2026}
+ pagecommand={\thispagestyle{empty}\refstepcounter{figure}\label{fig:#1}
+ \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#3}}]{uml-atlas.pdf}}
+\title{\textbf{Software Design Description}\\[0.6em]
+ \Large Mboa Private Language Workspace\\[0.6em]
+ \large Account Isolation, Recovery and Source-grounded UML}
+\author{Engineering team\\[0.5em]
+ Kwete Ngouba Junior Rayan\\
+ Djemtchimo Noukui Bruno Jonatan\\
+ Amina Boubakary}
+\date{Version 2.0 --- \today}
 \begin{document}
 \maketitle\thispagestyle{empty}
-\begin{center}\textit{Engineering evidence, not a substitute for genuine fieldwork.}\end{center}
+\begin{center}\textit{Design evidence for the implemented hosted business scope.}\end{center}
 \vfill
-\noindent\textbf{Revision basis:} current working source based on
-\nolinkurl{160945c}, including the separate reference dictionary integration.
-The two supplied names/matricules are preserved; remaining identity details
-and contributions are not invented.
+\noindent\textbf{Reading guide.} A4 explanations are followed by 35 full-size UML
+sheets. Figure links lead to readable large-format views; use PDF zoom or tiled
+printing. The standalone atlas contains the same diagram images.
 \par\medskip
-\noindent\textbf{Reading design:} A4 explanations are followed by 29 full-size
-UML sheets. Click a figure reference to inspect its sheet. The sheets retain
-readable label sizes rather than shrinking complex diagrams to tiny A4 text.
-Use actual-size or tiled printing for large sheets; the SRS remains A4.
+\noindent\textbf{Release boundary.} Operational configuration and human
+acceptance remain separate from automated verification. The previous academic
+SDD is retained as \nolinkurl{docs/sdd-legacy.tex}, not as deployment guidance.
 \newpage\tableofcontents\newpage\listoffigures\newpage
 
-\section{Design Basis and UML Conventions}
-\subsection{Implemented system and scope}
-The source now contains the editable React frontend, FastAPI backend,
-deterministic lexer/parser and CustomTkinter collector. They are implemented,
-not proposed components. This document supersedes the old desktop-only SDD.
-The local CSV is shared; there is no database server, trained predictor,
-authenticated user model or public multi-tenant deployment.
+\section{Architecture and Design Decisions}
+\subsection{Hosted application}
+Figure~\ref{fig:component} shows the browser, web boundary, account middleware,
+business routes, request-selected private storage and optional providers.
+FastAPI serves both the built React application and the API. This is a
+same-origin web application, not the previous unauthenticated shared CSV service.
 
-Nine class views collectively cover \textbf{49 authored production classes}:
-47 Python class declarations, the factory-generated lexer \texttt{Token}, and
-the TypeScript \texttt{ApiError}. The machine-readable mapping is
-\nolinkurl{docs/diagrams/class-coverage.json}. Test helpers, maintenance tools,
-framework classes and erased TypeScript interfaces are outside that count.
-The remaining views are 14 sequences, two states, one activity, one use case,
-one component view and one deployment view.
-
-\subsection{How to read the models}
-\begin{itemize}
-\item A hollow triangle points to a superclass. A filled diamond identifies
-exclusive lifecycle ownership, used for the collector's optional recorder.
-Plain directed associations represent stored references or nested values.
-\item Target-end multiplicities express values held by one source instance.
-A reverse \texttt{0..*} allows independent/shared DTO instances: nesting in
-JSON does not establish exclusive Python object ownership. Inheritance and
-module dependencies have no cardinalities.
-\item Rectangles marked module/function/hook are not invented runtime classes.
-External framework classes and repeated reference nodes are labelled explicitly.
-Only selected fields and operations appear; inherited Pydantic validation and
-serialization need not be repeated in every box.
-\item Every shown synchronous call opens a receiver activation and has a
-matching dashed reply ending it. Nested calls to the same participant open
-nested boxes. Callers stay active while waiting. Actor boxes denote participation,
-not CPU execution. Callback delivery is distinguished from GUI execution.
-\item \texttt{alt}, \texttt{opt} and \texttt{loop} denote alternatives,
-conditional interaction and repetition. Notes summarize omitted widget,
-validation or low-level I/O steps; they are not messages without activations.
-\item Activity diamonds have exclusive guards. State labels model logical
-workflow or derived fields, not an imaginary implemented state enumeration.
-Completing an entry activity is not shutting down the application.
-\end{itemize}
-The automated checker verifies class coverage and the explicit synchronous
-call/reply activation convention used here. Local rendering and review are
-still necessary; this checker is not a general-purpose UML theorem prover.
-
-\section{Architecture and Deployment}
-\subsection{Component dependencies}
-Figure~\ref{fig:component} separates browser presentation, backend services,
-compiler libraries, desktop presentation and local artifacts. Read dependency
-arrows from the consumer toward the used responsibility. React request helpers
-own cancellation and safe error presentation. Routes delegate validated
-mutations, retrieval, imports and coursework work rather than treating the
-provider as the compiler.
-
-Both Python entry points call the same dataset module. The CSV symbol is a
-file artifact, not a relational database. Coursework uses the compiler and
-saved evidence; only explicit tutoring uses Gemini. Imports can produce
-candidates but cannot implicitly append a row. Browser speech has its own
-provider boundary, independent of Gemini and desktop recording.
-The sixth browser workspace, Dictionary, reads versioned Markdown through
-\nolinkurl{backend/dictionary.py}. These resources are not CSV corpus rows.
-Retrieval can use either or both local sources; collection statistics and
-compiler research continue to read only the saved CSV.
-\viewtrace{FR-01, FR-06, FR-15--FR-16, FR-21--FR-36}
-{\nolinkurl{backend/main.py}, \nolinkurl{backend/coursework_api.py},
-\nolinkurl{backend/import_api.py}, \nolinkurl{frontend/src}, \nolinkurl{data_collector/App.py}}
+\begin{enumerate}
+\item \textbf{Identity before storage.} Every private API request resolves a
+verified account cookie before selecting a server-owned account directory.
+Client project identifiers are checked within that account.
+\item \textbf{Request-local binding.} Context variables hold the identity and
+dataset adapter only for that request. Private data selection never mutates
+global CSV paths. Initialization and blocking I/O use the thread pool.
+\item \textbf{Durable, bounded single-host storage.} Each account uses SQLite
+plus a cooperative file lock. The design does not assume a distributed database,
+ephemeral filesystem or multi-host lock service.
+\item \textbf{Explicit persistence and processing.} Translation/chat results
+remain transient until saved. File previews do not approve or save terms.
+Provider processing is labelled and bounded; local exact lookup avoids it.
+\item \textbf{Recoverable replacement.} Revision restore is version-checked.
+Workspace restore validates first, creates a safety backup and commits logical
+rows only after safe media staging.
+\end{enumerate}
 
 \subsection{Deployment topology}
-Figure~\ref{fig:deployment} distinguishes the trusted workstation, execution
-environments, artifacts and external services. Development uses browser--Vite
-HTTP and the Vite API proxy. The alternative built mode serves the versioned
-frontend assets and API directly through FastAPI. The desktop process can run
-independently, using the same local CSV and audio directory.
+Figure~\ref{fig:deployment} shows a user's browser reaching an HTTPS reverse
+proxy. All paths reach one FastAPI/Uvicorn application on loopback or a
+firewalled private interface. The operator preserves the public Host and
+forwarded protocol/client identity, and configures trusted proxy addresses.
+Arbitrary internet clients must not supply trusted forwarding headers.
 
-Keys remain in server configuration, not browser assets. Optional HTTPS
-provider requests and browser-selected speech services cross the local boundary.
-There is no authentication or authorization: bind the backend to loopback or
-an explicitly trusted boundary. CORS is not access control. If someone moves
-the backend elsewhere, its stored files are on that server, not the browser's
-device. No cloud hosting service is silently assumed.
-\viewtrace{NFR-04--NFR-06, NFR-08, NFR-13; FR-35}
-{\nolinkurl{backend/main.py}, \nolinkurl{backend/config.py},
-\nolinkurl{frontend/vite.config.ts}, \nolinkurl{frontend/src/voice.ts}}
+The backend serves \nolinkurl{frontend/dist}. Vite is optional during development,
+not the production static host. Local testing uses the one-origin launcher and
+loopback HTTP. Production requires a real HTTPS origin, SMTP, built assets and
+mandatory authentication; docs/OpenAPI are disabled.
 
-\section{Class Structure and Relationships}
-\subsection{Desktop classes, optional devices and explicit errors}
-Figure~\ref{fig:class-domain} includes \texttt{App}, \texttt{Tooltip},
-\texttt{Recorder}, \texttt{AudioError} and \texttt{EntryNotFoundError}.
-\texttt{App} inherits CTk and owns at most one recorder; missing audio imports
-do not prevent text collection. A recorder retains at most one stream, including
-a handle whose close must be retried. \texttt{start}, \texttt{stop} and
-\texttt{close} define its lifecycle.
+Private storage must be persistent, outside the public web root and restricted
+to the service/operator account. Backups on that disk are not disaster recovery.
+Off-host recovery must include the identity database and configuration under
+separate protection, not only user-downloadable workspace ZIPs.
 
-Tooltips retain a widget and an optional popup. Bound callbacks retain these
-helpers; there is no invented \texttt{App.tooltips} collection. Dataset/audio
-functions are module dependencies. Error subclasses connect device/storage
-failures to truthful UI handling. Draft-owned filenames and captured arrays
-are distinct from committed CSV audio references.
-\viewtrace{FR-08--FR-14, FR-17--FR-19; NFR-05, NFR-11}
-{\nolinkurl{data_collector/App.py}, \nolinkurl{data_collector/audio_utils.py},
-\nolinkurl{data_collector/dataset.py}}
+\subsection{Preserved compatibility boundary}
+The desktop collector, compiler and academic export modules remain in source.
+Without a hosted adapter, dataset functions still use the legacy CSV/audio
+locations. The business factory defaults to authenticated operation and refuses
+academic routes in that mode. Archive fixtures explicitly disable authentication;
+production forbids doing so. No legacy profile, identity, CSV row or screenshot
+is assigned to a new account.
 
-\subsection{Compiler objects versus function-based algorithms}
-Figure~\ref{fig:class-compiler} shows the actual namedtuple \texttt{Token},
-\texttt{GrammarError} and private \texttt{\_Transformations} class.
-The token class is generated, but is a real runtime class. Its two values
-represent the original token and assigned category. The transformation
-accumulator bounds work and retained before/after snapshots.
+\section{UML Conventions and Class Coverage}
+The inventory covers \textbf{75 authored production classes}: 73 Python class
+declarations, the generated lexer \texttt{Token}, and the TypeScript
+\texttt{ApiError}. Tests, maintenance tools, external framework types and erased
+TypeScript interfaces are not counted. Eleven class views distribute these
+classes into readable responsibility groups.
 
-Grammar, productions, parse traces and most analysis results are dictionaries,
-lists or aliases. Tokenization, FIRST/FOLLOW computation and predictive parsing
-are functions; no fictitious \texttt{Grammar}, \texttt{Parser} or
-\texttt{LexerService} class is added merely to make a diagram look object-oriented.
-\viewtrace{FR-15--FR-16, FR-29--FR-31}
-{\nolinkurl{compiler/lexer/tokenizer.py}, \nolinkurl{compiler/parser/grammar.py},
-\nolinkurl{compiler/parser/analysis.py}, \nolinkurl{compiler/parser/predictive.py}}
+\begin{itemize}
+\item Hollow triangles point to base classes. Dotted realization arrows point
+to a protocol contract; they do not claim Python nominal inheritance.
+\item Plain associations describe actual references or nested values and show
+multiplicities. Inheritance and module dependencies do not have cardinalities.
+Nested JSON alone does not establish exclusive lifecycle composition.
+\item Rectangles marked function/module/hook are not invented runtime classes.
+Framework types and cross-view references are marked explicitly.
+\item Every displayed synchronous or awaited message has an explicit receiver
+activation and matching dashed reply. Callers remain active while awaiting
+results. Actor activations represent participation, not CPU execution.
+\item Use-case include arrows point to mandatory reused behavior; extend arrows
+point toward the base use case. Activity branches use exclusive guards.
+State views represent logical editor/device states, not nonexistent enums.
+\end{itemize}
+The checker validates inventory completeness, per-view declarations, sequence
+activation balance, atlas mapping, rendered-image fingerprints and PDF layout
+logs. It is not a general UML theorem prover or substitute for design review.
 
-\subsection{API request inheritance}
-Figure~\ref{fig:class-api-requests} makes the request hierarchy explicit.
-\nolinkurl{RequestModel} rejects extra fields. Its bounded-text subtype is
-\nolinkurl{AnalyzeRequest}; \nolinkurl{TranslationRequest} extends that subtype
-with direction and options validation. Chat history associates a request
-with zero through twelve messages. The additional alternating-pair invariant
-restricts valid lengths to 0, 2, \ldots, 12 and at most 24,000 history characters.
-Constrained text aliases are not separate classes.
-\viewtrace{FR-21, FR-24; NFR-14}{\nolinkurl{backend/schemas.py}}
+\subsection{Account and web classes}
+Figure~\ref{fig:class-accounts} separates deployment settings, persistent identity
+operations, public identity data and validated request DTOs. \texttt{AuthStore}
+retains one settings object; identity DTOs are returned from SQLite rows rather
+than retained in a fictional object aggregate. Request subclasses reuse
+\texttt{AuthInput}'s extra-field rejection. The web middleware retains the next
+ASGI application, while the log filter removes sensitive query values.
 
-\subsection{Public analysis and translation results}
-Figure~\ref{fig:class-api-results} connects a translation response to one
-analysis result, one coverage value and its evidence list. Analysis contains
-zero or more token results; translation content contains at most twelve
-vocabulary items. The response inherits the translation content rather than
-duplicating its fields. Chat also references evidence.
+\subsection{Private storage and recovery classes}
+Figure~\ref{fig:class-workspaces} shows \texttt{WorkspaceStore}'s structural
+conformance to \texttt{DatasetStorage}. One selected store retains one file-lock
+object; its tables persist values, not live request-model instances.
+\texttt{HistoryInput} holds exactly one of translation or conversation content
+and checks that the alternative agrees with its kind. Conversations contain
+1--100 messages. Project/revision/backup input classes share explicit validation
+rather than bypassing storage checks during recovery.
 
-Evidence deliberately omits contributor, location, notes, timestamp and audio.
-Retrieval emits at most eight records, while the result DTO's list alone does
-not enforce that service-level bound. Associations are not composition:
-Pydantic objects can be reused by Python callers. Coverage indicates overlap,
-not an accuracy score.
-\viewtrace{FR-23--FR-24, FR-29; NFR-08}{\nolinkurl{backend/schemas.py}, \nolinkurl{backend/grounding.py}}
+\subsection{Existing domain groups}
+\begin{longtable}{L{4.1cm}L{10.3cm}}
+\toprule\textbf{Class view} & \textbf{Responsibility and current scope}\\\midrule\endhead
+Figure~\ref{fig:class-domain} & Preserved desktop App, Tooltip, Recorder and
+explicit storage/audio errors. Its optional recorder has lifecycle ownership.\\
+Figure~\ref{fig:class-compiler} & Token and bounded grammar/transformation
+classes. The compiler remains deterministic; no provider decides parser acceptance.\\
+Figure~\ref{fig:class-api-requests} & Typed language-service requests and bounded
+chat messages. Academic source options are rejected in hosted mode.\\
+Figure~\ref{fig:class-api-results} & Source-labelled translation/analysis
+results, vocabulary, evidence and coverage. Coverage is not accuracy.\\
+Figure~\ref{fig:class-collection} & Private entry DTOs, reviewed mutations,
+dictionary results, metadata, health and explicit collection errors.\\
+Figure~\ref{fig:class-import-coursework} & Import preview/candidate DTOs plus
+preserved academic/profile/practice DTOs. The latter are not business routes.\\
+Figure~\ref{fig:class-provider} & Provider response parsing classes; malformed,
+blocked or truncated results are not successful translations.\\
+Figure~\ref{fig:class-services} & Gemini service, secret-bearing configuration,
+grounding value and provider errors. Hosted allowance checks precede each
+actual outbound attempt, including retry.\\
+Figure~\ref{fig:class-frontend} & ApiError plus correctly labelled React
+functions/hooks, AuthGate and the seven business areas.\\
+\bottomrule
+\end{longtable}
 
-\subsection{Collection DTOs and mutation errors}
-Figure~\ref{fig:class-collection} groups the collection request and response
-models. Create and patch requests differ from stored-entry, list, health and
-metadata responses. The \nolinkurl{CollectionError} class carries safe failure
-details. A dataset response holds any number of entry DTOs.
-Aggregate counts describe the whole corpus, not only a search result.
-The same view also shows \nolinkurl{DictionaryEntry} and
-\nolinkurl{DictionaryResponse}. The latter associates zero through 100 entry
-values per response, enforced by Pydantic. It reports total source rows,
-matched rows, offset, limit and source filenames. The separate dictionary
-module reads references and raises the existing safe error type on failure;
-it does not use collection mutation methods.
+\section{Identity and Request Boundary}
+\subsection{Email accounts}
+Figure~\ref{fig:sequence-account} separates registration, email verification,
+password sign-in and a later private mutation. Passwords use Argon2id.
+Verification/reset tokens and session values are random and stored as hashes.
+Email tokens are single-use with one-hour expiry; sessions expire after seven
+days. Password reset revokes every existing session.
 
-PATCH requires at least one field, rejects explicit null, and preserves
-omitted fields. Only editable values and the review decision are sent by the
-web editor. The API DTO is not the persistence representation: CSV functions
-use dictionaries. Health reports configured capability, not a successful live
-Gemini probe. Error objects carry safe status/detail values.
-\viewtrace{FR-21--FR-22, FR-25}{\nolinkurl{backend/schemas.py}, \nolinkurl{backend/collection.py}}
+Account emails contain a link with the token in a URL fragment and require an
+explicit confirmation button. GET navigation alone does not consume it.
+Development writes an access-restricted \texttt{.eml} outbox. Production rejects
+that mode and uses SMTP STARTTLS. Delivery failures are reported, not relabelled
+as successful mail delivery. The outbox must never be publicly served.
 
-\subsection{Import candidates and coursework models}
-Figure~\ref{fig:class-import-coursework} groups four import models and five
-coursework models. A preview can carry at most 100 structured candidates;
-an AI suggestion result at most twelve. Candidates remain unreviewed.
-Importing an approval flag cannot bypass the review boundary.
+Private mutations require a configured Origin and session-specific CSRF header.
+Identity/rate storage failures produce safe errors. Persistent anonymous,
+account and email/IP limits bound requests; user/global daily AI counters are
+charged only at actual provider attempts. Exact local lookup remains available.
 
-The profile has exactly three member strings; blanks are permitted for an
-unfinished group, while nonblank names must be distinct. Grammar requests
-extend to parse requests, then tutoring requests. Screenshot requests contain
-names and bounded data URLs; decoded image limits are enforced by storage
-logic, not inferred from string length alone.
-\viewtrace{FR-26--FR-28, FR-32, FR-36}
-{\nolinkurl{backend/import_models.py}, \nolinkurl{backend/coursework_models.py}}
+\subsection{Google identity}
+Figure~\ref{fig:sequence-google} models the authorization-code flow with PKCE.
+The server stores expiring state, browser binding, verifier and nonce. The
+callback consumes matching state and verifies the ID-token signature, issuer,
+audience, expiry, nonce and verified email against Google's signing keys.
 
-\subsection{Provider wire-response classes}
-Figure~\ref{fig:class-provider} follows the provider envelope from
-\texttt{GenerateResponse} to candidates, optional feedback, optional content
-and content parts. Optional values justify \texttt{0..1}; lists justify
-\texttt{0..*}. These classes validate upstream data, not corpus entities.
-The service requires acceptable finish status and nonempty non-thought text;
-a transport-level success alone is not a usable application answer.
-\viewtrace{FR-24, FR-27--FR-28, FR-36; NFR-14}{\nolinkurl{backend/gemini.py}}
+Google subject identity is distinct from an email address. An email collision
+with a password account requires password sign-in and explicit linking.
+Unconfigured Google access is not displayed as a functioning sign-in method.
+Automated tests use signed synthetic tokens and a mocked provider; real Google
+consent/domain configuration is an operator acceptance gate.
 
-\subsection{Provider service, settings and local grounding}
-Figure~\ref{fig:class-services} shows the real \texttt{GeminiService},
-\texttt{Settings}, \texttt{AIError} and \texttt{Grounding} dataclass.
-Each service references one settings object and one injected HTTP client.
-The application lifespan owns client creation/closure, so that link is not
-service composition. Grounding references evidence and coverage and stores
-exact-match/ambiguity results.
+\subsection{Browser state}
+\texttt{AuthGate} renders no private pages until a session is resolved. CSRF and
+project state remain in memory; neither tokens nor private content are stored in
+localStorage. Cross-tab notifications contain a random change marker only.
+Account changes refresh the session and clear private transient UI.
 
-Retrieval remains a module of deterministic functions. It is neither training
-nor a hidden translation model. Safe provider errors remain distinct from
-successful translations and explanations.
-\viewtrace{FR-23--FR-24; NFR-08, NFR-14}
-{\nolinkurl{backend/config.py}, \nolinkurl{backend/gemini.py}, \nolinkurl{backend/grounding.py}}
+Project switching and sign-out confirm loss of drafts/recordings before
+remounting the application. The API helper rejects responses from an older
+account/project generation both before and after parsing their bodies. It does
+not retry a mutation under a newly signed-in identity.
 
-\subsection{Frontend runtime class and functional modules}
-Figure~\ref{fig:class-frontend} identifies \texttt{ApiError} as the only authored
-TypeScript runtime class. Its status accompanies a normal JavaScript error.
-React components, hooks and interfaces are not misrepresented as classes.
+Request hooks suppress duplicate in-flight mutations. After a successful
+settings/history mutation, read refresh explicitly cancels an older read first:
+otherwise a pending read could discard the required refresh and hide a new
+backup. Errors after interrupted mutations state that completion may be uncertain.
 
-Request hooks own cancellation, pending/error state and protection against
-late results. App coordinates hash navigation and draft handoff. Shared
-dialogs open before focusing the requested field, wrap Tab navigation, prevent
-dismissal while busy and restore an existing trigger on unmount. The desktop
-sidebar scrolls on short screens. Voice remains opt-in.
-\viewtrace{FR-35; NFR-15}
-{\nolinkurl{frontend/src/api.ts}, \nolinkurl{frontend/src/useRequest.ts},
-\nolinkurl{frontend/src/components.tsx}, \nolinkurl{frontend/src/App.tsx}}
+\section{Data Model and Transaction Boundaries}
+\subsection{Identity and private workspace databases}
+\begin{longtable}{L{3.0cm}L{11.4cm}}
+\toprule\textbf{Storage} & \textbf{Responsibility}\\\midrule\endhead
+\nolinkurl{auth.sqlite3} & users, sessions, email tokens, OAuth state and
+persistent rate counters. No browser-selected user directory.\\
+projects & Stable project ID, name, creation time. General is permanent.\\
+entries & Entry ID, project reference and validated fourteen-field JSON record.\\
+revisions & Project/entry IDs, action/time and before/after JSON. Recorded with
+the terminology change in the same transaction.\\
+history & Project, kind, title, bounded content, creation and update timestamps.
+Saved only by explicit user action.\\
+meta & Workspace version and owner-scoped backup catalog, schedule/state and
+preview metadata. Backup restore replaces logical data, not every metadata key.\\
+audio & Validated generated filenames. An entry refers to at most one recording;
+several historical revisions may refer to that same immutable file.\\
+backups & Manifest-verified ZIPs and bounded, expiring preview files.\\
+\bottomrule
+\end{longtable}
 
-\section{Data Design, Transactions and Review Rules}
-\subsection{Storage schema and compatibility}
-Canonical CSV order is \nolinkurl{id}, \nolinkurl{text}, \nolinkurl{entry_type},
-\nolinkurl{french_gloss}, \nolinkurl{english_gloss}, \nolinkurl{category},
-\nolinkurl{source_location}, \nolinkurl{notes}, \nolinkurl{audio_filename},
-\nolinkurl{contributor}, \nolinkurl{timestamp}, \nolinkurl{language},
-\nolinkurl{review_status}, \nolinkurl{lexical_category}.
-The supported eleven-field prefix lacks review metadata; the ten-field legacy
-format also lacks source location. Exact header order and row shape are checked.
-Reads normalize legacy metadata in memory; a later mutation writes the
-fourteen-field schema. Stored wording is not silently normalized for matching.
+SQLite enforces project references; parameterized queries scope records to the
+selected project. Per-account file locks coordinate cooperating writers across
+processes. They are not protection against manual operator edits or a malicious
+filesystem administrator. Private directories reject link/reparse-point paths.
 
-Language is Francanglais, Pidgin, mixed or unspecified. Approval is a local
-review decision, not a verified identity or certificate. Eligible reviewed
-Word annotations can affect lexical classification; mixed/unspecified or
-conflicting labels are not silently promoted to trusted evidence. Desktop and
-web forms choose unspecified/unreviewed for new drafts; the API's standalone
-create DTO retains its documented Francanglais default when language is omitted.
+Normal mutations preserve IDs and provenance. Duplicate normalized text within
+one language is rejected. Entry evidence changes invalidate approval unless the
+exact new fields are explicitly reviewed. Current-project statistics do not
+count other users or reference-dictionary rows.
 
-\subsection{Transactional and identity boundaries}
-A path-keyed reentrant \texttt{FileLock}, with ten-second timeout, protects
-complete cooperative transactions. Every mutation writes a sibling temporary
-file, flushes/fsyncs it and uses \texttt{os.replace}. It is not a direct append.
-Pre-replacement failures preserve the old CSV. External manual writers and
-semantic last-writer-wins editing are outside that guarantee.
+\subsection{Project and revision semantics}
+Projects are per-account; current project selection is request-local.
+Project management and full-account backups deliberately use account scope,
+so deleting a formerly selected project does not lock the owner out of recovery.
+Projects containing entries, saved work or revisions cannot be deleted.
 
-Desktop IDs are ten UUID hexadecimal characters; API IDs are full UUID strings.
-Desktop timestamps are local ISO seconds; API timestamps carry UTC offset.
-IDs/timestamps survive editing. The file is not a database enforcing every
-identity invariant: manually duplicated IDs can break GUI row identifiers and
-must not be treated as supported concurrent editing.
+Revision restore acquires the account lock, checks the workspace version,
+validates required media and duplicates, then saves the recovered term with
+\texttt{unreviewed} status and another revision. Revisions are not a regulatory
+tamper-proof audit ledger: the operator controls the database and restoring an
+earlier workspace replaces logical revision history.
 
-\subsection{Reference vocabulary is not a research corpus}
-The supplied \nolinkurl{dictionary/camfranglais.md} and
-\nolinkurl{dictionary/extra_lexicon.md} contain 143 and 36 source rows,
-respectively. Each row retains its headword, original English meaning,
-topic, indicative etymological origin, source filename and line number.
-All 179 rows are retained, including repeated headwords, identical duplicates
-and distinct senses. This count is not a unique-word or collected-statement count.
+\subsection{Audio publication}
+Recording remains in the browser until an explicit upload. Upload validation
+checks bounds, filename/type and content. A newly staged attachment is published
+with the terminology update under the storage lock; failure cleans only that
+new file. Existing committed recordings are retained for recovery.
 
-The loader validates the three-column Markdown tables. Search normalizes
-matching text only; displayed wording is unchanged. Explicit slash alternatives,
-optional parenthesized wording such as \texttt{Na wa (oh)}, and terminal
-question/exclamation-mark variants support lookup. IDs include the filename
-and row line, not corpus UUIDs; editing source layout may change these IDs.
-The two files are loaded afresh on requests, so a corrected source can be retried
-without a stale-cache fallback.
+There is no single database transaction covering all filesystem operations.
+Logical rollback and careful staging provide a narrower, explicit guarantee.
+A disk fault during cleanup must be surfaced rather than claimed to undo an
+already committed change. Physical microphone/speaker behavior needs real-device
+acceptance beyond mocked failures and synthetic audio streams.
 
-The sources contain English meanings, not French translations or trusted
-part-of-speech annotations. Etymological ``French''/``Pidgin'' labels do not
-change the declared Francanglais reference language. No dictionary operation
-inserts CSV rows, approves records, adjusts learner labels or inflates
-coursework statistics. Export includes these files as implementation resources,
-separate from corpus artifacts. The desktop collector remains CSV-based.
-\viewtrace{FR-37; NFR-08, NFR-16}
-{\nolinkurl{backend/dictionary.py}, \nolinkurl{frontend/src/Dictionary.tsx},
-\nolinkurl{backend/coursework_export.py}}
+\section{Language and Import Workflows}
+Figure~\ref{fig:use-case} presents business goals, not academic roles. Visitors
+and owners describe session states; there is no shared-team authorization model.
+Optional AI suggestions extend translation only when enabled and needed.
+Cloud transcription extends preview only with explicit consent.
 
-\subsection{Audio and review ownership}
-An entry references zero or one filename; a filename is not a foreign key or
-exclusive object owner. Only files created for the current unsaved draft enter
-its ownership set. Replacement/Clear/close remove those files with explicit
-cleanup errors. A committed name is removed from draft ownership before reset.
-Deleting a saved record retains its recording for deliberate separate cleanup.
+Figures~\ref{fig:sequence-translation}, \ref{fig:sequence-chat},
+\ref{fig:sequence-imports} and \ref{fig:sequence-dictionary} describe the
+domain interactions after authenticated project binding. Dataset reads in the
+hosted path delegate to the current private SQLite store. References are
+read-only resources with source provenance, not approved private entries.
 
-The recorder distinguishes active capture, unfinished stopping and captured
-samples awaiting publication. Save/attach/play guards prevent silent loss.
-An approval snapshot must equal the current evidence values, including queued
-GUI edits; editing evidence invalidates approval unless the exact revised
-values are explicitly reviewed. These protections do not authenticate reviewers.
+Exact whole-entry evidence is used without Gemini when unambiguous. Provider
+requests receive only bounded selected evidence, never the full workspace,
+contributor identities, arbitrary notes or stored audio attachments. A
+consented media import is a separate provider request. Output remains a
+suggestion requiring human review.
 
-\section{Use Cases, Activity and State Models}
-\subsection{User goals and optional extensions}
-Figure~\ref{fig:use-case} groups contributor/maintainer and learner/reviewer
-goals inside the local platform. Solid actor associations indicate participation,
-not permissions. Optional local lookup and optional AI suggestion extend
-translation under explicit guards; cloud transcription extends preview only
-when needed and consented. The dashed extension arrow points toward its base
-use case. No include/extend relation turns review into automatic approval.
-Export is a draft-generation goal, not a completed research submission.
-\viewtrace{FR-02--FR-18, FR-23--FR-36; NFR-13, NFR-16}{UI commands and API routes}
+Source extraction occurs on the application server. Raw import files are
+temporary; preview content is transient until the user explicitly saves reviewed
+terms/results. Browser dictation/read-aloud is separate and may contact
+browser-vendor services. Source permissions, sensitive-data handling and
+translation/transcription quality remain owner responsibilities.
 
-\subsection{One collection/save activity}
-Figure~\ref{fig:activity-collect} reads from start to final node. Unfinished
-capture and blank text terminate the attempt with the draft preserved.
-Successful validation enters the locked mutation. A failed commit retains the
-draft/audio; a successful one releases committed ownership and resets the form.
-Cleanup and refresh failures are reported separately, never described as rollback.
-The final node ends this attempt only. Desktop duplicates remain advisory.
-\viewtrace{FR-02, FR-06--FR-10, FR-17--FR-19}{\nolinkurl{App.save_entry}}
+\section{Backup and Recovery Design}
+\subsection{Snapshot format}
+A ZIP contains \nolinkurl{workspace.json}, managed \nolinkurl{audio/...} and
+\nolinkurl{manifest.json}. The manifest maps every payload member to its SHA-256
+digest. The logical export includes all projects, entries, history and revisions.
+Passwords, sessions, Google/Gemini credentials and server settings are excluded.
 
-\subsection{Logical entry and selected-editor states}
-Figure~\ref{fig:state-entry} follows an unsaved draft through creation,
-selection, edited values and confirmed deletion. Choice guards are exclusive.
-Stale-ID/write failures return to a recoverable editor, not a fictitious saved
-state. A selected editor may outlive a row removed by another process.
-Successful deletion clears selection but leaves saved audio. These are
-conceptual row/editor states; there is no corresponding enum in source.
-\viewtrace{FR-02, FR-12, FR-18--FR-19, FR-22}{desktop save/edit/delete handlers}
+Validation rejects unsupported paths, duplicates/case collisions, linked or
+encrypted members, inconsistent hashes, malformed records, invalid media and
+missing recordings referenced by current or historical records. Archive, expanded
+size and count limits apply before publication or replacement. SHA-256 detects
+changes but does not authenticate an archive's source.
 
-\subsection{Audio readiness and retry states}
-Figure~\ref{fig:state-audio} isolates the device lifecycle from row persistence.
-Ready may already have an attachment. Failed start cleanup or failed stop
-enters a retry state retaining usable handles/frames. Completed capture
-attempts WAV publication; write failure retains the array for retry without
-reopening the microphone. Clear is blocked during active recording, while
-confirmed close attempts resource cleanup. A failed close keeps the window
-available. A published WAV is still only staged until an entry is saved.
-\viewtrace{FR-08--FR-10, FR-17--FR-19; NFR-05}{\nolinkurl{Recorder}, desktop audio handlers}
+\subsection{Preview and replacement}
+Figure~\ref{fig:sequence-backup} and activity Figure~\ref{fig:activity-restore}
+make the destructive boundary explicit. Preview stores an account-scoped token,
+counts and current version for one hour. Restore requires literal
+\texttt{REPLACE}, revalidates the archive and refuses stale versions.
 
-\section{Sequence Views: Detailed Interaction Explanations}
-\subsection{Attachment and collection commit}
-Figure~\ref{fig:sequence-collect} separates optional attachment from entry
-creation. Copy failure preserves the previous attachment; success stages only
-a generated name. Save first checks unfinished audio and trimmed text, then
-passes a reviewed field snapshot to the dataset transaction. Only commit
-success releases the audio reference from draft ownership and resets the form.
-One subsequent snapshot drives all collection views. Refresh/cleanup errors
-do not retroactively turn a committed save into a failed write.
-\viewtrace{FR-02, FR-06, FR-09--FR-10, FR-17, FR-19}
-{\nolinkurl{App.attach_audio_file}, \nolinkurl{App.save_entry}, \nolinkurl{dataset.append_entry}}
+Before replacement the server creates a verified safety backup. New audio is
+staged immutably; name collisions with different content receive fresh names and
+all restored references are updated. Only then does one version-checked SQLite
+transaction replace logical rows. Failed staging/commit removes only new files.
+Previously committed files and the safety copy remain.
 
-\subsection{Search and cached selection}
-Figure~\ref{fig:sequence-search} loads before replacing the visible tree.
-A read error preserves the cache and editable draft. On success, case-folded
-substring matching covers all stored values; the ID cache retains all rows,
-including those hidden by the current filter. Selection uses this snapshot
-without a second CSV read. A disappeared selected ID produces feedback while
-preserving unsaved edits. An empty result is not a disguised storage failure.
-\viewtrace{FR-11, FR-18; NFR-10}{\nolinkurl{App._refresh_browse_list}, \nolinkurl{App._on_browse_select}}
+Successful replacement consumes the preview and resets the browser to General.
+Post-commit cleanup errors are explicit and may leave the browser uncertain:
+inspect saved state instead of repeating restore blindly. Reused or expired
+tokens cannot apply the same destructive operation again.
 
-\subsection{Changed-field editing}
-Figure~\ref{fig:sequence-edit} rejects absent selection/blank text, computes
-changes against the loaded values and applies the exact-snapshot review rule.
-The dataset layer finds the ID while locked and rejects stale updates without
-rewriting. Expected failures preserve editor values. A successful update
-synchronizes the local snapshot and refreshes views, reporting later refresh
-failure independently. Unchanged identity, contributor, timestamp, whitespace
-and audio metadata are preserved by the desktop editor.
-\viewtrace{FR-06, FR-12, FR-18--FR-19, FR-22}
-{\nolinkurl{App._save_browse_edit}, \nolinkurl{dataset.update_entry}}
+\subsection{Scheduling and operations}
+Automatic backups are opt-in at 24-hour or 168-hour intervals. Maintenance
+checks each minute while the server runs, records attempts/errors and keeps
+1--10 automatic copies. Manual and safety copies are not pruned automatically.
+A storage-scan failure is logged and a later cycle still runs.
 
-\subsection{Confirmed deletion}
-Figure~\ref{fig:sequence-delete} places the confirmation before any mutation.
-No/dismissed leaves the row, selection and media untouched. Yes invokes the
-locked deletion; missing IDs and storage failures cannot produce a success
-message. Only a committed deletion clears selection and refreshes views.
-The old saved recording is retained. Atomic replacement is not an undo system,
-and confirmation is not authorization.
-\viewtrace{FR-12, FR-18--FR-19}{\nolinkurl{App._delete_browse_entry}, \nolinkurl{dataset.delete_entry}}
+Same-disk copies do not meet disaster-recovery needs. Operators must agree
+retention, free-space alerts, off-host consistency, access permissions, encryption,
+recovery-time and recovery-point objectives. Account identities require a
+separate complete-data-root backup. The release does not invent those objectives.
 
-\subsection{Recording, callback delivery and publication}
-Figure~\ref{fig:sequence-record} first stops in-process playback, then opens
-mono 44,100 Hz capture. Failed startup restores a truthful inactive state;
-failed closure retains its handle for retry. Callback calls execute on the
-device thread between GUI events and copy frames only while recording.
-Stop returns samples, no samples or an explicit error. No samples preserve
-any old attachment. WAV-write failure retains captured samples; retrying
-publication does not start another recording. Save remains blocked while
-capture work is unfinished. Physical audibility is a separate acceptance gate.
-\viewtrace{FR-08, FR-10, FR-19; NFR-05}
-{\nolinkurl{Recorder.start}, \nolinkurl{Recorder.stop}, \nolinkurl{App._save_captured_audio}}
+\section{Interface and Failure Contracts}
+\begin{longtable}{L{4.1cm}L{10.3cm}}
+\toprule\textbf{Surface} & \textbf{Design contract}\\\midrule\endhead
+Session and account APIs & \nolinkurl{/api/auth}; cookie identity, public session
+DTO and in-memory CSRF value. Registration is 202; verification/reset use
+explicit POSTs. Private profile/logout obey the same access checks.\\
+Projects, history and revisions & \nolinkurl{/api/workspace}; project header or
+native-media project query. General cannot be removed. Revision restore
+requires \nolinkurl{expected_version}.\\
+Backup APIs & list/create/download/delete, schedule settings, multipart preview,
+then token/version/REPLACE restore. Account-scoped rather than project-scoped.\\
+Terminology/audio & Existing validated DTOs and range-capable private media
+responses. No automatic adoption of global CSV files.\\
+Safe failures & 401 account required; 403 origin/CSRF; 404 absent private
+resource; 409 duplicate/version/capacity; 413 size; 415 unsupported type;
+422 invalid input; 429 allowance; explicit storage/provider 5xx failures.\\
+Web boundary & Same-origin assets/API, body and URL bounds, no-store private
+responses, no-framing/no-sniff/referrer policy and production HTTPS/HSTS.
+Known routes retain 405 and Allow for unsupported methods; absent API routes
+remain 404 rather than falling into static-file handling.\\
+\bottomrule
+\end{longtable}
 
-\subsection{Playback and external fallback}
-Figure~\ref{fig:sequence-playback} requires a filename and finished capture.
-Missing files return failure. Available libraries read/play audio; an unavailable
-or failed library path may launch the OS default player. The return value means
-that a request was accepted, not that sound was heard to completion.
-The GUI reports rejection or expected audio errors. In-process playback can
-be stopped during cleanup; the lifetime of an externally launched player is
-not controlled. No CSV mutation occurs.
-\viewtrace{FR-13; NFR-03}{\nolinkurl{audio_utils.play_audio}, \nolinkurl{App._play_audio_filename}}
+\section{Preserved Desktop and Academic Views}
+The original source is maintained, not exposed as hosted business functionality.
+Its diagrams remain in the inventory so every production class and retained
+workflow has an explicit scope:
+\begin{itemize}
+\item Figure~\ref{fig:activity-collect} and states
+\ref{fig:state-entry}, \ref{fig:state-audio}: desktop entry/editor and device
+lifecycle, not a hosted account state machine.
+\item Figures~\ref{fig:sequence-collect}, \ref{fig:sequence-search},
+\ref{fig:sequence-edit}, \ref{fig:sequence-delete}: standalone collector
+operations against the legacy CSV.
+\item Figures~\ref{fig:sequence-record}, \ref{fig:sequence-playback},
+\ref{fig:sequence-stats}, \ref{fig:sequence-storage}: retained desktop device,
+measurement and CSV transaction boundaries.
+\item Figures~\ref{fig:sequence-compiler}, \ref{fig:sequence-coursework}:
+preserved compiler/research maintenance. These are not seven-area business UI
+features or evidence of genuine research completion.
+\end{itemize}
+The archived SDD preserves the earlier prose. Historical student details and
+constructed examples are not silently reintroduced into private onboarding.
 
-\subsection{Statistics from one snapshot}
-Figure~\ref{fig:sequence-stats} replaces the old three-read design. A successful
-read supplies a total and distributions by type, topic, language and review; batch refresh
-passes the same rows to other views. Read failure leaves prior bars intact.
-Each group sorts counts descending, uses a safe denominator and handles an
-empty corpus explicitly. The recorded benchmark measures these actual active
-handlers plus Tk idle rendering, not an isolated count helper.
-\viewtrace{FR-14, FR-17; NFR-10}{\nolinkurl{App._refresh_stats}, \nolinkurl{App._refresh_views}}
+\section{Verification, Limitations and Handover}
+Automated checks combine real SQLite/cookie/account behavior, mocked external
+services, synthetic recordings, delayed-request regressions and real browser
+downloads/restoration. In particular they cover account/project isolation,
+password-reset revocation, CSRF, malformed Google identity, backup tampering,
+stale versions, missing historical audio, rollback and maintenance retry.
 
-\subsection{Shared CSV transaction}
-Figure~\ref{fig:sequence-storage} expands the common persistence boundary.
-Lock acquisition can time out before mutation. Within a successful acquisition,
-the same reentrant lock supports nested reads, ID/duplicate checks and mutation.
-Only completely written/fsynced sibling files reach atomic replacement.
-The finally path removes an incomplete sibling and context-manager exit releases
-the lock. Missing update/delete IDs never become successful rewrites.
-Lock activations show acquire/release execution, not the whole ownership interval.
-\viewtrace{FR-01, FR-06, FR-19, FR-25; NFR-11}{\nolinkurl{data_collector/dataset.py}, \nolinkurl{backend/collection.py}}
+The full-stack suite uses a new, isolated temporary data directory, local
+development email and disabled provider configuration. It does not contact
+Google/Gemini or use physical hardware. Tests do not populate real business
+content. The verification register distinguishes current observations from
+previous-version counts and unexecuted remote CI.
 
-\subsection{Local-source translation}
-Figure~\ref{fig:sequence-translation} shows explicit submission, reviewed
-retrieval and three outcome paths. An unambiguous full-entry alignment returns
-local wording without tone synthesis. Otherwise enabled AI may receive only
-selected evidence; disabled AI produces actionable 422 guidance. Storage
-failure does not fall through to a cloud request. Successful text is analyzed
-locally and labelled with origin/model/evidence/coverage.
-Cancellation prevents stale display, not guaranteed rollback of provider work.
-Collection and dictionary use have independent switches, enabled by default.
-Reference aliases participate in full-entry matching; English definitions
-are not split into invented bilingual pairs. Distinct full-entry target meanings
-remain ambiguous, even across the collection/reference boundary. Identical
-targets can share source evidence. Missing dictionary French meanings cannot
-veto a valid approved French alignment. Local results distinguish
-\texttt{dataset}, \texttt{dictionary} and \texttt{local\_sources}; AI results
-retain their AI designation, including \texttt{ai\_with\_sources}.
-\viewtrace{FR-23--FR-24, FR-29, FR-35}{\nolinkurl{backend/main.py}, \nolinkurl{backend/grounding.py}}
+Before launch, the owner supplies infrastructure and real mail/OAuth/provider
+configuration, approves content rights and retention/terms/support, evaluates
+language quality and physical accessibility, agrees performance/recovery
+targets and authorizes publication. No synthetic benchmark certifies an 8 GB
+reference machine or an unspecified hosted traffic level.
 
-\subsection{Chat history and provider boundaries}
-Figure~\ref{fig:sequence-chat} uses only completed successful exchanges for
-bounded history. Optional retrieval uses whitelisted evidence. Missing keys
-fail before a network request; configured requests have a total deadline and
-at most one bounded retry for an initial 503. Safe errors distinguish quota,
-transport, timeout, blocked/truncated output and invalid content.
-Only a current successful result appends a user/assistant pair. Failed turns
-retain the draft. Clearing browser history does not erase provider-retained data.
-The provider service rechecks each evidence source against its own switch;
-turning collection use off must not strip enabled reference evidence, and
-turning dictionary use off must exclude it. Citation metadata is separate from
-private collection provenance. A reference is never described as approved fieldwork.
-\viewtrace{FR-24, FR-35; NFR-08, NFR-14}
-{\nolinkurl{frontend/src/Assistant.tsx}, \nolinkurl{backend/gemini.py}}
-
-\subsection{Read-only dictionary lookup and handoff}
-Figure~\ref{fig:sequence-dictionary} shows a debounced, cancellable search,
-validated route parameters, both file reads and strict parsing before a
-paginated response. The total and matched counts refer to dictionary rows,
-not corpus statistics. Missing files or malformed rows produce a visible 503;
-invalid query parameters produce 422. Neither failure silently becomes an
-empty dictionary.
-
-Opening a listed form invokes the App handoff callback: the translator gets
-a draft with Francanglais-to-English direction and dictionary lookup enabled.
-The user must still press Translate. There is no implicit AI call or collection
-save. Receiver activations and matching replies show every synchronous
-communication, including nested parser calls and the App callback.
-\viewtrace{FR-35, FR-37; NFR-15--NFR-16}
-{\nolinkurl{frontend/src/Dictionary.tsx}, \nolinkurl{frontend/src/App.tsx},
-\nolinkurl{backend/main.py}, \nolinkurl{backend/dictionary.py}}
-
-\subsection{Import preview, suggestions and explicit saving}
-Figure~\ref{fig:sequence-imports} separates three actions. Preview validates a
-bounded upload and extracts supported documents locally. Media/OCR requiring
-cloud work must have explicit consent. A second action can request candidate
-suggestions; validated candidates remain unreviewed exact source quotations.
-Only an existing candidate deliberately opened, reviewed and saved reaches
-collection mutation. Translate/assistant handoff fills a draft without submitting.
-Original imports are not retained as managed collection files. A failed preview
-does not authorize an automatic candidate save.
-\viewtrace{FR-26--FR-28}{\nolinkurl{backend/import_api.py}, \nolinkurl{backend/imports.py}, \nolinkurl{frontend/src/Imports.tsx}}
-
-\subsection{Grammar analysis and predictive parsing}
-Figure~\ref{fig:sequence-compiler} groups function-module interactions.
-Corpus analysis obtains a bounded saved snapshot before computation; practice
-parsing supplies one entered text. Grammar validation/transformation precedes
-FIRST/FOLLOW, table/conflict computation and category-token parsing.
-Lexical/storage failures prevent parsing. Conflicts or residual recursion
-produce rejection instead of choosing an arbitrary production. The stack
-machine records pre-action snapshots and requires complete input/end-marker
-agreement. Analysis uses current editor grammar without saving it. No provider
-decides acceptance, and acceptance is not proof of authentic speech.
-\viewtrace{FR-29--FR-33; NFR-06, NFR-14}
-{\nolinkurl{backend/coursework.py}, \nolinkurl{backend/coursework_api.py}, \nolinkurl{compiler/parser}}
-
-\subsection{Saved coursework snapshot and export}
-Figure~\ref{fig:sequence-coursework} begins with a profile snapshot sent to
-the API. Grammar validation and locked atomic JSON replacement precede the
-returned \texttt{ProjectProfile}. The frontend marks that submitted snapshot
-saved, not edits made while awaiting the response.
-
-Export is a separate GET disabled during unsaved/busy work. It reads saved
-profile/grammar, current CSV and stored screenshots, computes artifacts and
-assembles a no-store ZIP response. Browser code validates a nonempty ZIP Blob,
-starts a named download and releases its object URL. No unsaved practice input
-or AI answer is included. Individual files are protected, but export is not one
-global multi-file transaction. A 25-section draft is not a certified 25--30-page
-research report, and slides still require personalization/rehearsal.
-\viewtrace{FR-32--FR-34; NFR-08, NFR-16}
-{\nolinkurl{backend/coursework_store.py}, \nolinkurl{backend/coursework_export.py}, \nolinkurl{frontend/src/CourseworkEvidence.tsx}}
-
-\section{HTTP Interfaces and Failure Contracts}
-\subsection{Complete application route inventory}
-The table covers all twenty-one application method/path combinations exposed by
-the generated OpenAPI schema. FastAPI's schema/docs and built static assets
-are framework/presentation routes, not additional data-mutation APIs.
-\begingroup\small
-\begin{longtable}{L{1.6cm}L{6.6cm}L{6.4cm}}
-\toprule\textbf{Method} & \textbf{Path} & \textbf{Successful contract}\\\midrule\endhead
-GET & \nolinkurl{/api/health} & 200 HealthResponse; configuration, no live probe.\\
-GET & \nolinkurl{/api/metadata} & 200 MetadataResponse.\\
-GET & \nolinkurl{/api/dataset} & 200 DatasetResponse; optional search, global counts.\\
-GET & \nolinkurl{/api/dictionary} & 200 DictionaryResponse; query, offset and bounded limit; no mutation.\\
-POST & \nolinkurl{/api/dataset} & 201 DatasetEntry; validated create.\\
-PATCH & \nolinkurl{/api/dataset/{entry_id}} & 200 DatasetEntry; changed editable fields.\\
-DELETE & \nolinkurl{/api/dataset/{entry_id}} & 204; no response body.\\
-POST & \nolinkurl{/api/analyze} & 200 AnalysisResult; deterministic local lexer.\\
-POST & \nolinkurl{/api/translate} & 200 TranslationResponse with origin/evidence.\\
-POST & \nolinkurl{/api/chat} & 200 ChatResponse.\\
-POST & \nolinkurl{/api/imports/preview} & 200 ImportPreview; multipart file/consent.\\
-POST & \nolinkurl{/api/imports/suggest} & 200 SuggestionResponse; no save.\\
-GET & \nolinkurl{/api/coursework} & 200 saved profile, brief, requirements, stats and screenshots.\\
-PUT & \nolinkurl{/api/coursework/project} & 200 ProjectProfile; not a boolean-only acknowledgement.\\
-POST & \nolinkurl{/api/coursework/analyze} & 200 grammar, lexical report, tests and readiness.\\
-POST & \nolinkurl{/api/coursework/parse} & 200 tokens and explicit parse result.\\
-POST & \nolinkurl{/api/coursework/explain} & 200 ChatResponse; optional unverified tutoring.\\
-POST & \nolinkurl{/api/coursework/screenshots} & 201 generated image ID/name metadata.\\
-GET & \nolinkurl{/api/coursework/screenshots/{image_id}} & 200 decoded/re-encoded PNG.\\
-DELETE & \nolinkurl{/api/coursework/screenshots/{image_id}} & 204; no response body.\\
-GET & \nolinkurl{/api/coursework/export} & 200 application/zip; attachment; Cache-Control: no-store.\\
-\bottomrule\end{longtable}\endgroup
-
-\subsection{Validation, errors and bounded work}
-JSON request models reject extra fields and invalid lengths/values. PATCH
-rejects null/empty updates. Relevant failures include 400 invalid import/consent,
-404 missing entry/image, 409 duplicate conflict, 413 oversized input, 415
-unsupported formats, 422 validation/grammar/coverage problems, 429 quota,
-500 local storage failure, 502 invalid provider output, 503 busy/unconfigured
-service and 504 provider timeout. Not every route emits every code; safe detail
-messages remain actionable without returning secret-bearing provider bodies.
-
-Imports are limited to 12 MiB, 40 PDF pages, 40,000 extracted characters and
-4,000-character segments. Corpus analysis bounds 500 entries, 100,000 total
-text characters and 4,000 per entry. Grammar input is bounded to 12,000
-characters with additional expansion/snapshot/parse guards. Screenshots are
-limited to six, 2 MiB and twelve megapixels each; accepted images are re-encoded.
-The client also guards pending/listening/blank states but is not the only
-validation boundary.
-
-An aborted or timed-out mutation may already have committed. The frontend
-preserves drafts and prompts refresh rather than promising rollback or blindly
-duplicating a request. A reported local approval or readiness flag is never an
-authenticated permission, independent research verification or grade.
-
-\section{Verification, Recovery and Human Acceptance}
-\subsection{Recorded engineering checks}
-\begin{longtable}{L{3.8cm}L{10.8cm}}
-\toprule\textbf{Evidence} & \textbf{Result and limit}\\\midrule\endhead
-Python regression run & 268 tests passed, including 16 dictionary tests, 56 desktop tests and 33 maintenance/checker tests. Synthetic storage and mocked provider/device failures. Reference source files are read, never counted as fieldwork.\\
-Frontend checks & 86 component tests; 22 desktop/mobile Chromium workflows; app/test type-checking and production build passed. Browser API responses are controlled fixtures.\\
-Real WAV round-trip & Silent mono 44,100 Hz WAV written/read with 4,410 frames. This exercises codec/file I/O, not a microphone or audible playback.\\
-Desktop benchmark & 1,000 synthetic 500-character rows, one warm-up and 20 measured runs per operation. Search p95 53.31 ms; Stats p95 606.01 ms, both below 1,000 ms on the recorded machine.\\
-Recovery & Sixteen snapshot tests verify exact bytes, media/profile recovery, corruption rejection and refusal to overwrite an existing destination; five tests check timing/fixture methodology.\\
-Documentation & Local UML/LaTeX generation; 49-class mapping, explicit activations, 29 source/image references, full-size sheet mapping, embedded pixels and reference/layout checks.\\
-\bottomrule\end{longtable}
-Reference integration evidence is recorded separately at
-\nolinkurl{docs/evidence/dictionary-verification.json}. The two-worker frontend
-reruns passed without relaxed assertion timeouts after an initial concurrent
-run timed out; the dictionary browser selector was corrected to use the
-combobox's accessible role/name. No production timing workaround was added.
-The benchmark report at \nolinkurl{docs/evidence/collector-benchmark.json}
-records source hashes, raw samples, runtime and approximately 31.8 GiB RAM.
-It does \textbf{not} certify the SRS's original 8 GB/local-SSD reference setup.
-An earlier intermittent Windows storage-test failure was not reproduced in
-25 targeted retries; subsequent complete runs passed. No speculative retry
-patch or claim that its cause was proven is made.
-
-\subsection{Reproducible commands and CI boundary}
-From the repository root:
-\begin{quote}\ttfamily\small
-.\textbackslash.venv\textbackslash Scripts\textbackslash python.exe -m tools.run\_python\_tests\\
-cd frontend\\
-npm test\\
-npm run typecheck\\
-npm run test:e2e\\
-npm run build\\
-cd ..\\
-.\textbackslash docs\textbackslash build.ps1 -PlantUmlJar .\textbackslash docs\textbackslash.tools\textbackslash plantuml.jar\\
-.\textbackslash.venv\textbackslash Scripts\textbackslash python.exe -m tools.check\_documentation
-\end{quote}
-The root README gives dependency setup, isolated benchmark and backup commands.
-CI configures Windows Python 3.11/3.14, Node 22 frontend/browser checks and
-fresh locally rendered documentation. The workflow was linted locally; its
-existence is not evidence that a remote Actions run has completed.
-
-\subsection{Backup, verify and restore procedure}
-Close the collector/API and finish uploads/recordings before a snapshot.
-The snapshot CLI copies CSV bytes, managed audio including unreferenced files,
-saved profile and screenshots into a new destination with a SHA-256 manifest.
-Keys, locks and incomplete temporary files are excluded. Missing/corrupt media,
-unsafe paths, links and detected concurrent changes fail explicitly.
-
-Verify before restoring, and restore only into another new directory.
-Inspect restored rows/media before deliberately copying verified data back
-with all applications stopped; copy CSV last. Never overwrite the live
-collection directly through the restore tool. Protect backups as personal
-research material. Checksums establish integrity, not authentic provenance
-or permission to share.
-
-\subsection{Remaining human and operational gates}
-The group must supply genuine 10--15 manually transcribed statements across
-the ten topics, known meanings/provenance/permission, the other two names and
-matricules, and actual individual contributions. It must review classifications,
-justify grammar against that corpus, interpret outcomes, provide genuine
-screenshots and finish the separate 25--30-page research report and rehearsed
-presentation. No synthetic test fixture is fieldwork.
-
-Physical recording/playback, real mobile/assistive-technology use, authorized
-live-provider trials, the original reference-machine benchmark and group
-acceptance remain explicit gates. A trained unseen-word predictor is deferred.
-These boundaries remain visible in the SRS product/sprint backlogs.
-
-\clearpage\appendix
+\clearpage
 \section{Full-size UML Sheets}
-The following sheets are the rendered source views referenced throughout
-this document. Large paper boxes preserve approximately nine-point default
-diagram labels at actual size. A separate \nolinkurl{uml-atlas.pdf} contains
-the same sheets without the explanatory text. Editable PlantUML and full
-resolution PNGs are retained in \nolinkurl{docs/diagrams}.
-
-\diagram{component}{1}{Implemented component dependencies}
-\diagram{deployment}{2}{Trusted local deployment and optional services}
-\diagram{class-domain}{3}{Desktop classes and audio ownership}
-\diagram{class-compiler}{4}{Compiler classes and functional algorithms}
-\diagram{class-api-requests}{5}{API request hierarchy and chat cardinalities}
-\diagram{class-api-results}{6}{Translation and analysis result relationships}
-\diagram{class-collection}{7}{Collection DTOs and mutation errors}
-\diagram{class-import-coursework}{8}{Import and coursework class relationships}
-\diagram{class-provider}{9}{Provider wire-response hierarchy}
-\diagram{class-services}{10}{Provider service, settings and grounding values}
-\diagram{class-frontend}{11}{Frontend runtime class and functional modules}
-\diagram{use-case}{12}{User goals and guarded optional extensions}
-\diagram{activity-collect}{13}{Collection activity and failure decisions}
-\diagram{state-entry}{14}{Logical entry and selected-editor states}
-\diagram{state-audio}{15}{Audio readiness and retry states}
-\diagram{sequence-collect}{16}{Attachment and collection commit sequence}
-\diagram{sequence-search}{17}{Search and cached selection sequence}
-\diagram{sequence-edit}{18}{Changed-field edit sequence}
-\diagram{sequence-delete}{19}{Confirmed deletion sequence}
-\diagram{sequence-record}{20}{Recording, callbacks and WAV publication}
-\diagram{sequence-playback}{21}{Playback and OS fallback sequence}
-\diagram{sequence-stats}{22}{Single-snapshot statistics sequence}
-\diagram{sequence-storage}{23}{Shared locked CSV transaction sequence}
-\diagram{sequence-translation}{24}{Dataset-first translation sequence}
-\diagram{sequence-chat}{25}{Explicit chat and provider handling sequence}
-\diagram{sequence-imports}{26}{Preview, suggestion and reviewed import sequence}
-\diagram{sequence-compiler}{27}{Grammar analysis and predictive parsing sequence}
-\diagram{sequence-coursework}{28}{Saved coursework and draft export sequence}
-\diagram{sequence-dictionary}{29}{Separate reference lookup and explicit draft handoff}
+The following pages embed the exact atlas images. New hosted views are appended
+to preserve established atlas page references. All displayed sequence
+communications have explicit activation boxes.
+\diagram{component}{1}{Hosted business components and isolated legacy storage}
+\diagram{deployment}{2}{Same-origin deployment on one durable application host}
+\diagram{class-domain}{3}{Preserved desktop classes and optional audio ownership}
+\diagram{class-compiler}{4}{Deterministic compiler classes}
+\diagram{class-api-requests}{5}{Language-service request classes}
+\diagram{class-api-results}{6}{Translation and analysis result classes}
+\diagram{class-collection}{7}{Terminology and reference dictionary DTOs}
+\diagram{class-import-coursework}{8}{Import and preserved academic DTO classes}
+\diagram{class-provider}{9}{Provider response classes}
+\diagram{class-services}{10}{Provider service, configuration and grounding}
+\diagram{class-frontend}{11}{Frontend class and function-component responsibilities}
+\diagram{use-case}{12}{Hosted business user goals and supporting services}
+\diagram{activity-collect}{13}{Preserved desktop collection activity}
+\diagram{state-entry}{14}{Preserved entry and editor state model}
+\diagram{state-audio}{15}{Preserved desktop audio readiness model}
+\diagram{sequence-collect}{16}{Preserved desktop collection sequence}
+\diagram{sequence-search}{17}{Preserved desktop search sequence}
+\diagram{sequence-edit}{18}{Preserved desktop editing sequence}
+\diagram{sequence-delete}{19}{Preserved desktop deletion sequence}
+\diagram{sequence-record}{20}{Preserved desktop recording sequence}
+\diagram{sequence-playback}{21}{Preserved desktop playback sequence}
+\diagram{sequence-stats}{22}{Preserved desktop statistics sequence}
+\diagram{sequence-storage}{23}{Legacy CSV transaction sequence}
+\diagram{sequence-translation}{24}{Project-bound source-labelled translation}
+\diagram{sequence-chat}{25}{Explicit assistant and bounded provider interaction}
+\diagram{sequence-imports}{26}{Consented import preview and reviewed handoff}
+\diagram{sequence-compiler}{27}{Preserved compiler-analysis sequence}
+\diagram{sequence-coursework}{28}{Preserved academic-evidence sequence}
+\diagram{sequence-dictionary}{29}{Read-only dictionary search and draft handoff}
+\diagram{class-accounts}{30}{Hosted account and web-boundary classes}
+\diagram{class-workspaces}{31}{Private workspace and recovery classes}
+\diagram{sequence-account}{32}{Email access and private request binding}
+\diagram{sequence-google}{33}{Google sign-in and explicit account linking}
+\diagram{sequence-backup}{34}{Validated backup replacement and safety recovery}
+\diagram{activity-restore}{35}{Guarded workspace restore activity}
 \end{document}

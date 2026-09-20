@@ -106,7 +106,7 @@ class DictionaryApiTests(ApiTestCase):
                 self.assertTrue(all(item["source"] == "dictionary" for item in exact))
                 self.assertTrue(all(item["source_document"] and item["source_line"] for item in exact))
                 self.assertTrue(all(item["french_gloss"] == "" for item in exact))
-                self.assertIn("not collected fieldwork", result["note"])
+                self.assertIn("not approved terminology", result["note"])
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         self.assertEqual(self.requests, [])

@@ -10,6 +10,9 @@ import { Translator } from './Translator'
 import type { Health, IncomingText, Page } from './types'
 import { useRequest } from './useRequest'
 import { useReadAloud } from './voice'
+import type { Account, Project, Session } from './accountTypes'
+import { SavedWork } from './SavedWork'
+import { WorkspaceSettings } from './WorkspaceSettings'
 
 const navigation: { page: Page; label: string; icon: IconName }[] = [
   { page: 'translator', label: 'Translate', icon: 'translate' },
@@ -17,27 +20,37 @@ const navigation: { page: Page; label: string; icon: IconName }[] = [
   { page: 'collection', label: 'Terminology', icon: 'collection' },
   { page: 'dictionary', label: 'Dictionary', icon: 'search' },
   { page: 'imports', label: 'Documents & audio', icon: 'upload' },
+  { page: 'history', label: 'History', icon: 'collection' },
+  { page: 'settings', label: 'Workspace settings', icon: 'shield' },
 ]
 
 function currentPage(): Page {
   const hash = window.location.hash.slice(1)
-  return hash === 'assistant' || hash === 'dictionary' || hash === 'collection' || hash === 'imports' ? hash : 'translator'
+  return hash === 'assistant' || hash === 'dictionary' || hash === 'collection' || hash === 'imports' || hash === 'history' || hash === 'settings' ? hash : 'translator'
 }
 
 function PrivacyDialog({ onClose }: { onClose: () => void }) {
   return <Modal title="Workspace settings & privacy" onClose={onClose} className="privacy-modal">
-    <p className="modal-description">A local language workspace with optional cloud assistance. This installation has no user accounts or role-based access; do not expose it as a public service.</p>
+    <p className="modal-description">Your private language workspace with optional AI assistance. Account access is required; each account has separate projects, terminology, recordings and saved work.</p>
     <div className="privacy-sections">
-      <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Terminology and storage</h3><p>Saved terms, notes and attached recordings stay on your backend's disk. Search, editing, exports and exact local translations do not contact Gemini. Only explicitly approved terminology is used for approved-source matching. Approval records your review, not independent certification.</p><p>Translation drafts and conversation history remain in this browser tab and are lost on reload. Export terminology regularly and keep backups restricted to authorized people.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Terminology and storage</h3><p>Saved terms, notes and recordings are stored privately on the application server. Search, editing, exports and exact terminology lookups do not contact Gemini. Approval records your review, not independent certification.</p><p>Unsaved drafts remain in this browser tab and are lost on reload. Save translation or conversation results explicitly to retain them in History. Backups include all of your projects and may retain deleted records. Restrict exported files to authorized recipients. The server operator controls the underlying infrastructure.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="sparkles" size={21} /></span><div><h3>Optional AI processing</h3><p>When enabled, an explicit translation or assistant request can send your text, selected terminology or dictionary matches, and recent conversation to Gemini. Stored contributor names, locations, private notes and full reference files are not included in retrieved matches. Personal information typed into your message is still part of that request.</p><p>AI output requires review before use. Dictionary citations identify references, not verified business terminology. New output is never saved or approved automatically. Provider retention policies apply.</p></div></section>
-      <section><span className="privacy-section-icon"><Icon name="upload" size={21} /></span><div><h3>Documents and audio</h3><p>Text documents are extracted locally. Images, scanned PDFs and media need explicit cloud consent and a separate Preview action for transcription. Raw import files are temporary; recording alone never uploads audio. Saving an audio attachment stores it locally.</p><p>Browser dictation may use the browser vendor's speech service. French/English recognition and read-aloud are approximations for Francanglais and Cameroon Pidgin. Record only with permission and review transcripts and pronunciation.</p></div></section>
-      <section><span className="privacy-section-icon"><Icon name="shield" size={21} /></span><div><h3>Connection configuration</h3><p>The backend must remain bound to localhost or a trusted private environment. Configure <code>GEMINI_API_KEY</code> on the backend and restart it to enable AI features. A configured key does not confirm provider access. Never place credentials in the frontend or exported files.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="upload" size={21} /></span><div><h3>Documents and audio</h3><p>Uploaded text documents are extracted on this server without AI. Images, scanned PDFs and media need explicit provider consent and a separate Preview action for transcription. Raw import files are temporary; recording alone never uploads audio. Saving an attachment uploads it privately to your account.</p><p>Browser dictation may use the browser vendor's speech service. French/English recognition and read-aloud are approximations for Francanglais and Cameroon Pidgin. Record only with permission and review transcripts and pronunciation.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="shield" size={21} /></span><div><h3>Connection and account safety</h3><p>Hosted access requires HTTPS. Configure provider credentials only on the backend. A configured key does not confirm provider access. Sign out on shared devices, keep verification links private and never put credentials in exported files. AI allowances protect provider usage; exact dictionary lookups do not consume them.</p></div></section>
     </div>
     <div className="modal-footer"><button type="button" className="button button-primary" onClick={onClose}>Done<Icon name="check" size={17} /></button></div>
   </Modal>
 }
 
-export default function App() {
+export default function App({ account, googleEnabled, projects = [], selectedProject = 'default', onSelectProject, onSignOut, onProfileChanged }: {
+  account?: Account
+  googleEnabled?: boolean
+  projects?: Project[]
+  selectedProject?: string
+  onSelectProject?: (id: string) => void
+  onSignOut?: () => void
+  onProfileChanged?: (session: Session) => void
+}) {
   const [page, setPage] = useState<Page>(currentPage)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [health, setHealth] = useState<Health | null>(null)
@@ -79,7 +92,7 @@ export default function App() {
   }, [page, stop])
 
   const aiAvailable = Boolean(health?.ai_configured && !healthError)
-  const statusText = checkingHealth ? 'Connecting' : healthError ? 'Backend offline' : health?.ai_configured ? 'AI configured' : 'Local mode'
+  const statusText = checkingHealth ? 'Connecting' : healthError ? 'Backend offline' : health?.ai_configured ? 'AI configured' : 'AI unavailable'
   const pageLabel = navigation.find((item) => item.page === page)?.label ?? 'Translate'
 
   return <div className="app-shell">
@@ -97,7 +110,7 @@ export default function App() {
         </a>)}
       </nav>
       <div className="sidebar-bottom">
-        <div className="workspace-scope"><span className="scope-indicator" /><div><strong>Local workspace</strong><span>Local storage · Optional AI</span></div></div>
+        <div className="workspace-scope"><span className="scope-indicator" /><div><strong>Private workspace</strong><span>Your account · Optional AI</span></div></div>
         <button type="button" className="sidebar-privacy" onClick={() => setPrivacyOpen(true)}><Icon name="shield" size={17} />Settings & privacy<Icon name="chevron" size={13} /></button>
         <span className="sidebar-version">French · English · Francanglais · Pidgin</span>
       </div>
@@ -106,8 +119,13 @@ export default function App() {
     <div className="main-shell">
       <header className="topbar">
         <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>{pageLabel}</strong></div>
+        {account && <div className="account-controls"><span className="account-email">{account.email}</span>
+          <label className="sr-only" htmlFor="active-project">Active project</label><select id="active-project" value={selectedProject} onChange={(event) => onSelectProject?.(event.target.value)}>
+            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select><button className="text-button" type="button" onClick={onSignOut}>Sign out</button>
+        </div>}
         <div className="topbar-actions">
-          <div className={`connection-status ${aiAvailable ? 'is-connected' : ''}`} title={health?.model ? `Backend AI model: ${health.model}` : 'Local backend connection'}>
+          <div className={`connection-status ${aiAvailable ? 'is-connected' : ''}`} title={health?.model ? `Backend AI model: ${health.model}` : 'Application server connection'}>
             {checkingHealth ? <Spinner label="Checking backend connection" /> : <span className="status-dot" />}<span>{statusText}</span>
           </div>
           <button type="button" className="icon-button" aria-label="Check backend connection" title="Check connection" disabled={checkingHealth} onClick={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)}><Icon name="refresh" size={16} /></button>
@@ -115,8 +133,8 @@ export default function App() {
         </div>
       </header>
       <main id="main-content" className="main-content" ref={main} tabIndex={-1}>
-        {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>AI requests are paused until the connection is restored. Start your local backend and check the connection again.</p></div>}
-        {!healthError && health && !health.ai_configured && <div className="configuration-banner" role="status"><span className="configuration-icon"><Icon name="info" size={18} /></span><div><strong>Local mode</strong><p>Terminology, dictionary lookup and text documents are available. AI translation, assistant replies and media transcription require configuration.</p></div><button className="text-button" type="button" onClick={() => setPrivacyOpen(true)}>Settings</button></div>}
+        {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>AI requests are paused until the connection is restored. Check your connection or contact the operator.</p></div>}
+        {!healthError && health && !health.ai_configured && <div className="configuration-banner" role="status"><span className="configuration-icon"><Icon name="info" size={18} /></span><div><strong>Dictionary and terminology mode</strong><p>Terminology, dictionary lookup and text documents are available. AI translation, assistant replies and media transcription require configuration.</p></div><button className="text-button" type="button" onClick={() => setPrivacyOpen(true)}>Settings</button></div>}
         {speech.error && <ErrorNotice message={speech.error} />}
         {speech.activeId && <div className="playback-banner" role="status"><Icon name="volume" size={18} /><span>Reading with a browser voice</span><button type="button" className="text-button" onClick={speech.stop}><Icon name="stop" size={14} />Stop reading</button></div>}
         <div hidden={page !== 'translator'}><Translator active={page === 'translator'} aiAvailable={aiAvailable} speech={speech} incomingText={translationDraft} onOpenAssistant={() => { window.location.hash = 'assistant' }} onOpenCollection={() => { window.location.hash = 'collection' }} onOpenImports={() => { window.location.hash = 'imports' }} /></div>
@@ -133,6 +151,11 @@ export default function App() {
           setAssistantDraft({ id: nextHandoffId.current++, text })
           window.location.hash = 'assistant'
         }} onOpenCollection={() => { window.location.hash = 'collection' }} /></div>
+        <div hidden={page !== 'history'}><SavedWork active={page === 'history'} onUseText={(text) => {
+          setTranslationDraft({ id: nextHandoffId.current++, text })
+          window.location.hash = 'translator'
+        }} /></div>
+        <div hidden={page !== 'settings'}><WorkspaceSettings active={page === 'settings'} account={account} googleEnabled={googleEnabled} projects={projects} selectedProject={selectedProject} onProfileChanged={onProfileChanged} /></div>
         <footer className="page-footer"><span>Mboa · Language Workspace</span><button type="button" onClick={() => setPrivacyOpen(true)}>Data & privacy<Icon name="arrow" size={14} /></button></footer>
       </main>
     </div>

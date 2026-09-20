@@ -23,7 +23,7 @@ export default defineConfig({
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4187 --strictPort',
+    command: 'npm run preview -- --host 127.0.0.1 --port 4187 --strictPort',
     cwd: fileURLToPath(new URL('.', import.meta.url)),
     url: origin,
     reuseExistingServer: false,

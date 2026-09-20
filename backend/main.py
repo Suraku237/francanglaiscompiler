@@ -1,5 +1,7 @@
-from collections.abc import AsyncGenerator
+import asyncio
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Query, Request, Response
@@ -13,12 +15,16 @@ from data_collector import dataset
 
 from . import collection, dictionary, examples
 from .audio_api import router as audio_router
+from .auth import AuthSettings, get_current_identity, install_auth
 from .collection import storage_operation
 from .config import Settings
 from .coursework_api import router as coursework_router
 from .gemini import AIError, GeminiService
 from .grounding import ai_origin, local_translation, retrieve, without_local_sources
 from .import_api import router as import_router
+from .web import install_web
+from .workspace_backups import install_backups, maintain_backups
+from .workspaces import install_workspace
 from .schemas import (
     AnalysisResult,
     AnalyzeRequest,
@@ -50,27 +56,45 @@ def analyze(text: str, entries: list[dict[str, str]] | None = None) -> AnalysisR
 
 def create_app(
     settings: Settings | None = None, *, transport: httpx.AsyncBaseTransport | None = None,
-    include_academic: bool = False,
+    include_academic: bool = False, require_auth: bool = True,
+    auth_settings: AuthSettings | None = None,
+    auth_transport: httpx.AsyncBaseTransport | None = None,
+    mailer: Callable[[str, str, str], None] | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
+    accounts = auth_settings if auth_settings is not None else AuthSettings()
+    if include_academic and require_auth:
+        raise ValueError("Archived academic routes must not be enabled in the hosted application.")
+    if not require_auth and accounts.environment == "production":
+        raise ValueError("Authentication cannot be disabled in production.")
+
+    def charge_ai():
+        user = get_current_identity()
+        if user is None:
+            raise collection.CollectionError(401, "Sign in before requesting AI processing.")
+        app.state.auth_store.charge_ai(user.id)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         async with httpx.AsyncClient(transport=transport) as client:
-            app.state.gemini = GeminiService(config, client)
-            yield
+            app.state.gemini = GeminiService(config, client, before_request=charge_ai if require_auth else None)
+            stop = asyncio.Event()
+            maintenance = asyncio.create_task(maintain_backups(accounts.data_dir, stop)) if require_auth else None
+            try:
+                yield
+            finally:
+                stop.set()
+                if maintenance is not None:
+                    await maintenance
 
     app = FastAPI(
         title="Mboa Language Workspace",
-        description="Local translation, terminology, reference lookup and reviewed document/audio processing.",
+        description="Private accounts, translation, terminology and reviewed document/audio processing.",
         version="1.0.0",
         lifespan=lifespan,
-    )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=config.cors_origins,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Content-Type"],
+        docs_url=None if accounts.environment == "production" else "/docs",
+        redoc_url=None if accounts.environment == "production" else "/redoc",
+        openapi_url=None if accounts.environment == "production" else "/openapi.json",
     )
 
     @app.exception_handler(AIError)
@@ -205,6 +229,26 @@ def create_app(
         app.add_api_route("/api/examples", get_examples, response_model=PracticeResponse, methods=["GET"])
     app.include_router(import_router)
     app.include_router(audio_router)
+    origins = [accounts.public_url]
+    if accounts.environment == "development":
+        origins.extend(config.cors_origins)
+        origins.extend(["http://127.0.0.1:4188", "http://localhost:4188"])
+    if require_auth:
+        workspace = install_workspace(app, accounts.data_dir)
+        install_backups(app)
+        install_auth(
+            app, accounts, workspace_context=workspace, allowed_origins=origins,
+            transport=auth_transport, mailer=mailer,
+        )
+    app.add_middleware(
+        CORSMiddleware, allow_origins=origins, allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Content-Type", "X-CSRF-Token", "X-Mboa-Project"],
+    )
+    install_web(
+        app, frontend_dir=Path(__file__).resolve().parents[1] / "frontend" / "dist",
+        production=accounts.environment == "production", public_url=accounts.public_url,
+    )
     return app
 
 

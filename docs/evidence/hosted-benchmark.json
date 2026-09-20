@@ -1,0 +1,125 @@
+{
+  "recorded_at": "2026-09-20T08:48:54+00:00",
+  "fixture": {
+    "rows": 1000,
+    "text_characters": 500,
+    "synthetic": true,
+    "accounts": 1
+  },
+  "method": "One warm-up, then nearest-rank p95 of real authenticated ASGI TestClient requests and response checks",
+  "limit_ms": 1000,
+  "passed_on_this_machine": true,
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "python": "3.14.6",
+    "physical_memory_bytes": 34166005760
+  },
+  "source_sha256": {
+    "backend\\auth.py": "c3aa35252704faf5032f410694f933aad0d17b76c6ba01cb0ab09775d3722744",
+    "backend\\workspaces.py": "c960a732199d980065e1038ed4fd93a2a38271d09b96ce18f6daab17d024b6fc",
+    "backend\\workspace_backups.py": "4d1dcf65ee7c9933e64fafdbbe60e5b4a6812bf47bc711ee0ac203c5a6ad097c",
+    "backend\\main.py": "0c2a4a466d9f01ddbf089a1327eb5f0385e9832d8774f2b32f0d8440bb992f02",
+    "backend\\collection.py": "68cf22223f759c5ca0cfbb4b37e5c8ea065017ab09da98d2e30c4042e1ff84b5",
+    "data_collector\\dataset.py": "452c43cf72e2b75d57be2f216e0426f76b6cdf6d598ce4c3dc526d96689bf353",
+    "tools\\benchmark_workspace.py": "26826df94994511b851344b22602b31eea7766a1478527498397f420d3caf9ea",
+    "tools\\benchmark_collector.py": "9dad7631fdaafd61b3f78827fb2e185252dba37b15be9c1164bc4377b7542287"
+  },
+  "measurements": {
+    "list_all": {
+      "warmups": 1,
+      "runs": 20,
+      "samples_ms": [
+        104.1482,
+        93.8591,
+        110.6921,
+        106.5531,
+        126.1421,
+        126.045,
+        115.2515,
+        141.2051,
+        134.2611,
+        134.4482,
+        190.7827,
+        114.1355,
+        121.9402,
+        119.3456,
+        117.2006,
+        95.1567,
+        113.7585,
+        119.2761,
+        239.6123,
+        126.446
+      ],
+      "p95_ms": 190.7827,
+      "mean_ms": 127.512985,
+      "min_ms": 93.8591,
+      "max_ms": 239.6123
+    },
+    "search_one": {
+      "warmups": 1,
+      "runs": 20,
+      "samples_ms": [
+        118.543,
+        77.6584,
+        68.7081,
+        72.6958,
+        61.5254,
+        63.3986,
+        60.5864,
+        75.1148,
+        93.4533,
+        83.7249,
+        79.8355,
+        84.7467,
+        82.7703,
+        70.7547,
+        67.4495,
+        58.6579,
+        54.0258,
+        56.5725,
+        59.8588,
+        61.8248
+      ],
+      "p95_ms": 93.4533,
+      "mean_ms": 72.59526,
+      "min_ms": 54.0258,
+      "max_ms": 118.543
+    },
+    "create_verified_backup": {
+      "warmups": 1,
+      "runs": 20,
+      "samples_ms": [
+        445.874,
+        450.4332,
+        551.9812,
+        735.6092,
+        556.9445,
+        787.6769,
+        431.5357,
+        372.5025,
+        387.4315,
+        399.8193,
+        358.3359,
+        494.9468,
+        423.9775,
+        448.2934,
+        636.5685,
+        963.6161,
+        587.982,
+        573.5752,
+        678.0913,
+        494.6626
+      ],
+      "p95_ms": 787.6769,
+      "mean_ms": 538.9928649999999,
+      "min_ms": 358.3359,
+      "max_ms": 963.6161
+    }
+  },
+  "limitations": [
+    "One synthetic account on this machine, not public concurrent-user capacity or an 8 GB reference-machine certification.",
+    "Includes real SQLite, auth checks, serialization and verified ZIP writes; excludes TCP, TLS and browser rendering.",
+    "No provider, SMTP, Google, microphone or real business data is used."
+  ]
+}

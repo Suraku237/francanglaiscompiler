@@ -14,7 +14,6 @@ import time
 from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-from tkinter import TclError
 from unittest.mock import patch
 
 from data_collector import dataset
@@ -168,6 +167,8 @@ def run_benchmark(
 
 
 def main() -> int:
+    from tkinter import TclError
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rows", type=int, default=1000)
     parser.add_argument("--text-characters", type=int, default=500)

@@ -14,7 +14,8 @@ class Settings {
 class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
 ' @class backend.gemini.GeminiService
 class GeminiService {
-  __init__(settings, client)
+  before_request: Callable | None
+  __init__(settings, client, before_request)
   async _generate(contents, instruction, structured)
   async translate(request, evidence, coverage)
   async chat(request, evidence)
@@ -55,5 +56,6 @@ legend bottom
   GeminiService is a real class. Retrieval and route handlers are functions.
   Grounding is a value holder, not a hidden training or translation service.
   At most 8 selected evidence records are emitted by retrieve().
+  Hosted quota accounting runs before every actual provider attempt, including retry.
 endlegend
 @enduml

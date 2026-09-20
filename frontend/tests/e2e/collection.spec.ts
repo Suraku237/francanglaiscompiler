@@ -42,7 +42,7 @@ test('collection review validates text, invalidates approval and submits only ch
   await expect(editor).toBeVisible()
   saveResponse.resolve()
   await expect(editor).not.toBeVisible()
-  await expect(page.getByText('Saved locally. This entry is awaiting review.')).toBeVisible()
+  await expect(page.getByText('Saved privately. This entry is awaiting review.')).toBeVisible()
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Fixture expression', exact: true }) }).getByText('Unreviewed', { exact: true })).toBeVisible()
 })
 
@@ -97,5 +97,5 @@ test('debounced search ignores stale results and client filters leave global cou
   await page.getByLabel('Filter by review status').selectOption('approved')
   await expect(page.getByRole('heading', { name: 'Fixture expression', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Second fixture', exact: true })).not.toBeVisible()
-  await expect(page.getByLabel('Counts across the entire local dataset')).toContainText('2Total entries')
+  await expect(page.getByLabel('Counts across the entire project')).toContainText('2Total entries')
 })

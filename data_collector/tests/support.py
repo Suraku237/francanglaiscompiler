@@ -24,9 +24,7 @@ class IsolatedDatasetTest(unittest.TestCase):
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
         self.directory = Path(self.stack.enter_context(
-            tempfile.TemporaryDirectory(
-                prefix=".desktop-test-", dir=Path(__file__).resolve().parents[2],
-            )
+            tempfile.TemporaryDirectory(prefix="mboa-desktop-test-")
         ))
         self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
         self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))

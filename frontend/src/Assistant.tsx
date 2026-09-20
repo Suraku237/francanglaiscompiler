@@ -7,6 +7,7 @@ import type { AnswerOrigin, ChatMessage, ChatReply, DatasetEvidence, IncomingTex
 import { browserVoiceLanguage, useDictation } from './voice'
 import type { ReadAloud } from './voice'
 import { useRequest } from './useRequest'
+import { SaveWorkButton } from './SavedWork'
 
 interface DisplayMessage extends ChatMessage {
   id: number
@@ -141,6 +142,9 @@ export function Assistant({ active, aiAvailable, speech, incomingText }: { activ
     <div className="chat-workspace">
       <div className="chat-toolbar">
         <div><span className="small-caps">EXPLAIN IN</span><LanguageToggle value={language} label="Assistant explanation language" disabled={pending} onChange={(next) => { speech.stop(); setLanguage(next) }} /></div>
+        {messages.length > 0 && messages.length <= 100 && <SaveWorkButton key={messages.length} kind="conversation" title={messages[0]?.content ?? 'Conversation'}
+          content={{ messages: messages.map(({ role, content }) => ({ role, content })) }} />}
+        {messages.length > 100 && <p className="helper-text">This conversation exceeds the 100-message saved-history limit. Copy the messages you need before clearing it.</p>}
         <button type="button" className="action-button" onClick={clearConversation} disabled={!messages.length && !draft && !pending}><Icon name="refresh" size={17} />Clear conversation</button>
       </div>
       <div className="chat-learning-controls">

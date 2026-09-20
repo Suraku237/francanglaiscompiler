@@ -19,7 +19,7 @@ activate API
 API -> Local : get_grounding() via thread pool
 activate Local
 opt use_dataset = true
-  note over Local : Read locked CSV; eligible approved alignments only.
+  note over Local : Read selected private project through DatasetStorage;\neligible approved alignments only. CSV is a desktop fallback.
 end
 opt use_dictionary = true
   note over Local : Read supplied reference files; retain source, aliases,\nEnglish meanings and competing senses. Not fieldwork.

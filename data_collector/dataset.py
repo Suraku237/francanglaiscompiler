@@ -6,8 +6,12 @@ import os
 import csv
 import tempfile
 import unicodedata
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from pathlib import Path
 from threading import Lock
-from typing import Optional
+from typing import Optional, Protocol
 
 from filelock import FileLock
 
@@ -62,12 +66,49 @@ _LOCKS: dict[str, FileLock] = {}
 _LOCKS_GUARD = Lock()
 
 
+class DatasetStorage(Protocol):
+    audio_dir: Path
+
+    def lock(self) -> FileLock: ...
+    def ensure(self) -> None: ...
+    def load_all(self) -> list[dict[str, str]]: ...
+    def save_all(self, entries: list[dict[str, str]]) -> None: ...
+    def append_entry(self, entry: dict[str, str]) -> None: ...
+    def check_audio_capacity(self, additional: int) -> None: ...
+
+
+_storage: ContextVar[DatasetStorage | None] = ContextVar("dataset_storage", default=None)
+
+
+@contextmanager
+def use_storage(storage: DatasetStorage) -> Iterator[None]:
+    token = _storage.set(storage)
+    try:
+        yield
+    finally:
+        _storage.reset(token)
+
+
+def audio_directory() -> Path:
+    storage = _storage.get()
+    return storage.audio_dir if storage is not None else Path(AUDIO_DIR)
+
+
+def check_audio_capacity(additional: int) -> None:
+    storage = _storage.get()
+    if storage is not None:
+        storage.check_audio_capacity(additional)
+
+
 class EntryNotFoundError(LookupError):
     """An entry was removed before an update or delete could be committed."""
 
 
 def dataset_lock() -> FileLock:
     """Use the same reentrant, cross-process lock for a complete transaction."""
+    storage = _storage.get()
+    if storage is not None:
+        return storage.lock()
     with _LOCKS_GUARD:
         if DATASET_PATH not in _LOCKS:
             _LOCKS[DATASET_PATH] = FileLock(DATASET_PATH + ".lock", timeout=10)
@@ -94,6 +135,10 @@ def _write_entries(entries: list[dict[str, str]]) -> None:
 
 
 def ensure_dataset_file() -> None:
+    storage = _storage.get()
+    if storage is not None:
+        storage.ensure()
+        return
     with dataset_lock():
         os.makedirs(AUDIO_DIR, exist_ok=True)
         if not os.path.exists(DATASET_PATH):
@@ -114,6 +159,9 @@ def normalize_entry(entry: dict[str, str]) -> dict[str, str]:
 
 
 def load_all() -> list[dict[str, str]]:
+    storage = _storage.get()
+    if storage is not None:
+        return storage.load_all()
     with dataset_lock():
         ensure_dataset_file()
         with open(DATASET_PATH, "r", newline="", encoding="utf-8") as f:
@@ -127,6 +175,10 @@ def load_all() -> list[dict[str, str]]:
 
 
 def append_entry(entry: dict) -> None:
+    storage = _storage.get()
+    if storage is not None:
+        storage.append_entry(entry)
+        return
     with dataset_lock():
         entries = load_all()
         entries.append(entry)
@@ -135,6 +187,10 @@ def append_entry(entry: dict) -> None:
 
 def save_all(entries) -> None:
     """Overwrite the whole dataset file. Used after an edit or delete."""
+    storage = _storage.get()
+    if storage is not None:
+        storage.save_all(entries)
+        return
     with dataset_lock():
         ensure_dataset_file()
         _write_entries(entries)

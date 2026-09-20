@@ -1,0 +1,35 @@
+.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 32px 18px; background: #f4f7fa; }
+.auth-card { width: min(100%, 490px); padding: 36px; border: 1px solid #dce4e9; border-radius: 16px; background: #fff; box-shadow: 0 14px 50px #173b4410; }
+.auth-card h1 { font-size: 28px; line-height: 1.2; margin: 18px 0 12px; }
+.auth-card p { margin-bottom: 18px; }
+.auth-brand { font-size: 30px; font-weight: 800; color: #17645e; text-decoration: none; }
+.account-form { display: grid; gap: 18px; margin: 22px 0; }
+.account-form label, .workspace-settings label { display: grid; gap: 7px; font-size: 14px; font-weight: 600; }
+.account-form input, .workspace-settings input:not([type="checkbox"]), .workspace-settings select, .saved-work input { width: 100%; border: 1px solid #ccd7dd; border-radius: 8px; padding: 11px 12px; background: white; color: #18323c; }
+.auth-links { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: 14px; margin: 20px 0; }
+.google-signin { width: 100%; justify-content: center; }
+.account-notice { margin: 0; padding: 12px 24px; background: #edf7f5; color: #194c45; }
+.topbar { height: auto; min-height: 72px; padding-block: 12px; flex-wrap: wrap; }
+.topbar-actions { margin-left: auto; }
+.account-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.account-controls select { max-width: 180px; padding: 7px; border: 1px solid #ccd7dd; border-radius: 7px; background: white; }
+.account-controls .account-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.workspace-settings, .saved-work { display: grid; gap: 24px; }
+.workspace-section { background: #fff; border: 1px solid #dce4e9; border-radius: 12px; padding: 24px; display: grid; gap: 16px; min-width: 0; }
+.workspace-section h2 { margin: 0; font-size: 20px; }
+.workspace-section h3 { font-size: 16px; }
+.workspace-section p { line-height: 1.65; }
+.workspace-section ul { padding-left: 20px; }
+.workspace-row { border-top: 1px solid #e4eaed; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.workspace-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.workspace-actions .button { padding: 8px 14px; min-height: 38px; }
+.workspace-section pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; background: #f6f8fa; padding: 18px; border-radius: 8px; max-height: 400px; overflow-y: auto; }
+.workspace-section .checkbox-label { display: flex; }
+.save-work-status { font-size: 13px; margin-top: 8px; }
+@media (max-width: 760px) {
+  .auth-card { padding: 25px 20px; }
+  .account-controls { width: 100%; order: 1; justify-content: space-between; }
+  .account-controls .account-email { display: none; }
+  .topbar { min-height: 56px; gap: 10px; }
+  .workspace-section { padding: 18px; }
+}

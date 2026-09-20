@@ -1,5 +1,6 @@
 import csv
 import logging
+import sqlite3
 from collections import Counter
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -29,10 +30,10 @@ def storage_operation(operation: Callable[[], T]) -> T:
         return operation()
     except Timeout as exc:
         raise CollectionError(503, "The collection is busy. Please try again.") from exc
-    except (OSError, csv.Error, ValueError) as exc:
+    except (OSError, csv.Error, ValueError, sqlite3.Error) as exc:
         logger.error("Collection storage operation failed (%s)", type(exc).__name__)
         raise CollectionError(
-            500, "Cannot read or save the collection. Check the server CSV file and permissions."
+            500, "Cannot read or save the collection. Check the server storage and permissions."
         ) from exc
 
 

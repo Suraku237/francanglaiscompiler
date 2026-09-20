@@ -35,7 +35,7 @@ class ApiTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2])))
+        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(prefix="mboa-api-test-")))
         self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
         self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
         self.provider_status = 200
@@ -58,7 +58,7 @@ class ApiTestCase(unittest.TestCase):
         )
         app = create_app(
             settings, transport=httpx.MockTransport(self.respond),
-            include_academic=self.include_academic,
+            include_academic=self.include_academic, require_auth=False,
         )
         return self.stack.enter_context(TestClient(app))
 

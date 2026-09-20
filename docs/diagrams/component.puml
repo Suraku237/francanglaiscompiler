@@ -1,45 +1,65 @@
 @startuml
 !include theme.iuml
-title Implemented package dependencies and data boundaries
+title Hosted business components and isolated legacy storage
 skinparam componentFontSize 14
 package "Browser: frontend/src" {
-  component "React function components\n6 workspaces + dialogs/results" as UI
-  component "api.ts / useRequest.ts\nHTTP, cancellation, errors" as WebAPI
+  component "AuthGate + React function components\n7 business areas + dialogs/results" as UI
+  component "api.ts / useRequest.ts\ncookie, CSRF, project, cancellation" as WebAPI
   component "voice.ts\nopt-in browser speech" as Voice
 }
 package "Python backend" {
   component "main.py / schemas.py\nFastAPI routes and public DTOs" as Routes
+  component "auth.py\nverified accounts / Google / quotas" as Auth
+  component "workspaces.py\nrequest-bound private SQLite store" as Workspaces
+  component "workspace_backups.py\nverified backups / recovery / schedules" as Backups
+  component "web.py\nrequest bounds / headers / built frontend" as Web
   component "collection.py\nvalidated CRUD functions" as Collection
   component "grounding.py\nsource-labelled local retrieval" as Grounding
   component "dictionary.py\nvalidated read-only reference lookup" as Dictionary
   component "gemini.py / config.py\nprovider client and secret settings" as Gemini
   component "import_api.py / imports.py\nbounded preview and suggestions" as Imports
+}
+package "Preserved developer-only academic modules" {
   component "coursework*.py\nanalysis, profile, images, draft export" as Course
 }
 package "Local Python libraries" {
   component "compiler/lexer\nregex, reviewed lexicon, reports" as Lexer
   component "compiler/parser\nCFG transforms / LL(1) / traces" as Parser
-  component "data_collector/dataset.py\nlock + atomic CSV functions" as Dataset
+  component "data_collector/dataset.py\nrequest storage protocol / CSV fallback" as Dataset
 }
 package "Desktop collector" {
   component "App.py\nCustomTkinter UI" as Desktop
   component "audio_utils.py\nRecorder / file / playback" as Audio
 }
 artifact "dataset.csv\n14 fields; legacy-compatible" as CSV <<file>>
+artifact "auth.sqlite3\nidentities / sessions / tokens / quotas" as Accounts <<private>>
+folder "Per-account durable storage\nworkspace.sqlite3 / audio / backups" as Private
 artifact "dictionary/*.md\n179 supplied source entries" as References <<file>>
 folder "Local audio" as AudioFiles
 folder "coursework\nproject.json / screenshots" as Project
 cloud "Gemini HTTPS\noptional explicit requests" as Cloud
+cloud "Google OAuth / SMTP\nconfigured identity and email providers" as IdentityProviders
 
 UI ..> WebAPI
 UI ..> Voice
-WebAPI ..> Routes : /api
+WebAPI ..> Web : same-origin /api
+Web ..> Auth : API access gate
+Auth ..> Accounts
+Auth ..> IdentityProviders
+Auth ..> Workspaces : request identity / context
+Auth ..> Routes : permitted requests only
+Routes ..> Workspaces : projects / saved work / revisions
+Routes ..> Backups : account recovery
+Workspaces ..> Private
+Workspaces ..> Dataset : bind DatasetStorage context
+Dataset ..> Workspaces : runtime protocol dispatch
+Backups ..> Workspaces
+Backups ..> Private
 Routes ..> Collection
 Routes ..> Grounding
 Routes ..> Dictionary
 Routes ..> Gemini
 Routes ..> Imports : included router
-Routes ..> Course : included router
 Routes ..> Lexer
 Routes ..> Dataset : analysis / retrieval snapshot
 Collection ..> Dataset
@@ -56,7 +76,7 @@ Course ..> Gemini : explicit tutoring only
 Gemini ..> Cloud
 Desktop ..> Dataset
 Desktop ..> Audio
-Dataset ..> CSV
+Dataset ..> CSV : only without private context
 Audio ..> AudioFiles
 note bottom of Parser
   Parser consumes token categories.
@@ -70,6 +90,8 @@ end note
 legend bottom
   Dashed arrows are dependencies, not timed calls.
   Browser speech may contact a separate browser provider (deployment view).
-  Imports do not automatically write CSV. Export reads saved evidence.
+  Hosted requests never use the legacy CSV, profile or screenshots.
+  Academic routes cannot be enabled in the hosted application.
+  Imports never save terminology automatically. Configuration stays server-side.
 endlegend
 @enduml

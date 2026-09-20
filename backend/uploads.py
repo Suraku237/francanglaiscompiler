@@ -13,7 +13,7 @@ from .import_models import MAX_FILE_BYTES
 @asynccontextmanager
 async def multipart_form(
     request: Request, *, fields: set[str], max_field_bytes: int = 64,
-    file_required: bool = True,
+    file_required: bool = True, max_file_bytes: int = MAX_FILE_BYTES,
 ) -> AsyncIterator[FormData]:
     length = request.headers.get("content-length")
     if length is not None:
@@ -21,8 +21,8 @@ async def multipart_form(
             size = int(length)
         except ValueError as exc:
             raise CollectionError(400, "Invalid upload size.") from exc
-        if size < 0 or size > MAX_FILE_BYTES + 65536:
-            raise CollectionError(413, "The upload exceeds 12 MB. Split or compress the file.")
+        if size < 0 or size > max_file_bytes + 65536:
+            raise CollectionError(413, f"The upload exceeds {max_file_bytes // (1024 * 1024)} MB. Split or compress the file.")
     if not request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
         raise CollectionError(422, "Choose a file using a multipart upload.")
 
@@ -30,8 +30,8 @@ async def multipart_form(
         received = 0
         async for chunk in request.stream():
             received += len(chunk)
-            if received > MAX_FILE_BYTES + 65536:
-                raise MultiPartException("Upload exceeds 12 MB.")
+            if received > max_file_bytes + 65536:
+                raise MultiPartException(f"Upload exceeds {max_file_bytes // (1024 * 1024)} MB.")
             yield chunk
 
     try:
@@ -40,7 +40,7 @@ async def multipart_form(
             max_part_size=max_field_bytes,
         ).parse()
     except MultiPartException as exc:
-        status = 413 if exc.message == "Upload exceeds 12 MB." else 400
+        status = 413 if exc.message.startswith("Upload exceeds ") else 400
         raise CollectionError(status, exc.message) from exc
     except MultipartParseError as exc:
         raise CollectionError(400, "Malformed multipart upload. Select the file and try again.") from exc

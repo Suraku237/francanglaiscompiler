@@ -61,7 +61,9 @@ class AudioApiTests(ApiTestCase):
         self.assertTrue((Path(dataset.AUDIO_DIR) / original["audio_filename"]).exists())
 
     def test_detach_is_explicit_and_retains_committed_audio(self):
-        original = self.create_audio(review_status="approved").json()
+        created = self.create_audio(review_status="approved")
+        self.assertEqual(created.status_code, 201, created.text)
+        original = created.json()
         response = self.client.patch(
             f"/api/dataset/{original['id']}/audio",
             files={

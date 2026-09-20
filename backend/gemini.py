@@ -1,10 +1,12 @@
 import asyncio
 import logging
 import random
+from collections.abc import Callable
 from typing import Literal
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from .config import Settings
 from .grounding import evidence_json
@@ -113,9 +115,13 @@ class GenerateResponse(BaseModel):
 
 
 class GeminiService:
-    def __init__(self, settings: Settings, client: httpx.AsyncClient):
+    def __init__(
+        self, settings: Settings, client: httpx.AsyncClient, *,
+        before_request: Callable[[], None] | None = None,
+    ):
         self.settings = settings
         self.client = client
+        self.before_request = before_request
 
     async def _generate(
         self, contents: list[dict[str, object]], instruction: str, *, structured: bool
@@ -136,6 +142,8 @@ class GeminiService:
             async with asyncio.timeout(self.settings.gemini_timeout_seconds):
                 retry_available = True
                 while True:
+                    if self.before_request is not None:
+                        await run_in_threadpool(self.before_request)
                     response = await self.client.post(
                         url,
                         headers={"x-goog-api-key": self.settings.gemini_api_key.get_secret_value().strip()},

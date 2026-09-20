@@ -1,0 +1,696 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,margin=2.4cm,headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{iftex}
+\ifPDFTeX\usepackage[utf8]{inputenc}\fi
+\usepackage{lmodern,microtype}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem,xcolor,xurl,hyperref,fancyhdr}
+\setlength{\emergencystretch}{3em}
+\setlength{\LTpre}{0.7em}\setlength{\LTpost}{0.7em}
+\setlist{itemsep=2pt,topsep=5pt}
+\definecolor{accent}{HTML}{1E3A5F}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdfstartview=FitH,
+  pdftitle={Francanglais Platform - Software Requirements Specification}}
+\pagestyle{fancy}
+\fancyhf{}\lhead{Francanglais Compiler}\rhead{SRS v1.3}\cfoot{\thepage}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\placeholder}[1]{\textcolor{accent}{\textbf{[To supply: #1]}}}
+\newcommand{\requirement}[4]{\textbf{#1}\newline\textit{#2} & #3\par\smallskip\textbf{Acceptance:} #4\\\addlinespace}
+\newcommand{\story}[5]{\subsection{#1 --- #2}\label{story:#1}#3\par\smallskip\textbf{Trace:} #4.\par\textbf{Acceptance criteria}\begin{enumerate}[label=\alph*)]#5\end{enumerate}}
+\newcommand{\sprinttask}[6]{#1 & #2 & #3\par\smallskip\textbf{Current evidence:} #6 & #4 & #5\\\addlinespace}
+\title{\textbf{Software Requirements Specification}\\[0.4em]
+\Large Francanglais Compiler and Dataset Platform\\[0.6em]
+\large Current Requirements, Traceability and Proposed Delivery Plan}
+\author{Group members and matricules:\\[0.5em]
+Kwete Ngouba Junior Rayan --- ICTU20241377\\[0.5em]
+Djemtchimo Noukui Bruno Jonatan --- ICTU20241585\\[0.5em]
+Amina Boubakary --- ICTU20241870}
+\date{Version 1.3 --- 19 September 2026}
+\begin{document}
+\maketitle\thispagestyle{empty}
+\begin{center}
+\textit{Archived academic scope; use srs.tex for the hosted business release.}
+\end{center}
+\vfill
+\noindent\textbf{Revision basis:} current production source in the working tree
+based on \nolinkurl{160945c}, including the reference dictionary extension.
+The two supplied SDD identities are preserved; remaining identity details,
+observations and historical sprint results are not inferred.
+\par\medskip
+\noindent\textbf{Planning basis:} four proposed two-week sprints. Story points,
+task hours and member leads remain unconfirmed estimates, not completed work.
+\newpage\tableofcontents\newpage
+
+\section{Introduction and Document Control}
+\subsection{Purpose, audience and revision}
+This SRS specifies the implemented local Francanglais/Cameroon Pidgin platform,
+its acceptance boundaries and remaining human deliverables. It serves contributors,
+the three-person project group, learners, maintainers and reviewers. The SDD
+explains the actual modules, all production application classes and UML workflows.
+
+Version 1.3 retains v1.2's replacement of v1.1's desktop-only assumptions and
+adds the separate supplied reference dictionary. Backend, compiler and
+editable React source now provide direct evidence: the web API, reviewed
+translation, import preview, grammar workbench and coursework export are
+\emph{implemented}, not hypothetical components. Existing FR-01--FR-20,
+NFR-01--NFR-12, US-01--US-16, PB-01--PB-16 and S1--S4 identifiers remain
+traceable; revised acceptance wording corrects obsolete schema and UI details.
+New scope receives new identifiers rather than rewriting sprint history.
+
+\subsection{Status and evidence vocabulary}
+\begin{longtable}{L{2.2cm}L{12.3cm}}
+\toprule\textbf{Label} & \textbf{Meaning}\\\midrule\endhead
+B & Implemented behavior supported by current source. It is not automatically a passed manual acceptance check or a linguistically validated result.\\
+T & An acceptance target or human/operational gate still requiring evidence. An implemented supporting mechanism does not close that gate.\\
+D & Deferred product scope; no commitment in the four-sprint proposal.\\
+Automated & Tests or build reports from isolated synthetic fixtures, mocks or real local handlers. A passing fixture test proves its tested behavior, not fieldwork authenticity.\\
+Human & Genuine transcriptions, permission/method, named contributions, interpretation, device trials, provider trials and signed acceptance supplied by the group.\\
+\bottomrule
+\end{longtable}
+The reproducible verification register is in \nolinkurl{docs/README.md} and
+recorded files under \nolinkurl{docs/evidence}. Commands without an
+attached result are instructions, not executed evidence. No test counts,
+latencies, speaker findings, classifier accuracy or completed sprints are
+invented. The illustrative default grammar is teaching material.
+
+\subsection{Definitions}
+\begin{description}[style=nextline]
+\item[Entry] A stored word, phrase or sentence with original text, metadata and optional audio.
+\item[Gloss] A supplied French or English meaning; optional, and not guaranteed correct.
+\item[Approved] A local review flag, not an authenticated role, expert certificate or universal linguistic truth.
+\item[Grounding] Deterministic retrieval of selected approved text/gloss alignments, not model training.
+\item[LL(1)] A category-level predictive grammar using one lookahead token and an explicit end marker.
+\item[Evidence coverage] Overlap with retrieved examples; it is not a translation accuracy score.
+\item[Story point / task hour] Independent provisional planning estimates, not measured velocity.
+\end{description}
+
+\section{Overall Description}
+\subsection{Implemented scope}
+The desktop CustomTkinter collector and a FastAPI service share local UTF-8 CSV
+storage. React/Vite supplies five web workspaces: Translator, Learning assistant,
+Collection, Import \& learn and Compiler lab. A deterministic Python lexer and
+bounded CFG/LL(1) parser run without an AI key. Exact unambiguous approved
+full-entry translations also run locally. Optional Gemini calls provide
+explicitly labelled translation/chat suggestions, media transcription and
+compiler explanations; they do not decide parser acceptance or approve records.
+
+The collector has Collect, Browse \& Edit and Stats tabs, optional microphone
+recording, attachment and playback. The backend manages reviewed alignments,
+validated CRUD, import previews, a three-member coursework profile, genuine
+user-uploaded screenshots and a locally generated draft ZIP.
+
+\subsection{Actors and operating boundary}
+Contributor, maintainer, learner and reviewer are usage roles, not enforced
+permissions. The application has \textbf{no authentication, authorization,
+per-user storage, durable audit trail or public-hosting hardening}. Use a
+trusted local workstation/loopback backend. CORS constrains browser origins;
+it is not access control. A remote backend's ``local'' files reside on that
+server, not automatically on the browser device.
+
+Python and Tcl/Tk provide the desktop runtime; sounddevice, soundfile, NumPy
+and usable devices are optional audio dependencies. FastAPI/httpx and the
+compiler provide the API; React runs in the browser. Vite's development proxy
+forwards \nolinkurl{/api} to the local backend. A deployed frontend requires
+an equivalent same-origin API arrangement, not an assumed hosting service.
+Browser dictation/speech synthesis are separate from desktop WAV recording.
+
+\subsection{Explicit exclusions and honest limits}
+No automatic fieldwork, speaker identity, consent verification, authentic
+corpus population, trained unseen-word predictor or certified translation
+accuracy is claimed. No database transaction spans CSV, audio, coursework
+profile and screenshots together. Cooperative file locks prevent overlapping
+application mutations, not manual editing races or last-writer-wins semantic
+conflicts. Multi-user deployment, universal grammar coverage, LR/SLR parsing,
+native Francanglais voices and provider retention guarantees are not supplied.
+
+\section{Functional Requirements}
+\subsection{Retained collector and analysis requirements}
+\begin{longtable}{L{1.8cm}L{12.5cm}}
+\toprule\textbf{ID / state} & \textbf{Requirement and acceptance check}\\\midrule\endhead
+\requirement{FR-01}{B}
+{Shared storage shall initialize a missing CSV and managed audio directory without rewriting an existing valid corpus merely to read it.}
+{Missing storage creates a canonical header; reading 10-, 11- or 14-field supported schemas preserves existing bytes. Invalid headers/rows fail visibly rather than being silently discarded.}
+\requirement{FR-02}{B}
+{Saving an expression shall reject empty or whitespace-only text.}
+{Desktop and API reject blank text without a row; browser validation is additional convenience, not the sole guard.}
+\requirement{FR-03}{B}
+{Collection shall offer Word, Phrase and Sentence types, the ten coursework topics and Other.}
+{Options round-trip. Desktop defaults and reset use Word and Taxi / Commuting; web new-entry defaults are Sentence and Other.}
+\requirement{FR-04}{B}
+{Contributors shall be able to supply optional French/English glosses, source location, notes and contributor text, plus explicit language/review/lexical metadata.}
+{Unknown provenance/meaning can remain blank. No speaker, location, approval or gloss is fabricated to complete a form.}
+\requirement{FR-05}{B}
+{Creation shall generate identity and timestamp; edits preserve them.}
+{Desktop uses ten hexadecimal UUID characters and a local seconds-resolution ISO timestamp; API creation uses a full UUID and UTC offset. Clients cannot PATCH identity, timestamp or audio reference. No uniqueness constraint is asserted for externally written IDs.}
+\requirement{FR-06}{B}
+{All CSV mutations shall produce the canonical 14-field UTF-8 schema through a locked read--modify--write transaction and atomic replacement.}
+{Appending, editing and deleting preserve unrelated rows and quoting; supported legacy rows gain conservative metadata on the next mutation, not during a read.}
+\requirement{FR-07}{B}
+{Desktop duplicate feedback shall be advisory, debounced by 400 ms and scoped to the chosen language.}
+{Normalized case, whitespace, NFC and apostrophe variants warn; changing text/language clears or recomputes feedback. The desktop permits repeated observations. API duplicate rejection is separately FR-25.}
+\requirement{FR-08}{B}
+{When supported, Record/Stop shall capture mono 44,100 Hz samples and stage a WAV only after successful capture and file writing.}
+{Mock opening/start/stop/close/write failure paths; retain retryable state, close streams and show truthful feedback. Saving while recording must not create a row. Physical sound quality remains a human test.}
+\requirement{FR-09}{B}
+{A contributor shall be able to attach an existing audio file without a microphone.}
+{Cancellation preserves the draft; copying succeeds before replacing the pending filename; failure displays an error and preserves the previous attachment.}
+\requirement{FR-10}{B}
+{Recording and attachment shall generate names inside the managed audio directory; attachment preserves the source extension.}
+{The source file is unchanged. Staging media does not save a CSV row. Replacement/Clear/close remove only unsaved files owned by that draft, with explicit retryable cleanup errors. Committed recordings survive draft reset and row deletion; their later cleanup is deliberate.}
+\requirement{FR-11}{B}
+{Desktop Browse shall filter all stored field values case-insensitively, cache all loaded rows by ID and populate selection without a second read.}
+{Empty/non-match queries show all/no rows. Failed refreshes preserve usable state; stale selections are not reported as successful mutations.}
+\requirement{FR-12}{B}
+{A selected desktop row shall support text, type, category, gloss, source-location, notes, language, review and lexical edits, or confirmed deletion.}
+{ID, timestamp, contributor and audio remain unchanged in this editor. Changed evidence resets approval unless the edit explicitly supplies a review decision. Web contributor editing is separately supported.}
+\requirement{FR-13}{B}
+{Pending or selected audio shall use library playback when available, then an OS default-player fallback if necessary.}
+{Missing files and rejected playback/launch return failure; true means accepted playback/launch, not sound heard to completion.}
+\requirement{FR-14}{B}
+{Stats shall show total rows and descending counts/bars by type, topic, language and review status from one loaded snapshot.}
+{Fixture totals match independent counts; empty data displays zero/no-data; normalization avoids division by zero. Failed reads preserve prior views, not an apparent empty corpus. Batch count/recent/Browse/Stats refresh shares one snapshot.}
+\requirement{FR-15}{B}
+{Local analysis shall return token categories, code-mixing hints and known verb phrases; compiler-lab parsing shall return explicit acceptance/rejection with diagnostics.}
+{Use deterministic golden fixtures, including unsupported symbols and empty parse input. Grammar acceptance is never described as linguistic authenticity. FR-29--FR-31 refine this requirement.}
+\requirement{FR-16}{B}
+{Translation retrieval, lexical/grammar analysis, parsing, chat and previews shall not change existing corpus rows or audio.}
+{Compare existing corpus/media hashes before/after successful and rejected requests. Missing shared storage may be initialized and lock files created; predictions are not automatically inserted.}
+\requirement{FR-17}{B}
+{A successful desktop save shall refresh collection views and reset the draft while retaining contributor; Escape retains contributor and explicit Clear may remove it.}
+{The latest six rows are newest-first. A failed write retains draft and pending audio rather than clearing them or reporting Saved.}
+\requirement{FR-18}{B}
+{Edit/delete without selection shall show feedback; deletion requires confirmation.}
+{No or no selection leaves storage unchanged. Yes clears selection only after a successful removal; a disappeared ID receives an actionable stale-entry error. Media files remain.}
+\requirement{FR-19}{B}
+{A failed CSV mutation shall preserve the last valid dataset and report failure rather than saved/deleted success.}
+{Fault-inject writing and replacement: the prior CSV remains parseable and byte-identical, intermediate files are removed, and retry is possible. A later display-refresh error is not described as rollback of a committed write.}
+\requirement{FR-20}{D}
+{A future unseen-word predictor shall distinguish speculative candidates from corpus facts and provide evidence or abstention.}
+{No training/evaluation or accuracy is claimed. Existing generative suggestions and reviewed lexical lookup do not complete this deferred predictor.}
+\bottomrule\end{longtable}
+
+\subsection{Web, reviewed grounding, imports and coursework}
+\begin{longtable}{L{1.8cm}L{12.5cm}}
+\toprule\textbf{ID / state} & \textbf{Requirement and acceptance check}\\\midrule\endhead
+\requirement{FR-21}{B}
+{The API shall expose health/configuration and collection metadata, validate request DTOs and return structured, actionable failures.}
+{Health reports configuration, not a live-provider probe. Unknown request fields fail validation. Document 204, 400/404/409/413/415/422, 429, 500/502/503/504 behavior and the route inventory in the SDD.}
+\requirement{FR-22}{B}
+{Stored language and review status shall distinguish francanglais, pidgin, mixed and unspecified, and approved from unreviewed.}
+{Legacy/invalid values become unspecified/unreviewed in memory; an invalid lexical label becomes empty. Editing evidence without an explicit review decision invalidates approval. A reviewer may explicitly approve a changed record.}
+\requirement{FR-23}{B}
+{Collection-grounded translation shall use approved, labelled Francanglais/Pidgin alignments and answer locally only for an unambiguous full-entry source/target match; separately enabled references follow FR-37.}
+{Partial/token overlap never synthesizes a local sentence. Conflicting or missing target alignments prevent local success. Return IDs, selected evidence and overlap warnings within the bounded evidence budget; do not share private row metadata.}
+\requirement{FR-24}{B}
+{Explicit translation/chat requests may use configured AI, with independent collection/reference controls and visible origin/model labels.}
+{No eligible exact match plus disabled AI returns 422. AI output is labelled unverified, never auto-saved. Chat accepts at most six complete alternating exchanges (12 messages, 24,000 total history characters).}
+\requirement{FR-25}{B}
+{The web collection shall search all row values, show whole-corpus counts, and create, partially edit or confirm deletion of entries.}
+{Normalized duplicate text within a language returns 409; stale IDs return 404. PATCH preserves omitted fields and rejects empty objects/null updates. UI filters and changed-field editing retain legacy values without silently rewriting them.}
+\requirement{FR-26}{B}
+{Imports shall preview one supported file locally when possible, without saving rows or retaining raw imports as application records.}
+{TXT/MD/CSV/JSON/DOCX/text PDF work offline. Enforce 12 MiB per file, 40 PDF pages, 40,000 extracted characters, 4,000-character segments and at most 100 structured drafts. Imported approval flags cannot bypass review.}
+\requirement{FR-27}{B}
+{Images, audio, video and PDFs needing OCR shall require explicit cloud-processing consent before provider submission.}
+{With consent off, no eligible media request reaches Gemini; a partially readable PDF may show local text plus warnings. Validate format/size; flag uncertain AI transcript text and provider retention limits.}
+\requirement{FR-28}{B}
+{Import handoff and suggestions shall remain separate from saving and approval.}
+{Translate/Ask AI handoff only fills a browser draft. A separate suggestion request accepts only exact, word-bounded source quotations (at most 12 drafts). Each candidate opens an unreviewed editor and requires an explicit save/review decision.}
+\requirement{FR-29}{B}
+{The lexer shall preserve raw tokens, apply structural regex rules first, then eligible reviewed Word annotations, static lists and suffix heuristics, ending in UNKNOWN.}
+{Conflicting reviewed labels are ignored; sentence rows do not train words. Unsupported characters are not dropped. Mark \nolinkurl{*_LIKE} and code-mixed transitions as heuristic, not proven language identity.}
+\requirement{FR-30}{B}
+{Grammar analysis shall validate the category-based notation, transform supported left recursion and common prefixes, and calculate FIRST/FOLLOW and LL(1) conflicts deterministically.}
+{Use explicit epsilon, preserve before/after snapshots, bound expansion, reject unsafe recursion and report remaining cycles. Conflicting table cells are absent from the executable table and retain all competing productions in diagnostics.}
+\requirement{FR-31}{B}
+{A bounded table-driven parser shall consume lexer categories, requiring complete input and end-marker agreement.}
+{Trace stack/input before each action; distinguish missing cells, terminal mismatch, trailing tokens, conflicts and limits. UNKNOWN is a literal category, never a wildcard. Empty input can be accepted only by a suitable nullable grammar.}
+\requirement{FR-32}{B}
+{Compiler lab shall maintain a locally saved profile with exactly three member strings, grammar, method, rationale, discussion, limitations and self-attestation, plus explicit screenshot CRUD.}
+{Missing profile uses blank members and an illustrative grammar. Save validates grammar and atomically replaces JSON under a lock. PNG/JPEG uploads are decoded/re-encoded as PNG; enforce six images, 2 MiB and 12 megapixels each.}
+\requirement{FR-33}{B}
+{Corpus analysis shall use saved entries to compute frequencies, category counts, spelling-variation candidates and per-entry parse traces.}
+{Enforce 500 entries, 100,000 text characters and 4,000 characters per entry. Sentence target/topic counts must not be inflated by Word/Phrase rows. Readiness checks are not grades or independent fieldwork verification.}
+\requirement{FR-34}{B}
+{A local export shall regenerate a coursework draft from saved profile/grammar, current saved CSV and uploaded screenshots, excluding credentials and raw audio.}
+{ZIP includes printable 25-section HTML, editable PPTX, CSV/JSON artifacts, selected actual sources and own-data regression snapshots. UI blocks export while project edits are unsaved. Raw text/provenance are included, so authorized review is required before sharing.}
+\requirement{FR-35}{B}
+{Browser flows shall preserve drafts in tab memory, cancel stale requests, expose progress/errors and require explicit voice/submit actions.}
+{Edits/navigation invalidate stale output; failed mutations warn that a timeout may have committed. Dictation does not submit. Read-aloud can stop; chat auto-reading defaults off. Reload loses unsaved browser state.}
+\requirement{FR-36}{B}
+{Optional compiler tutoring shall explain locally recomputed facts without applying changes or choosing parser results.}
+{Send only entered grammar/practice text/question/language and selected computed facts; omit stored profile, screenshots and full corpus. Bound context to 30,000 characters; suggestions remain for human review.}
+\requirement{FR-37}{B}
+{The system shall expose a searchable, read-only reference dictionary from the two supplied Markdown files, separately from collected fieldwork, and use enabled reference meanings for honest local lookup.}
+{Preserve all 143+36 source rows, senses and source citations; support listed forms, search and pagination (at most 100 entries per API page). Require an unambiguous whole-entry match, never concatenate word meanings into a sentence. Do not invent absent French meanings, infer grammar labels from origins, write corpus rows or inflate coursework counts. Handoff fills a draft only; independent switches also constrain AI evidence. Corrupt/missing reference sources fail explicitly.}
+\bottomrule\end{longtable}
+
+\section{Non-Functional Requirements}
+Targets are not reported as measurements unless the verification register
+contains the actual environment, command and result.
+\begin{longtable}{L{1.8cm}L{12.5cm}}
+\toprule\textbf{ID / state} & \textbf{Quality requirement and verification}\\\midrule\endhead
+\requirement{NFR-01}{B}
+{Desktop shall provide a 780 by 640 minimum window, scrollable collection controls, Ctrl+Enter Save and Escape reset.}
+{Exercise tabs, keyboard actions and error paths at the minimum size; physical display/usability approval remains a human check.}
+\requirement{NFR-02}{B}
+{Persistence shall preserve UTF-8 and proper CSV quoting.}
+{Round-trip accents, commas, quotes and line breaks, including legacy schemas, without changing collected text during read normalization.}
+\requirement{NFR-03}{B}
+{Audio playback shall report request acceptance separately from failure.}
+{Mock library/OS exceptions and missing media. Successful request return is not proof of audible playback.}
+\requirement{NFR-04}{B}
+{Managed paths shall be module-relative and media references generated filenames.}
+{Change working directory and verify storage resolution and source-file preservation. CSV rows are not a referential-integrity database.}
+\requirement{NFR-05}{B}
+{Missing optional desktop audio imports shall not prevent text collection, browsing or attachment.}
+{Use a dependency-unavailable fixture and device-error fixtures; real microphones and OS players need separate trials.}
+\requirement{NFR-06}{B}
+{Local compiler/retrieval results shall be deterministic for fixed inputs, corpus, grammar and rules.}
+{Compare repeated structured results in golden fixtures. This does not promise deterministic generative-provider wording.}
+\requirement{NFR-07}{B/T}
+{Critical software paths shall have isolated automated regression coverage and an explicit evidence record.}
+{Run the Python, frontend unit and browser suites documented in the verification register; never use or mutate the real corpus as test data. Human release acceptance remains pending.}
+\requirement{NFR-08}{B/T}
+{Secrets and personal material shall have explicit publication/privacy boundaries.}
+{Server-only secret configuration, selected evidence payloads, opt-in cloud upload and repository exclusions are implemented. Permission to collect/share, authorized export review and any old-history cleanup require humans; ignoring a file is not retroactive deletion.}
+\requirement{NFR-09}{B}
+{LaTeX and every PlantUML source shall build locally into readable, consistently referenced documentation.}
+{Render all diagrams with the local jar, compile both PDFs, validate full class inventory, balanced communications and references; inspect layout and remaining human placeholders.}
+\requirement{NFR-10}{B/T}
+{On a recorded reference Windows workstation with 8 GB RAM and local SSD, search and Stats refresh shall each have p95 latency at most one second for 1,000 rows of up to 500 text characters.}
+{Use one warm-up and 20 measured active-tab handler runs with Tk idle rendering and nearest-rank p95. Evidence E4 passes the unchanged timing threshold on a 31.8 GiB machine. It does not certify the original 8 GB/SSD configuration; that separate acceptance gate remains open.}
+\requirement{NFR-11}{B}
+{CSV mutations shall be failure-safe and cooperative across processes, with truthful desktop/API error feedback.}
+{A reentrant path-keyed FileLock with 10-second timeout encloses complete transactions; same-directory write, flush/fsync and replace protect the prior file. Fault tests do not prove every filesystem or power-loss scenario.}
+\requirement{NFR-12}{B/T}
+{A safe offline backup/verify/restore procedure shall cover the corpus, referenced audio and local coursework evidence.}
+{Use the snapshot CLI in the SDD/README, restore only into a new directory, and compare manifest hashes. A synthetic rehearsal verifies tooling, not an authorized backup of authentic fieldwork.}
+\requirement{NFR-13}{B/T}
+{The backend shall be treated as a trusted local service, not a publicly secure multi-user system.}
+{Document no authentication, authorization, rate-limiter or account separation; keep keys server-side and limit network exposure. Public deployment needs separate design and review.}
+\requirement{NFR-14}{B}
+{Untrusted inputs and provider calls shall have bounded work and safe errors.}
+{Check DTO lengths, file and grammar limits, parser progress guards, provider timeout and one 503 retry. Do not expose provider bodies or secret-bearing diagnostics to clients.}
+\requirement{NFR-15}{B/T}
+{Web pages shall provide labelled controls, focus-managed dialogs, keyboard paths, responsive layout and visible error/status feedback.}
+{Automated browser/DOM checks cover implemented flows; real assistive-technology, mobile-device and pronunciation acceptance remain open.}
+\requirement{NFR-16}{B/T}
+{Human evidence shall remain distinguishable from automated output and self-attestation.}
+{Label imported/AI text, illustrative grammar, generated expected tests and draft reports. Supply genuine fieldwork, group identities/contributions, original interpretation and final review before submission.}
+\bottomrule\end{longtable}
+
+\section{Data and External Interface Requirements}
+\subsection{Canonical storage and compatibility}
+The header order is part of the contract. The SDD specifies the actual locks
+and transaction boundary; the following is the logical schema, not an
+invented persistence model class.
+\begin{longtable}{L{4cm}L{10.3cm}}
+\toprule\textbf{Field (in order)} & \textbf{Meaning}\\\midrule\endhead
+\nolinkurl{id} & Generated stable identifier; historical desktop and full API UUID formats coexist.\\
+\nolinkurl{text} & Collected wording. The API preserves stored strings; a new browser/desktop form trims surrounding whitespace.\\
+\nolinkurl{entry_type} & Word, Phrase or Sentence; legacy values can remain on an unchanged row.\\
+\nolinkurl{french_gloss}, \nolinkurl{english_gloss} & Optional alignments; no automatic correctness guarantee.\\
+\nolinkurl{category} & Required topic selection on new UI/API entries; legacy values are retained where unchanged.\\
+\nolinkurl{source_location} & Optional provenance/location, not a geolocation sensor or proof of permission.\\
+\nolinkurl{notes} & Optional context, uncertainty and private review notes.\\
+\nolinkurl{audio_filename} & Optional one-file reference; no file existence/ownership uniqueness constraint.\\
+\nolinkurl{contributor} & Optional supplied text, not an account or mandatory matricule field.\\
+\nolinkurl{timestamp} & Creation timestamp; desktop local and API UTC formats remain supported.\\
+\nolinkurl{language} & francanglais, pidgin, mixed or unspecified. Unknown/legacy defaults to unspecified.\\
+\nolinkurl{review_status} & unreviewed or approved. Unknown/legacy defaults to unreviewed.\\
+\nolinkurl{lexical_category} & Empty or one of the eleven declared lexer terminals.\\
+\bottomrule\end{longtable}
+The 11-field pre-review schema is the canonical prefix ending at timestamp.
+The 10-field legacy schema additionally omits source location. Exact header
+order is validated; arbitrary columns and incomplete/extra cells are rejected.
+Reads upgrade metadata in memory. Mutations write all fourteen fields atomically.
+
+Topics are Taxi / Commuting, Internet Connectivity, Electricity Supply,
+Market Bargaining, Rainy Season, Fuel Scarcity, Roadside Business,
+Bendskin Communication, Security Checkpoint and Campus Life, plus Other.
+They are \emph{collection categories}, not lexer terminal labels.
+
+\subsection{Interface families}
+All explicit application routes use \nolinkurl{/api}: health/metadata,
+translation, chat, lexical analysis, dataset CRUD, read-only dictionary lookup, import preview/suggestions,
+and coursework state, project saving, corpus analysis, parsing, tutoring,
+screenshots and export. DTO details and the
+complete method/path table are in the SDD. Request models reject unknown
+JSON fields. The OpenAPI page is generated by FastAPI; it is documentation,
+not proof that an AI key is valid. Desktop has no HTTP dependency.
+
+\subsection{Privacy and evidence separation}
+Local retrieval sends ID, expression text, language, French/English
+glosses, match type and a source discriminator, with coverage where applicable.
+Dictionary matches additionally include their supplied forms and reference
+filename/line; these are not human fieldwork claims. Collection source location,
+contributor, notes, timestamp, audio and full corpus are excluded. This
+minimization does not anonymize sensitive words a user explicitly submits.
+Cloud consent applies to import preview; pressing a later AI suggestion,
+translation, chat or tutoring action is a separate submission. Browser speech
+providers may receive audio independently of Gemini. The coursework export
+\emph{does include} corpus text, contributor/provenance and the saved project;
+it must be reviewed before sharing. These documentation PDFs contain neither
+the actual corpus nor invented fieldwork.
+
+\section{User Stories and Acceptance Criteria}
+US-01--US-16 preserve the previous story identities. US-17--US-24 describe
+already implemented added scope. Each maps to the corresponding PB suffix.
+None of these statements records a historically completed sprint.
+
+\story{US-01}{Initialize a usable corpus}
+{As a contributor, I want safe initialization so I can resume collection without losing existing entries.}
+{FR-01, FR-06; NFR-02, NFR-04}
+{\item Missing storage gets a canonical header; supported existing storage survives a read byte-for-byte.
+\item Corrupt or unsupported storage fails visibly instead of being replaced with an empty corpus.}
+\story{US-02}{Capture an annotated example}
+{As a contributor, I want exact text with optional meanings and context so that the record retains useful evidence.}
+{FR-02--FR-06, FR-17, FR-22}
+{\item Blank text is rejected; valid fields, generated metadata and language/review decisions round-trip.
+\item Only a committed save resets the draft; genuine unknown facts can remain blank.}
+\story{US-03}{Notice duplicate text}
+{As a desktop contributor, I want advisory duplicate feedback so that legitimate repeated observations remain possible.}
+{FR-07; FR-25 for the different web policy}
+{\item Matching normalization includes case, whitespace, apostrophes and language.
+\item The warning is debounced and non-blocking; web duplicates instead return 409.}
+\story{US-04}{Find and select an entry}
+{As a maintainer, I want search and a reliable selection so I can locate annotations for review.}
+{FR-11, FR-25; NFR-10}
+{\item Desktop empty/non-matching queries show all/no rows; selection uses the cached row.
+\item Web filters apply to returned rows, while displayed aggregate counts remain whole-corpus counts.}
+\story{US-05}{Correct an annotation}
+{As a maintainer, I want controlled editing so that identity and omitted evidence stay intact.}
+{FR-06, FR-12, FR-18, FR-22, FR-25}
+{\item Invalid/stale/no-selection edits do not claim success.
+\item Changed evidence invalidates approval unless review is explicit; identity, timestamp and media are preserved.}
+\story{US-06}{Delete with confirmation}
+{As a maintainer, I want a confirmation boundary to avoid accidental removal.}
+{FR-12, FR-18, FR-25}
+{\item No/cancel changes nothing; Yes removes the matching row only after a successful transaction.
+\item Disappeared rows report an error; audio remains for deliberate separate cleanup.}
+\story{US-07}{Attach existing audio}
+{As a contributor, I want to stage an existing file without a microphone.}
+{FR-09, FR-10; NFR-04, NFR-05}
+{\item Success copies to a generated filename; cancellation/failure preserves the previous draft attachment.
+\item Saving links the staged name, without modifying the original file.}
+\story{US-08}{Listen to an example}
+{As a contributor, I want playback feedback so I can check the linked recording.}
+{FR-13; NFR-03}
+{\item Library failure may reach the OS fallback; missing media or rejected fallback shows an error.
+\item Playback does not mutate CSV; physical audibility is not inferred from a mocked success.}
+\story{US-09}{Record an example}
+{As a contributor, I want a recoverable Record/Stop lifecycle so that captured pronunciation can accompany an entry.}
+{FR-08, FR-10, FR-19; NFR-05, NFR-11}
+{\item A successful capture stages mono 44,100 Hz WAV; no frames create no new recording.
+\item Save while recording is blocked; start/stop/write errors leave truthful retryable state.}
+\story{US-10}{Review corpus coverage}
+{As a maintainer, I want counts by type/topic so I can find gaps.}
+{FR-14, FR-33}
+{\item Known fixtures match independent counts; empty data is safe.
+\item Sentence/topic readiness is not inferred from Word/Phrase counts or from a chart alone.}
+\story{US-11}{Protect corpus quality and privacy}
+{As a maintainer, I want safe mutations, regression checks and recovery so that evidence remains usable and controlled.}
+{FR-19; NFR-07, NFR-08, NFR-10--NFR-14}
+{\item Fault tests preserve prior data; tests/benchmarks use synthetic storage.
+\item Verify and restore a snapshot into a new destination, with matching hashes; sharing still needs approval.}
+\story{US-12}{Build understandable documentation}
+{As a group member, I want explained editable diagrams and locally built documents.}
+{NFR-09, NFR-16}
+{\item Every production class has an inventory entry and diagram; every diagram has an explanation and trace.
+\item Local rendering/build leaves no unresolved references or overflowing content; human placeholders remain explicit.}
+\story{US-13}{Inspect lexical analysis}
+{As a learner, I want visible tokens and category evidence so that I can inspect the lexer's limits.}
+{FR-15, FR-16, FR-29; NFR-06}
+{\item Raw tokens survive segmentation; approved Word annotations affect only eligible non-conflicting entries.
+\item Unsupported symbols become UNKNOWN; heuristic categories and inferred transitions are labelled as such.}
+\story{US-14}{Inspect sentence analysis}
+{As a learner, I want transformations, sets, table cells and traces so that I can explain a declared grammar.}
+{FR-15, FR-16, FR-30, FR-31; NFR-06, NFR-14}
+{\item Valid fixtures have deterministic results; malformed, conflicting and bounded-out cases have explicit diagnostics.
+\item The illustrative starter and category-level acceptance are never claimed as a validated corpus grammar.}
+\story{US-15}{Receive a demonstrable release}
+{As a reviewer, I want repeatable software evidence separated from unfinished research deliverables.}
+{FR-19, FR-34; NFR-07--NFR-16}
+{\item Handover contains built documents, actual verification reports, recovery instructions and known limits.
+\item Group review, authentic fieldwork, device/provider trials and final manuscript/presentation remain open until evidenced.}
+\story{US-16}{Explore unseen-word candidates}
+{As a learner, I may want future speculative candidates without confusing guesses with corpus facts.}
+{FR-20, FR-16}
+{\item The trained/evaluated predictor is deferred; no automatic insertion or unevaluated accuracy claim is permitted.}
+\story{US-17}{Use the local web collection}
+{As a web contributor, I want validated CRUD and metadata so that I can maintain shared local entries.}
+{FR-21, FR-25, FR-35}
+{\item Search, filtering, creation, changed-field review and confirmed deletion return the expected data and HTTP status.
+\item Rejected/ambiguous mutations preserve drafts and prompt refresh rather than blind retries.}
+\story{US-18}{Translate from reviewed alignments}
+{As a learner, I want exact reviewed local translations and honest coverage when evidence is incomplete.}
+{FR-22, FR-23, FR-24}
+{\item Exact unambiguous alignments need no AI key; phrase/token overlap is not a composed local translation.
+\item Disabled AI with no exact answer reports 422; evidence, origin and warnings remain visible.}
+\story{US-19}{Request optional language assistance}
+{As a learner, I want explicit AI suggestions with controllable context and no automatic learning.}
+{FR-24, FR-35, FR-36; NFR-08, NFR-14}
+{\item Translation/chat/tutoring send only the declared input and allowed evidence; output is unverified.
+\item Failed chat turns do not enter successful exchange history; clear/navigation cancels stale work.}
+\story{US-20}{Preview, review and import material}
+{As a contributor, I want local extraction or consented transcription before deciding what to save.}
+{FR-26--FR-28}
+{\item Limits, unsupported formats, corrupt input and no-consent cases fail explicitly.
+\item Preview, handoff and suggestions save nothing; each reviewed candidate is saved separately with truthful provenance.}
+\story{US-21}{Maintain coursework evidence}
+{As a group member, I want a saved profile, corpus analysis and genuine screenshots without generated research claims.}
+{FR-32, FR-33; NFR-16}
+{\item Exactly three distinct nonblank member strings can be supplied; blanks remain visibly incomplete.
+\item Editor grammar can be analyzed without saving. Saved evidence refresh preserves editor drafts; self-attestation is not independent validation.}
+\story{US-22}{Export a coursework draft}
+{As a group member, I want a locally reproducible bundle derived only from saved evidence.}
+{FR-34; NFR-08, NFR-12, NFR-16}
+{\item Dirty editor state blocks export until save. ZIP uses saved grammar/CSV/screenshots, not AI replies or unsaved practice text.
+\item Review report pagination, slide timing, generated expectations and sensitive content before authorized submission.}
+\story{US-23}{Control browser requests and voice}
+{As a browser user, I want accessible, explicit actions that do not submit stale or unintended content.}
+{FR-35; NFR-15}
+{\item Cancellation/navigation/editing prevents stale success callbacks; timeouts never promise server rollback.
+\item Dictation is opt-in and only fills text; synthesis can stop and has no native-voice guarantee.}
+\story{US-24}{Use supplied reference vocabulary without inventing fieldwork}
+{As a learner, I want to find supplied words and English meanings even when the research CSV is empty, while keeping their provenance distinct.}
+{FR-23, FR-24, FR-35, FR-37; NFR-08, NFR-16}
+{\item Both supplied sources are searchable and cited; conflicting senses remain visible and never silently replace each other.
+\item Exact reference lookups need no AI key; missing French remains a gap. The reference switch is independent of collection use.
+\item Dictionary handoff does not submit/save; collection counts and coursework corpus analysis remain unchanged.}
+
+\section{Prioritized Product Backlog}
+\subsection{Current verification register}
+These results describe this source snapshot, not an invented sprint history.
+E5 is verified by rebuilding and checking the published artifacts; the same
+commands run in the configured CI workflow. A remote CI result is not claimed.
+\begin{longtable}{L{1cm}L{13.3cm}}
+\toprule\textbf{ID} & \textbf{Recorded result and boundary}\\\midrule\endhead
+E1 & 268 Python regressions passed, including 16 dictionary, 56 desktop and 33 maintenance/checker tests. Earlier real WAV codec/file round-trip also passed; microphone/provider tests remain isolated mocks.\\
+E2 & 86 frontend component tests passed; application and test TypeScript checks and production build passed.\\
+E3 & 22 desktop/mobile Chromium cases passed, including dictionary search/handoff/retry, import consent, review, keyboard focus, saved-project/export gating and downloaded fixture ZIP bytes. API data is mocked, not authentic research.\\
+E4 & Real active-tab benchmark: 1,000 synthetic 500-character rows; search p95 53.31 ms, Stats p95 606.01 ms; 20 measured runs each. Report: \nolinkurl{docs/evidence/collector-benchmark.json}. Measured hardware is not the original 8 GB/SSD reference.\\
+E5 & SRS/SDD and 29 full-size UML sheets built locally. Inventory covers 49 production classes; 14 sequence views have explicit balanced call/reply activations. Source/sheet/image/reference checks accompany publication.\\
+E6 & Reference extension: both supplied files retain 143+36 source entries, explicit English meanings and provenance. Local lookups, conflicting senses, missing French, source switches and unchanged corpus/export counts are tested. See \nolinkurl{docs/evidence/dictionary-verification.json}.\\
+H & Human gates: genuine corpus and permission, remaining identity details and all contributions, reviewed linguistic findings, real devices/provider, reference hardware, final report/slides and group sign-off. Not fulfilled by E1--E6.\\
+\bottomrule\end{longtable}
+
+\subsection{Source state versus proposed scheduling}
+The original point estimates and proposed sprint selections are retained for
+traceability: 67 selected SP, plus 8 deferred SP, originally 75 total.
+These are \textbf{not remaining-effort estimates}. Current implementation is
+ahead of that old proposal in several areas; the group must re-estimate and
+agree a real schedule before using it. ``Implemented'' below is not ``sprint
+Done'' and is not group sign-off.
+\begingroup\small\setlength{\tabcolsep}{3pt}
+\begin{longtable}{L{1.2cm}L{1.2cm}L{1.5cm}L{0.6cm}L{1.1cm}L{2cm}L{6.7cm}}
+\toprule\textbf{PB} & \textbf{US} & \textbf{Priority} & \textbf{SP} & \textbf{Plan} & \textbf{Depends} & \textbf{Current state / remaining evidence}\\\midrule\endhead
+PB-01 & US-01 & Must & 3 & S1 & None & Software verified (E1): initialization, strict schemas and conservative legacy reads.\\
+PB-02 & US-02 & Must & 5 & S1 & PB-01 & Software verified (E1--E3): annotated creation/reset; authentic content remains H.\\
+PB-03 & US-03 & Should & 3 & S1 & PB-02 & Software verified (E1): advisory desktop duplicates; web 409 policy is distinct.\\
+PB-04 & US-04 & Must & 5 & S1 & PB-01 & Software verified (E1, E3); measured timing E4. Original reference-machine gate remains H.\\
+PB-05 & US-05 & Must & 5 & S2 & PB-04 & Software verified (E1--E3): changed fields, review reset, stale IDs and failures.\\
+PB-06 & US-06 & Must & 3 & S2 & PB-04 & Software verified (E1, E3): confirmation/removal; committed audio retained.\\
+PB-07 & US-07 & Should & 3 & S2 & PB-02 & Software verified (E1): attachment, cancellation and draft-file ownership.\\
+PB-08 & US-08 & Should & 5 & S2 & PB-07 & Software verified (E1): fallback/errors. Real audibility/device acceptance is H.\\
+PB-09 & US-09 & Should & 5 & S3 & PB-07,08 & Software/WAV I/O verified (E1): retry states and guards. Genuine microphone trial is H.\\
+PB-10 & US-10 & Should & 3 & S3 & PB-01 & Software verified (E1, E4): consistent Stats/readiness. Authentic topic coverage is H.\\
+PB-11 & US-11 & Must & 5 & S3 & PB-05--09 & Software verified (E1, E4): fault safety and restore checks. Real-data permission/recovery approval is H.\\
+PB-12 & US-12 & Must & 3 & S3 & PB-11 & Engineering documents verified (E5); remaining member details and group approval remain H.\\
+PB-13 & US-13 & Must & 8 & S4 & PB-01,11 & Software verified (E1): regex/reviewed-word lexer. Independent linguistic evaluation is H.\\
+PB-14 & US-14 & Must & 8 & S4 & PB-13 & Software verified (E1, E3): CFG/LL(1)/traces. Own-corpus rationale/evaluation is H.\\
+PB-15 & US-15 & Must & 3 & S4 & PB-12--14 & Engineering handover verified (E1--E5); research, devices, provider and group sign-off remain H.\\
+PB-16 & US-16 & Could & 8 & Later & PB-13,14 & Deferred trained/evaluated unseen-word predictor; generative suggestions are not its completion.\\
+\bottomrule\end{longtable}\endgroup
+
+\subsection{Added implemented scope, not retroactively assigned to sprints}
+No story points, task hours or sprint dates are invented for these additions.
+They require group prioritization/re-estimation, although the software exists.
+\begin{longtable}{L{1.8cm}L{2cm}L{10.5cm}}
+\toprule\textbf{Item / story} & \textbf{Depends on} & \textbf{State and next acceptance gate}\\\midrule\endhead
+PB-17 / US-17 & PB-01,05,06 & Software verified (E1--E3): web CRUD/metadata and failure handling.\\
+PB-18 / US-18 & PB-13,17 & Software verified (E1--E3): exact retrieval/coverage. Genuine reviewed alignments remain H.\\
+PB-19 / US-19 & PB-18 & Software verified with mocked provider (E1--E2). Authorized live service/quality trials remain H.\\
+PB-20 / US-20 & PB-17,19 & Software verified (E1--E3): bounded preview, consent, handoff and explicit save. Authentic source/permission remain H.\\
+PB-21 / US-21 & PB-13,14,17 & Software verified (E1--E3): profile/analysis/images. Actual group data, transcripts and interpretation remain H.\\
+PB-22 / US-22 & PB-21 & Software verified (E1--E3): draft ZIP/report/slides and native download. Final pagination/rehearsal/release remain H.\\
+PB-23 / US-23 & PB-17--22 & Software verified (E2--E3): cancellation, focus and opt-in controls. Real devices/assistive technology remain H.\\
+PB-24 / US-24 & PB-18,23 & Software verified (E1--E3, E6): separate supplied dictionary, provenance-aware retrieval and draft handoff. Source coverage and linguistic evaluation remain human responsibilities.\\
+\bottomrule\end{longtable}
+
+\section{Sprint Backlogs: Four Proposed Two-Week Iterations}
+\subsection{Planning assumptions and unconfirmed leads}
+S1--S4 remain a \textbf{proposal}, not retrospective history. Relative weeks
+1--8 have no claimed calendar dates, completed ceremonies or measured
+velocity. M1, M2 and M3 refer to the three author rows;
+suggested leads are \textbf{unconfirmed}. All tasks below have planning
+allocation state \textbf{Proposed}. Each task separately records current
+software evidence below; it does not claim a completed sprint. Implementations should be reviewed and
+verified instead of unnecessarily re-created. Added PB-17--PB-24 scope
+is not silently included in these unchanged estimates.
+\begin{longtable}{L{1.3cm}L{1.8cm}L{7.7cm}L{1cm}L{1.3cm}}
+\toprule\textbf{Sprint} & \textbf{Window} & \textbf{Proposed goal} & \textbf{SP} & \textbf{Hours}\\\midrule\endhead
+S1 & Weeks 1--2 & Reliable collection/discovery acceptance & 16 & 24\\
+S2 & Weeks 3--4 & Controlled maintenance and audio-file acceptance & 16 & 26\\
+S3 & Weeks 5--6 & Recording, failure safety and documentation evidence & 16 & 29\\
+S4 & Weeks 7--8 & Local compiler and honest handover acceptance & 19 & 27\\
+\bottomrule\end{longtable}
+
+\subsection{Sprint 1 proposal --- Collection and discovery}
+\textbf{Selected:} PB-01--PB-04, 16 SP / 24 estimated hours.
+\begingroup\small
+\begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
+\toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
+\sprinttask{S1-T01}{PB-01}{Review all supported headers and isolated missing/existing-storage fixtures.}{M1}{3}{Verified E1.}
+\sprinttask{S1-T02}{PB-01}{Check UTF-8, quoting, strict read failures and non-destructive startup.}{M3}{3}{Verified E1.}
+\sprinttask{S1-T03}{PB-02}{Review fields, blank validation, review defaults and generated metadata.}{M2}{4}{Verified E1--E3.}
+\sprinttask{S1-T04}{PB-02}{Verify save/reload, latest rows, retained contributor and shortcuts.}{M3}{3}{Handlers verified E1; physical UI review H.}
+\sprinttask{S1-T05}{PB-03}{Review debounce, language scope and matching normalization.}{M1}{2}{Verified E1.}
+\sprinttask{S1-T06}{PB-03}{Test advisory appearance/clearance and permitted desktop duplicates.}{M3}{2}{Verified E1.}
+\sprinttask{S1-T07}{PB-04}{Review filter/cache selection and representative synthetic fixtures.}{M2}{4}{Verified E1, E3.}
+\sprinttask{S1-T08}{PB-04}{Test query edge cases and record actual handler timings.}{M3}{3}{Measured E4; original hardware gate H.}
+\bottomrule\end{longtable}\endgroup
+\textbf{Proposed exit:} demonstrate valid/blank save, advisory duplicate and
+matching search. Attach evidence; do not mark a sprint completed from code alone.
+
+\subsection{Sprint 2 proposal --- Maintenance and audio files}
+\textbf{Selected:} PB-05--PB-08, 16 SP / 26 estimated hours. Depends on S1.
+\begingroup\small
+\begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
+\toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
+\sprinttask{S2-T01}{PB-05}{Review allowed fields, review invalidation and locked mutation.}{M1}{4}{Verified E1--E3.}
+\sprinttask{S2-T02}{PB-05}{Test valid/blank/no-selection/stale edits and preserved metadata.}{M3}{4}{Verified E1--E3.}
+\sprinttask{S2-T03}{PB-06}{Review confirmation, ID filtering and post-success state cleanup.}{M2}{3}{Verified E1, E3.}
+\sprinttask{S2-T04}{PB-06}{Test Yes/No, stale rows and unchanged audio after deletion.}{M3}{3}{Verified E1, E3.}
+\sprinttask{S2-T05}{PB-07}{Review chooser cancellation, naming and microphone-free copying.}{M1}{3}{Verified E1.}
+\sprinttask{S2-T06}{PB-07}{Test original-file preservation and failed attachment state.}{M3}{3}{Verified E1.}
+\sprinttask{S2-T07}{PB-08}{Review playback and platform fallback boundaries.}{M2}{3}{Software verified E1; physical sound H.}
+\sprinttask{S2-T08}{PB-08}{Mock missing media/library/launch errors; plan genuine device trial.}{M3}{3}{Mocks verified E1; real trial H.}
+\bottomrule\end{longtable}\endgroup
+\textbf{Proposed exit:} show editing, confirmed/cancelled deletion, attachment,
+playback-error feedback and no unwanted media deletion.
+
+\subsection{Sprint 3 proposal --- Quality, recording and documentation}
+\textbf{Selected:} PB-09--PB-12, 16 SP / 29 estimated hours. These mechanisms
+now exist; this proposal reviews their evidence rather than claiming history.
+\begingroup\small
+\begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
+\toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
+\sprinttask{S3-T01}{PB-09}{Review stream lifecycle, save guard and device-failure recovery.}{M1}{3}{Software verified E1; real device H.}
+\sprinttask{S3-T02}{PB-09}{Test frames/no frames, unavailable audio and start/stop/write failures.}{M3}{4}{Verified E1, including real WAV I/O.}
+\sprinttask{S3-T03}{PB-10}{Review grouping, totals and descending normalized bars.}{M2}{3}{Verified E1, E4.}
+\sprinttask{S3-T04}{PB-10}{Test empty corpus, known counts and refresh failure behavior.}{M3}{2}{Verified E1.}
+\sprinttask{S3-T05}{PB-11}{Verify cross-process locking, atomic replacement and truthful write errors.}{M1}{6}{Verified E1.}
+\sprinttask{S3-T06}{PB-11}{Review regression/benchmark/snapshot evidence and consent/exclusions.}{M3}{4}{Tooling verified E1, E4; permission H.}
+\sprinttask{S3-T07}{PB-12}{Reconcile all UML, classes, requirements and local build steps.}{M2}{4}{Engineering evidence E5; group sign-off H.}
+\sprinttask{S3-T08}{PB-12}{Render diagrams, compile PDFs and inspect readability/traceability.}{M3}{3}{Published build and checks E5.}
+\bottomrule\end{longtable}\endgroup
+\textbf{Proposed exit:} evidence of recording behavior, Stats, fault safety,
+an isolated restore rehearsal and reproducible documents. Physical-device
+approval and collection permission cannot be supplied by automated fixtures.
+
+\subsection{Sprint 4 proposal --- Compiler and handover}
+\textbf{Selected:} PB-13--PB-15, 19 SP / 27 estimated hours. A real group must
+approve its fixture corpus and grammar rationale before making linguistic claims.
+\begingroup\small
+\begin{longtable}{L{1.3cm}L{1.2cm}L{8.2cm}L{1.1cm}L{0.8cm}}
+\toprule\textbf{Task} & \textbf{PB} & \textbf{Task and proposed evidence} & \textbf{Lead} & \textbf{h}\\\midrule\endhead
+\sprinttask{S4-T01}{PB-13}{Review deterministic tokenization, annotations and heuristic boundaries.}{M1}{6}{Software verified E1; linguistic review H.}
+\sprinttask{S4-T02}{PB-13}{Check mixed-input golden tests, UNKNOWN and read-only hashes.}{M3}{4}{Verified E1.}
+\sprinttask{S4-T03}{PB-14}{Review CFG transformations, FIRST/FOLLOW, LL(1) and provenance.}{M2}{6}{Software verified E1; own-corpus rationale H.}
+\sprinttask{S4-T04}{PB-14}{Test accepted/rejected/empty/conflicting/limited cases and repeatability.}{M3}{4}{Verified E1, E3.}
+\sprinttask{S4-T05}{PB-15}{Review end-to-end software evidence, privacy, recovery and measured performance.}{M1}{4}{Verified E1--E4; live/hardware gates H.}
+\sprinttask{S4-T06}{PB-15}{Assemble documents, actual evidence, limitations and the group's own demo.}{M2}{3}{Engineering artifacts E1--E5; genuine demo H.}
+\bottomrule\end{longtable}\endgroup
+\textbf{Proposed exit:} traceable acceptance evidence and honest open gates.
+PB-16 remains deferred. The four proposals retain \textbf{106 estimated
+task hours}; no team availability or historical completion is inferred.
+
+\subsection{Ready, Done and change control}
+\textbf{Ready:} agree actor value, acceptance criteria, dependencies,
+fixture/permission availability, estimate and an actual member lead.
+\textbf{Done:} reviewed implementation, applicable recorded tests,
+current documentation and no unresolved critical data-loss/privacy issue
+in that agreed scope. Human acceptance conditions also need genuine evidence.
+Use Proposed, In progress, Blocked and Done on an actual board, with dates and
+owners only when supplied. Replan added scope before assigning it to an
+iteration. Source-supported functionality is never retroactively a sprint record.
+
+\section{Traceability, Verification and Remaining Human Inputs}
+\subsection{Design and verification map}
+\begin{longtable}{L{2.8cm}L{4.2cm}L{7.1cm}}
+\toprule\textbf{Stories / PB} & \textbf{SDD views} & \textbf{Evidence boundary}\\\midrule\endhead
+01--03 & Collection activity/save; storage sequence & Initialization/schema/CRUD fixtures and real-handler tests; real observations still human.\\
+04--06 & Search/edit/delete; entry state & Cached selection, invalid/stale cases, confirmation and fault-injection tests.\\
+07--09 & Recording/playback; collector classes & Mocked stream/files/OS outcomes; actual microphones and audibility separate.\\
+10--12 & Stats, component/deployment, class inventory & Synthetic counts/benchmark, safe restore, local rendering/PDF validation.\\
+13--14 & Compiler classes; grammar/parse sequence & Golden transformations, sets, conflicts, guards and trace tests; no linguistic accuracy inference.\\
+15--16 & Limitations and handover & Software evidence versus pending sign-off; predictor remains deferred.\\
+17--19 & API DTO/provider classes; translation/chat sequences & Request validation, privacy payloads, local exact path and mock-provider errors.\\
+20 & Import/coursework DTOs; import/review sequence & Local extraction/limits/no-save and explicit consent/review tests.\\
+21--22 & Coursework save/export sequence & Saved snapshot, image limits, ZIP contents and draft warnings; actual final report/slides need review.\\
+23 & Frontend class/modules; component view & Unit/browser cancellation, navigation, dialogs, errors and voice mocks; real assistive technology/device checks open.\\
+\bottomrule\end{longtable}
+
+\subsection{Required fieldwork and group input checklist}
+\begin{enumerate}
+\item \textbf{Exact statements:} provide 10--15 genuinely heard, manually
+transcribed sentence records, preserving wording, accents, code mixing,
+ellipsis and uncertainty. Map them to the ten topics. Demo prompts, AI
+translations, OCR and machine transcripts are not substitutes for listening.
+\item \textbf{Provenance and meanings:} supply collection context/location,
+collector and dates where genuinely known and permitted; record uncertainty.
+Provide French/English meanings only when known or reviewed; otherwise leave
+them blank. Use mixed/unspecified language labels when appropriate.
+\item \textbf{Method and permission:} describe how/when/where collection
+occurred, permission to record/process/share, anonymization and any
+restrictions. Keep sensitive permission evidence in an appropriately
+restricted place, not automatically in a public repository.
+\item \textbf{Three actual members:} the first author's provided name/matricule
+are already retained on the title pages. Supply the other two identities and all individual
+contributions to collection, implementation, analysis, writing and presentation.
+The profile has three free-text member slots, not separate verified identity
+fields. Complete document title pages and contribution descriptions truthfully.
+\item \textbf{Original interpretation:} write the group's grammar rationale,
+findings on lexical variation/code mixing, discussion, limitations and
+citations; link claims to collected IDs. Review parser rejections instead of
+calling the speech wrong. Generated test expectations need independent review.
+\item \textbf{Genuine demonstrations:} supply screenshots of actual work,
+group acceptance, physical microphone/player and browser/device observations,
+and separately authorized live-provider checks. Mark self-attestation only
+when true; software cannot establish authenticity.
+\item \textbf{Final submission:} review the actual coursework manuscript for
+25--30 pages (maximum 30) and rehearse the 10-minute presentation, approximately
+three minutes per member plus shared wrap-up. These SRS/SDD PDFs are supporting
+engineering documents, not the required research report.
+\end{enumerate}
+
+\subsection{Release boundary}
+Software, documentation and synthetic verification can be complete while
+the human submission remains incomplete. Remaining gates must retain their
+actual status: no authentic corpus, group sign-off, physical-device success,
+provider quality result, completed sprint or measured accuracy is filled in
+merely because tests/builds pass.
+\end{document}

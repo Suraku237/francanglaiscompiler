@@ -1,8 +1,47 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError, errorDetail } from '../../src/api'
-import { jsonResponse, rejectOnAbort } from '../helpers'
+import { api, ApiError, configureSession, errorDetail, nativeApiUrl, selectProject } from '../../src/api'
+import { deferred, jsonResponse, rejectOnAbort } from '../helpers'
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => { vi.useRealTimers(); configureSession(null) })
+
+describe('private session and project transport', () => {
+  it('sends session CSRF on mutations and project identity on API and native audio requests', async () => {
+    configureSession('test-csrf')
+    selectProject('test-project')
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ id: 'entry' }))
+    await api('/dataset', { method: 'POST', body: { text: 'Private phrase' } })
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]?.headers).toEqual({
+      'Content-Type': 'application/json', 'X-CSRF-Token': 'test-csrf', 'X-Mboa-Project': 'test-project',
+    })
+    expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio?project=test-project')
+    configureSession(null)
+    expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio')
+  })
+
+  it.each(['/workspace/history', '/auth/profile', '/auth/logout'])('signals session expiry from %s without retrying a mutation under another identity', async (path) => {
+    const expired = vi.fn()
+    window.addEventListener('mboa:session-expired', expired)
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: 'Sign in again.' }, 401))
+    await expect(api(path, { method: 'POST', body: {} })).rejects.toMatchObject({ status: 401 })
+    expect(expired).toHaveBeenCalledOnce()
+    expect(fetch).toHaveBeenCalledOnce()
+    window.removeEventListener('mboa:session-expired', expired)
+  })
+
+  it.each(['account', 'project'])('discards a response body that finishes after the %s changes', async (scope) => {
+    configureSession('original-session')
+    const body = deferred<unknown>()
+    const response = jsonResponse({})
+    vi.spyOn(response, 'json').mockImplementation(() => body.promise)
+    vi.mocked(fetch).mockResolvedValue(response)
+    const pending = api('/workspace/history')
+    await vi.waitFor(() => expect(response.json).toHaveBeenCalledOnce())
+    if (scope === 'account') configureSession('replacement-session')
+    else selectProject('replacement-project')
+    body.resolve({ entries: [{ title: 'Previous private data' }] })
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+  })
+})
 
 describe('API response and error contracts', () => {
   it('sends JSON only when there is a body, without caching API reads', async () => {
@@ -75,7 +114,7 @@ describe('API response and error contracts', () => {
   })
 
   it.each([
-    { path: '/translate', method: 'POST' as const, message: 'Cannot reach the local server.' },
+    { path: '/translate', method: 'POST' as const, message: 'Cannot reach the server.' },
     { path: '/dataset/fixture', method: 'PATCH' as const, message: 'The change may have completed. Close this dialog and refresh the collection' },
     { path: '/coursework/project', method: 'PUT' as const, message: 'The change may have completed. Refresh the saved coursework evidence' },
   ])('distinguishes read failures from uncertain mutations at $path', async ({ path, method, message }) => {

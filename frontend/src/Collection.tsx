@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { api, isCancelled, messageOf } from './api'
+import { api, isCancelled, messageOf, nativeApiUrl } from './api'
 import { AudioPlayer, AudioRecorder } from './AudioRecorder'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
 import { defaultMetadata, languageLabels, MAX_TEXT } from './types'
@@ -148,11 +148,11 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
           setRemoveAudio(false)
           update('review_status', 'unreviewed')
         }} />
-        <p className="helper-text">Audio stays a browser draft until you save. Saving attaches it to this local record without sending it to Gemini. Only record people who have given permission.</p>
+        <p className="helper-text">Audio stays a browser draft until you save. Saving uploads it privately to your account without sending it to Gemini. Only record people who have given permission.</p>
         {entry?.audio_filename && !audioFile && <div>
           {removeAudio ? <p className="helper-text">The attachment will be removed from this entry when you save. The original file is retained locally.</p> : <>
             <p className="helper-text">Current attachment: {entry.audio_filename}</p>
-            <AudioPlayer src={`/api/dataset/${encodeURIComponent(entry.id)}/audio`} filename={entry.audio_filename} disabled={pending || recording} />
+            <AudioPlayer src={nativeApiUrl(`/dataset/${encodeURIComponent(entry.id)}/audio`)} filename={entry.audio_filename} disabled={pending || recording} />
           </>}
           <button type="button" className="text-button" disabled={pending || recording} onClick={() => {
             setRemoveAudio((previous) => !previous)
@@ -162,12 +162,12 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
         <div className="entry-review">
           <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, and meanings. Approve this entry for terminology matching.</span></label>
           <p>Edits clear approval until you review the new version. <strong>Unreviewed</strong> entries are excluded from approved-source matching. Approval records your decision, not independent certification.</p>
-          <p>Approved text and glosses may be selected for an explicitly submitted AI request with dataset use enabled. Names, locations, notes, and other record metadata stay local.</p>
+          <p>Approved text and glosses may be selected for an explicitly submitted AI request with terminology use enabled. Stored names, locations, notes and other metadata are not included in retrieved AI evidence.</p>
         </div>
         {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>}
         <ErrorNotice message={validationError || error} />
       </div>
-      <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />This save stays local.</span><div className="submit-actions"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Cancel</button><button type="submit" className="button button-primary" disabled={pending || recording}>{pending ? <Spinner label="Saving expression" /> : <Icon name="check" size={17} />}{pending ? 'Saving…' : draft.review_status === 'approved' ? 'Save approved entry' : 'Save unreviewed'}</button></div></div>
+      <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />Saved privately on this server.</span><div className="submit-actions"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Cancel</button><button type="submit" className="button button-primary" disabled={pending || recording}>{pending ? <Spinner label="Saving expression" /> : <Icon name="check" size={17} />}{pending ? 'Saving…' : draft.review_status === 'approved' ? 'Save approved entry' : 'Save unreviewed'}</button></div></div>
     </form>
   </Modal>
 }
@@ -176,7 +176,7 @@ function DeleteConfirmation({ entry, onClose, onDeleted }: { entry: DatasetEntry
   const { pending, error, run } = useRequest()
   return <Modal title="Remove this expression?" onClose={onClose} busy={pending} className="delete-modal">
     <div className="delete-preview"><Icon name="trash" size={23} /><p>{entry.text}</p></div>
-    <p className="modal-description">This removes the record from your local collection. This action cannot be undone here.</p>
+    <p className="modal-description">This removes the record from the selected project. You can restore its revision in Workspace settings. Recordings and existing backups are retained for recovery.</p>
     <ErrorNotice message={error} />
     <div className="modal-footer"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Keep expression</button><button type="button" className="button button-danger" disabled={pending} onClick={() => void run(
       (signal) => api<void>(`/dataset/${encodeURIComponent(entry.id)}`, { method: 'DELETE', signal }),
@@ -270,7 +270,7 @@ export function Collection({ active }: { active: boolean }) {
       <div><div className="eyebrow">LANGUAGE ASSETS</div><h1 id="collection-title">Terminology</h1><p>Manage approved terms and reusable phrases, keep source context and track items awaiting review.</p></div>
       <button type="button" className="button button-primary" onClick={() => setEditor({ entry: null })}><Icon name="plus" size={18} />Add entry</button>
     </div>
-    <div className="collection-stats" aria-label="Counts across the entire local dataset">
+    <div className="collection-stats" aria-label="Counts across the entire project">
       <div><span className="stat-icon"><Icon name="collection" size={23} /></span><div><strong>{dataset ? dataset.total.toLocaleString() : '—'}</strong><span>Total entries</span></div></div>
       <div><span className="stat-icon"><Icon name="check" size={23} /></span><div><strong>{dataset?.by_review_status?.approved ?? '—'}</strong><span>Approved</span></div></div>
       <div><span className="stat-icon"><Icon name="edit" size={23} /></span><div><strong>{dataset?.by_review_status?.unreviewed ?? '—'}</strong><span>Awaiting review</span></div></div>
@@ -285,7 +285,7 @@ export function Collection({ active }: { active: boolean }) {
         <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · trusted</option><option value="unreviewed">Unreviewed</option></select>
         <label className="sr-only" htmlFor="category-filter">Filter by category</label><select id="category-filter" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name} value={name}>{name}</option>)}</select>
         <label className="sr-only" htmlFor="type-filter">Filter by entry type</label><select id="type-filter" value={entryType} onChange={(event) => setEntryType(event.target.value)}><option value="">All types</option>{entryTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select>
-        <button type="button" className="icon-button refresh-collection" onClick={() => setRevision((value) => value + 1)} disabled={loading} aria-label="Refresh local collection" title="Refresh collection"><Icon name="refresh" size={19} /></button>
+        <button type="button" className="icon-button refresh-collection" onClick={() => setRevision((value) => value + 1)} disabled={loading} aria-label="Refresh terminology" title="Refresh terminology"><Icon name="refresh" size={19} /></button>
       </div>
     </div>
     <ErrorNotice message={metadataError} onRetry={() => setRevision((value) => value + 1)} />
@@ -312,20 +312,20 @@ export function Collection({ active }: { active: boolean }) {
                 {entry.english_gloss && <p lang="en"><span aria-label="English meaning">EN</span>{entry.english_gloss}</p>}
                 {!entry.french_gloss && !entry.english_gloss && <p className="no-gloss">A meaning waiting to be shared.</p>}
               </div>
-              {entry.audio_filename && <AudioPlayer src={`/api/dataset/${encodeURIComponent(entry.id)}/audio`} filename={entry.audio_filename} active={active} />}
+              {entry.audio_filename && <AudioPlayer src={nativeApiUrl(`/dataset/${encodeURIComponent(entry.id)}/audio`)} filename={entry.audio_filename} active={active} />}
               <details className="entry-context"><summary>Context & record details<Icon name="chevron" size={14} /></summary>{entry.notes && <p>{entry.notes}</p>}{entry.contributor && <p><strong>Contributor:</strong> {entry.contributor}</p>}{entry.audio_filename && <p><strong>Audio file:</strong> {entry.audio_filename}</p>}<p className="record-id"><strong>ID:</strong> {entry.id}</p></details>
               <div className="entry-footer"><span><Icon name="location" size={14} />{entry.source_location || 'Location not recorded'}</span><time title={entry.timestamp}>{displayDate(entry.timestamp)}</time></div>
             </article>)}</div>}
     </div>
-    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Terminology is stored on your local backend. Browsing, saving and exporting do not contact Gemini. Explicit AI requests may use selected approved terms and meanings, not stored contributor details, private notes or the full library.</span></p>
+    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Terminology is stored privately in your account on the application server. Browsing, saving and exporting do not contact Gemini. Explicit AI requests may use selected approved terms and meanings, not stored contributor details, private notes or the full library.</span></p>
 
     {active && editor && <EntryEditor entry={editor.entry} metadata={metadata} onClose={() => setEditor(null)} onSaved={(saved) => {
-      setNotice(saved.review_status === 'approved' ? 'Saved locally as approved terminology.' : 'Saved locally. This entry is awaiting review.')
+      setNotice(saved.review_status === 'approved' ? 'Saved privately as approved terminology.' : 'Saved privately. This entry is awaiting review.')
       setEditor(null)
       setRevision((value) => value + 1)
     }} />}
     {active && deleteTarget && <DeleteConfirmation entry={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={() => {
-      setNotice('Expression removed from your local collection.')
+      setNotice('Expression removed from this project. Its revision remains available for recovery.')
       setDeleteTarget(null)
       setRevision((value) => value + 1)
     }} />}

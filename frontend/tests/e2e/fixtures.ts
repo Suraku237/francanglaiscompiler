@@ -47,6 +47,13 @@ export class MockApi {
       return
     }
     if (recorded.method === 'GET') {
+      if (recorded.path === '/api/auth/session') return route.fulfill({ json: {
+        user: { id: 'test-user', email: 'test@example.com', display_name: 'Test user', email_verified: true, google_linked: false },
+        csrf_token: 'test-csrf', google_enabled: false, email_enabled: true, development_mail: false,
+      } })
+      if (recorded.path === '/api/workspace/projects') return route.fulfill({ json: {
+        projects: [{ id: 'default', name: 'General', created_at: '2026-01-01T00:00:00Z' }], default_project_id: 'default',
+      } })
       if (recorded.path === '/api/health') return route.fulfill({ json: this.health })
       if (recorded.path === '/api/metadata') return route.fulfill({ json: metadata })
       if (recorded.path === '/api/coursework') return route.fulfill({ json: this.coursework })
