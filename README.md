@@ -427,8 +427,34 @@ app/test type checks. The owner confirmed French dictation fills the translator
 and the local dictionary result **to eat** is audible in Chrome/Edge. Translator
 and assistant microphone/read-aloud connections were already implemented; no
 production change was needed. A separate owner-attempted voice-to-AI translation
-hit a quota/rate limit, so that complete live path remains blocked. These checks
-do not certify real assistant replies, every installed voice or cloud transcription.
+hit a quota/rate limit, so that complete live path was not completed at that stage.
+Those checks did not exercise real assistant replies, every installed voice or
+cloud transcription.
+
+The September 21 [live assistant record](docs/evidence/assistant-verification.json)
+subsequently verifies **two real successful assistant requests** with the unchanged
+Gemini model: a synthetic French-to-English business message and a follow-up using
+the previous exchange. The identifier, quantity and earliest-shipment restriction
+were preserved. Private/reference grounding and automatic reading were off; the
+saved-history list remained empty. The temporary browser conversation was cleared
+after verification without changing the account or restarting the server.
+**8 new assistant regressions** and **43 existing speech/translator/request tests**
+passed (**51 total**), with app/test type checks passing. They cover bounded
+conversation memory, quota-error retry, cancellation, stale responses and explicit
+saving. No production assistant change was needed. This confirms text-assistant
+access for the recorded checks, not sustained quota availability, the remaining
+translation directions, the full spoken-AI path or cloud OCR/transcription.
+
+The later [cloud media record](docs/evidence/media-verification.json) verifies
+**three real consented previews**: a synthetic PNG, a one-page image-only PDF and
+a **9.495-second synthetic English WAV**. All returned HTTP 200 with unreviewed
+AI transcript warnings. OCR preserved the French wording and accents after
+whitespace normalization; the WAV transcript exactly matched its synthesis text.
+Changing files cleared the previous preview and required fresh consent. No terms
+or history items were saved, the original Google account remained intact, and
+the owned fixtures/previews were removed. No production processing change was
+needed. These samples do not certify every layout/codec, video, noisy speech,
+Francanglais/Pidgin transcription quality or sustained provider capacity.
 
 In [GitHub run 35502314890](https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890),
 the frontend/browser and documentation jobs passed. The Windows Python 3.11/3.14

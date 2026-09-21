@@ -1,6 +1,6 @@
 import type { CourseworkAnalysis, CourseworkState, ManualParse, Project } from '../src/courseworkTypes'
 import type { ImportPreview, ImportSuggestions } from '../src/importTypes'
-import type { Dataset, DatasetEntry, Health, Metadata, Translation } from '../src/types'
+import type { ChatReply, Dataset, DatasetEntry, Health, Metadata, Translation } from '../src/types'
 
 // All records are synthetic test data. They never come from, or write to, the research CSV.
 export const metadata: Metadata = {
@@ -12,6 +12,10 @@ export const metadata: Metadata = {
 
 export function health(aiConfigured = true): Health {
   return { status: 'ok', ai_configured: aiConfigured, model: 'fixture-model' }
+}
+
+export function chatReply(overrides: Partial<ChatReply> = {}): ChatReply {
+  return { reply: 'Synthetic assistant reply.', model: 'fixture-model', origin: 'ai', evidence: [], ...overrides }
 }
 
 export function entry(overrides: Partial<DatasetEntry> = {}): DatasetEntry {

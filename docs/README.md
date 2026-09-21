@@ -131,8 +131,31 @@ focus and opt-in automatic reply reading. App/test type checks passed. The
 owner confirmed French dictation and English read-aloud of a local dictionary
 translation in Chrome/Edge. A separate voice-to-AI translation attempt hit a
 quota/rate limit. The controls were already wired; no production speech change
-was needed. The full live AI path, real assistant replies, every installed voice,
-physical-mobile and cloud-transcription acceptance remain incomplete.
+was needed. At that point the full live AI path and real assistant replies had
+not been accepted.
+
+The September 21 [live assistant record](evidence/assistant-verification.json)
+adds **two successful real assistant requests** using synthetic business text and
+the unchanged model, with private/reference grounding off. The follow-up correctly
+used the previous complete exchange; no conversation was automatically saved.
+The synthetic browser thread was cleared after verification. **8 new assistant
+component regressions** plus **43 existing speech/translator/request tests**
+passed (**51 total**), with app/test type checks passing. No production assistant
+change was required. Shared speech assertions were preserved while extracting
+reusable chat/browser fixtures; earlier source hashes describe their recorded
+versions. These results do not establish sustained provider quota, completion of
+the structured-translation matrix or a fresh full spoken-AI workflow. Cloud
+media, every installed voice and physical-mobile acceptance were separate gates.
+
+The later [cloud media record](evidence/media-verification.json) verifies
+**three real consented previews** using a synthetic PNG, a one-page image-only PDF
+and a **9.495-second synthetic English PCM WAV**. OCR preserved the French text
+and accents after whitespace normalization, and the speech transcript matched its
+synthesis source exactly. All returned HTTP 200, complete passages and unreviewed
+AI/provider warnings. Fresh consent was required on file changes; no records were
+saved, and only the owned test files/previews were removed. No production media
+change was required. Video, other codecs/layouts, long/noisy recordings, native
+Francanglais/Pidgin quality and sustained provider capacity remain unverified.
 
 The published SRS has **9 pages**, the SDD **46 pages**, and the atlas **35 sheets**.
 All 75 production classes and 17 explicitly activated sequence views passed

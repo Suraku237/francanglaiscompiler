@@ -1,22 +1,18 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Assistant } from '../../src/Assistant'
 import { ErrorNotice } from '../../src/components'
 import { Translator } from '../../src/Translator'
 import { claimAudioFocus } from '../../src/audioFocus'
 import { MAX_TEXT } from '../../src/types'
 import { browserVoiceLanguage, useDictation, useReadAloud } from '../../src/voice'
-import { translation } from '../fixtures'
+import { setupAssistantBrowser } from '../assistantFixtures'
+import { chatReply, translation } from '../fixtures'
 import { deferred, jsonResponse, requestBody } from '../helpers'
 import { currentRecognition, FixtureRecognition, lastSpoken, speechFixtures } from '../speechFixtures'
 
-const scrollDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTo')
-beforeAll(() => Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: vi.fn() }))
-afterAll(() => {
-  if (scrollDescriptor) Object.defineProperty(HTMLElement.prototype, 'scrollTo', scrollDescriptor)
-  else Reflect.deleteProperty(HTMLElement.prototype, 'scrollTo')
-})
+setupAssistantBrowser()
 
 function SpeechWorkspace({ assistant = false, active = true }: { assistant?: boolean; active?: boolean }) {
   const speech = useReadAloud()
@@ -25,13 +21,6 @@ function SpeechWorkspace({ assistant = false, active = true }: { assistant?: boo
     {assistant ? <Assistant active={active} aiAvailable speech={speech} /> :
       <Translator active={active} aiAvailable speech={speech} onOpenAssistant={vi.fn()} onOpenCollection={vi.fn()} onOpenImports={vi.fn()} />}
   </>
-}
-
-function assistantEnvironment() {
-  vi.stubGlobal('matchMedia', vi.fn((media: string): MediaQueryList => ({
-    media, matches: true, onchange: null, addListener: vi.fn(), removeListener: vi.fn(),
-    addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(() => true),
-  })))
 }
 
 describe('shared dictation and read-aloud', () => {
@@ -231,9 +220,8 @@ describe('in-app spoken input and output wiring', () => {
   })
 
   it('dictates an assistant message and reads replies only after explicit opt-in', async () => {
-    assistantEnvironment()
     const { spoken } = speechFixtures()
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ reply: 'Une proposition de test.', model: 'fixture-model', origin: 'ai', evidence: [] }))
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(chatReply({ reply: 'Une proposition de test.' })))
     const user = userEvent.setup()
     render(<SpeechWorkspace assistant />)
     await user.selectOptions(screen.getByLabelText('From'), 'en')
@@ -254,7 +242,7 @@ describe('in-app spoken input and output wiring', () => {
     expect(lastSpoken(spoken)).toMatchObject({ text: 'Une proposition de test.', lang: 'fr-FR' })
     await user.click(screen.getByRole('button', { name: 'Stop reading' }))
     await user.click(screen.getByRole('checkbox', { name: 'Read replies aloud' }))
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ reply: 'Seconde proposition.', model: 'fixture-model', origin: 'ai', evidence: [] }))
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(chatReply({ reply: 'Seconde proposition.' })))
     await user.type(screen.getByLabelText('Message for the assistant'), 'A second synthetic message.')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByText('Seconde proposition.')).toBeInTheDocument()
@@ -264,7 +252,6 @@ describe('in-app spoken input and output wiring', () => {
   })
 
   it('does not auto-read a late reply after the preference is turned off', async () => {
-    assistantEnvironment()
     const { spoken } = speechFixtures()
     const pending = deferred<Response>()
     vi.mocked(fetch).mockReturnValueOnce(pending.promise)
@@ -274,7 +261,7 @@ describe('in-app spoken input and output wiring', () => {
     await user.type(screen.getByLabelText('Message for the assistant'), 'A synthetic request.')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     await user.click(screen.getByRole('checkbox', { name: 'Read replies aloud' }))
-    await act(async () => pending.resolve(jsonResponse({ reply: 'Late synthetic reply.', model: 'fixture-model', origin: 'ai', evidence: [] })))
+    await act(async () => pending.resolve(jsonResponse(chatReply({ reply: 'Late synthetic reply.' }))))
     expect(screen.getByText('Late synthetic reply.')).toBeInTheDocument()
     expect(spoken).toHaveLength(0)
   })
