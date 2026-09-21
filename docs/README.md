@@ -115,14 +115,24 @@ storage/download, range requests, access controls, explicit attachment removal
 and consent errors were checked without AI or real SMTP. Existing live accounts
 were reused for the audio scenarios without relaxing production rate limits.
 Only test fixtures/coverage changed for audio; physical devices, browser
-dictation, audible speech output and cloud transcription remain separate gates.
+dictation, audible speech output and cloud transcription were separate gates
+at that stage.
 
 The owner subsequently confirmed physical microphone recording and audible
 playback in Chrome/Edge. The reported VS Code-only playback failure was also
 reproduced with a synthetic local WebM blob in its embedded browser, yielding
 media error 4 and an FFmpeg demuxer open failure. This is recorded separately
-from the automated results; use Chrome/Edge for audio acceptance. Browser
-dictation, read-aloud, physical-mobile and cloud-transcription checks remain.
+from the automated results; use Chrome/Edge for audio acceptance.
+
+The [in-app speech record](evidence/speech-verification.json) then adds
+**36 passing unit/component tests** covering the shared dictation/read-aloud
+hooks, spoken input into translator/assistant requests, speech errors, audio
+focus and opt-in automatic reply reading. App/test type checks passed. The
+owner confirmed French dictation and English read-aloud of a local dictionary
+translation in Chrome/Edge. A separate voice-to-AI translation attempt hit a
+quota/rate limit. The controls were already wired; no production speech change
+was needed. The full live AI path, real assistant replies, every installed voice,
+physical-mobile and cloud-transcription acceptance remain incomplete.
 
 The published SRS has **9 pages**, the SDD **46 pages**, and the atlas **35 sheets**.
 All 75 production classes and 17 explicitly activated sequence views passed

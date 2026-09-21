@@ -136,6 +136,14 @@ Browser recording is distinct from browser dictation and AI transcription:
   permission are required for microphone features. Typing and file selection
   remain available when recording is unsupported.
 
+In **Translate**, choose the source language, press **Use your voice**, speak,
+then **Stop dictation**. Review the text and press **Translate**; use **Read
+aloud** on the returned result. In **Assistant**, the same microphone fills the
+message draft before **Send**. Replies can be read individually, or automatically
+only after enabling **Read replies aloud**. Neither microphone submits or saves
+automatically. Working dictation does not bypass AI quota/rate limits: local
+dictionary or approved-terminology results can still work when AI is unavailable.
+
 Inputs include UTF-8 TXT/Markdown/CSV/JSON, PDF, DOCX, PNG/JPEG/WebP,
 MP3/WAV/M4A/OGG/FLAC and MP4/WebM/MOV. Limits are 12 MiB per input, 40 PDF
 pages, 12 megapixels per image, 40,000 extracted characters and 100 structured
@@ -316,6 +324,12 @@ suite, not for normal web hosting. For server-only checks use
 If Chromium is missing, install the existing test dependency with
 `npx playwright install chromium` from `frontend`.
 
+VS Code discovers [the test folder's TypeScript configuration](frontend/tests/tsconfig.json),
+which extends the same [test configuration](frontend/tsconfig.test.json) checked
+by `npm run typecheck`. This includes the shared test setup and its DOM matcher
+types, so assertions such as `toHaveValue` and `toBeInTheDocument` are also
+recognized in the editor rather than only by the command-line checks.
+
 Unit tests isolate storage/providers/devices. Mocked browser tests verify UI
 contracts; the separate live suite runs the real built website, account API,
 SQLite, cookies, local email outbox and backup downloads on loopback port 4190.
@@ -396,8 +410,8 @@ browser recording/playback, exact private upload/download bytes, HTTP range
 responses, account/session isolation, microphone-denial recovery, explicit
 attachment removal and transcription consent. It uses synthetic audio and muted
 playback, not a physical microphone or speaker. No production audio change was
-needed. Browser dictation, audible speech output and Gemini transcription still
-need separate acceptance.
+needed. At that stage, browser dictation, audible speech output and Gemini
+transcription had not been checked.
 
 In the subsequent human check, the owner confirmed microphone recording and
 audible playback work in Chrome/Edge, with failure only in VS Code's embedded
@@ -406,6 +420,15 @@ playback failure (`MEDIA_ERR_SRC_NOT_SUPPORTED`, FFmpeg demuxer open failure),
 despite advertised codec support. Use Chrome/Edge for audio acceptance. This
 does not certify the editor preview, browser dictation, read-aloud or cloud
 transcription, and the underlying editor/media-pipeline cause is not established.
+
+The [in-app speech record](docs/evidence/speech-verification.json) adds **24 speech
+hook/component tests and 12 existing translator tests**, all passing, with
+app/test type checks. The owner confirmed French dictation fills the translator
+and the local dictionary result **to eat** is audible in Chrome/Edge. Translator
+and assistant microphone/read-aloud connections were already implemented; no
+production change was needed. A separate owner-attempted voice-to-AI translation
+hit a quota/rate limit, so that complete live path remains blocked. These checks
+do not certify real assistant replies, every installed voice or cloud transcription.
 
 In [GitHub run 35502314890](https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890),
 the frontend/browser and documentation jobs passed. The Windows Python 3.11/3.14

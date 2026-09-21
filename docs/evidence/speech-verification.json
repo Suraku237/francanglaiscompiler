@@ -1,0 +1,162 @@
+{
+  "recorded_on": "2026-09-20",
+  "status": "speech_controls_verified_ai_translation_blocked",
+  "scope": "In-app dictation and read-aloud in the translator and assistant, plus owner checks of normal-browser speech input and local dictionary read-aloud",
+  "base_commit": "5337ae6b957e8d2cc63b02348f5277d51d2309ed",
+  "production_code_changed": false,
+  "new_regression_tests_and_documentation_uncommitted": true,
+  "existing_audio_record": "audio-verification.json",
+  "verified_wiring": {
+    "dictation_consumers": ["Translator", "Assistant"],
+    "shared_recognition_hook": "useDictation",
+    "read_aloud_consumers": ["Translation result", "Assistant replies"],
+    "shared_read_aloud_hook": "useReadAloud",
+    "recording_and_attachment_consumers": "Previously checked in Documents & audio and terminology editing; see audio-verification.json.",
+    "dictation_fills_an_editable_draft": true,
+    "translate_or_send_requires_explicit_submission": true,
+    "interim_words_do_not_submit_or_replace_the_final_draft": true,
+    "translation_read_aloud_uses_target_language": true,
+    "assistant_read_aloud_uses_explanation_language": true,
+    "assistant_automatic_reading_requires_opt_in": true,
+    "automatic_saving_added": false,
+    "francanglais_recognition_and_speech_approximation": "French",
+    "cameroon_pidgin_recognition_and_speech_approximation": "English"
+  },
+  "automated_validation": {
+    "unit_and_component_tests": {
+      "working_directory": "frontend",
+      "command": "npm.cmd test -- tests\\unit\\voice.test.tsx tests\\unit\\Translator.test.tsx",
+      "passed": 36,
+      "new_speech_tests": 24,
+      "existing_translator_tests": 12,
+      "duration_seconds": 11.59,
+      "speech_apis": "Synthetic recognition events and speech-synthesis fixtures; no physical microphone or audible output.",
+      "translation_and_chat_responses": "Mocked API responses for control-flow verification, not a new real Gemini acceptance run.",
+      "additional_cases": [
+        "Final versus interim recognition results",
+        "Language selection, direction changes and stale recognition callbacks",
+        "Permission, unavailable service, missing microphone, network, no-speech and unsupported-language errors",
+        "Explicit retry after a recognition error",
+        "Unsupported recognition and insecure origins",
+        "Audio focus and recognition cleanup on unmount/navigation",
+        "French/English voice selection and finished/stale speech events",
+        "Read-aloud engine errors",
+        "A 4,001-character transcript is bounded to 4,000 with an explicit notice",
+        "Typed text survives a speech-service error and can still be submitted",
+        "Spoken source text becomes the translation request payload",
+        "Spoken assistant text becomes the chat request payload",
+        "Read-aloud sends the returned translation/reply text to the speech engine",
+        "Turning automatic reply reading off while a request is pending prevents late autoplay"
+      ]
+    },
+    "typescript": {
+      "working_directory": "frontend",
+      "command": "npm.cmd run typecheck",
+      "app_and_test_checks_passed": true
+    },
+    "editor_diagnostics": "The initial generic diagnostic tool reported no errors; see editor_configuration_follow_up for subsequently reproduced editor-project errors and their fix.",
+    "editor_test_discovery": "Unavailable; the repository Vitest command was used.",
+    "provider_requests_from_automated_tests": 0,
+    "new_full_browser_suite_run": false,
+    "new_full_backend_suite_run": false,
+    "new_frontend_build_needed": false
+  },
+  "editor_configuration_follow_up": {
+    "recorded_on": "2026-09-21",
+    "reported_file": "frontend/tests/unit/voice.test.tsx",
+    "typescript_version": "5.7.3",
+    "reproduction": "Open the test file through a fresh TypeScript language-server session, query its default project, then request synchronous semantic diagnostics.",
+    "before": {
+      "project": "inferredProject",
+      "semantic_errors": 16,
+      "diagnostic_code": 2339,
+      "examples": ["toHaveValue", "toBeDisabled", "toBeInTheDocument"],
+      "command_line_typecheck_passed": true
+    },
+    "cause": "The application tsconfig excludes tests, and the custom-named tsconfig.test.json was not automatically discovered by the editor. Its shared setup importing the jest-dom Vitest matcher types was therefore missing from the inferred project.",
+    "fix": "Add frontend/tests/tsconfig.json extending ../tsconfig.test.json, so editor discovery and the existing command-line check use the same test configuration.",
+    "after": {
+      "project": "frontend/tests/tsconfig.json",
+      "shared_setup_included": true,
+      "syntactic_errors": 0,
+      "semantic_errors": 0,
+      "app_and_existing_test_typecheck_passed": true,
+      "new_editor_configuration_typecheck_passed": true,
+      "focused_test_command": "npm.cmd test -- tests\\unit\\voice.test.tsx",
+      "focused_tests_passed": 24,
+      "focused_test_duration_seconds": 56.43,
+      "test_assertions_changed_or_suppressed": false
+    },
+    "configuration_sha256": {
+      "frontend/tests/tsconfig.json": "268757d3ceff51a9c27f2dc5fc8c155a45326ccf6a3305124bfc8a211cf61815",
+      "frontend/tsconfig.test.json": "b055844dbe28b8b251e53ab05b975dcff8928e44d977f8e7ac256db0ba119964"
+    }
+  },
+  "owner_live_checks": [
+    {
+      "name": "French dictation in the translator",
+      "requested_browser": "Chrome or Edge",
+      "prompted_non_sensitive_phrase": "Bonjour, ceci est un test.",
+      "instruction": "Use your voice with French selected as the source, without submitting a translation.",
+      "owner_confirmation": "Yes, my spoken words appear correctly",
+      "outcome": "passed_owner_confirmed",
+      "independently_observed_transcript": false
+    },
+    {
+      "name": "Spoken-input AI translation",
+      "requested_direction": "French to English",
+      "instruction": "Use the same test phrase, turn private terminology and reference dictionary grounding off, leave AI enabled and press Translate once.",
+      "owner_confirmation": "A quota or rate-limit error appears",
+      "outcome": "blocked",
+      "successful_translation_claimed": false,
+      "exact_http_status_or_upstream_error_independently_captured": false,
+      "precise_quota_window_or_project_identified": false,
+      "provider_model_billing_or_allowances_changed": false
+    },
+    {
+      "name": "Read-aloud without AI",
+      "requested_browser": "Chrome or Edge",
+      "instruction": "Open dictionary entry tchop in the translator, leave the reference dictionary enabled, turn approved terminology and AI off, translate locally, then press Read aloud.",
+      "expected_local_result": "to eat",
+      "owner_confirmation": "Yes, I hear \u201cto eat\u201d clearly",
+      "outcome": "passed_owner_confirmed",
+      "audible_output_independently_heard": false,
+      "ai_processing_requested": false
+    }
+  ],
+  "changes": {
+    "test_fixtures": "Added reusable typed speech recognition/synthesis fixtures following the existing isolated media-test pattern.",
+    "test_coverage": "Added regression coverage for both shared speech hooks and their translator/assistant consumers.",
+    "app_behavior": "No missing audio connection or production defect was demonstrated; existing explicit review/submission and speech-service errors are preserved.",
+    "documentation": "Documented the in-app voice workflow and separated working speech controls from AI quota availability."
+  },
+  "privacy_and_cleanup": {
+    "assistant_started_physical_microphone": false,
+    "assistant_uploaded_audio": false,
+    "private_terminology_requested_for_ai_test": false,
+    "human_voice_files_collected_or_saved": false,
+    "temporary_accounts_servers_or_workspace_databases_created": false,
+    "browser_vendor_may_process_dictation_audio": true,
+    "normal_browser_account_not_reset_or_replaced": true
+  },
+  "artifact_sha256": {
+    "frontend/src/voice.ts": "b2f94c1ca1c2e9e07f1e3611235f50e45dc3ac38bea5dc974ed3f5c54432e7c5",
+    "frontend/src/Translator.tsx": "716870aa1dc9ed82aca2807de4e86df66e2a85e24e9f89dc1e26fc0368f4e2c8",
+    "frontend/src/Assistant.tsx": "7e5c49a5619662493db320625f716417c9fc85c2531da700094ec5e44b257c61",
+    "frontend/src/components.tsx": "7b342a330023b0c231eda32f9ff97b59f8baff2c93129ff3845e2efa09af68fb",
+    "frontend/src/App.tsx": "2daf3883c942a6489d7e500d2f6af7bdc22a4a7a95a4b48ea052033f7c57bf41",
+    "frontend/tests/speechFixtures.ts": "4e64534f40d8c443bbc0960786ce2915f1be894cd702b1ebec05cec3a2bef3a0",
+    "frontend/tests/unit/voice.test.tsx": "cfe5860ff198a2a1082591bca658fa914f36e513bc7fee77d10f9e6cb4f7b01d",
+    "frontend/tests/unit/Translator.test.tsx": "9c651d60cb93a9db2c66d625a1e892d34dccfa778f92f536a6be997dcec4c92d",
+    "frontend/dist/index.html": "672b67c49dd1962ce86f9d5cbd1899667e6994f715335b7de275eb75608cc558"
+  },
+  "limitations": [
+    "The full live spoken-input to AI-translation to spoken-result workflow is not cleared: the owner-observed AI request hit a quota/rate limit.",
+    "Owner confirmations cover French speech input and English read-aloud of a local dictionary result, not every recognition language, installed voice or browser.",
+    "Assistant dictation, manual reply reading and opt-in automatic reply reading passed component tests; a fresh real Gemini assistant conversation was not run.",
+    "French read-aloud and Francanglais/Pidgin pronunciation quality were not manually certified.",
+    "Browser speech-service connectivity and installed voices remain environment dependencies; API presence alone does not prove either works.",
+    "The separately reproduced VS Code embedded media-playback limitation is not fixed or reclassified as success.",
+    "Cloud media transcription/OCR, the remaining translation directions and public deployment are not certified by these speech checks."
+  ]
+}
