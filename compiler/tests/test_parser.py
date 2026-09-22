@@ -454,6 +454,16 @@ class DefaultAnalysisCacheTests(unittest.TestCase):
         self.assertEqual(analyze_grammar(DEFAULT_GRAMMAR), expected)
         self.assertTrue(parse_tokens(DEFAULT_GRAMMAR, token_stream("VERB"))["accepted"])
 
+    def test_saved_default_uses_the_same_preparation_without_sharing_mutations(self) -> None:
+        saved_default = DEFAULT_GRAMMAR.strip()
+        with patch("compiler.parser.service._analyze_grammar", wraps=service._analyze_grammar) as prepare:
+            first = analyze_grammar(saved_default)
+            expected = deepcopy(first)
+            first["table"]["Sentence"].clear()
+            self.assertEqual(analyze_grammar(saved_default), expected)
+            self.assertEqual(analyze_grammar(DEFAULT_GRAMMAR), expected)
+        prepare.assert_called_once_with(DEFAULT_GRAMMAR)
+
     def test_custom_grammars_and_private_comments_are_never_cached(self) -> None:
         custom = DEFAULT_GRAMMAR + "\n# private project annotation"
         with patch("compiler.parser.service._analyze_grammar", wraps=service._analyze_grammar) as prepare:

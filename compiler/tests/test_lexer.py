@@ -5,6 +5,7 @@ from compiler.lexer.tokenizer import (
     Token,
     analyze_sentence,
     classify_token,
+    find_slang_phrases,
     find_verb_phrases,
     normalize_text,
     tokenize,
@@ -125,6 +126,12 @@ class LexerCoverageTests(unittest.TestCase):
 
 
 class PhraseAnnotationTests(unittest.TestCase):
+    def test_slang_uses_complete_tokens_and_preserves_source_words(self):
+        self.assertEqual(find_slang_phrases("JE\tWANDA; je wanda."), ["JE\tWANDA", "je wanda"])
+        for raw in ("pre-je wanda", "je wanda-post", "je wanda's", "je wanda\u0301", "je, wanda"):
+            with self.subTest(raw=raw):
+                self.assertEqual(find_slang_phrases(raw), [])
+
     def test_source_case_spacing_and_order_are_preserved(self):
         raw = "COME down, DROP\tME! don \u00a0 REFUSE. dey\r\nfor front."
         self.assertEqual(find_verb_phrases(raw), [

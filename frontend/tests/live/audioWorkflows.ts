@@ -44,7 +44,7 @@ export async function recordPrivateAudio(page: Page): Promise<string> {
   })
   await installSyntheticMicrophone(page)
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: 'Add terminology' })
+  const editor = page.getByRole('dialog', { name: 'Add collection entry' })
   const text = 'Synthetic private audio'
   await editor.getByRole('textbox', { name: /^Expression/ }).fill(text)
   await editor.getByRole('button', { name: 'Record audio', exact: true }).click()
@@ -88,20 +88,20 @@ export async function recordPrivateAudio(page: Page): Promise<string> {
   expect(await downloadedBytes(page, link)).toEqual(local)
   const player = page.getByLabel(`Play recording: ${saved.audio_filename}`, { exact: true })
   await playMuted(player)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Documents & audio', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Document import', exact: true }).click()
   await expect(player).toHaveCount(1)
   await expect.poll(() => player.evaluate((element) => {
     if (!(element instanceof HTMLAudioElement)) throw new Error('Expected the actual audio player.')
     return element.paused
   })).toBe(true)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Terminology', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
   expect(requests).toEqual(['/api/dataset/audio'])
   return url
 }
 
-export async function checkAudioErrorsAndConsent(page: Page) {
+export async function checkAudioErrorsAndManualDrafts(page: Page) {
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
-  await navigation.getByRole('link', { name: 'Terminology', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
@@ -109,7 +109,7 @@ export async function checkAudioErrorsAndConsent(page: Page) {
     })
   })
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: 'Add terminology' })
+  const editor = page.getByRole('dialog', { name: 'Add collection entry' })
   const text = 'Synthetic attachment after denied microphone'
   await editor.getByRole('textbox', { name: /^Expression/ }).fill(text)
   await editor.getByRole('button', { name: 'Record audio', exact: true }).click()
@@ -144,7 +144,7 @@ export async function checkAudioErrorsAndConsent(page: Page) {
   expect(await stored.body()).toEqual(await readFile(silence))
   await playMuted(card.getByLabel(`Play recording: ${saved.audio_filename}`))
   await card.getByRole('button', { name: `Edit expression: ${text}` }).click()
-  const review = page.getByRole('dialog', { name: 'Review terminology' })
+  const review = page.getByRole('dialog', { name: 'Review collection entry' })
   await review.getByRole('button', { name: 'Remove attachment on save', exact: true }).click()
   expect((await page.request.get(url)).status()).toBe(200)
   await review.getByRole('button', { name: 'Cancel', exact: true }).click()
@@ -156,33 +156,30 @@ export async function checkAudioErrorsAndConsent(page: Page) {
   await expect(card.getByRole('link', { name: 'Download audio' })).toHaveCount(0)
   expect((await page.request.get(url)).status()).toBe(404)
 
-  await navigation.getByRole('link', { name: 'Documents & audio', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
   await installSyntheticMicrophone(page)
   let previews = 0
   page.on('request', (request) => {
     if (request.url().endsWith('/api/imports/preview')) previews += 1
   })
-  await page.getByRole('button', { name: 'Record audio', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Preview source text', exact: true })).toBeDisabled()
-  await expect(page.getByLabel('Document, image, audio or video')).toBeDisabled()
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  const draft = page.getByRole('dialog', { name: 'Add collection entry' })
+  await draft.getByRole('button', { name: 'Record audio', exact: true }).click()
+  await expect(draft.getByRole('button', { name: 'Save unreviewed', exact: true })).toBeDisabled()
+  await expect(draft.getByLabel('Attach an audio file')).toBeDisabled()
   await expect.poll(() => page.evaluate(() => window.recordedTestBytes ?? 0)).toBeGreaterThan(0)
-  await navigation.getByRole('link', { name: 'Terminology', exact: true }).click()
+  await draft.getByRole('button', { name: 'Stop recording', exact: true }).click()
   await tracksReleased(page)
-  await navigation.getByRole('link', { name: 'Documents & audio', exact: true }).click()
-  await expect(page.getByText('Microphone off', { exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Download audio' })).toHaveAttribute('href', /^blob:/)
+  await expect(draft.getByText('Microphone off', { exact: true })).toBeVisible()
+  await expect(draft.getByRole('textbox', { name: /^Expression/ })).toHaveValue('')
+  await expect(draft.getByRole('link', { name: 'Download audio' })).toHaveAttribute('href', /^blob:/)
   expect(previews).toBe(0)
-  const consent = page.getByRole('checkbox', { name: /^I consent to sending this file to Gemini/ })
-  await expect(consent).not.toBeChecked()
-  await expect(consent).toBeDisabled()
-  const preview = page.waitForResponse((response) => response.url().endsWith('/api/imports/preview'))
-  await page.getByRole('button', { name: 'Preview source text', exact: true }).click()
-  expect((await preview).status()).toBe(422)
-  await expect(page.getByRole('alert').filter({ hasText: 'Enable cloud processing only if you consent' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Download audio' })).toHaveAttribute('href', /^blob:/)
-  await page.getByRole('button', { name: 'Discard draft audio', exact: true }).click()
-  await expect(page.getByRole('link', { name: 'Download audio' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Preview source text', exact: true })).toBeDisabled()
-  expect(previews).toBe(1)
+  await draft.getByRole('button', { name: 'Discard draft audio', exact: true }).click()
+  await expect(draft.getByRole('link', { name: 'Download audio' })).toHaveCount(0)
+  await draft.getByRole('button', { name: 'Close dialog', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Record audio', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
+  expect(previews).toBe(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }

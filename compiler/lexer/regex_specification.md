@@ -10,15 +10,17 @@ lexical analyzer (Python).
 Raw text is split into tokens using a single regex
 (`compiler/lexer/tokenizer.py`, `TOKEN_SPLIT_RE`):
 
+```python
+COMBINING_MARKS = r"\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f"
+LETTERS = rf"[^\W\d_]+(?:[{COMBINING_MARKS}]+[^\W\d_]*)*"
+WORD = rf"{LETTERS}(?:['\u2018\u2019\u02bc-]{LETTERS})*"
+TOKEN_PATTERN = WORD + r'|\d+(?:[.,]\d+)?|[.,!?;:"()]|\S'
 ```
-[^\W\d_]+(?:['\u2019-][^\W\d_]+)* -- WORD  (Unicode letters, with internal
-                                        apostrophes/hyphens kept, so
-                                        "j'ai", "n'y", "go-slow" stay
-                                        single tokens)
-\d+(?:[.,]\d+)?                     -- NUMBER
-[.,!?;:"()]                         -- PUNCTUATION
-\S                                 -- any remaining non-whitespace symbol
-```
+
+Internal apostrophes and hyphens keep `j'ai`, `n'y` and `go-slow` together.
+The five supported combining-mark blocks attach to preceding letters, so
+decomposed accents remain inside their original word. A standalone combining
+mark remains an unsupported token; this is not a complete Unicode grapheme parser.
 
 The last alternative prevents the parser from accepting a sentence after
 silently dropping unsupported symbols. These symbols are retained as `UNKNOWN`.
@@ -57,7 +59,10 @@ own-data regression tests supply an optional learned lexicon. Only explicitly
 token and a supported `lexical_category`, contribute. Reviewed labels take
 precedence over the static word lists, after the structural number/punctuation
 rules. Conflicting labels are excluded. Matching uses Unicode NFC, case folding
-and apostrophe normalization without removing accents. Sentence/phrase rows,
+and straight/left-curly/right-curly/modifier-apostrophe normalization without removing accents.
+The ASCII matching path uses equivalent lowercasing to avoid unnecessary Unicode work.
+Structural regular expressions are precompiled and must match the entire token.
+Sentence/phrase rows,
 unreviewed rows and unspecified/mixed-language rows do not teach token categories;
 no entry acts as a wildcard. Calling `analyze_sentence(text)` without the optional
 lexicon retains the deterministic base behavior and never reads the CSV.
@@ -69,11 +74,22 @@ single words (e.g. "drop me", "dey for front"). These are matched
 against the whole sentence with their own regex patterns in
 `lexicon.VERB_PHRASES`, e.g.:
 
+```text
+\bdrop\s+me\b
+\bhala\s+me\b(?:\s+[\w<supported combining marks>]+){0,3}\s+money\b
+\bdey\s+for\s+front\b
+\bje\s+wanda\b  (slang phrase)
 ```
-\bdrop me\b
-\bhala me\b(?:\s+\w+){0,3}\s+money\b
-\bdey for front\b
-```
+
+`<supported combining marks>` denotes the explicit `COMBINING_MARKS` ranges
+above; the actual compiled regular expressions are returned by the compiler API.
+Verb and slang phrase helpers use the same complete-token boundaries:
+matches cannot begin or end inside a hyphenated/apostrophe word or before an
+attached combining mark. Case-insensitive candidates must also pass
+accent-preserving normalized matching. Returned annotations retain the exact
+source case and spacing, preserve repeated occurrences and follow source order.
+They annotate, but never replace or collapse, the individual tokens supplied to
+the parser. For example, `DROP ME` remains `VERB UNKNOWN` with the base lexicon.
 
 ## 4. Code-mixed span detection
 
@@ -86,11 +102,34 @@ a code-mixed span — e.g. `"Le ... don"` (French → Pidgin) or
 
 ## 5. Frequency & variation analysis
 
-`compiler/lexer/frequency.py` counts, across every collected sentence:
-- raw token frequency (case-insensitive), for the top-N variation report
+`compiler/lexer/frequency.py` counts the supplied tokens:
+- raw token frequency (lowercased), for the top-N frequency report
 - token counts per lexical category, to see the overall composition
   (e.g. how much of the corpus is Pidgin markers vs French function
   words vs unclassified content)
+
+Both lists and single-use iterators produce complete text and category counts.
+Raw accented spellings are not silently merged. The coursework report separately
+shows observed spelling/case/accent variation candidates, not semantic synonyms.
+Counts cover the saved entries supplied to the report; imported reference
+dictionaries and constructed practice examples are not automatically added.
+
+## 6. Performance and reproducibility
+
+Regexes are prepared once; caller-provided reviewed annotations are consulted
+afresh, not cached across projects. Grammar analysis caches only the public
+illustrative starter and its whitespace-stripped saved form. Its cache contains
+one immutable JSON value and returns independent decoded results; custom
+grammars, private comments, corpus text and annotations are not cached there.
+All grammar and parser bounds and conflict checks remain in force.
+
+Run `python -m tools.benchmark_compiler --samples 21 --iterations 150` from
+the repository root. The synthetic benchmark includes lexer, phrase, frequency,
+grammar and parser-boundary cases, plus an alternating-order comparison of
+cached versus uncached preparation of the actual saved starter. Its timings
+are batch-average microbenchmarks, not HTTP latency or linguistic accuracy.
+Earlier before/after captures are historical measurements, not guarantees that
+every operation improved or that deterministic analysis replaces translation.
 
 ## Known limitations (worth naming in the report)
 

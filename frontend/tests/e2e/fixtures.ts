@@ -8,6 +8,7 @@ export interface RecordedRequest {
   url: URL
   body: unknown
   rawBody: string | null
+  headers: Record<string, string>
 }
 
 type Handler = (route: Route, request: RecordedRequest) => Promise<void>
@@ -39,7 +40,7 @@ export class MockApi {
     const body: unknown = request.headers()['content-type']?.includes('application/json') && rawBody
       ? JSON.parse(rawBody)
       : null
-    const recorded: RecordedRequest = { method: request.method(), path: url.pathname, url, body, rawBody }
+    const recorded: RecordedRequest = { method: request.method(), path: url.pathname, url, body, rawBody, headers: request.headers() }
     this.requests.push(recorded)
     const handler = this.handlers.get(`${recorded.method} ${recorded.path}`)
     if (handler) {
@@ -106,6 +107,8 @@ export const test = base.extend<{ api: MockApi }>({
     await use(api)
     await context.unrouteAll({ behavior: 'ignoreErrors' })
     expect(api.unexpected, 'Every API request must have an isolated fixture; no backend passthrough is allowed.').toEqual([])
+    expect(api.requests.filter((request) => ['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain'].includes(request.path)),
+      'Compiler workflows must never call retired generation endpoints.').toEqual([])
     expect(externalRequests, 'No provider, external asset, or other origin may be contacted.').toEqual([])
     expect(pageErrors, 'The browser must not encounter uncaught application errors.').toEqual([])
   }, { auto: true }],

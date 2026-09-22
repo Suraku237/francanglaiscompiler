@@ -80,14 +80,105 @@ to weaken these checks.
 
 ### Current verification
 
-The final source inventory, diagram/page counts and exact successful validation
-commands will be recorded here after the parallel implementation stabilizes and
-the current documents are rebuilt. Until then, existing generated PDFs must not
-be treated as verification of the new scope.
+The **22 September 2026** rebuild and unchanged strict checker passed against
+the current non-AI sources:
+
+| Verified artifact or check | Observed result |
+| --- | --- |
+| Authored production classes | **56**, all covered across **10 class views** |
+| Current diagrams | **34**, including **16 sequence views** with balanced activations |
+| Published SRS | **11 pages** |
+| Published SDD | **47 pages**, including all current UML images |
+| Published full-size atlas | **34 pages**, exactly one per diagram |
+| Atlas/SDD mapping and embedded-image fingerprints | Passed |
+| LaTeX layout, missing-character and reference checks | Passed; no matching warnings/errors |
+| Documentation regression tests | **12 passed** |
+| Diagram image bounds | All 34 retain surrounding margins; largest is **3,987 × 3,133 px**, below the 8,192-pixel ceiling |
+| Selected declared Python methods / local Markdown links | Checked against source / existing targets |
+| Historical `docs/evidence` files | Unchanged |
+
+Executed commands (from the repository root):
+
+```powershell
+.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
+# After fixing only LaTeX wrapping and cover anchors, reuse unchanged rendered images:
+.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar -SkipDiagrams
+.\.venv\Scripts\python.exe -m tools.check_documentation
+.\.venv\Scripts\python.exe -m unittest tools.tests.test_documentation_checks -q
+git --no-pager diff --check -- README.md docs
+```
+
+The full render succeeded; the final PDF rebuild, strict artifact check and
+regression command exited successfully. Scratch files were confined to
+`docs\.build` and cleaned. Existing Java/PlantUML/Tectonic tools were reused.
+VS Code tool requests timed out, so the existing command-line pipeline was used.
+The portable Tectonic binary still emits its non-fatal missing default
+Fontconfig-configuration diagnostic; all **7 SRS** and **11 SDD** font resources
+are embedded, and the published PDFs pass the strict content/layout checks.
+No validation rule was weakened or suppressed.
+
+These are documentation results, not frontend/browser-suite totals, public
+deployment acceptance or completion of the fieldwork/report.
+
+### Compiler measurement boundary
+
+The current [verified compiler benchmark](../compiler/output/benchmark_verified.json)
+was recorded at **2026-09-22 09:46:18 UTC** on Windows 11 / AMD64 / CPython 3.14.6.
+All **11 recorded source hashes match** the current measured implementation.
+The synthetic run retains **13 individual cases**, with **21 samples × 150
+iterations**, five warm-ups per case and batch-average microsecond timings.
+
+Its separate, alternating-order, same-process comparison of the **exact saved
+public starter** measured median preparation of **1,042.155 µs uncached** versus
+**207.775 µs cached**, a **5.02× ratio**. This is not a custom-grammar,
+end-to-end latency, throughput, linguistic-quality or universal algorithm
+speedup claim. Earlier before/after captures are noisy different-time historical
+runs; some unchanged cases were slower. Private grammars/comments, corpus text
+and reviewed annotations are not cached by the starter service.
+
+Reproduce without overwriting the recorded result:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.benchmark_compiler --samples 21 --iterations 150
+```
+
+## Current application verification
+
+The [22 September compiler-refocus verification](evidence/compiler-refocus-verification-20260922.json)
+records the completed non-AI acceptance: **382 Python tests**, **141 frontend
+unit tests**, **34 mocked browser tests**, **10 isolated live browser tests**,
+successful type checks/builds and the documentation results above. Focused
+reruns overlap these totals and are not additional tests.
+
+The final integrated Python command was
+`.\.venv\Scripts\python.exe -m tools.run_python_tests --quiet`:
+**382 passed in 88.112 seconds**, reported by the coordinator. Frontend commands
+were run from `frontend`:
+
+```powershell
+npm run typecheck
+npm run build
+npm test -- --maxWorkers=2 --reporter=dot
+npm run test:e2e -- --workers=2 --reporter=line --output=.playwright\mocked-final-results
+npm run test:e2e:live -- --reporter=line
+```
+
+The frontend full suites passed before the final saved-collection wording
+corrections. After those copy changes, **20 affected unit tests** and
+**2 desktop/mobile manual-result regressions** passed, along with type checking
+and the final build. They overlap the 141/34 totals rather than increasing them.
+The final build has 56 Vite modules; the served asset check used
+`index-7gdDTWaQ.js` and `index-T8pHzcNQ.css`. No subsequent workflow/class change
+was reported.
+
+The existing local account remained signed in, served JS/CSS matched the final
+build, and native browser checks exercised the manual parser without saving
+synthetic fieldwork. Existing accounts, projects and data were preserved. This
+record does not certify authentic fieldwork, the final report or deployment.
 
 ## Historical material is not current acceptance
 
-All `docs/evidence/*.json` records remain unmodified. They describe their original
+Earlier records in `docs/evidence` remain unmodified. They describe their original
 source versions, dates, fixtures and limits. Earlier Gemini, translation,
 assistant, browser dictation and cloud-media successes do not exercise the current
 non-AI product; earlier suite totals do not establish a current passing build.

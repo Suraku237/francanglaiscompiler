@@ -17,6 +17,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     serviceWorkers: 'block',
     permissions: [],
+    launchOptions: { downloadsPath: fileURLToPath(new URL('.playwright/downloads', import.meta.url)) },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

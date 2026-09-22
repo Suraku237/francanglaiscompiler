@@ -82,6 +82,22 @@ class CompilerSettingsTests(unittest.TestCase):
         self.assertNotIn("transport", parameters)
         self.assertIn("auth_transport", parameters)
 
+    def test_production_forbids_unauthenticated_mode_but_permits_authenticated_coursework(self) -> None:
+        with patch.dict(AuthSettings.model_config, env_file=None):
+            accounts = AuthSettings(
+                environment="production", data_dir=self.root_env.parent / "accounts",
+                public_url="https://compiler.example", mail_mode="smtp",
+                smtp_host="smtp.example", mail_from="compiler@example.com",
+            )
+        with self.assertRaisesRegex(ValueError, "Authentication cannot be disabled"):
+            create_app(self.load(), require_auth=False, auth_settings=accounts)
+        with patch("backend.main.install_web") as install_web:
+            app = create_app(self.load(), auth_settings=accounts, mailer=lambda *_args: None)
+        self.assertTrue(install_web.call_args.kwargs["production"])
+        self.assertIsNotNone(app.state.auth_store)
+        self.assertIn("/api/coursework", app.openapi()["paths"])
+        self.assertIsNone(app.openapi_url)
+
 
 if __name__ == "__main__":
     unittest.main()

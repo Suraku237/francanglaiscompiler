@@ -45,11 +45,11 @@ def analyze_grammar(grammar_text: str) -> dict[str, Any]:
     table lookaheads use ``$`` for end of input. Only unambiguous table cells
     appear in ``table``; every competing production is retained in ``conflicts``.
 
-    Only the exact public teaching starter is cached, as immutable JSON.
+    Only the public teaching starter and its saved, stripped form are cached as immutable JSON.
     Decoding returns independent mutable results. Custom grammars (including
     their comments), corpus text and reviewed annotations are never cached here.
     """
-    if isinstance(grammar_text, str) and grammar_text == DEFAULT_GRAMMAR:
+    if isinstance(grammar_text, str) and grammar_text in (DEFAULT_GRAMMAR, DEFAULT_GRAMMAR.strip()):
         return json.loads(_default_analysis_json())
     return _analyze_grammar(grammar_text)
 

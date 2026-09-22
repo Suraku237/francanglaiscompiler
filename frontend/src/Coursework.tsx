@@ -38,7 +38,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
   const appliedHandoff = useRef<number | null>(null)
   const manualInput = useRef<HTMLTextAreaElement>(null)
   const [screenshotBusy, setScreenshotBusy] = useState(false)
-  const [resultsNote, setResultsNote] = useState('Run the local analysis to compute grammar steps, lexical tables and tests from your saved CSV.')
+  const [resultsNote, setResultsNote] = useState('Run the local analysis to compute grammar steps, lexical tables and tests from this project’s saved collection.')
   const loaded = useRef(false)
   const { pending: loading, error: loadError, run: load, cancel: cancelLoad } = useRequest()
   const save = useRequest()
@@ -64,7 +64,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
     cancelParse()
     cancelLexical()
     setAnalysis(null)
-    if (loaded.current) setResultsNote('Saved collection evidence is refreshed when you return. Run the analysis again to test the current CSV; your editor draft is kept.')
+    if (loaded.current) setResultsNote('Saved collection evidence is refreshed when you return. Run the analysis again to test the current collection; your editor draft is kept.')
   }, [active, cancelAnalysis, cancelParse, cancelLexical])
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
     cancelAnalysis()
     clearAnalysisError()
     setAnalysis(null)
-    setResultsNote('Evidence refreshed without replacing your editor draft. Analyze again to compute results from the current saved CSV.')
+    setResultsNote('Evidence refreshed without replacing your editor draft. Analyze again to compute results from this project’s saved collection.')
     refreshEvidence()
   }
 
@@ -175,7 +175,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
       <ErrorNotice message={save.error} />
       {notice && <p className="lab-save-notice" role="status">{notice}</p>}
       <div className="lab-metrics" aria-label="Saved coursework evidence counts">
-        <div><span className="small-caps">SAVED STATEMENTS</span><strong>{state.stats.sentences}<small> / {state.brief.statement_target.join('–')}</small></strong><p>{state.stats.total} total CSV records · counts do not verify provenance</p></div>
+        <div><span className="small-caps">SAVED STATEMENTS</span><strong>{state.stats.sentences}<small> / {state.brief.statement_target.join('–')}</small></strong><p>{state.stats.total} total collection records · counts do not verify provenance</p></div>
         <div><span className="small-caps">SUGGESTED TOPIC COVERAGE</span><strong>{observedTopics}<small> / {suggestedTopics.length}</small></strong><p>{state.stats.missing_topics.length ? `${state.stats.missing_topics.length} suggested topics not yet represented` : 'Topic counts present; review the source evidence'}</p></div>
         <div><span className="small-caps">RESEARCH ATTESTATION</span><strong className="lab-metric-word">{state.project.manual_transcription_confirmed ? 'Declared' : 'Not yet'}</strong><p>A saved declaration, not independently verified authenticity</p></div>
       </div>
@@ -185,7 +185,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
         <div className="lab-brief"><strong>{state.brief.course} · {state.brief.title}</strong><span>{state.brief.due ? `Due: ${state.brief.due}` : 'Check the assignment for the submission date'}</span><ul className="lab-list"><li>{state.brief.group_size} students · {state.brief.statement_target.join('–')} manually transcribed real statements. Use the suggested topics to guide collection, not to invent missing data.</li><li>A {state.brief.report_pages.join('–')}-page report (maximum 30), source code and own-data tests.</li><li>{state.brief.presentation_minutes}-minute presentation and demo · about {state.brief.per_student_minutes} minutes per student.</li></ul></div>
         <details className="lab-disclosure">
           <summary>Coursework requirement map · saved evidence, not a grade</summary>
-          <div className="lab-disclosure-body"><p className="lab-copy">These checks come from the server’s saved profile and CSV. “Evidence available” is not a claim of authenticity or a finished submission. Refresh after changing the collection; human review is still required.</p><Requirements items={state.requirements} /></div>
+          <div className="lab-disclosure-body"><p className="lab-copy">These checks come from the selected project’s saved profile and collection. “Evidence available” is not a claim of authenticity or a finished submission. Refresh after changing the collection; human review is still required.</p><Requirements items={state.requirements} /></div>
         </details>
         <div className="lab-result-heading"><h3>Suggested everyday topics</h3><a className="text-button" href="#collection">Open Collection<Icon name="arrow" size={15} /></a></div>
         <div className="lab-topics">{topicNames.map((topic) => {
@@ -207,7 +207,7 @@ export function Coursework({ active, incomingText }: { active: boolean; incoming
         </details>
         <div className="field"><label htmlFor="lab-grammar-input">Context-free grammar</label><textarea id="lab-grammar-input" className="lab-grammar-input" value={draft.grammar} rows={10} maxLength={12000} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(event) => update('grammar', event.target.value)} aria-describedby="lab-grammar-hint" /><span id="lab-grammar-hint" className="field-hint">{draft.grammar.length.toLocaleString()} / 12,000 characters · edits invalidate computations; Save project persists this grammar</span></div>
         <div className="field"><label htmlFor="lab-rationale">Why this grammar fits your observations</label><textarea id="lab-rationale" rows={3} maxLength={6000} value={draft.grammar_rationale} onChange={(event) => update('grammar_rationale', event.target.value)} placeholder="Link productions to patterns and record IDs in your own data. Explain scope, rejected forms, and any deliberate simplifications." /><span className="field-hint">{draft.grammar_rationale.length.toLocaleString()} / 6,000 characters</span></div>
-        <div className="lab-compute-bar"><p>Uses the <strong>current editor grammar + saved CSV in this project</strong>. No generated samples or provider calls. Does not save project edits.</p><div className="lab-actions">{analyzing && <button type="button" className="text-button" onClick={cancelAnalysis}>Cancel</button>}<button type="button" className="button button-primary" disabled={!draft.grammar.trim() || analyzing || loading} onClick={analyze}>{analyzing ? <Spinner label="Computing grammar and corpus tests" /> : <Icon name="code" size={18} />}{analyzing ? 'Computing…' : 'Analyze grammar & saved corpus'}</button></div></div>
+        <div className="lab-compute-bar"><p>Uses the <strong>current editor grammar + saved collection in this project</strong>. No generated samples or provider calls. Does not save project edits.</p><div className="lab-actions">{analyzing && <button type="button" className="text-button" onClick={cancelAnalysis}>Cancel</button>}<button type="button" className="button button-primary" disabled={!draft.grammar.trim() || analyzing || loading} onClick={analyze}>{analyzing ? <Spinner label="Computing grammar and corpus tests" /> : <Icon name="code" size={18} />}{analyzing ? 'Computing…' : 'Analyze grammar & saved corpus'}</button></div></div>
         <ErrorNotice message={analysisError} />
         {resultsNote && !analysis && <p className="lab-copy lab-empty" role="status">{resultsNote}</p>}
         {analysis && <><GrammarResults grammar={analysis.grammar} /><details className="lab-disclosure"><summary>Requirement checks for this analyzed grammar version</summary><div className="lab-disclosure-body"><p className="lab-copy">Computed using this editor grammar and the saved research profile. Export still uses the saved grammar, so save any edits before exporting.</p><Requirements items={analysis.requirements} /></div></details></>}

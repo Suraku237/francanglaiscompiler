@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import copy
 import csv
@@ -8,7 +9,6 @@ import random
 import sqlite3
 import unittest
 import zipfile
-from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 from filelock import Timeout
 from PIL import Image
 
-from backend import coursework_store
+from backend import coursework, coursework_export, coursework_store
 from backend.collection import CollectionError
 from backend.config import Settings
 from backend.coursework_models import ProjectProfile, ScreenshotRequest
@@ -25,7 +25,7 @@ from backend.main import create_app
 from backend.tests.test_hosted import HostedCase
 from backend.web import JSON_REQUEST_LIMIT, SCREENSHOT_REQUEST_LIMIT
 from backend.workspace_backups import validate_archive
-from backend.workspaces import WorkspaceStore
+from backend.workspaces import WorkspaceStore, current_workspace
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
 from data_collector.tests.support import synthetic_entry
@@ -40,7 +40,7 @@ class CompilerHostedCase(HostedCase):
     @staticmethod
     def profile(**changes):
         return {
-            "group_members": ["", "", ""], "grammar": DEFAULT_GRAMMAR,
+            "group_members": ["", "", ""], "grammar": DEFAULT_GRAMMAR.strip(),
             "manual_transcription_confirmed": False, "grammar_rationale": "",
             "discussion": "", "collection_method": "", "limitations": "", **changes,
         }
@@ -201,7 +201,7 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertEqual(self.client.get("/api/coursework").json()["project"], saved)
         self.assertEqual(other.get("/api/coursework").json()["project"], second_profile)
         app = create_app(Settings(), auth_settings=self.settings,
-                         mailer=lambda address, subject, text: self.mail.append((address, text)))
+                         mailer=lambda address, _subject, text: self.mail.append((address, text)))
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
         self.login(reopened)
         self.assertEqual(reopened.get("/api/coursework").json()["project"], saved)
@@ -237,7 +237,7 @@ class HostedCourseworkTests(CompilerHostedCase):
                 self.assertEqual([row["id"] for row in analysis["tests"]], [entry["id"]])
                 exported = self.export()
                 self.assertEqual(json.loads(exported["artifacts/project.json"]), profile)
-                rows = list(csv.DictReader(io.StringIO(exported["artifacts/dataset.csv"].decode("utf-8"))))
+                rows = list(csv.DictReader(io.StringIO(exported["artifacts/dataset.csv"].decode("utf-8-sig"))))
                 self.assertEqual([row["id"] for row in rows], [entry["id"]])
                 self.assertEqual(exported["source/data_collector/dataset.csv"], exported["artifacts/dataset.csv"])
                 self.assertEqual(exported["screenshots/analyzer-1.png"], png)
@@ -255,7 +255,7 @@ class HostedCourseworkTests(CompilerHostedCase):
             self.assertEqual(other.delete(image["url"]).status_code, 404)
         isolated = self.export(other)
         self.assertEqual(json.loads(isolated["artifacts/project.json"]), self.profile())
-        self.assertEqual(list(csv.DictReader(io.StringIO(isolated["artifacts/dataset.csv"].decode()))), [])
+        self.assertEqual(list(csv.DictReader(io.StringIO(isolated["artifacts/dataset.csv"].decode("utf-8-sig")))), [])
         self.assertFalse(any(name.startswith("screenshots/") for name in isolated))
         self.assert_no_outbound_http()
 
@@ -293,14 +293,26 @@ class HostedCourseworkTests(CompilerHostedCase):
             "language": "mixed", "category": "Campus Life",
         }
         entry = self.entry(**raw)
-        for key, value in raw.items():
+        stored_values = {
+            **raw, "source_location": raw["source_location"].strip(), "contributor": raw["contributor"].strip(),
+        }
+        for key, value in stored_values.items():
+            self.assertEqual(entry[key], value, key)
+        revised_provenance = {
+            "source_location": " \tUpdated collection place  ", "contributor": "  Updated collector\t ",
+        }
+        response = self.client.patch(f"/api/dataset/{entry['id']}", json=revised_provenance)
+        self.assertEqual(response.status_code, 200, response.text)
+        entry = response.json()
+        stored_values.update({key: value.strip() for key, value in revised_provenance.items()})
+        for key, value in stored_values.items():
             self.assertEqual(entry[key], value, key)
         result = self.client.post("/api/coursework/analyze", json={"grammar": DEFAULT_GRAMMAR}).json()
         self.assertEqual(result["lexical"]["statements"][0]["text"], raw["text"])
         self.assertEqual(result["tests"][0]["text"], raw["text"])
         exported = self.export()
         for name in ("artifacts/dataset.csv", "source/data_collector/dataset.csv"):
-            row = next(csv.DictReader(io.StringIO(exported[name].decode("utf-8"), newline="")))
+            row = next(csv.DictReader(io.StringIO(exported[name].decode("utf-8-sig"), newline="")))
             self.assertEqual(row, entry)
         document, _ = validate_archive(self.backup())
         self.assertEqual(json.loads(document["entries"][0]["data"]), entry)
@@ -399,6 +411,32 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertEqual(store.version, version)
         self.assertEqual(self.client.get("/api/coursework").json()["project"], original)
 
+    def test_computed_coursework_and_export_hold_the_workspace_snapshot_lock(self):
+        self.register()
+        self.entry(text="taxi")
+        self.save_profile(grammar="S -> NOUN")
+        self.screenshot()
+        lock_checks = []
+        lexical_report = coursework.lexical_report
+        build_report = coursework_export.build_report
+
+        def observe_analysis(entries):
+            lock_checks.append(("lexical", current_workspace().lock().is_locked))
+            return lexical_report(entries)
+
+        def observe_export(*args, **kwargs):
+            lock_checks.append(("report", current_workspace().lock().is_locked))
+            return build_report(*args, **kwargs)
+
+        with patch.object(coursework, "lexical_report", side_effect=observe_analysis), \
+                patch.object(coursework_export, "build_report", side_effect=observe_export):
+            response = self.client.post("/api/coursework/analyze", json={"grammar": "S -> NOUN"})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["summary"]["accepted"], 1)
+            exported = self.export()
+        self.assertIn(b"taxi", exported["artifacts/dataset.csv"])
+        self.assertEqual(lock_checks, [("lexical", True), ("lexical", True), ("report", True)])
+
     def test_profiles_and_screenshots_prevent_deletion_of_nonempty_projects(self):
         self.register()
         profile_project = self.project("Only a profile")
@@ -480,6 +518,52 @@ class HostedScreenshotTests(CompilerHostedCase):
         self.assertEqual(streamed.status_code, 413, streamed.text)
         self.assertEqual(store.version, version)
         self.assertEqual(store.export_document()["screenshots"], [])
+
+    def test_oversized_stream_is_bounded_and_sends_one_413_without_mutation(self):
+        user = self.register()
+        store = WorkspaceStore(self.root, user["id"])
+        before = store.export_document()
+        path = "/api/coursework/screenshots"
+        request = self.client.build_request("POST", path, headers={"Content-Type": "application/json"})
+        prefix = b'{"name":"Oversized","data_url":"data:image/png;base64,'
+        chunks = [
+            prefix, b"x" * (SCREENSHOT_REQUEST_LIMIT - len(prefix)), b"x", b'"}',
+        ]
+        received = []
+        sent = []
+        scope = {
+            "type": "http", "asgi": {"version": "3.0", "spec_version": "2.3"},
+            "http_version": "1.1", "method": "POST", "scheme": "http",
+            "path": path, "raw_path": path.encode("ascii"), "query_string": b"", "root_path": "",
+            "headers": [(name.lower(), value) for name, value in request.headers.raw
+                        if name.lower() != b"content-length"],
+            "client": ("testclient", 50000), "server": ("testserver", 80), "state": {},
+        }
+
+        async def receive():
+            index = len(received)
+            if index == len(chunks):
+                return {"type": "http.disconnect"}
+            received.append(chunks[index])
+            return {"type": "http.request", "body": chunks[index], "more_body": index < len(chunks) - 1}
+
+        async def send(message):
+            sent.append(message.copy())
+
+        async def execute():
+            await asyncio.wait_for(self.app(scope, receive, send), timeout=10)
+
+        asyncio.run(execute())
+        self.assertEqual(len(received), 3, "The body tail must not be drained after the size limit is crossed.")
+        starts = [message for message in sent if message["type"] == "http.response.start"]
+        self.assertEqual([message["status"] for message in starts], [413])
+        bodies = [message for message in sent if message["type"] == "http.response.body"]
+        self.assertEqual(len(bodies), 1, "A downstream parser error must not emit a second response.")
+        self.assertFalse(bodies[0].get("more_body", False))
+        self.assertIn("size", json.loads(bodies[0]["body"])["detail"].lower())
+        self.assertEqual(store.export_document(), before)
+        saved = self.screenshot("Valid request after rejected stream")
+        self.assertEqual(self.client.get(saved["url"]).status_code, 200)
 
     def test_invalid_data_names_and_ids_never_create_or_delete_screenshots(self):
         user = self.register()

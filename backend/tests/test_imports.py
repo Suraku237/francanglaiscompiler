@@ -38,6 +38,15 @@ class ImportTests(ApiTestCase):
         self.assert_no_outbound_http()
         self.assert_nothing_saved()
 
+    def test_markdown_keeps_literal_markup_and_whitespace(self) -> None:
+        text = "  # Original heading\r\n\n> n’éko  \t\n[Source](https://example.invalid/private)\n"
+        response = self.upload("field-notes.md", text.encode("utf-8"))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["text"], text)
+        self.assertEqual("".join(response.json()["segments"]), text)
+        self.assertEqual(response.json()["method"], "local")
+        self.assert_nothing_saved()
+
     def test_segments_preserve_all_input_without_truncation(self) -> None:
         for text in ("word " * 3000, "a" * 9100, "line one\nline two\n" * 600):
             segments = split_segments(text)
@@ -76,6 +85,26 @@ class ImportTests(ApiTestCase):
         for field in ("text", "french_gloss", "contributor", "category", "source_location", "notes"):
             self.assertEqual(draft[field], original[field], field)
         self.assert_nothing_saved()
+
+    def test_explicitly_saving_a_draft_preserves_source_wording_and_provenance_without_approval(self) -> None:
+        original = {
+            "text": "  n’éko\tà  ", "language": "francanglais", "french_gloss": "  Exemple brut  ",
+            "english_gloss": " Raw meaning ", "contributor": "  Collector  ",
+            "category": "Campus Life", "source_location": "  Campus café  ",
+            "notes": "  Original\r\nnotes  ", "review_status": "approved",
+        }
+        response = self.upload("words.json", json.dumps([original], ensure_ascii=False).encode("utf-8"))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assert_nothing_saved()
+        draft = response.json()["drafts"][0]
+        saved = self.client.post("/api/dataset", json=draft)
+        self.assertEqual(saved.status_code, 201, saved.text)
+        self.assertEqual(saved.json()["review_status"], "unreviewed")
+        for field in ("text", "french_gloss", "english_gloss", "contributor", "category", "source_location", "notes"):
+            expected = original[field].strip() if field in ("contributor", "source_location") else original[field]
+            self.assertEqual(saved.json()[field], expected, field)
+        self.assertEqual(dataset.load_all(), [saved.json()])
+        self.assert_no_outbound_http()
 
     def test_invalid_structured_files_are_not_silently_imported(self) -> None:
         for name, contents in (

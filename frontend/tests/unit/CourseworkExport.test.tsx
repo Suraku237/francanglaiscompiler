@@ -32,6 +32,7 @@ describe('coursework export', () => {
     mockDownloads()
     vi.mocked(fetch).mockResolvedValueOnce(zipResponse())
     render(<CourseworkExport active dirty={false} busy={false} />)
+    expect(screen.getByText('selected project’s saved profile, grammar, collection entries, and attached screenshots')).toBeInTheDocument()
     await userEvent.setup().click(downloadButton())
     expect(await screen.findByText(/Draft download started/)).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/coursework/export?project=project%20with%20spaces', expect.objectContaining({

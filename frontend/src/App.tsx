@@ -56,6 +56,7 @@ export default function App({ account, googleEnabled, projects = [], selectedPro
   const [health, setHealth] = useState<Health | null>(null)
   const [compilerDraft, setCompilerDraft] = useState<IncomingText>()
   const nextHandoffId = useRef(1)
+  const handoffFocusPending = useRef(false)
   const { pending: checkingHealth, error: healthError, run: checkHealth } = useRequest()
   const speech = useReadAloud()
   const { stop } = speech
@@ -84,8 +85,12 @@ export default function App({ account, googleEnabled, projects = [], selectedPro
     document.title = `${navigation.find((item) => item.page === page)?.label ?? 'Compiler lab'} — Mboa Compiler`
     if (previousPage.current !== page) {
       stop()
-      main.current?.focus({ preventScroll: true })
-      window.scrollTo({ top: 0, behavior: 'instant' })
+      if (page === 'compiler' && handoffFocusPending.current) {
+        handoffFocusPending.current = false
+      } else {
+        main.current?.focus({ preventScroll: true })
+        window.scrollTo({ top: 0, behavior: 'instant' })
+      }
       previousPage.current = page
     }
   }, [page, stop])
@@ -95,6 +100,7 @@ export default function App({ account, googleEnabled, projects = [], selectedPro
   const pageLabel = navigation.find((item) => item.page === page)?.label ?? 'Compiler lab'
 
   function openCompiler(text: string, kind: IncomingText['kind']) {
+    handoffFocusPending.current = true
     setCompilerDraft({ id: nextHandoffId.current++, text, kind })
     window.location.hash = 'compiler'
   }

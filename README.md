@@ -25,20 +25,22 @@ they are **not the final coursework report**.
   specification and token tables, frequencies and spelling variation,
   CFG transformations, FIRST/FOLLOW, LL(1) table/conflicts, individual and corpus
   parse traces, genuine screenshot attachments and draft deliverable exports.
-- **Collection:** preserve exact manually transcribed wording and provenance;
-  explicitly save/edit/review entries and attach private recordings.
-- **Dictionary and practice:** read-only source-labelled references and clearly
-  constructed material for learning and testing, never automatic fieldwork.
-- **Local document import:** preview TXT, Markdown, CSV, JSON, DOCX and
+- **Collection:** preserve exact manually transcribed wording, glosses and notes;
+  save provenance, explicitly review entries and attach private recordings.
+- **Dictionary and Synthetic examples:** read-only source-labelled references
+  and clearly constructed material for learning/testing, never automatic fieldwork.
+- **Document import:** preview TXT, Markdown, CSV, JSON, DOCX and
   text-layer PDF on the application server; review drafts before saving.
 - **Private organization:** accounts, projects, revisions, existing saved
   history, verified backups and version-checked recovery.
 
 There is **no AI generation, translator, chat assistant, automatic explanation,
 remote transcription, OCR or browser dictation**. No model key is needed.
-Optional browser read-aloud, where available, is a browser capability, not a
-transcription or analysis service; installed voices and online/offline processing
-depend on that browser. Google sign-in and SMTP remain optional/required identity
+Optional read-aloud selects only voices the browser reports as `localService`;
+without a suitable French/English voice it shows an error, with no remote-voice
+fallback. Voice availability and that locality claim depend on browser/OS
+implementation, not an application guarantee about all underlying network use.
+Google sign-in and SMTP remain optional/required identity
 services as configured, not language providers.
 
 ## Run locally
@@ -94,11 +96,17 @@ Record contributor, location/context, collection method and limitations without
 exposing unnecessary speaker-identifying information; obtain appropriate consent.
 
 Prepare the user's genuine text file with clearly separated statements and
-corresponding provenance. Preview it under Imports, compare extracted text with
+corresponding provenance. Preview it under Document import, compare extracted text with
 the original, then explicitly save each statement as a **Sentence**. Structured
 CSV/JSON can carry metadata; imported approval is never trusted. Word/Phrase
 annotations can support classification but do not inflate the 10–15-statement
 target. A manual-transcription checkbox is self-attestation, not software proof.
+
+Import previews and frontend handoffs preserve the supplied provenance values.
+On create/edit, the backend keeps raw statement text, both glosses and notes
+exact, but its existing `ShortText` validation trims leading/trailing whitespace
+from supplied `contributor` and `source_location` values. This save-time metadata
+normalization does not rewrite the transcription or migrate existing records.
 
 The document author group is:
 
@@ -127,6 +135,13 @@ The [core dictionary](dictionary/camfranglais.md) and
 and competing senses. Origin is neither a French gloss nor a part-of-speech label.
 The [practice library](examples) is constructed material, not collected evidence.
 
+The current lexer preserves decomposed accents and raw, source-ordered phrase
+annotations; multiword matches do not replace the parser's underlying tokens.
+A [source-verified synthetic benchmark](compiler/output/benchmark_verified.json)
+measured about **5× faster repeated public-starter preparation** from its narrow
+cache, not faster custom grammars, every algorithm or end-to-end application
+latency. See the [measurement method and limitations](docs/README.md#compiler-measurement-boundary).
+
 ### 3. Construct and test your grammar
 
 Replace or justify the illustrative CFG using structures actually observed in
@@ -145,8 +160,10 @@ Explain rejections and grammar limitations in your own words.
 
 Attach only **actual screenshots of your working analyzer**. Export the
 coursework ZIP for a **DRAFT HTML report**, editable PowerPoint, raw data,
-token/frequency/grammar/table/parse artifacts and source snapshots. The
-25-section draft is not a guarantee of 25 printed pages. Add original discussion,
+token/frequency/grammar/table/parse artifacts and source snapshots.
+The shared account lock keeps profile, corpus and screenshot reads coherent
+against concurrent workspace mutations throughout analysis/export.
+The 25-section draft is not a guarantee of 25 printed pages. Add original discussion,
 check screenshots and print pagination, then ensure the final report is
 25–30 pages and never exceeds 30.
 

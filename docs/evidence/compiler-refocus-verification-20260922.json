@@ -1,0 +1,152 @@
+{
+  "recorded_on": "2026-09-22",
+  "source_checkpoint_commit": "c720c2636ee530baf7a13d4dde52de251db49a51",
+  "includes_uncommitted_completion_changes": true,
+  "scope": "Non-AI compiler assignment refocus; isolated synthetic regression fixtures and read-only acceptance against the existing local account",
+  "status": {
+    "software_verification": "passed",
+    "documentation_verification": "passed",
+    "authentic_fieldwork": "awaiting_user_statements",
+    "final_coursework_report": "not_complete",
+    "public_deployment_acceptance": "not_claimed"
+  },
+  "python": {
+    "command": ".venv\\Scripts\\python.exe -m tools.run_python_tests --quiet",
+    "passed": 382,
+    "failed": 0,
+    "errors": 0,
+    "final_run_seconds": 88.112,
+    "compiler_subset_passed": 87,
+    "backend_subset_passed": 185,
+    "subset_counts_are_not_additional_tests": true,
+    "notice": "Expected fault-injection logs and the upstream Starlette/httpx deprecation notice are not failed assertions."
+  },
+  "frontend": {
+    "unit_command": "npm.cmd test -- --maxWorkers=2 --reporter=dot",
+    "unit_tests_passed": 141,
+    "unit_test_files": 17,
+    "mocked_browser_command": "npm.cmd run test:e2e -- --workers=2 --reporter=line",
+    "mocked_browser_tests_passed": 34,
+    "isolated_live_command": "npm.cmd run test:e2e:live -- --reporter=line",
+    "isolated_live_tests_passed": 10,
+    "browser_profiles": [
+      "Desktop Chromium",
+      "Mobile Chromium emulation"
+    ],
+    "later_focused_unit_tests_passed": 20,
+    "later_input_edit_and_clear_browser_tests_passed": 2,
+    "focused_reruns_overlap_full_suite_totals": true,
+    "application_and_test_typechecks": "passed",
+    "production_build": "passed",
+    "final_build_transformed_modules": 56,
+    "html_line_endings": "LF source and generated output, enforced by scoped Git attributes",
+    "served_assets_match_disk": {
+      "index-7gdDTWaQ.js": {
+        "bytes": 337987,
+        "sha256": "24e07575bc6117467117486908f1b5b82b3ae085b73351c6418e54603ccceeba"
+      },
+      "index-T8pHzcNQ.css": {
+        "bytes": 95417,
+        "sha256": "e34649e43be5d002a50d8cf8f0e687c6f5150395d0160edab0c44b5460f42eef"
+      }
+    }
+  },
+  "documentation": {
+    "command": ".venv\\Scripts\\python.exe -m tools.check_documentation",
+    "verified": true,
+    "production_classes": 56,
+    "class_views": 10,
+    "diagrams": 34,
+    "balanced_sequence_views": 16,
+    "regression_tests_passed": 12,
+    "srs": {
+      "file": "../srs.pdf",
+      "pages": 11
+    },
+    "sdd": {
+      "file": "../sdd.pdf",
+      "pages": 47
+    },
+    "uml_atlas": {
+      "file": "../uml-atlas.pdf",
+      "pages": 34
+    },
+    "class_inventory_methods_and_relationships": "Source-grounded production classes, selected real methods, and multiplicities on actual associations rather than inheritance or dependencies",
+    "embedded_images_sheet_mapping_activations_and_layout": "passed",
+    "rendering": "Local PlantUML and LaTeX tools; no code or fieldwork uploaded to an online renderer",
+    "coursework_report_distinction": "SRS, SDD and atlas are separate engineering documents, not the required 25-30-page empirical coursework report."
+  },
+  "compiler_performance": {
+    "report": "../../compiler/output/benchmark_verified.json",
+    "fixture": "Synthetic inputs and the exact saved, stripped public starter grammar",
+    "comparison": "Alternating-order, same-process cached versus uncached starter preparation",
+    "samples": 21,
+    "iterations_per_sample": 150,
+    "warmups_per_case": 5,
+    "unit": "Microseconds per call; each sample is a batch average",
+    "uncached_median_us": 1042.1546665,
+    "cached_median_us": 207.7753337,
+    "ratio": 5.0157766,
+    "matching_source_hashes": 11,
+    "source_hashes_rechecked_at": "2026-09-22T12:26:53.859597+00:00",
+    "limits": [
+      "Measures repeated public-starter preparation only, not whole-app latency or throughput.",
+      "Does not establish a speedup for arbitrary grammars or every compiler operation.",
+      "Does not claim AI-equivalent translation or linguistic accuracy.",
+      "Earlier different-time benchmark captures are historical and have noisy unchanged controls.",
+      "Private grammars, comments, corpus text and reviewed annotations are not cached by the public-starter optimization."
+    ]
+  },
+  "local_acceptance": {
+    "url": "http://127.0.0.1:8000/",
+    "health": {
+      "status": "ok",
+      "mode": "compiler"
+    },
+    "fastapi_serves_current_frontend": true,
+    "existing_authenticated_session_preserved": true,
+    "manual_lexer_and_parser_used_through_native_browser_controls": true,
+    "synthetic_accepted_input": "Le taxi don refuse.",
+    "accepted_tokens_consumed": 5,
+    "unsupported_plus_symbol_retained_as_unknown_and_rejected": true,
+    "grammar_transformations_first_follow_and_ll1_results_visible": true,
+    "illustrative_grammar_and_linguistic_limitations_visible": true,
+    "clearing_manual_input_removes_previous_result_and_trace": true,
+    "manual_input_left_empty": true,
+    "synthetic_statements_saved_to_real_collection": 0,
+    "real_profile_or_screenshot_saves_performed": 0,
+    "authenticated_retired_route_statuses": {
+      "/api/translate": 404,
+      "/api/chat": 404,
+      "/api/imports/suggest": 404,
+      "/api/coursework/explain": 404
+    }
+  },
+  "preservation": {
+    "original_identity_session_project_and_collection_data_digest_unchanged_after_restart": true,
+    "latest_read_only_storage_check_at": "2026-09-22T12:26:53.859597+00:00",
+    "counts": {
+      "users": 3,
+      "sessions": 5,
+      "projects": 3,
+      "entries": 0,
+      "history": 0,
+      "revisions": 0,
+      "coursework": 0,
+      "screenshots": 0
+    },
+    "raw_text_glosses_and_notes": "Preserved exactly",
+    "contributor_and_source_location": "Preview and frontend submission preserve original values; persistence retains the existing surrounding-whitespace normalization",
+    "legacy_backups_and_saved_history": "Backward-compatible restoration and read/export paths retained",
+    "raw_recording_attachments": "Retained without automatic transcription",
+    "private_environment_files_modified": false,
+    "earlier_evidence_records_modified": false,
+    "assistant_created_commits": false
+  },
+  "remaining_human_gates": [
+    "Provide 10-15 genuine, manually transcribed Yaounde statements with available provenance; no invented statements count as fieldwork.",
+    "Review labels and justify a corpus-derived grammar against those statements, including accepted and rejected cases.",
+    "Capture actual analyzer evidence and complete the required report, verifying 25-30 final pages and the 30-page maximum.",
+    "Review the group presentation and complete public deployment and real-device acceptance separately if hosting is intended."
+  ]
+}

@@ -112,12 +112,14 @@ The product excludes AI generation, chat, translation endpoints, provider
 explanations, OCR, remote transcription and browser dictation. Leftover private
 \nolinkurl{GEMINI_*} configuration is unused; no model key is required.
 Optional browser text-to-speech is read-aloud only, not field transcription or
-linguistic evidence. Voice availability and online/offline behavior depend on
-the browser.
+linguistic evidence. Only voices reported by the browser as
+\texttt{localService} are selected, with no remote-voice fallback. Voice
+availability and locality reporting depend on the browser/OS; this is not an
+application-level guarantee of every underlying network behavior.
 
-The preserved desktop collector and explicit no-auth maintenance factory remain
-source-compatible with legacy files. They are not the default web storage path.
-Production must reject attempts to disable authentication.
+The desktop collector and an explicitly unauthenticated maintenance factory
+retain compatibility with legacy files. They are separate from normal web
+storage. Production refuses to disable authentication.
 
 \section{Functional Requirements}
 \begin{longtable}{L{2.0cm}L{12.4cm}}
@@ -144,11 +146,12 @@ project is empty of protected records, including coursework/screenshots.}
 {An unknown/foreign project fails. Switching/sign-out warns before discarding
 unsaved drafts. Existing accounts are neither deleted nor silently migrated.}
 \req{FR-05}{Manual data}
-{Preserve exact nonblank raw statements separately from glosses and annotations,
-including case, accents, code-mixing and incomplete speech. Store provenance.}
-{Saved text is not silently rewritten into standard language. Duplicate
-language/text entries are reported; failed saves preserve drafts. Only Sentence
-entries count toward the 10--15 requirement.}
+{Preserve exact nonblank raw statements, glosses and notes, including case,
+accents, code-mixing and incomplete speech. Store provenance separately.}
+{Raw text, glosses and notes are not rewritten. Existing ShortText validation
+trims supplied contributor/location values on save, not during import preview.
+Duplicates and failed saves are explicit. Only Sentence entries count toward
+the 10--15 requirement.}
 \req{FR-06}{Review}
 {Require explicit human review of annotations. An evidence edit invalidates
 prior approval unless the new evidence is explicitly reviewed.}
@@ -164,7 +167,8 @@ Private playback honors owner/project selection and HTTP range semantics.}
 application server. Show text/warnings/drafts before any save.}
 {No generation/provider call occurs. Unsupported/scanned-only inputs fail
 explicitly. Structured metadata cannot import an approved status. Extracted
-text is bounded and checked against the original by the user.}
+text is bounded and checked against the original by the user. Preview preserves
+provenance values; an explicit save applies the short-metadata rule in FR-05.}
 \req{FR-09}{References}
 {Expose a read-only, source-labelled dictionary and clearly constructed practice
 library without populating the real corpus automatically.}
@@ -207,9 +211,11 @@ and private owner/project-scoped byte retrieval.}
 Upload/delete increments the workspace version; no fabricated evidence is generated.}
 \req{FR-17}{Course export}
 {Export a DRAFT HTML report, editable PowerPoint, saved raw data, lexical/grammar/
-parser artifacts, screenshot bytes and implementation source snapshots.}
+parser artifacts, screenshot bytes and implementation source snapshots.
+Hold the account's shared lock across the profile/corpus/screenshot evidence read.}
 {Missing data/discussion is explicit. The 25-section structure is not called
-25 printed pages. Report/presentation remain human-review tasks.}
+25 printed pages. Concurrent account mutations cannot mix saved evidence
+revisions during export. Report/presentation remain human-review tasks.}
 \req{FR-18}{Legacy history}
 {Keep existing AI-generated translations/conversations readable and exportable
 as legacy data without resuming a generation workflow.}
@@ -231,7 +237,7 @@ separate identity facilities.}
 \end{longtable}
 
 \section{Quality Requirements and Failure Contracts}
-\begin{longtable}{L{2.0cm}L{12.4cm}}
+\begin{longtable}{L{2.8cm}L{11.6cm}}
 \toprule\textbf{ID} & \textbf{Requirement and evidence boundary}\\\midrule\endhead
 \textbf{QR-01}\newline Integrity &
 Use SQLite transactions and coordinated file locks. Reject stale recovery
@@ -280,7 +286,7 @@ Screenshots & Project-bound ID/name/base64 PNG rows with private byte route &
 User must provide genuine captures\\\addlinespace
 Recordings & Private account audio files referenced by entries & Supporting raw
 material, never auto-transcribed\\\addlinespace
-Dictionary/practice & Versioned source-labelled references and constructed examples &
+Dictionary and practice & Versioned source-labelled references and constructed examples &
 Not collected statements\\\addlinespace
 Legacy history & Existing validated translation/conversation records &
 Historical output, no new generation\\\addlinespace
@@ -338,7 +344,7 @@ native audio/image URLs can carry a project query parameter.
 \toprule\textbf{Area} & \textbf{Interface}\\\midrule\endhead
 Compiler & \nolinkurl{/api/analyze}; coursework state, project, analyze, parse,
 screenshots and export under \nolinkurl{/api/coursework}\\\addlinespace
-Collection/reference & Dataset CRUD/audio, metadata, dictionary and constructed
+Collection and references & Dataset CRUD/audio, metadata, dictionary and constructed
 examples under \nolinkurl{/api}\\\addlinespace
 Import & \nolinkurl{/api/imports/preview}; supported local text formats only\\\addlinespace
 Accounts/recovery & Auth/session/Google routes and private project, legacy history,

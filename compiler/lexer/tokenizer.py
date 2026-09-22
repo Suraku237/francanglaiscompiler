@@ -30,13 +30,20 @@ _TOKEN_REGEX_RULES = tuple(
     (category, re.compile(pattern)) for category, pattern in lexicon.TOKEN_REGEX_RULES
 )
 _WORD_CONTINUATION = rf"[\w{lexicon.COMBINING_MARKS}'\u2018\u2019\u02bc-]"
-_VERB_PHRASES = tuple(
-    (
-        re.compile(rf"(?<!{_WORD_CONTINUATION})(?:{pattern})(?!{_WORD_CONTINUATION})", re.IGNORECASE),
-        re.compile(pattern),
+
+
+def _compile_phrases(patterns: list[str]) -> tuple[tuple[re.Pattern[str], re.Pattern[str]], ...]:
+    return tuple(
+        (
+            re.compile(rf"(?<!{_WORD_CONTINUATION})(?:{pattern})(?!{_WORD_CONTINUATION})", re.IGNORECASE),
+            re.compile(pattern),
+        )
+        for pattern in patterns
     )
-    for pattern in lexicon.VERB_PHRASES
-)
+
+
+_VERB_PHRASES = _compile_phrases(lexicon.VERB_PHRASES)
+_SLANG_PHRASES = _compile_phrases(lexicon.SLANG_PHRASES)
 
 
 def tokenize(text: str):
@@ -91,15 +98,24 @@ def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None)
     return "UNKNOWN"
 
 
-def find_verb_phrases(text: str):
-    """Return raw, source-ordered phrase annotations, never collapsed tokens."""
+def _find_phrases(text: str, patterns: tuple[tuple[re.Pattern[str], re.Pattern[str]], ...]) -> list[str]:
     found = []
-    for pattern, normalized_pattern in _VERB_PHRASES:
+    for pattern, normalized_pattern in patterns:
         for match in pattern.finditer(text):
             # Unicode IGNORECASE is broader than casefold (e.g. dotless i).
             if normalized_pattern.fullmatch(normalize_text(match.group(0))):
                 found.append((match.start(), match.group(0)))
     return [phrase for _, phrase in sorted(found, key=lambda item: item[0])]
+
+
+def find_verb_phrases(text: str) -> list[str]:
+    """Return raw, source-ordered phrase annotations, never collapsed tokens."""
+    return _find_phrases(text, _VERB_PHRASES)
+
+
+def find_slang_phrases(text: str) -> list[str]:
+    """Use the same token boundaries and raw spelling as verb-phrase annotations."""
+    return _find_phrases(text, _SLANG_PHRASES)
 
 
 # Which single-token categories count as "French" vs "English" vs "Pidgin"

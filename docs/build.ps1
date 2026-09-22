@@ -48,7 +48,7 @@ else {
         throw "PlantUML jar not found at '$PlantUmlJar'. Pass -PlantUmlJar, or use -SkipDiagrams with existing PNGs."
     }
     foreach ($diagram in $diagrams) {
-        # Hosted architecture views exceed PlantUML's default 4096-pixel canvas.
+        # Full architecture views may exceed PlantUML's default 4096-pixel canvas.
         & java -DPLANTUML_LIMIT_SIZE=8192 -jar $PlantUmlJar -tpng -charset UTF-8 $diagram.FullName
         if ($LASTEXITCODE -ne 0) {
             throw "PlantUML failed for $($diagram.Name)."

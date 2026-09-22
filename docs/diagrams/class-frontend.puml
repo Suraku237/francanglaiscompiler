@@ -1,46 +1,57 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Frontend class and function-component structure
+title Non-AI frontend: one runtime class, function components and hooks
 hide empty members
-' @class frontend.src.api.ApiError
 class ApiError {
   status: number {readOnly}
   constructor(message: string, status: number)
 }
 class "JavaScript Error" as Error <<external>>
-rectangle "api.ts <<function module>>\napi<T>(), errorDetail(), messageOf()\nisCancelled()" as API
-rectangle "AuthGate.tsx <<function component>>\nsession gate; project switching;\ncross-tab identity change; draft clearing" as Gate
-rectangle "useRequest.ts <<hook module>>\nuseRequest(): run / cancel / pending / error" as Request
-rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nhash navigation; draft handoff; health" as App
-rectangle "Translator / Assistant / Collection\nDictionary / Imports / SavedWork / WorkspaceSettings\n<<function components>>" as Pages
+rectangle "api.ts <<function module>>\napi<T>(), nativeApiUrl(), errorDetail()\nconfigureSession(), selectProject(), isCancelled()" as API
+rectangle "AuthGate.tsx <<function component>>\nverified session / project selection /\ncross-tab identity and dirty-draft handling" as Gate
+rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\ncompiler-default navigation / explicit draft handoff" as App
+rectangle "Coursework.tsx / CourseworkResults.tsx\n<<function-component modules>>\nCoursework(), GrammarResults(), LexicalResults()\nParseTrace(), CorpusResults()" as Lab
+rectangle "Collection / Dictionary / Examples / Imports\nSavedWork / WorkspaceSettings\n<<function components>>" as Pages
 rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
-rectangle "voice.ts <<hook module>>\nuseDictation(), useReadAloud()\nbrowserVoiceLanguage()" as Voice
-rectangle "components.tsx <<functions>>\nModal(), OriginBadge(), EvidencePanel()\ninitial focus / Tab wrap / restore trigger" as Components
+rectangle "useRequest.ts <<hook>>\nrun / cancel / pending / error" as Request
+rectangle "useAudioRecorder.ts / AudioRecorder.tsx\n<<hook / function component>>\nnative capture / local preview / explicit attachment" as Recorder
+rectangle "voice.ts <<hook module>>\nuseReadAloud(), browserVoiceLanguage()\nonly browser-reported localService voices" as Voice
+rectangle "audioFocus.ts <<function module>>\nclaimAudioFocus(), hasAudioFocus()\nshared browser audio-focus events" as Focus
+rectangle "components.tsx <<functions>>\nModal(), TokenAnalysis(), ReadButton()\nErrorNotice(), CopyButton()" as Components
 ApiError --|> Error
 API ..> ApiError : throws status-bearing errors
-Request ..> API : cancellation / error text
-Pages ..> Request : per-operation request state
-Pages ..> API : awaited HTTP
-App ..> Pages : renders / hides sections
-Gate ..> App : authenticated session only
-Gate ..> API : session / projects / logout
-App ..> Voice : shared read-aloud
+Request ..> API : cancellation / safe error text
+Gate ..> API : account / project operations
+Gate ..> App : renders authenticated session
+App ..> Lab
+App ..> Pages
+App ..> Voice
 App ..> Components
+Lab ..> Request
+Lab ..> API
+Lab ..> Evidence
+Lab ..> Components
+Pages ..> Request
+Pages ..> API
 Pages ..> Components
-Pages ..> Voice : opt-in dictation
-Evidence ..> API : error parsing / screenshot CRUD
-Evidence ..> ApiError : export HTTP failure
-note bottom of Pages
-  Interfaces in types.ts, importTypes.ts,
-  accountTypes.ts, courseworkTypes.ts and browser speech typings
-  erase at runtime: they are not classes.
+Pages ..> Recorder : collection recording only
+Evidence ..> API : scoped export URL / screenshot CRUD
+Evidence ..> ApiError : failed export HTTP response
+Evidence ..> Request : pending / cancellation
+Recorder ..> Focus : claims focus for capture / playback
+Voice ..> Focus : stops when another audio action claims focus
+note bottom of Voice
+  No SpeechRecognition or dictation hook exists.
+  If no reported-local French/English voice is available,
+  read-aloud gives an error instead of selecting a remote voice.
+  Browser/OS reporting is not an application-level network guarantee.
 end note
 legend bottom
-  ApiError is the only authored production TypeScript class.
-  React function components and hooks must not be recast as service classes.
-  Module dependencies have no association multiplicities.
-  CourseworkEvidence is preserved archive code, not a business navigation destination.
-  api.ts attaches CSRF/project context and rejects responses from older account generations.
+  frontend.src.api.ApiError is the authored runtime class.
+  Interfaces/types, including recorder state shapes, are erased and not invented classes.
+  Rectangles show dependencies, not object ownership or associations with multiplicities.
+  Coursework is the default product. History preserves legacy data without generation.
+  API generation guards prevent older account/project responses replacing current state.
 endlegend
 @enduml

@@ -66,7 +66,7 @@ describe('local document review and manual compiler handoff', () => {
     await user.upload(fileInput(), new File(['raw fixture'], name))
     expect(previewButton()).toBeDisabled()
     expect(screen.getByRole('alert')).toHaveTextContent('manual text transcript')
-    expect(screen.queryByRole('button', { name: 'Record audio', exact: true })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record audio' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Open Collection for raw recordings' }))
     expect(props.onOpenCollection).toHaveBeenCalledOnce()
     expect(fetch).toHaveBeenCalledTimes(1)
@@ -131,7 +131,7 @@ describe('local document review and manual compiler handoff', () => {
     expect(screen.getByLabelText(/^Source location/)).toHaveValue('')
     expect(screen.getByLabelText(/^Contributor/)).toHaveValue('')
     expect(screen.getByLabelText(/^Language$/)).toHaveValue('unspecified')
-    expect(screen.getByLabelText(/^Context & notes/)).toHaveValue(expect.stringContaining('Importing does not establish authenticity.'))
+    expect(screen.getByLabelText(/^Context & notes/)).toHaveValue('Source file: fixture.txt. Locally extracted text; verify the manual transcription, source, context and permissions. Importing does not establish authenticity.')
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 

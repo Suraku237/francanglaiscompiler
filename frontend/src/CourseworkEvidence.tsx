@@ -77,7 +77,7 @@ export function CourseworkExport({ active, dirty, busy }: { active: boolean; dir
 
   return <div className="lab-export">
     <div className="lab-result-heading"><h3>A submission draft, not a finished submission.</h3><Icon name="collection" size={25} /></div>
-    <p className="lab-copy">The ZIP is computed on this server from the <strong>selected project’s saved profile and grammar, current saved CSV, and attached screenshots</strong>. It never uses unsaved manual tests or legacy history.</p>
+    <p className="lab-copy">The ZIP is computed on this server from the <strong>selected project’s saved profile, grammar, collection entries, and attached screenshots</strong>. It never uses unsaved manual tests or legacy history.</p>
     <ul className="lab-list">
       <li><strong>report.html:</strong> a 25-section printable draft. Review it, then print to PDF; check the final layout reaches 25–30 pages and does not exceed 30.</li>
       <li><strong>presentation.pptx:</strong> a 10-minute draft. Rehearse the live demo and allocate about 3 minutes to each of 3 students.</li>

@@ -75,6 +75,7 @@ legend bottom
   Authentication is default; production rejects require_auth=False.
   Legacy files are never assigned to a private account automatically.
   Coursework ZIPs contain draft deliverables, not raw recordings; workspace backups retain audio.
-  Browser TTS behavior depends on browser/OS; no guarantee that all voices are offline.
+  TTS selects only browser-reported localService voices, without remote fallback.
+  Browser/OS reporting is not an application-level guarantee of all voice/network behavior.
 endlegend
 @enduml

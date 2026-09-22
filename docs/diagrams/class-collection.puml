@@ -9,9 +9,10 @@ class EntryCreate {
   text: StoredText
   entry_type: Word | Phrase | Sentence
   language; review_status
-  lexical_category
-  glosses; category; source_location
-  notes; contributor
+  lexical_category; category
+  french_gloss; english_gloss: StoredGloss
+  notes: StoredNotes
+  source_location; contributor: ShortText
   valid_lexical_metadata(): Self
 }
 ' @class backend.schemas.EntryPatch
@@ -83,6 +84,12 @@ note bottom of EntryPatch
   At least one field; explicit null is rejected.
   Omitted fields survive unchanged.
   ID, timestamp and audio are not editable.
+end note
+note bottom of EntryCreate
+  Raw text, glosses and notes retain exact input.
+  Supplied contributor/source_location values use
+  existing ShortText whitespace trimming on save.
+  Import previews preserve those original values.
 end note
 legend bottom
   The six response DTOs directly extend pydantic.BaseModel.

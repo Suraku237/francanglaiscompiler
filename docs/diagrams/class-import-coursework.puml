@@ -80,6 +80,7 @@ legend bottom
   Import/practice DTOs directly extend BaseModel; serialization methods are inherited.
   Three member strings may be blank initially; nonblank names must be distinct.
   ImportEntry never accepts an approved status. No suggestion/generation model exists.
+  Preview provenance stays unchanged; only a collection save trims short contributor/location fields.
   Screenshot limits: 6/project, 2 MiB decoded/normalized, 12 MP; JSON route cap 3 MiB.
   Reference/practice records do not silently become field statements.
 endlegend

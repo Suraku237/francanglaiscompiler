@@ -21,7 +21,7 @@ activate Extract
 Extract -> Extract : validate extension/size; run _local_preview in thread pool
 activate Extract
 alt Readable UTF-8 / structured rows / DOCX / text-layer PDF
-  note over Extract : Preserve raw text; bound pages/characters/drafts.\nStructured metadata is validated; approval is discarded.
+  note over Extract : Preserve raw text and supplied provenance; bound pages/characters/drafts.\nStructured metadata is validated without contributor/location trimming;\napproval is discarded.
 else Unsupported media, image-only PDF or invalid input
   note over Extract : Reject with a local/manual-transcript instruction.\nNo OCR, transcription, generation or remote provider fallback.
 end
@@ -39,6 +39,7 @@ opt Member explicitly saves a reviewed candidate
   activate Web
   Web -> Collection : POST /api/dataset; validated EntryCreate
   activate Collection
+  note over Collection : Raw statement/glosses/notes stay exact.\nExisting ShortText trims supplied contributor/source_location values on save.
   Collection -> Store : locked read/duplicate check/save via bound adapter
   activate Store
   Store --> Collection : saved row + revision/version, or failure

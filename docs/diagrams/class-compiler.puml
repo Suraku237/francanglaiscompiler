@@ -20,7 +20,7 @@ class _Transformations {
   append(alternatives, rhs)
   record(operation, before, after, description)
 }
-rectangle "tokenizer.py / learned.py <<modules>>\ntokenize(), classify_token(), analyze_sentence()\nbuild_lexicon(entries)" as Lexer
+rectangle "tokenizer.py / learned.py <<modules>>\ntokenize(), classify_token(), analyze_sentence()\nfind_verb_phrases(), find_slang_phrases()\nbuild_lexicon(entries)" as Lexer
 rectangle "grammar.py <<module>>\nread_grammar(), snapshot()\nGrammar = dict[str, list[list[str]]]" as Grammar
 rectangle "analysis.py <<module>>\ntransform_grammar(), calculate_first()\ncalculate_follow(), build_table()\nleft_recursive_nonterminals()" as Analysis
 rectangle "service.py / predictive.py <<modules>>\nanalyze_grammar(), parse_tokens()\nparse_analysis()" as Parser
@@ -42,5 +42,8 @@ legend bottom
   Grammar, Production, analysis results and parse traces are aliases/dictionaries.
   There is no LexerService, Grammar class, Parser class or compiler database.
   Lifetimes of function-local values are not drawn as class compositions.
+  Structural/phrase regexes are precompiled; raw text and source-ordered phrase matches are preserved.
+  Only the public starter grammar is cached as immutable JSON; each result is decoded afresh.
+  Custom grammars, corpus text and reviewed annotations are not cached by that service.
 endlegend
 @enduml

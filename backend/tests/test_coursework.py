@@ -87,6 +87,25 @@ class CourseworkTests(ApiTestCase):
         self.assertTrue(any(row["normalized"] == "taxi" for row in body["lexical"]["variations"]))
         self.assert_no_outbound_http()
 
+    def test_slang_annotations_respect_word_boundaries_and_preserve_source_spelling(self):
+        cases = (
+            ("pre-je wanda", [], ["pre-je", "wanda"]),
+            ("je wanda-post", [], ["je", "wanda-post"]),
+            ("JE\tWANDA", ["JE\tWANDA"], ["JE", "WANDA"]),
+            ("Je   Wanda, JE\tWANDA!", ["Je   Wanda", "JE\tWANDA"], ["Je", "Wanda", ",", "JE", "WANDA", "!"]),
+        )
+        expected = [(self.add_entry(text)["id"], text, phrases, tokens) for text, phrases, tokens in cases]
+        response = self.client.post("/api/coursework/analyze", json={"grammar": DEFAULT_GRAMMAR})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["summary"]["total"], len(cases))
+        statements = {row["id"]: row for row in response.json()["lexical"]["statements"]}
+        for entry_id, text, phrases, tokens in expected:
+            with self.subTest(text=text):
+                self.assertEqual(statements[entry_id]["text"], text)
+                self.assertEqual(statements[entry_id]["slang_expressions"], phrases)
+                self.assertEqual([token["text"] for token in statements[entry_id]["tokens"]], tokens)
+        self.assert_no_outbound_http()
+
     def test_parse_trace_full_input_and_unsupported_symbol(self):
         good = self.client.post("/api/coursework/parse", json={"grammar": "S -> NOUN", "text": "taxi"}).json()
         bad = self.client.post("/api/coursework/parse", json={"grammar": "S -> NOUN", "text": "taxi +"}).json()

@@ -14,7 +14,7 @@ Member -> Web : select actual analyzer capture and Upload
 activate Web
 Web -> API : POST /api/coursework/screenshots\n{name, data_url}; session/Origin/CSRF/project
 activate API
-note over API : Bound screenshot JSON to 3 MiB; ordinary JSON stays 1 MiB.\nBind identity/project before processing image data.
+note over API : Bound screenshot JSON to 3 MiB; ordinary JSON stays 1 MiB.\nBind identity/project before image processing; course_operation holds the account lock.
 API -> Images : add_screenshot(request)
 activate Images
 Images -> Images : validate base64 and PNG/JPEG; decode;\nlimit 2 MiB / 12 MP; normalize to PNG

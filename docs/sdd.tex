@@ -65,8 +65,11 @@ does not recreate authentication identities.
 
 Text extraction and compiler execution occur on the application server.
 There is no generative provider, OCR, remote transcription or browser dictation
-integration. Optional browser read-aloud is not evidence processing; available
-voices and use of an online voice service depend on browser/OS behavior.
+integration. Optional browser read-aloud is not evidence processing. The UI
+selects only voices that the browser reports as \texttt{localService}, and
+refuses read-aloud when none is suitable rather than choosing a remote fallback.
+Voice availability/locality reporting belongs to the browser/OS and is not an
+application-level guarantee of every underlying network behavior.
 
 \subsection{Explicit legacy boundary}
 The desktop collector remains production source, so its real classes and selected
@@ -171,15 +174,16 @@ cannot always attach the application's project header. The server still derives
 the account solely from the cookie, not from that query.
 
 \section{Private Data Model and Recovery}
-Figure~\ref{fig:class-workspaces} includes the real workspace input/history/backup
-classes and structural \texttt{DatasetStorage}/\texttt{CourseworkStorage} contracts.
-The store holds a file-lock object and paths/project ID; database rows do not
-constitute retained Pydantic object associations.
+Figure~\ref{fig:class-workspaces} lists the workspace input, history and backup
+classes. It also shows structural conformance to two contracts:
+\nolinkurl{DatasetStorage} and \nolinkurl{CourseworkStorage}.
+The store retains a file-lock object, its paths and the selected project ID.
+Database rows are not retained Pydantic object associations.
 
 \begin{longtable}{L{3.1cm}L{6.1cm}L{5.0cm}}
 \toprule\textbf{Table / resource} & \textbf{Record structure} & \textbf{Scope / behavior}\\\midrule\endhead
 projects & ID, name, creation time & Account-wide; General is retained\\\addlinespace
-entries & ID, project ID, entry JSON & Exact raw wording, provenance, annotations
+entries & ID, project ID, entry JSON & Raw wording, glosses, notes, provenance, annotations
 and optional audio reference\\\addlinespace
 revisions & ID, project/entry IDs, action/time, before/after JSON & Recorded changes;
 version-checked restore\\\addlinespace
@@ -241,7 +245,14 @@ or server settings. They are separate from the coursework deliverable bundle.
 Figure~\ref{fig:class-collection} separates editable entry inputs, stored-entry
 DTOs, read-only dictionary values, metadata/health and explicit errors.
 Raw \texttt{StoredText} fields preserve observed spelling/whitespace and reject
-blank-only content. ID, timestamp and attachment operations are not freely
+blank-only content. Stored glosses and notes also retain their exact input.
+The existing \nolinkurl{ShortText} validation trims leading and trailing
+whitespace from supplied contributor and source-location values on create/edit.
+Import previews and frontend handoffs preserve those provenance values before
+this save-time normalization. Omitted patch fields and existing records are not
+rewritten by that rule.
+
+ID, timestamp and attachment operations are not freely
 editable request fields. Duplicate entries and stale IDs are errors rather than
 silent replacement. Evidence changes invalidate approval unless explicitly
 reviewed as the new evidence.
@@ -278,7 +289,9 @@ with no OCR/transcription fallback.
 
 Partly scanned PDFs may return readable text with warnings; students must
 compare the complete source. Structured imports keep allowed raw/provenance
-fields but cannot import approval. Preview does not retain the original file
+fields without trimming contributor/location values, but cannot import approval.
+Only the later collection save applies short-metadata normalization; statement
+text, glosses and notes remain exact. Preview does not retain the original file
 as an attachment or save entries automatically.
 
 \section{Deterministic Compiler Design}
@@ -295,6 +308,12 @@ annotations, small base lexical lists, morphological heuristics and UNKNOWN.
 Sentence rows are not training data. Conflicting annotations cannot silently
 choose one category. Multiword verb/slang patterns and code-mixed transitions
 are separate annotations, not claims of a complete multilingual model.
+Structural and multiword regexes are precompiled. Matching respects token
+boundaries, preserves raw spelling and returns phrase occurrences in source
+order; multiword annotations do not collapse the token stream.
+For example, the brief's illustrative \emph{drop me} phrase remains separate
+underlying tokens, rather than being replaced by one VERB terminal to force
+parser acceptance. Such an illustration is not a collected field statement.
 
 Corpus reporting computes raw statements/tokens, token and category frequencies,
 unknown counts and normalized spelling-variation candidates. Case/accents are
@@ -318,6 +337,9 @@ LL(1) is the implemented alternative; there is no LR/SLR implementation claim.
 One corpus analysis reads a bounded selected-project snapshot (at most 500
 entries and 100,000 characters), analyzes the submitted grammar and parses each
 entry. Single-input parsing uses the same selected project's reviewed word map.
+The coursework operation holds the same reentrant account workspace lock used
+by mutations across profile/corpus/screenshot reads and analysis. Cooperating
+account mutations therefore cannot mix evidence revisions within the operation.
 Analysis does not implicitly save the editor/profile.
 
 \notice{Interpretation boundary}{
@@ -327,11 +349,42 @@ The default CFG remains an illustration until the group relates its rules to
 real observations and explains coverage, ambiguity and rejection.}
 
 \subsection{Optimization evidence}
+Only the public illustrative starter grammar (including its saved stripped
+form) is cached as immutable JSON. Each caller receives newly decoded mutable
+results. Custom grammar text/comments, corpus statements and reviewed word
+annotations are not retained by that grammar cache.
+
 Algorithmic changes must preserve deterministic outputs, trace semantics and
 caller isolation. Any timing claim belongs with its actual fixture, warm-up,
-sample size, environment and exclusions. The current documentation register
-records fresh supplied measurements only after the compiler implementation
-stabilizes; historical benchmark JSON is not relabelled as current performance.
+sample size, environment and exclusions.
+
+The source-hash-verified record
+\nolinkurl{compiler/output/benchmark_verified.json}, recorded
+22 September 2026 at 09:46:18 UTC on Windows 11 / AMD64 / CPython 3.14.6,
+contains thirteen individual synthetic cases and a separate paired comparison.
+It uses 21 samples of 150 iterations and reports five warm-ups per case;
+each sample is a batch-average timing, not individual request latency.
+The paired batches alternate order in one process and compare the same current
+grammar preparation algorithm on the exact whitespace-stripped public starter.
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule\textbf{Repeated saved-starter preparation} & \textbf{Median per call}\\\midrule
+Current uncached preparation & 1,042.155 \(\mu\mathrm{s}\)\\
+Current cached preparation & 207.775 \(\mu\mathrm{s}\)\\
+Ratio of medians & approximately \(5.02\times\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is a narrow cache benefit for repeated public-starter preparation,
+\textbf{not} a speedup claim for custom grammars, every compiler algorithm,
+end-to-end HTTP/UI response time or linguistic quality. Older before/after
+captures were different-time runs with substantial timing noise and include
+unchanged or slower cases; they remain historical comparisons, not proof that
+all operations improved. No account/project data was used in the synthetic
+benchmark. The current record's eleven source hashes were checked against
+the implementation before documenting these values.
 
 \section{Coursework Evidence and Draft Deliverables}
 Figure~\ref{fig:activity-analysis} places human collection and interpretation
@@ -356,10 +409,14 @@ own-corpus regression cases.
 \end{itemize}
 
 The coursework ZIP does \textbf{not} contain raw recordings. Full workspace
-backups preserve recordings together with coursework. Sequential export reads
-are not a global multi-resource snapshot transaction. Source snapshots omit
-environment secrets but raw text/contributor metadata are included, so the
-archive must be shared only with authorized course recipients.
+backups preserve recordings together with coursework. The shared reentrant
+account lock protects profile data, corpus rows and screenshot reads throughout
+export and analysis. This provides a coherent saved-evidence snapshot against
+cooperating workspace mutations.
+This is not a transaction over developer-edited source files or arbitrary
+external filesystem writers. Source snapshots omit environment secrets but raw
+text/contributor metadata are included, so the archive must be shared only with
+authorized course recipients.
 
 Generated test expectations snapshot the parser's current decisions; they are
 not independent proof that a linguistic judgment is right. The group must

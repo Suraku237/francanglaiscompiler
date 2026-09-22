@@ -17,6 +17,10 @@ activate Web
 Web -> API : PUT /api/coursework/project\nprofile + cookie/Origin/CSRF/project
 activate API
 note over API : Authenticated identity and both storage adapters are bound.
+API -> Store : acquire shared account lock via dataset.dataset_lock()
+activate Store
+Store --> API : lock held for course_operation
+deactivate Store
 API -> Profile : save_project(profile)
 activate Profile
 Profile -> Local : analyze_grammar(profile.grammar)
@@ -32,6 +36,10 @@ opt Grammar valid
 end
 Profile --> API : submitted profile or exception
 deactivate Profile
+API -> Store : release outer account lock in finally
+activate Store
+Store --> API : released
+deactivate Store
 API --> Web : saved snapshot / safe error
 deactivate API
 Web --> Member : mark submitted snapshot saved; preserve later edits/errors
@@ -44,6 +52,10 @@ alt Unsaved profile / save or screenshot work pending
 else Explicit eligible export
   Web -> API : GET /api/coursework/export\ncookie + selected project
   activate API
+  API -> Store : acquire shared account lock via dataset.dataset_lock()
+  activate Store
+  Store --> API : lock held across saved evidence and analysis
+  deactivate Store
   API -> Export : export_bundle()
   activate Export
   Export -> Profile : load_project(); list_screenshots(); screenshot_bytes(id)
@@ -68,6 +80,10 @@ else Explicit eligible export
   deactivate Export
   Export --> API : ZIP bytes or exception
   deactivate Export
+  API -> Store : release outer account lock in finally
+  activate Store
+  Store --> API : released
+  deactivate Store
   API --> Web : application/zip; no-store / safe error
   deactivate API
 end
@@ -75,7 +91,9 @@ Web --> Member : download started or retained state + actionable error
 deactivate Web
 deactivate Member
 legend bottom
-  Export is not a single global snapshot transaction across all sequential reads.
+  The reentrant account lock prevents profile/corpus/image revision mixing by account mutations.
+  Lock-call activations are not lock ownership duration; ownership spans the whole operation.
+  Source files/external filesystem writers are not part of an account database transaction.
   Real raw text and contributor metadata are private: review before sharing with course recipients.
   Raw recordings are not embedded here; full workspace backups retain recordings and coursework.
   Generated regression expectations replay current parser decisions, not an independent linguistic oracle.

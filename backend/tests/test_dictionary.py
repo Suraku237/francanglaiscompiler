@@ -91,7 +91,7 @@ class DictionaryApiTests(ApiTestCase):
                 entries = response.json()["entries"]
                 self.assertTrue(any(item["english_gloss"] == expected for item in entries))
                 self.assertTrue(all(item["source_document"] and item["source_line"] for item in entries))
-                self.assertTrue(all(item["french_gloss"] == "" for item in entries))
+                self.assertTrue(all("french_gloss" not in item for item in entries))
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         self.assert_no_outbound_http()

@@ -101,7 +101,7 @@ function CountTable({ rows, label }: { rows: TokenCount[]; label: string }) {
 export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
   return <div className="lab-results">
     <div className="lab-result-heading"><h3>Inside the saved corpus</h3><span className="lab-status review">{lexical.total_tokens.toLocaleString()} tokens · rule-based labels</span></div>
-    <p className="lab-copy">Only records from your saved CSV are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
+    <p className="lab-copy">Only saved collection entries in the selected project are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
     <div className="lab-category-counts">{Object.entries(lexical.category_counts).map(([name, count]) => <span key={name}><code>{name}</code><strong>{count}</strong></span>)}</div>
     <details className="lab-disclosure">
       <summary>Statement token tables, verbs, slang & code mixing · {lexical.statements.length} records</summary>

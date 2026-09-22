@@ -15,7 +15,7 @@ Learner -> Web : Analyze corpus or Parse practice input
 activate Web
 Web -> API : POST /api/coursework/analyze or /parse
 activate API
-note over API : Identity and selected-project dataset/coursework contexts are already bound.
+note over API : Identity and selected-project dataset/coursework contexts are already bound.\ncourse_operation holds the shared account lock through evidence reads and analysis.
 opt Corpus analysis
   API -> Lexer : read_corpus()
   activate Lexer

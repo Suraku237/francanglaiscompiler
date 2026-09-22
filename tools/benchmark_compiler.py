@@ -21,6 +21,7 @@ from compiler.lexer.frequency import compute_frequencies
 from compiler.lexer.tokenizer import analyze_sentence, find_verb_phrases
 from compiler.parser.grammar import MAX_NONTERMINALS
 from compiler.parser.predictive import MAX_INPUT_TOKENS
+from compiler.parser import service
 from compiler.parser.service import DEFAULT_GRAMMAR, analyze_grammar, parse_analysis, parse_tokens
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,9 +59,11 @@ def synthetic_cases() -> dict[str, Callable[[], Any]]:
         "phrase_annotations": lambda: find_verb_phrases(phrase_text),
         "frequencies_256": lambda: compute_frequencies(frequency_tokens),
         "analyze_default": lambda: analyze_grammar(DEFAULT_GRAMMAR),
+        "analyze_persisted_default": lambda: analyze_grammar(DEFAULT_GRAMMAR.strip()),
         "analyze_nullable_chain_50": lambda: analyze_grammar(nullable_chain),
         "analyze_conflict": lambda: analyze_grammar(conflict),
         "parse_default_with_analysis": lambda: parse_tokens(DEFAULT_GRAMMAR, short_tokens),
+        "parse_persisted_default_with_analysis": lambda: parse_tokens(DEFAULT_GRAMMAR.strip(), short_tokens),
         "parse_prepared_default": lambda: parse_analysis(default_analysis, short_tokens),
         "parse_prepared_boundary_256": lambda: parse_analysis(repeated_analysis, boundary_tokens),
         "reject_oversized_257": lambda: parse_analysis(repeated_analysis, oversized_tokens),
@@ -71,6 +74,38 @@ def _source_hashes() -> dict[str, str]:
     return {
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in SOURCES
+    }
+
+
+def _distribution(samples: list[float]) -> dict[str, Any]:
+    return {
+        "median_us": statistics.median(samples),
+        "p95_batch_mean_us": sorted(samples)[math.ceil(len(samples) * 0.95) - 1],
+        "min_us": min(samples),
+        "max_us": max(samples),
+        "samples_us": samples,
+    }
+
+
+def compare_default_preparation(samples: int, iterations: int) -> dict[str, Any]:
+    text = DEFAULT_GRAMMAR.strip()
+    operations = {
+        "uncached": lambda: service._analyze_grammar(text),
+        "cached": lambda: analyze_grammar(text),
+    }
+    assert operations["uncached"]() == operations["cached"]()
+    timings: dict[str, list[float]] = {name: [] for name in operations}
+    for sample in range(samples):
+        order = ("uncached", "cached") if sample % 2 == 0 else ("cached", "uncached")
+        for name in order:
+            elapsed = timeit.Timer(operations[name]).timeit(number=iterations)
+            timings[name].append(elapsed * 1_000_000 / iterations)
+    return {
+        "input": "Public starter after the same whitespace stripping used by the project profile.",
+        "method": "Alternating-order paired batches in one process; same grammar preparation algorithm.",
+        "uncached": _distribution(timings["uncached"]),
+        "cached": _distribution(timings["cached"]),
+        "median_speedup": statistics.median(timings["uncached"]) / statistics.median(timings["cached"]),
     }
 
 
@@ -88,13 +123,8 @@ def run_benchmark(*, samples: int = 15, iterations: int = 100) -> dict[str, Any]
             operation()
         batch_seconds = timeit.Timer(operation).repeat(repeat=samples, number=iterations)
         per_call_us = [elapsed * 1_000_000 / iterations for elapsed in batch_seconds]
-        measurements[name] = {
-            "median_us": statistics.median(per_call_us),
-            "p95_batch_mean_us": sorted(per_call_us)[math.ceil(samples * 0.95) - 1],
-            "min_us": min(per_call_us),
-            "max_us": max(per_call_us),
-            "samples_us": per_call_us,
-        }
+        measurements[name] = _distribution(per_call_us)
+    comparison = compare_default_preparation(samples, iterations)
     if hashes != _source_hashes():
         raise RuntimeError("Compiler source changed during measurement; rerun against stable source.")
     return {
@@ -120,12 +150,14 @@ def run_benchmark(*, samples: int = 15, iterations: int = 100) -> dict[str, Any]
         },
         "source_sha256": hashes,
         "measurements": measurements,
+        "default_preparation_comparison": comparison,
         "limitations": [
             "Synthetic compiler microbenchmarks, not collected corpus or linguistic accuracy evidence.",
             "Warm repeated calls on one machine, not cold-start or concurrent-user capacity.",
             "p95 is over batch means, not individual end-to-end request latency.",
             "Excludes persistence, authentication, network, browser, and external services.",
             "The default grammar is an illustrative category-level teaching starter.",
+            "The paired comparison isolates public-starter caching, not a whole-application or custom-grammar speedup.",
         ],
     }
 

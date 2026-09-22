@@ -1,4 +1,3 @@
-import re
 import unicodedata
 from collections import Counter, defaultdict
 
@@ -35,7 +34,7 @@ def lexical_spec() -> dict:
             {"category": "FRENCH_VERB_LIKE", "pattern": r"(?=.{4,}$).*(?:er|ir|re)$"},
         ],
         "verb_phrases": lexicon.VERB_PHRASES,
-        "slang_phrases": [r"\bje\s+wanda\b"],
+        "slang_phrases": lexicon.SLANG_PHRASES,
         "classification_order": [
             "NUMBER", "PUNCTUATION", "SLANG", "PIDGIN_MARKER", "NOUN", "VERB",
             "FRENCH_FUNCTION_WORD", "ENGLISH_FUNCTION_WORD",
@@ -102,11 +101,7 @@ def lexical_report(entries: list[dict[str, str]]) -> dict:
             "id": entry["id"], "text": entry["text"], "category": entry["category"],
             "tokens": tokens, "code_mixed_spans": result["code_mixed_spans"],
             "verb_phrases": result["verb_phrases"],
-            "slang_expressions": [
-                match.group(0)
-                for pattern in lexical_spec()["slang_phrases"]
-                for match in re.finditer(pattern, entry["text"], re.IGNORECASE)
-            ],
+            "slang_expressions": tokenizer.find_slang_phrases(entry["text"]),
         })
     return {
         "statements": statements,

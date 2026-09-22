@@ -105,3 +105,76 @@ class CollectionReviewTests(ApiTestCase):
         self.assertEqual(analyze_sentence("zandolo")["tokens"][0].category, "UNKNOWN")
         self.client.patch(f"/api/dataset/{entry['id']}", json={"review_status": "unreviewed"})
         self.assertEqual(self.client.post(endpoint, json={"text": "zandolo"}).json()["tokens"][0]["category"], "UNKNOWN")
+
+    def test_conflicting_approved_word_labels_are_ignored_until_manually_resolved(self):
+        self.add("zandolo", lexical_category="NOUN")
+        conflicting = self.add("ZANDOLO", language="pidgin", lexical_category="VERB")
+        response = self.client.post("/api/analyze", json={"text": "zandolo"})
+        self.assertEqual(response.json()["tokens"], [{"text": "zandolo", "category": "UNKNOWN"}])
+        endpoint = f"/api/dataset/{conflicting['id']}"
+        self.assertEqual(self.client.patch(endpoint, json={"review_status": "unreviewed"}).status_code, 200)
+        self.assertEqual(self.client.post("/api/analyze", json={"text": "zandolo"}).json()["tokens"][0]["category"],
+                         "NOUN")
+        self.assertEqual(self.client.patch(endpoint, json={
+            "review_status": "approved", "lexical_category": "NOUN",
+        }).status_code, 200)
+        self.assertEqual(self.client.post("/api/analyze", json={"text": "ZANDOLO"}).json()["tokens"][0]["category"],
+                         "NOUN")
+
+    def test_learned_words_normalize_only_matching_and_keep_raw_unicode_forms(self):
+        original = self.add("  za\u0300nd’olo  ", lexical_category="NOUN", notes="  Original source  ")
+        before = Path(dataset.DATASET_PATH).read_bytes()
+        for text in ("ZÀND'OLO", "zànd‘olo", "za\u0300ndʼolo"):
+            with self.subTest(text=text):
+                response = self.client.post("/api/analyze", json={"text": text})
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()["tokens"], [{"text": text, "category": "NOUN"}])
+        for text in ("zand'olo", "prefixzànd'olo", "zànd'olo-suffix"):
+            with self.subTest(text=text):
+                response = self.client.post("/api/analyze", json={"text": text})
+                self.assertEqual(response.json()["tokens"], [{"text": text, "category": "UNKNOWN"}])
+        self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
+        self.assertEqual(self.client.get("/api/dataset").json()["entries"], [original])
+
+    def test_editing_reviewed_wording_or_meaning_invalidates_its_lexer_annotation(self):
+        entry = self.add("zandolo", lexical_category="NOUN")
+        endpoint = f"/api/dataset/{entry['id']}"
+        response = self.client.patch(endpoint, json={"english_gloss": "Changed manual meaning"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["review_status"], "unreviewed")
+        self.assertEqual(self.client.post("/api/analyze", json={"text": "zandolo"}).json()["tokens"][0]["category"],
+                         "UNKNOWN")
+        self.client.patch(endpoint, json={"review_status": "approved"})
+        response = self.client.patch(endpoint, json={"text": "zondalo"})
+        self.assertEqual(response.json()["review_status"], "unreviewed")
+        tokens = self.client.post("/api/analyze", json={"text": "zandolo zondalo"}).json()["tokens"]
+        self.assertEqual([token["category"] for token in tokens], ["UNKNOWN", "UNKNOWN"])
+        self.client.patch(endpoint, json={"review_status": "approved", "lexical_category": "VERB"})
+        tokens = self.client.post("/api/analyze", json={"text": "zandolo zondalo"}).json()["tokens"]
+        self.assertEqual([token["category"] for token in tokens], ["UNKNOWN", "VERB"])
+
+    def test_only_approved_language_labeled_single_words_teach_the_lexer(self):
+        cases = (
+            ("zandolomix", {"language": "mixed"}),
+            ("zandolonolang", {"language": "unspecified"}),
+            ("zandolophrase", {"entry_type": "Phrase"}),
+            ("zandolosentence", {"entry_type": "Sentence"}),
+            ("zandolodraft", {"review_status": "unreviewed"}),
+            ("zandolomulti zondalo", {}),
+        )
+        source = " ".join(text for text, _ in cases)
+        baseline = [{"text": token.text, "category": token.category} for token in analyze_sentence(source)["tokens"]]
+        for text, fields in cases:
+            self.add(text, lexical_category="NOUN", **fields)
+        response = self.client.post("/api/analyze", json={"text": source})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["tokens"], baseline)
+
+    def test_reviewed_annotations_cannot_override_structural_number_and_punctuation_tokens(self):
+        self.add("42", lexical_category="NOUN")
+        self.add("!", lexical_category="VERB")
+        response = self.client.post("/api/analyze", json={"text": "42 !"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["tokens"], [
+            {"text": "42", "category": "NUMBER"}, {"text": "!", "category": "PUNCTUATION"},
+        ])

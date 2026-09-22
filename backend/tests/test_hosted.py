@@ -51,6 +51,7 @@ class HostedCase(unittest.TestCase):
         )))
         self.mail = []
         self.outbound_http = block_outbound_http(self.stack)
+        self.stack.callback(self.assert_no_outbound_http)
         self.settings = AuthSettings(
             data_dir=self.root, public_url="http://testserver", mail_mode="file",
             google_client_id="", google_client_secret=SecretStr(""),

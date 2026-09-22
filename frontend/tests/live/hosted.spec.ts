@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import type { ImportPreview } from '../../src/importTypes'
 import type { Dataset } from '../../src/types'
-import { checkAudioErrorsAndConsent, recordPrivateAudio } from './audioWorkflows'
+import { checkAudioErrorsAndManualDrafts, recordPrivateAudio } from './audioWorkflows'
 
 const password = 'Live-browser-test-passphrase-2026!'
 const importDocuments = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'fixtures', 'imports')
@@ -30,7 +30,7 @@ async function emailLink(email: string, kind: string): Promise<string> {
 async function signUp(page: Page): Promise<string> {
   const email = `test-${randomUUID()}@example.com`
   await page.goto('/#register')
-  await page.getByLabel('Your name', { exact: true }).fill('Synthetic business user')
+  await page.getByLabel('Your name', { exact: true }).fill('Synthetic compiler user')
   await page.getByLabel('Email address').fill(email)
   await page.getByLabel(/^Password/).fill(password)
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
@@ -46,9 +46,9 @@ async function signUp(page: Page): Promise<string> {
 }
 
 async function addEntry(page: Page, text: string) {
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Terminology', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: 'Add terminology' })
+  const editor = page.getByRole('dialog', { name: 'Add collection entry' })
   await editor.getByRole('textbox', { name: /^Expression/ }).fill(text)
   await editor.getByRole('button', { name: 'Save unreviewed' }).click()
   await expect(editor).not.toBeVisible()
@@ -56,8 +56,8 @@ async function addEntry(page: Page, text: string) {
 }
 
 async function previewDocument(page: Page, file: ImportFile, status = 200) {
-  await page.getByLabel('Document, image, audio or video').setInputFiles(file)
-  await expect(page.getByRole('checkbox', { name: /^I consent to sending this file to Gemini/ })).not.toBeChecked()
+  await page.getByLabel('Text document').setInputFiles(file)
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
   const result = page.waitForResponse((response) =>
     response.url().endsWith('/api/imports/preview') && response.request().method() === 'POST')
   await page.getByRole('button', { name: 'Preview source text', exact: true }).click()
@@ -76,7 +76,7 @@ function processingRequests(page: Page): string[] {
   const requests: string[] = []
   page.on('request', (request) => {
     const path = new URL(request.url()).pathname
-    if (['/api/translate', '/api/chat', '/api/imports/suggest'].includes(path)) requests.push(path)
+    if (['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain'].includes(path)) requests.push(path)
   })
   return requests
 }
@@ -84,14 +84,18 @@ function processingRequests(page: Page): string[] {
 test.beforeEach(async ({ context }) => {
   await context.route(/^https?:\/\/(?!127\.0\.0\.1:4190\/).*/, (route) => route.abort('blockedbyclient'))
   await context.addInitScript(() => {
+    const forbiddenRecognition = () => { throw new Error('Speech recognition is not part of manual transcription.') }
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: forbiddenRecognition })
+    Object.defineProperty(window, 'webkitSpeechRecognition', { configurable: true, value: forbiddenRecognition })
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
       getUserMedia: () => Promise.reject(new Error('Physical hardware is not used in automated tests.')),
     } })
   })
 })
 
-test('real registration, verification, private data, sessions and reload persistence', async ({ page, browser }) => {
+test('real registration, compiler workflows, private data, sessions and reload persistence', async ({ page, browser }) => {
   await signUp(page)
+  await exerciseCompiler(page)
   await addEntry(page, 'Synthetic customer greeting')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Synthetic customer greeting', exact: true })).toBeVisible()
@@ -101,7 +105,7 @@ test('real registration, verification, private data, sessions and reload persist
     const other = await otherContext.newPage()
     await signUp(other)
     await other.goto('/#collection')
-    await expect(other.getByRole('heading', { name: 'Build your terminology library' })).toBeVisible()
+    await expect(other.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
     await expect(other.getByRole('heading', { name: 'Synthetic customer greeting', exact: true })).toHaveCount(0)
     expect((await other.request.get(privateAudio)).status()).toBe(404)
   } finally {
@@ -124,19 +128,32 @@ test('real registration, verification, private data, sessions and reload persist
   }
 })
 
-test('saved translation, projects, revision recovery and verified backup restoration', async ({ page }) => {
+test('legacy history, coursework, projects, revision recovery and verified backup restoration', async ({ page }) => {
   await signUp(page)
+  const submitted = processingRequests(page)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
-  await navigation.getByRole('link', { name: 'Dictionary', exact: true }).click()
-  await page.getByRole('searchbox').fill('tchop')
-  await page.getByRole('button', { name: 'Open tchop in translator', exact: true }).click()
-  await page.getByRole('button', { name: 'Translate', exact: true }).click()
-  await expect(page.getByText('to eat', { exact: true }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Save translation', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Saved to history' })).toBeVisible()
+  const session = await (await page.request.get('/api/auth/session')).json()
+  const legacy = await page.request.post('/api/workspace/history', {
+    headers: { 'X-CSRF-Token': session.csrf_token, Origin: 'http://127.0.0.1:4190' },
+    data: { kind: 'translation', title: 'Legacy synthetic item', content: {
+      source_text: '  Tchop\t ', source_language: 'francanglais', target_language: 'en',
+      translation: 'to eat', explanation: 'Synthetic old history fixture, not generated during this run.', note: 'Not fieldwork.',
+    } },
+  })
+  expect(legacy.status(), await legacy.text()).toBe(201)
   await navigation.getByRole('link', { name: 'History', exact: true }).click()
-  await page.getByRole('button', { name: 'Open tchop', exact: true }).click()
+  await page.getByRole('button', { name: 'Open Legacy synthetic item', exact: true }).click()
   await expect(page.getByLabel('Saved work details')).toContainText('to eat')
+  await page.getByRole('button', { name: 'Use source in compiler', exact: true }).click()
+  await expect(page.getByLabel('Manual parser test')).toHaveValue('  Tchop\t ')
+  await page.getByLabel('Context-free grammar').fill('S -> NOUN')
+  await page.getByLabel('Why this grammar fits your observations').fill('Synthetic backup test rationale. No genuine corpus supplied.')
+  await page.getByRole('button', { name: 'Save project', exact: true }).click()
+  await expect(page.getByText(/Project saved privately on this server/)).toBeVisible()
+  await page.getByLabel('Choose PNG or JPEG · max 2 MB').setInputFiles(join(importDocuments, 'image.png'))
+  await page.getByLabel('Screenshot caption').fill('Synthetic screenshot fixture')
+  await page.getByRole('button', { name: 'Save screenshot to project' }).click()
+  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toBeVisible()
   await addEntry(page, 'Synthetic recoverable term')
   await page.getByRole('button', { name: 'Delete expression: Synthetic recoverable term' }).click()
   await page.getByRole('button', { name: 'Yes, remove it' }).click()
@@ -156,21 +173,33 @@ test('saved translation, projects, revision recovery and verified backup restora
   await page.getByLabel('Backup ZIP (maximum 32 MB)').setInputFiles(path)
   await page.getByRole('button', { name: 'Validate and preview backup' }).click()
   await expect(page.getByRole('heading', { name: 'Restore preview', exact: true })).toBeVisible()
+  await expect(page.getByLabel('Backup contents')).toContainText('1 coursework profiles')
+  await expect(page.getByLabel('Backup contents')).toContainText('1 coursework screenshots')
+  await expect(page.getByLabel('Restore warnings')).toContainText(/coursework|grammar|screenshots/i)
   await expect(page.getByRole('button', { name: 'Replace my workspace' })).toBeDisabled()
   await page.getByLabel('Type REPLACE to confirm').fill('REPLACE')
   await page.getByRole('button', { name: 'Replace my workspace' }).click()
   await expect(page.getByText('Workspace restored. Review the restored information before using it.')).toBeVisible()
-  await navigation.getByRole('link', { name: 'Terminology', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Synthetic recoverable term', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Synthetic post-backup term', exact: true })).toHaveCount(0)
+  await navigation.getByRole('link', { name: 'Compiler lab', exact: true }).click()
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> NOUN')
+  await expect(page.getByLabel('Why this grammar fits your observations')).toHaveValue('Synthetic backup test rationale. No genuine corpus supplied.')
+  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toBeVisible()
   await navigation.getByRole('link', { name: 'Workspace settings', exact: true }).click()
-  await page.getByLabel('New project name').fill('Synthetic client project')
+  await page.getByLabel('New project name').fill('Synthetic second project')
   await page.getByRole('button', { name: 'Create project', exact: true }).click()
-  await expect(page.getByLabel('Active project')).toContainText('Synthetic client project')
+  await expect(page.getByLabel('Active project')).toContainText('Synthetic second project')
   page.once('dialog', (dialog) => dialog.accept())
-  await page.getByLabel('Active project').selectOption({ label: 'Synthetic client project' })
-  await navigation.getByRole('link', { name: 'Terminology', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Build your terminology library' })).toBeVisible()
+  await page.getByLabel('Active project').selectOption({ label: 'Synthetic second project' })
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
+  await navigation.getByRole('link', { name: 'Compiler lab', exact: true }).click()
+  await expect(page.getByLabel('Why this grammar fits your observations')).toHaveValue('')
+  await expect(page.getByLabel('Manual parser test')).toHaveValue('')
+  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toHaveCount(0)
+  expect(submitted).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -201,16 +230,56 @@ test('real password recovery revokes existing sessions and replaces the old pass
   }
 })
 
+async function exerciseCompiler(page: Page) {
+  const submitted = processingRequests(page)
+  await expect(page).toHaveURL(/#compiler$/)
+  await expect(page.getByText('No collected corpus in this project yet.', { exact: true })).toBeVisible()
+  await page.getByLabel('Context-free grammar').fill('S -> S NOUN | NOUN')
+  await page.getByRole('button', { name: 'Analyze grammar & saved corpus' }).click()
+  await expect(page.getByRole('heading', { name: 'Computed grammar' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
+  await expect(page.getByText('LL(1) · no table conflicts', { exact: true })).toBeVisible()
+  await page.getByLabel('Manual parser test').fill('  Mbom\t')
+  await page.getByRole('button', { name: 'Analyze tokens' }).click()
+  await expect(page.getByRole('heading', { name: 'Manual lexical result' })).toBeVisible()
+  const parsing = page.waitForResponse((response) => response.url().endsWith('/api/coursework/parse'))
+  await page.getByRole('button', { name: 'Parse test input' }).click()
+  const parsed = await parsing
+  expect(parsed.status(), await parsed.text()).toBe(200)
+  expect(parsed.request().postDataJSON().text).toBe('  Mbom\t')
+  await expect(page.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
+
+  await page.getByLabel('Context-free grammar').fill('S -> A NOUN\nA -> NOUN | epsilon')
+  await page.getByRole('button', { name: 'Analyze grammar & saved corpus' }).click()
+  await expect(page.getByText('Not LL(1) · inspect conflicts', { exact: true })).toBeVisible()
+  await expect(page.getByText('A deterministic LL(1) choice is not available.', { exact: true })).toBeVisible()
+  await page.getByLabel('Context-free grammar').fill('S -> epsilon')
+  await page.getByLabel('Manual parser test').fill('')
+  await page.getByRole('button', { name: 'Parse test input' }).click()
+  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Download coursework draft (.zip)' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Save project', exact: true }).click()
+  await expect(page.getByText(/Project saved privately on this server/)).toBeVisible()
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download coursework draft (.zip)' }).click()
+  expect((await downloaded).suggestedFilename()).toBe('francanglais-coursework.zip')
+  await page.reload()
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> epsilon')
+  await expect(page.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+  expect((await importedDataset(page)).total).toBe(0)
+  expect(submitted).toEqual([])
+}
+
 test('local documents preserve all six formats, hand off drafts and save only after review', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
-  await navigation.getByRole('link', { name: 'Documents & audio', exact: true }).click()
-  await expect(page.getByRole('checkbox', { name: /^I consent to sending this file to Gemini/ })).toBeDisabled()
+  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
   const term = {
     text: 'synthetic-import-term', entry_type: 'Word', language: 'francanglais',
     english_gloss: 'delivery', french_gloss: 'exp\u00e9dition', review_status: 'approved',
-    contributor: 'TEST-CONTRIBUTOR', notes: 'TEST-NOTE',
+    category: 'Campus Life', source_location: 'Original transcript line 8', contributor: 'TEST-CONTRIBUTOR', notes: 'TEST-NOTE',
   }
   const json = JSON.stringify({ entries: [term] })
   const csv = `${Object.keys(term).join(',')}\r\n${Object.values(term).join(',')}\r\n`
@@ -238,28 +307,26 @@ test('local documents preserve all six formats, hand off drafts and save only af
         text: term.text, english_gloss: term.english_gloss, french_gloss: term.french_gloss,
         review_status: 'unreviewed',
       })])
-      expect(preview.drafts[0]).not.toHaveProperty('contributor')
-      expect(preview.drafts[0]).not.toHaveProperty('notes')
+      expect(preview.drafts[0]).toMatchObject({
+        category: term.category, source_location: term.source_location, contributor: term.contributor, notes: term.notes,
+      })
       await expect(page.getByRole('heading', { name: term.text, exact: true })).toBeVisible()
     } else expect(preview.drafts).toEqual([])
     expect((await importedDataset(page)).total).toBe(0)
   }
-  await expect(page.getByRole('button', { name: 'Ask AI for vocabulary candidates' })).toBeDisabled()
-  const correction = 'Please deliver order TEST-1042 on Tuesday.'
+  await expect(page.getByRole('button', { name: /AI|suggest|translat/i })).toHaveCount(0)
+  const correction = '  Please\tdeliver order TEST-1042.\n\n'
   await page.getByLabel('Review and correct this passage').fill(correction)
   expect(await page.locator('.import-original pre').textContent()).toBe(csv)
-  await page.getByRole('button', { name: 'Open in translator', exact: true }).click()
-  await expect(page.getByRole('textbox', { name: /text to translate$/ })).toHaveValue(correction)
-  await navigation.getByRole('link', { name: 'Documents & audio', exact: true }).click()
+  await page.getByRole('button', { name: 'Open in compiler', exact: true }).click()
+  await expect(page.getByLabel('Manual parser test')).toHaveValue(correction)
+  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
   await expect(page.getByLabel('Review and correct this passage')).toHaveValue(correction)
-  await page.getByRole('button', { name: 'Open in assistant', exact: true }).click()
-  await expect(page.getByLabel('Message for the assistant')).toHaveValue(correction)
-  await expect(page.getByRole('article', { name: 'Your message', exact: true })).toHaveCount(0)
   expect(submitted).toEqual([])
   expect((await importedDataset(page)).total).toBe(0)
-  await navigation.getByRole('link', { name: 'Documents & audio', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
   await page.getByRole('button', { name: 'Review and save candidate', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: 'Add terminology' })
+  const editor = page.getByRole('dialog', { name: 'Add collection entry' })
   await expect(editor.getByRole('textbox', { name: /^Expression/ })).toHaveValue(term.text)
   expect((await importedDataset(page)).total).toBe(0)
   await editor.getByRole('button', { name: 'Save unreviewed', exact: true }).click()
@@ -273,23 +340,24 @@ test('local documents preserve all six formats, hand off drafts and save only af
   expect(entry).toMatchObject({
     text: term.text, review_status: 'unreviewed', french_gloss: term.french_gloss, english_gloss: term.english_gloss,
   })
-  expect(entry.contributor).not.toContain('TEST-CONTRIBUTOR')
-  expect(entry.notes).not.toContain('TEST-NOTE')
-  await navigation.getByRole('link', { name: 'Terminology', exact: true }).click()
+  expect(entry).toMatchObject({
+    contributor: term.contributor, notes: term.notes, category: term.category, source_location: term.source_location,
+  })
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
   await page.reload()
   await expect(page.getByRole('heading', { name: term.text, exact: true })).toBeVisible()
   expect(submitted).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('local document limits, invalid files and missing cloud consent fail clearly and recover', async ({ page }) => {
+test('local document limits, invalid files and scanned PDF manual-transcript errors recover clearly', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
   let previews = 0
   page.on('request', (request) => {
     if (request.url().endsWith('/api/imports/preview')) previews += 1
   })
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Documents & audio', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Document import', exact: true }).click()
   const boundary = 'A'.repeat(39996) + 'END!'
   for (const file of [
     join(importDocuments, 'at-limit.pdf'),
@@ -312,9 +380,7 @@ test('local document limits, invalid files and missing cloud consent fail clearl
     { file: { name: 'encoding.txt', mimeType: 'text/plain', buffer: Buffer.from([255]) }, status: 422, error: 'UTF-8 encoding' },
     { file: { name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{broken') }, status: 422, error: 'JSON file is invalid' },
     { file: { name: 'invalid.csv', mimeType: 'text/csv', buffer: Buffer.from('text,text\none,two') }, status: 422, error: 'column names must not be repeated' },
-    { file: { name: 'unsupported.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('synthetic') }, status: 415, error: 'Unsupported format' },
-    { file: join(importDocuments, 'no-text-layer.pdf'), status: 422, error: 'Enable cloud processing only if you consent' },
-    { file: join(importDocuments, 'image.png'), status: 422, error: 'Enable cloud processing only if you consent' },
+    { file: join(importDocuments, 'no-text-layer.pdf'), status: 422, error: 'Manually transcribe' },
   ]
   for (const { file, status, error } of invalid) {
     await previewDocument(page, file, status)
@@ -322,15 +388,18 @@ test('local document limits, invalid files and missing cloud consent fail clearl
     await expect(page.getByRole('heading', { name: 'Content preview', exact: true })).toHaveCount(0)
   }
   const before = previews
-  const input = page.getByLabel('Document, image, audio or video')
+  const input = page.getByLabel('Text document')
   const button = page.getByRole('button', { name: 'Preview source text', exact: true })
   await input.setInputFiles({ name: 'empty.txt', mimeType: 'text/plain', buffer: Buffer.alloc(0) })
-  await button.click()
+  await expect(button).toBeDisabled()
   await expect(page.getByRole('alert')).toContainText('This file is empty.')
   await input.setInputFiles({ name: 'maximum-bytes.txt', mimeType: 'text/plain', buffer: Buffer.alloc(12 * 1024 * 1024, 65) })
   await expect(button).toBeEnabled()
   await input.setInputFiles({ name: 'too-many-bytes.txt', mimeType: 'text/plain', buffer: Buffer.alloc(12 * 1024 * 1024 + 1, 65) })
   await expect(page.getByRole('alert')).toContainText('This file exceeds 12 MB.')
+  await expect(button).toBeDisabled()
+  await input.setInputFiles(join(importDocuments, 'image.png'))
+  await expect(page.getByRole('alert')).toContainText('manual text transcript')
   await expect(button).toBeDisabled()
   expect(previews).toBe(before)
   await previewDocument(page, { name: 'recovery.txt', mimeType: 'text/plain', buffer: Buffer.from('Recovery works.') })
@@ -338,6 +407,6 @@ test('local document limits, invalid files and missing cloud consent fail clearl
   await expect(page.getByLabel('Review and correct this passage')).toHaveValue('Recovery works.')
   expect((await importedDataset(page)).total).toBe(0)
   expect(submitted).toEqual([])
-  await checkAudioErrorsAndConsent(page)
+  await checkAudioErrorsAndManualDrafts(page)
   expect(submitted).toEqual([])
 })

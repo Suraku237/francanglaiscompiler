@@ -29,6 +29,7 @@ class ApiTestCase(unittest.TestCase):
         self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
         self.stack.enter_context(patch.object(coursework_store, "PROJECT_DIR", self.directory / "coursework"))
         self.outbound_http = block_outbound_http(self.stack)
+        self.stack.callback(self.assert_no_outbound_http)
         self.client = self.make_client()
 
     def assert_no_outbound_http(self) -> None:

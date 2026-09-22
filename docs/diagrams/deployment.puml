@@ -4,7 +4,7 @@ title Deployment: one durable host, local compiler, retained identity services
 node "Student's device" <<device>> {
   node "Browser" as Browser <<executionEnvironment>> {
     artifact "Built React frontend\nunsaved drafts / native recorder" as React
-    artifact "Optional read-aloud\nbrowser/OS voices" as Speech
+    artifact "Optional read-aloud\nbrowser-reported localService voices only" as Speech
   }
 }
 node "HTTPS reverse proxy" as Proxy <<executionEnvironment>>
@@ -25,7 +25,6 @@ node "Protected off-host backup destination" as Recovery <<external storage>>
 node "Microphone / speakers" as Devices <<device>>
 node "Google OAuth / signing keys" as Google <<external service>>
 node "SMTP provider" as Mail <<external service>>
-node "Optional browser-selected voice service\nimplementation-dependent" as VoiceService <<external service>>
 Browser -- Proxy : HTTPS: frontend and private APIs
 Proxy -- Backend : restricted HTTP;\ntrusted forwarded headers
 Python ..> Accounts : identity transactions
@@ -37,10 +36,11 @@ Browser -- Devices : permissioned recording / playback
 Browser -- Google : optional human authorization
 Backend -- Google : optional HTTPS code exchange / JWT validation
 Backend -- Mail : configured account email via STARTTLS
-Browser -- VoiceService : only if browser TTS implementation uses it
 Configuration ..> Python
 legend bottom
   No language-model, OCR or transcription integration exists.
+  TTS has no remote-voice fallback; the app relies on browser/OS localService reporting.
+  That reporting is not a guarantee about every underlying browser/OS network behavior.
   Google/SMTP are network identity services; local compilation is not a claim of an offline website.
   Local development: browser -> loopback FastAPI; no public proxy needed.
   Authentication stays enabled; legacy CSV/profile/screenshots are a separate maintenance boundary.

@@ -52,4 +52,29 @@ describe('project management', () => {
     await act(async () => oldRead.resolve(jsonResponse({ ...base, backups: [] })))
     expect(screen.getByRole('link', { name: 'Download backup' })).toBeVisible()
   })
+
+  it('shows coursework and screenshot restore counts plus all replacement and legacy warnings', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (url === '/api/workspace/revisions') return jsonResponse({ revisions: [], workspace_version: 0 })
+      if (url === '/api/workspace/backups') return jsonResponse({
+        backups: [], settings: { automatic: false, interval_hours: 24, keep_last: 3 }, state: {}, workspace_version: 0,
+      })
+      if (url === '/api/workspace/backups/preview') return jsonResponse({
+        token: 'fixture-preview', expires_at: 1900000000, workspace_version: 0,
+        counts: { projects: 2, entries: 0, coursework: 1, screenshots: 3 },
+        warnings: ['Replacement includes each project’s coursework profile and screenshots.', 'Legacy format 1 may omit coursework; missing evidence is not reconstructed.'],
+      })
+      throw new Error(`Unexpected request: ${String(url)}`)
+    })
+    const user = userEvent.setup()
+    render(<WorkspaceSettings active projects={projects} selectedProject="default" />)
+    await user.upload(screen.getByLabelText('Backup ZIP (maximum 32 MB)'), new File(['fixture ZIP only'], 'fixture.zip', { type: 'application/zip' }))
+    await user.click(screen.getByRole('button', { name: 'Validate and preview backup' }))
+    expect(await screen.findByText('1 coursework profiles')).toBeInTheDocument()
+    expect(screen.getByText('3 coursework screenshots')).toBeInTheDocument()
+    expect(screen.getByLabelText('Restore warnings')).toHaveTextContent('Legacy format 1')
+    expect(screen.getByLabelText('Restore warnings')).toHaveTextContent('Replacement includes')
+    expect(screen.getByRole('button', { name: 'Replace my workspace' })).toBeDisabled()
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => url === '/api/workspace/backups/restore')).toBe(false)
+  })
 })

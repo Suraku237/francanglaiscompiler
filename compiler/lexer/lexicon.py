@@ -81,3 +81,5 @@ VERB_PHRASES = [
     r"\bcome\s+down\b",
     r"\bmove\s+small\b",
 ]
+
+SLANG_PHRASES = [r"\bje\s+wanda\b"]
