@@ -1,4 +1,3 @@
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,9 +5,6 @@ from unittest.mock import patch
 
 from backend import examples
 from backend.collection import CollectionError
-from backend.gemini import enabled_evidence
-from backend.grounding import retrieve
-from backend.schemas import ChatRequest, Evidence, TranslationRequest
 from backend.tests.test_api import ApiTestCase
 from data_collector import dataset
 
@@ -32,7 +28,7 @@ class PracticeLoaderTests(unittest.TestCase):
         self.assertTrue(examples.list_examples("manger avant", 0, 25).matched)
 
     def test_missing_or_malformed_source_is_explicitly_unavailable(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(prefix=".examples-test-", dir=Path(__file__).parent) as temporary:
             path = Path(temporary) / "examples.csv"
             with patch.object(examples, "EXAMPLES_PATH", path):
                 for content in (None, "", "text,notes\nsomething,unknown\n"):
@@ -42,81 +38,45 @@ class PracticeLoaderTests(unittest.TestCase):
                         examples.load_examples()
                     self.assertEqual(result.exception.status_code, 503)
 
-    def test_competing_exact_senses_are_never_silently_chosen(self):
+    def test_competing_supplied_senses_are_not_discarded(self):
         original = examples.load_examples()[0]
         conflicting = original.model_copy(update={"id": "examples:conflict", "french_gloss": "Different meaning"})
-        result = retrieve([], original.text, "francanglais", "fr", examples=[original, conflicting])
-        self.assertTrue(result.ambiguous)
-        self.assertIsNone(result.exact_translation)
-
-    def test_provider_checks_examples_switch_independently_for_both_requests(self):
-        row = examples.load_examples()[0]
-        example = Evidence(
-            id=row.id, text=row.text, language=row.language, french_gloss=row.french_gloss,
-            english_gloss=row.english_gloss, match_type="exact", source="examples",
-        )
-        for request in (TranslationRequest(text=row.text), ChatRequest(message=row.text)):
-            self.assertEqual(enabled_evidence([example], request), [])
-            selected = request.model_copy(update={"use_examples": True, "use_dataset": False, "use_dictionary": False})
-            self.assertEqual(enabled_evidence([example], selected), [example])
+        with patch.object(examples, "load_examples", return_value=[original, conflicting]):
+            result = examples.list_examples(original.text, 0, 25)
+        self.assertEqual(result.matched, 2)
+        self.assertEqual([entry.french_gloss for entry in result.entries],
+                         [original.french_gloss, conflicting.french_gloss])
 
 
 class PracticeApiTests(ApiTestCase):
     include_academic = True
 
-    def test_sources_are_opt_in_and_do_not_write_collection(self):
+    def test_examples_are_labeled_synthetic_and_never_become_collected_fieldwork(self):
         dataset.ensure_dataset_file()
         before = Path(dataset.DATASET_PATH).read_bytes()
         response = self.client.get("/api/examples?limit=100")
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["total"], 26)
-        row = response.json()["entries"][0]
-        base = {
-            "text": row["text"], "source_language": "francanglais", "target_language": "fr",
-            "allow_ai": False, "use_dictionary": False, "use_dataset": False,
-        }
-        self.assertEqual(self.client.post("/api/translate", json=base).status_code, 422)
-        for target, field in (("fr", "french_gloss"), ("en", "english_gloss")):
-            local = self.client.post("/api/translate", json={**base, "target_language": target, "use_examples": True})
-            self.assertEqual(local.status_code, 200, local.text)
-            body = local.json()
-            self.assertEqual(body["translation"], row[field])
-            self.assertEqual(body["origin"], "examples")
-            self.assertEqual(body["model"], "local-examples")
-            self.assertIn("Constructed", body["note"])
-            self.assertEqual(body["evidence"][0]["source"], "examples")
+        self.assertTrue(all(row["constructed"] for row in response.json()["entries"]))
+        self.assertTrue(all(row["french_gloss"] and row["english_gloss"] for row in response.json()["entries"]))
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
+        self.assertEqual(self.client.get("/api/coursework").json()["stats"]["total"], 0)
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_reverse_requires_complete_supplied_meaning(self):
-        row = examples.load_examples()[0]
-        response = self.client.post("/api/translate", json={
-            "text": row.french_gloss, "source_language": "fr", "target_language": "francanglais",
-            "use_examples": True, "use_dataset": False, "use_dictionary": False, "allow_ai": False,
-        })
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["translation"], row.text)
-        response = self.client.post("/api/translate", json={
-            "text": "My guy", "source_language": "en", "target_language": "francanglais",
-            "use_examples": True, "use_dataset": False, "use_dictionary": False, "allow_ai": False,
-        })
-        self.assertEqual(response.status_code, 422)
+    def test_read_only_search_and_pagination_do_not_read_the_collection(self):
+        with patch.object(dataset, "load_all", side_effect=AssertionError("Examples are independent references")):
+            first = self.client.get("/api/examples", params={"limit": 25}).json()
+            last = self.client.get("/api/examples", params={"offset": 25, "limit": 25}).json()
+            searched = self.client.get("/api/examples", params={"query": "motorcycle rider"}).json()
+        self.assertEqual((len(first["entries"]), len(last["entries"])), (25, 1))
+        self.assertTrue({row["id"] for row in first["entries"]}.isdisjoint(row["id"] for row in last["entries"]))
+        self.assertEqual(searched["entries"][0]["text"], "Au chek point, le motard a montre son papier.")
+        self.assertEqual(self.client.post("/api/examples", json={"text": "not fieldwork"}).status_code, 405)
+        self.assert_no_outbound_http()
 
     def test_invalid_pagination_and_unavailable_source(self):
         for query in ("offset=-1", "limit=0", "limit=101", "query=" + "x" * 201):
             self.assertEqual(self.client.get("/api/examples?" + query).status_code, 422)
         with patch.object(examples, "EXAMPLES_PATH", self.directory / "missing.csv"):
             self.assertEqual(self.client.get("/api/examples").status_code, 503)
-
-    def test_chat_does_not_send_unselected_examples(self):
-        self.provider_body = {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "Unreviewed test reply"}]}}]}
-        row = examples.load_examples()[0]
-        payload = {"message": row.text, "use_dataset": False, "use_dictionary": False}
-        for selected in (False, True):
-            response = self.client.post("/api/chat", json={**payload, "use_examples": selected})
-            self.assertEqual(response.status_code, 200, response.text)
-            body = json.loads(self.requests[-1].content)
-            self.assertEqual(row.id in json.dumps(body), selected)
-            if selected:
-                self.assertEqual(response.json()["origin"], "ai_with_sources")

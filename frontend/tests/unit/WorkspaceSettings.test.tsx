@@ -20,7 +20,7 @@ describe('project management', () => {
       throw new Error(`Unexpected request: ${String(url)}`)
     })
     const { rerender } = render(<WorkspaceSettings active projects={projects} selectedProject="client-project" />)
-    await screen.findByText('No terminology changes in this project yet.')
+    await screen.findByText('No collection changes in this project yet.')
     expect(screen.getByRole('button', { name: 'Delete empty project' })).toBeDisabled()
     expect(screen.getByText('Switch to another project before deleting the active project.')).toBeVisible()
     rerender(<WorkspaceSettings active projects={projects} selectedProject="default" />)

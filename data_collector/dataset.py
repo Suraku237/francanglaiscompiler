@@ -28,7 +28,7 @@ FIELDNAMES = [
     "category",         # matches CS4110 assignment topics
     "source_location",  # e.g. "taxi, Mvan" / "Marché Mokolo" / "ICT campus"
     "notes",
-    "audio_filename",   # empty if none — optional, feeds the word-prediction extension
+    "audio_filename",   # empty if no source recording is attached
     "contributor",      # name(s) of group member(s) who collected this
     "timestamp",
     "language",

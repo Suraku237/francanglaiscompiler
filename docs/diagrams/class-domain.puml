@@ -1,7 +1,7 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Desktop application classes and audio ownership
+title Preserved desktop compatibility: actual classes and audio ownership
 hide empty members
 ' @class data_collector.App.App
 class App {
@@ -76,6 +76,7 @@ note bottom of Tooltip
   bound callbacks retain these helper objects.
 end note
 legend bottom
+  This is the optional local desktop collector, not the default authenticated web UI.
   Five production classes; library types are explicitly external.
   Per-instance target multiplicities express stored references.
   Audio filenames are not object ownership or database foreign keys.

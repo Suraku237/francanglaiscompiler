@@ -29,7 +29,7 @@ export function GrammarResults({ grammar }: { grammar: GrammarAnalysis }) {
   const columns = [...new Set([...grammar.terminals, '$', ...Object.values(grammar.table).flatMap(Object.keys)])]
   return <div className="lab-results">
     <div className="lab-result-heading"><h3>Computed grammar</h3><span className={`lab-status ${grammar.is_ll1 ? 'ready' : 'needs_input'}`}>{grammar.is_ll1 ? 'LL(1) · no table conflicts' : 'Not LL(1) · inspect conflicts'}</span></div>
-    <p className="lab-copy">Start symbol: <code>{grammar.start_symbol}</code> · {grammar.nonterminals.length} nonterminals · {grammar.terminals.length} terminals. These are local algorithm results, not AI judgments.</p>
+    <p className="lab-copy">Start symbol: <code>{grammar.start_symbol}</code> · {grammar.nonterminals.length} nonterminals · {grammar.terminals.length} terminals. These are rule-based algorithm results, not judgments about a speaker’s language.</p>
     {grammar.warnings.length > 0 && <div className="notice notice-subtle"><Icon name="info" size={18} /><ul className="lab-list">{grammar.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
     <details className="lab-disclosure" open>
       <summary>Original → transformed grammar</summary>

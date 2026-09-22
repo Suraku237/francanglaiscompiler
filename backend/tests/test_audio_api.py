@@ -33,7 +33,7 @@ class AudioApiTests(ApiTestCase):
         ranged = self.client.get(f"/api/dataset/{entry['id']}/audio", headers={"Range": "bytes=0-15"})
         self.assertEqual(ranged.status_code, 206)
         self.assertEqual(ranged.content, self.content[:16])
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
     def test_replacement_resets_review_and_preserves_old_committed_file(self):
         original = self.create_audio(review_status="approved", contributor="Original collector").json()

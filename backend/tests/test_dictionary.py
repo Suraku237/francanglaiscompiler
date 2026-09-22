@@ -1,4 +1,3 @@
-import json
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -6,7 +5,7 @@ from unittest.mock import patch
 
 from backend import dictionary
 from backend.collection import CollectionError
-from backend.tests.test_api import ApiTestCase, generated
+from backend.tests.test_api import ApiTestCase
 from data_collector import dataset
 
 
@@ -63,12 +62,6 @@ class DictionaryLoadingTests(unittest.TestCase):
 
 
 class DictionaryApiTests(ApiTestCase):
-    def lookup(self, text, **changes):
-        return self.client.post("/api/translate", json={
-            "text": text, "source_language": "francanglais", "target_language": "en",
-            "allow_ai": False, **changes,
-        })
-
     def test_dictionary_lookup_is_paginated_read_only_and_independent_of_collection(self):
         with patch.object(dataset, "load_all", side_effect=AssertionError("reference lookup must not read corpus")):
             response = self.client.get("/api/dictionary", params={"query": "pasho", "limit": 1})
@@ -80,10 +73,9 @@ class DictionaryApiTests(ApiTestCase):
         for params in ({"limit": 0}, {"limit": 101}, {"offset": -1}, {"query": "x" * 201}):
             self.assertEqual(self.client.get("/api/dictionary", params=params).status_code, 422)
         self.assertEqual(self.client.post("/api/dictionary", json={"text": "not fieldwork"}).status_code, 405)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_exact_supplied_words_and_aliases_work_without_ai_and_do_not_save(self):
-        offline = self.make_client("")
+    def test_supplied_words_and_aliases_keep_meanings_and_provenance_without_saving(self):
         self.client.get("/api/dataset")
         before = Path(dataset.DATASET_PATH).read_bytes()
         for word, expected in (
@@ -94,119 +86,52 @@ class DictionaryApiTests(ApiTestCase):
             ("Ekie", "Exclamation of surprise or disbelief"),
         ):
             with self.subTest(word=word):
-                response = offline.post("/api/translate", json={
-                    "text": word, "source_language": "francanglais", "target_language": "en", "allow_ai": False,
-                })
+                response = self.client.get("/api/dictionary", params={"query": word})
                 self.assertEqual(response.status_code, 200, response.text)
-                result = response.json()
-                self.assertEqual(result["translation"], expected)
-                self.assertEqual((result["origin"], result["model"]), ("dictionary", "local-dictionary"))
-                exact = [item for item in result["evidence"] if item["match_type"] == "exact"]
-                self.assertTrue(exact)
-                self.assertTrue(all(item["source"] == "dictionary" for item in exact))
-                self.assertTrue(all(item["source_document"] and item["source_line"] for item in exact))
-                self.assertTrue(all(item["french_gloss"] == "" for item in exact))
-                self.assertIn("not approved terminology", result["note"])
+                entries = response.json()["entries"]
+                self.assertTrue(any(item["english_gloss"] == expected for item in entries))
+                self.assertTrue(all(item["source_document"] and item["source_line"] for item in entries))
+                self.assertTrue(all(item["french_gloss"] == "" for item in entries))
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_exact_reverse_gloss_works_but_partial_definition_does_not(self):
-        response = self.lookup("a motorcycle taxi rider", source_language="en", target_language="francanglais")
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["translation"], "motard")
-        self.assertEqual(self.lookup("motorcycle rider", source_language="en", target_language="francanglais").status_code, 422)
-        self.assertEqual(self.requests, [])
+    def test_both_conflicting_and_repeated_supplied_senses_remain_visible(self):
+        for word in ("wanda", "nyoxer"):
+            with self.subTest(word=word):
+                response = self.client.get("/api/dictionary", params={"query": word})
+                self.assertEqual(response.status_code, 200, response.text)
+                matches = [item for item in response.json()["entries"] if item["text"].casefold() == word]
+                self.assertEqual(len(matches), 2)
+                self.assertEqual(len({item["id"] for item in matches}), 2)
 
-    def test_missing_french_pidgin_and_sentence_gaps_are_not_invented(self):
-        for text, changes in (
-            ("tchop", {"target_language": "fr"}),
-            ("tchop", {"source_language": "pidgin"}),
-            ("mbom tchop motard", {}),
-        ):
-            with self.subTest(text=text, changes=changes):
-                response = self.lookup(text, **changes)
-                self.assertEqual(response.status_code, 422, response.text)
-        self.assertEqual(self.requests, [])
-
-    def test_conflicting_senses_are_preserved_and_identical_glosses_are_not_ambiguous(self):
-        response = self.lookup("wanda")
-        self.assertEqual(response.status_code, 422)
-        response = self.lookup("wanda", allow_ai=True)
-        self.assertEqual(response.status_code, 200, response.text)
-        result = response.json()
-        self.assertEqual(result["origin"], "ai_with_sources")
-        self.assertTrue(any("Ambiguous" in warning for warning in result["coverage"]["warnings"]))
-        self.assertEqual(len([item for item in result["evidence"] if item["text"].casefold() == "wanda"]), 2)
-        self.assertEqual(self.lookup("nyoxer").status_code, 200)
-
-    def test_dictionary_toggle_skips_all_reads_and_collection_toggle_is_independent(self):
-        with patch.object(dictionary, "load_dictionary", side_effect=AssertionError("must not read dictionary")):
-            self.assertEqual(self.lookup("tchop", use_dictionary=False).status_code, 422)
-        with patch.object(dataset, "load_all", side_effect=AssertionError("must not read collection")):
-            response = self.lookup("tchop", use_dataset=False)
-            self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(self.requests, [])
-
-    def test_english_only_references_do_not_veto_approved_french_or_approve_new_rows(self):
+    def test_reference_reads_do_not_override_manual_meanings_or_approve_new_rows(self):
         self.client.post("/api/dataset", json={
             "text": "tchop", "language": "francanglais", "review_status": "approved",
-            "french_gloss": "manger", "english_gloss": "to eat",
+            "french_gloss": "manger", "english_gloss": "fixture-food",
         })
-        response = self.lookup("tchop", target_language="fr")
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual((response.json()["translation"], response.json()["origin"]), ("manger", "dataset"))
-        response = self.lookup("tchop")
-        self.assertEqual(response.json()["origin"], "local_sources")
+        before = Path(dataset.DATASET_PATH).read_bytes()
+        reference = self.client.get("/api/dictionary", params={"query": "tchop"})
+        self.assertEqual(reference.status_code, 200, reference.text)
+        self.assertEqual(reference.json()["entries"][0]["english_gloss"], "to eat")
+        self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
+        manual = self.client.get("/api/dataset").json()["entries"][0]
+        self.assertEqual((manual["english_gloss"], manual["french_gloss"], manual["review_status"]),
+                         ("fixture-food", "manger", "approved"))
         created = self.client.post("/api/dataset", json={"text": "motard", "english_gloss": "wrong fixture"})
         self.assertEqual(created.json()["review_status"], "unreviewed")
-        self.assertEqual(self.lookup("motard").json()["translation"], "a motorcycle taxi rider")
-        self.assertEqual(self.requests, [])
-
-    def test_conflict_with_approved_collection_is_not_silently_overwritten(self):
-        self.client.post("/api/dataset", json={
-            "text": "tchop", "language": "francanglais", "review_status": "approved", "english_gloss": "fixture-food",
-        })
-        self.assertEqual(self.lookup("tchop").status_code, 422)
-        self.assertEqual(self.lookup("tchop", use_dictionary=False).json()["translation"], "fixture-food")
+        self.assertEqual(self.client.get("/api/dictionary", params={"query": "motard"}).json()["entries"][0]["english_gloss"],
+                         "a motorcycle taxi rider")
+        self.assert_no_outbound_http()
 
     def test_reference_load_failures_are_visible_and_retryable(self):
         with patch.object(dictionary, "DICTIONARY_PATHS", (Path("missing-reference-fixture.md"),)):
             with self.assertLogs("backend.dictionary", level="ERROR"):
-                for route, payload in (("/api/dictionary", None), ("/api/translate", {
-                    "text": "tchop", "source_language": "francanglais", "target_language": "en",
-                })):
-                    response = self.client.get(route) if payload is None else self.client.post(route, json=payload)
-                    self.assertEqual(response.status_code, 503, response.text)
-                    self.assertNotIn("missing-reference-fixture", response.text)
-        self.assertEqual(self.lookup("tchop").status_code, 200)
-        self.assertEqual(self.requests, [])
-
-    def test_chat_labels_reference_evidence_and_honours_its_toggle(self):
-        self.provider_body = generated("A suggestion grounded in a dictionary entry.")
-        payload = {"message": "Explain motard", "use_dataset": False, "source_language": "francanglais", "target_language": "en"}
-        response = self.client.post("/api/chat", json=payload)
-        self.assertEqual(response.status_code, 200, response.text)
-        result = response.json()
-        self.assertEqual(result["origin"], "ai_with_sources")
-        self.assertTrue(result["evidence"])
-        self.assertTrue(all(item["source"] == "dictionary" for item in result["evidence"]))
-        sent = json.loads(self.requests[-1].content)
-        self.assertIn("not human-approved fieldwork", sent["systemInstruction"]["parts"][0]["text"])
-        supplied = sent["contents"][-1]["parts"][1]["text"].split("\n")[1]
-        self.assertEqual(json.loads(supplied), result["evidence"])
-        response = self.client.post("/api/chat", json={**payload, "use_dictionary": False})
-        self.assertEqual(response.json()["evidence"], [])
-
-    def test_ai_translation_receives_reference_evidence_when_collection_is_off(self):
-        response = self.lookup("motard demain", use_dataset=False, allow_ai=True)
-        self.assertEqual(response.status_code, 200, response.text)
-        result = response.json()
-        self.assertEqual(result["origin"], "ai_with_sources")
-        self.assertTrue(result["evidence"])
-        sent = json.loads(self.requests[-1].content)
-        supplied = sent["contents"][0]["parts"][1]["text"].split("\n")[1]
-        self.assertEqual(json.loads(supplied), result["evidence"])
+                response = self.client.get("/api/dictionary")
+                self.assertEqual(response.status_code, 503, response.text)
+                self.assertNotIn("missing-reference-fixture", response.text)
+        self.assertEqual(self.client.get("/api/dictionary", params={"query": "tchop"}).status_code, 200)
+        self.assert_no_outbound_http()
 
 
 if __name__ == "__main__":

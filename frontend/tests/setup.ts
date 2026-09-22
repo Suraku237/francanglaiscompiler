@@ -9,6 +9,7 @@ HTMLDialogElement.prototype.showModal = function () {
 HTMLDialogElement.prototype.close = function () {
   this.removeAttribute('open')
 }
+HTMLElement.prototype.scrollIntoView = function () {}
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new Error('Unexpected unmocked API request')))

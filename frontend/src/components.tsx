@@ -1,8 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
-import { isLocalOrigin, languageLabels, translationLanguages } from './types'
-import type { Analysis, AnswerOrigin, DatasetEvidence, Language, TranslationLanguage } from './types'
-import type { Dictation, ReadAloud } from './voice'
+import type { Analysis, Language } from './types'
+import type { ReadAloud } from './voice'
 
 export type IconName =
   | 'translate' | 'sparkles' | 'collection' | 'arrow' | 'mic' | 'stop'
@@ -105,94 +104,6 @@ export function Modal({ title, children, onClose, busy = false, className = '', 
       {children}
     </dialog>
   )
-}
-
-export function LanguageToggle({ value, onChange, label = 'Source language', disabled = false }: {
-  value: Language
-  onChange: (language: Language) => void
-  label?: string
-  disabled?: boolean
-}) {
-  return <div className="language-toggle" role="group" aria-label={label}>
-    <button type="button" aria-pressed={value === 'fr'} onClick={() => onChange('fr')} disabled={disabled}>French <span>FR</span></button>
-    <button type="button" aria-pressed={value === 'en'} onClick={() => onChange('en')} disabled={disabled}>English <span>EN</span></button>
-  </div>
-}
-
-export function TranslationDirection({ source, target, onChange, disabled = false }: {
-  source: TranslationLanguage
-  target: TranslationLanguage
-  onChange: (source: TranslationLanguage, target: TranslationLanguage) => void
-  disabled?: boolean
-}) {
-  return <div className="translation-direction" role="group" aria-label="Translation direction">
-    <label className="direction-field"><span>From</span><select value={source} disabled={disabled} onChange={(event) => onChange(event.target.value as TranslationLanguage, target)}>
-      {translationLanguages.map((language) => <option value={language} key={language} disabled={language === target}>{languageLabels[language]}</option>)}
-    </select></label>
-    <button type="button" className="icon-button swap-languages" disabled={disabled} onClick={() => onChange(target, source)} aria-label="Swap source and target languages" title="Swap languages"><Icon name="swap" size={20} /></button>
-    <label className="direction-field"><span>To</span><select value={target} disabled={disabled} onChange={(event) => onChange(source, event.target.value as TranslationLanguage)}>
-      {translationLanguages.map((language) => <option value={language} key={language} disabled={language === source}>{languageLabels[language]}</option>)}
-    </select></label>
-  </div>
-}
-
-export function OriginBadge({ origin, exact = false }: { origin?: AnswerOrigin; exact?: boolean }) {
-  const labels: Record<AnswerOrigin, string> = {
-    dataset: exact ? 'Exact approved match · local' : 'Local dataset lookup',
-    dictionary: 'Reference dictionary · local',
-    examples: 'Constructed practice example · local',
-    local_sources: 'Combined local sources',
-    ai_with_dataset: 'AI suggestion · with dataset matches',
-    ai_with_sources: 'AI suggestion · with local source matches',
-    ai: 'AI suggestion · no local evidence',
-  }
-  return <span className={`origin-badge ${isLocalOrigin(origin) ? 'origin-local' : 'origin-ai'}`}>
-    <Icon name={isLocalOrigin(origin) ? 'collection' : 'sparkles'} size={14} />
-    {labels[origin ?? 'ai']}
-  </span>
-}
-
-export function EvidencePanel({ evidence, origin, compact = false }: {
-  evidence: DatasetEvidence[]
-  origin?: AnswerOrigin
-  compact?: boolean
-}) {
-  return <details className={`evidence-panel ${compact ? 'evidence-compact' : ''}`} open={compact ? undefined : true}>
-    <summary><Icon name="collection" size={17} /><span>Local source matches <strong>({evidence.length})</strong></span><Icon name="chevron" size={15} /></summary>
-    <div className="evidence-content">
-      <p className="helper-text">{isLocalOrigin(origin)
-        ? 'Sources are identified below. Approved terminology records a local review; reference meanings are separate and require context-specific checking.'
-        : 'These are retrieved records, not a verification of the entire AI answer. A phrase or token match does not establish the meaning of a whole sentence.'}</p>
-      {evidence.length ? <div className="evidence-list">{evidence.map((entry, index) => <article className="evidence-record" key={`${entry.id}-${index}`}>
-        <div className="evidence-byline"><code>ID: {entry.id}</code><span>{entry.match_type} match</span></div>
-        <div className="evidence-byline">{entry.source === 'examples' ? <span>Illustrative source · {entry.source_document}:{entry.source_line} · unverified</span> : entry.source === 'dictionary' ? <span>Reference dictionary · {entry.source_document}:{entry.source_line} · not reviewed terminology</span> : <span>Approved terminology record</span>}</div>
-        <dl className="evidence-comparison">
-          <div><dt>{languageLabels[entry.language] ?? entry.language}</dt><dd>{entry.text}</dd></div>
-          <div><dt>French · FR</dt><dd lang="fr">{entry.french_gloss || 'No French gloss recorded'}</dd></div>
-          <div><dt>English · EN</dt><dd lang="en">{entry.english_gloss || 'No English gloss recorded'}</dd></div>
-        </dl>
-      </article>)}</div> : <p className="evidence-empty">No local matches were returned. The collection and reference dictionary do not cover every word or expression.</p>}
-    </div>
-  </details>
-}
-
-export function DictationButton({ voice, language, disabled = false, onStart }: { voice: Dictation; language: Language; disabled?: boolean; onStart?: () => void }) {
-  return <button type="button" className={`voice-button ${voice.listening ? 'is-listening' : ''}`}
-    disabled={disabled || !voice.supported}
-    title={!voice.supported ? 'Voice input is not supported in this browser' : undefined}
-    aria-label={voice.listening ? 'Stop dictation' : `Start ${language === 'fr' ? 'French' : 'English'} dictation`}
-    aria-pressed={voice.listening} onClick={() => { if (!voice.listening) onStart?.(); voice.toggle() }}>
-    <Icon name={voice.listening ? 'stop' : 'mic'} size={18} />
-    <span>{voice.listening ? 'Stop dictation' : 'Use your voice'}</span>
-  </button>
-}
-
-export function DictationStatus({ voice }: { voice: Dictation }) {
-  return <>
-    {voice.listening && <p className="listening-status" role="status"><span className="recording-dot" />{voice.interim || 'Listening… speak now. Stop dictation before submitting.'}</p>}
-    <ErrorNotice message={voice.error} />
-    {!voice.supported && <p className="helper-text voice-unsupported"><Icon name="info" size={14} />Voice input isn’t available in this browser. You can still type.</p>}
-  </>
 }
 
 export function ReadButton({ speech, id, text, language, compact = false, disabled = false }: {

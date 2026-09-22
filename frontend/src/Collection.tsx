@@ -90,7 +90,7 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
       setValidationError('Please add an expression. It cannot contain only spaces.')
       return
     }
-    const values = { ...draft, text: entry && draft.text === entry.text ? draft.text : draft.text.trim() }
+    const values = { ...draft }
     const original = entry ? editableFields(entry) : null
     const changes = original
       ? Object.fromEntries(Object.entries(values).filter(([field, value]) => original[field as keyof EditableEntry] !== value))
@@ -118,37 +118,38 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
     )
   }
 
-  return <Modal title={entry ? 'Review terminology' : 'Add terminology'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
-    <p className="modal-description">{entry ? 'Review wording, language and meanings. Unchanged metadata and existing attachments are preserved.' : 'Add a term, phrase or reusable sentence. Save it for review, or explicitly approve it after checking the wording.'} <span>Only source text is required. Record context when known.</span></p>
+  return <Modal title={entry ? 'Review collection entry' : 'Add collection entry'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
+    <p className="modal-description">{entry ? 'Review the manual transcript and annotations. Unchanged provenance and existing attachments are preserved.' : 'Type a manually transcribed statement or annotate an observed word. Keep the original wording and spacing; leave unknown facts unknown.'} <span>Source text is required. Saving or approval does not certify genuine fieldwork.</span></p>
     <form onSubmit={submit}>
       <div className="form-fields">
         <div className="field">
           <label htmlFor="entry-text">Expression <span className="required-mark">*</span></label>
-          <textarea ref={expressionInput} id="entry-text" rows={3} maxLength={MAX_TEXT} required value={draft.text} disabled={pending} onChange={(event) => update('text', event.target.value)} placeholder="Type the expression you want to document…" aria-describedby="entry-text-limit" />
-          <span id="entry-text-limit" className="field-hint">{draft.text.length.toLocaleString()} / 4,000 characters</span>
+          <textarea ref={expressionInput} id="entry-text" rows={3} maxLength={MAX_TEXT} required value={draft.text} disabled={pending} onChange={(event) => update('text', event.target.value)} placeholder="Manually transcribe the original statement or word…" aria-describedby="entry-text-limit" />
+          <span id="entry-text-limit" className="field-hint">{draft.text.length.toLocaleString()} / 4,000 characters · manual transcription, never filled from audio</span>
         </div>
         <div className="field-grid">
           <div className="field"><label htmlFor="entry-language">Language</label><select id="entry-language" value={draft.language} disabled={pending} onChange={(event) => update('language', event.target.value as DatasetLanguage)}>{datasetLanguages.map((language) => <option key={language} value={language}>{languageLabels[language as DatasetLanguage] ?? language}</option>)}</select><span className="field-hint">Choose Mixed or Unspecified when appropriate; neither is treated as Francanglais or Pidgin.</span></div>
           <div className="field"><label htmlFor="entry-type">Entry type</label><select id="entry-type" value={draft.entry_type} disabled={pending} onChange={(event) => update('entry_type', event.target.value)}>{!draft.entry_type && <option value="">Not recorded (legacy)</option>}{entryTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select></div>
         </div>
         <div className="field-grid">
-          <div className="field"><label htmlFor="entry-category">Category</label><select id="entry-category" value={draft.category} disabled={pending} onChange={(event) => update('category', event.target.value)}>{!draft.category && <option value="">Not recorded (legacy)</option>}{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></div>
+          <div className="field"><label htmlFor="entry-category">Category</label><select id="entry-category" value={draft.category} disabled={pending} onChange={(event) => update('category', event.target.value)}>{!draft.category && <option value="">Not recorded (legacy)</option>}{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select><span className="field-hint">Suggested assignment topic. Legacy categories remain readable.</span></div>
+          {draft.entry_type === 'Word' && <div className="field"><label htmlFor="entry-lexical-category">Lexical category <span>optional</span></label><select id="entry-lexical-category" value={draft.lexical_category} disabled={pending} onChange={(event) => update('lexical_category', event.target.value)}><option value="">Not annotated</option>{uniqueOptions([...metadata.lexical_categories, draft.lexical_category]).map((value) => <option key={value} value={value}>{value}</option>)}</select><span className="field-hint">Your annotation, not an automatic linguistic judgment. Sentence tokens are computed in Compiler lab.</span></div>}
         </div>
         <div className="field-grid">
           <div className="field"><label htmlFor="entry-french">French meaning <span>optional</span></label><textarea id="entry-french" rows={3} maxLength={MAX_TEXT} value={draft.french_gloss} lang="fr" disabled={pending} onChange={(event) => update('french_gloss', event.target.value)} placeholder="Le sens en français…" /></div>
           <div className="field"><label htmlFor="entry-english">English meaning <span>optional</span></label><textarea id="entry-english" rows={3} maxLength={MAX_TEXT} value={draft.english_gloss} lang="en" disabled={pending} onChange={(event) => update('english_gloss', event.target.value)} placeholder="The meaning in English…" /></div>
         </div>
         <div className="field-grid">
-          <div className="field"><label htmlFor="entry-location">Source location <span>optional</span></label><input id="entry-location" maxLength={200} value={draft.source_location} disabled={pending} onChange={(event) => update('source_location', event.target.value)} placeholder="Document, meeting or customer reference" /></div>
+          <div className="field"><label htmlFor="entry-location">Source location <span>optional</span></label><input id="entry-location" maxLength={200} value={draft.source_location} disabled={pending} onChange={(event) => update('source_location', event.target.value)} placeholder="Observed setting or original transcript reference" /></div>
           <div className="field"><label htmlFor="entry-contributor">Contributor <span>optional</span></label><input id="entry-contributor" maxLength={200} value={draft.contributor} disabled={pending} onChange={(event) => update('contributor', event.target.value)} placeholder="Name or alias" /></div>
         </div>
-        <div className="field"><label htmlFor="entry-notes">Context & notes <span>optional</span></label><textarea id="entry-notes" rows={3} maxLength={2000} value={draft.notes} disabled={pending} onChange={(event) => update('notes', event.target.value)} placeholder="When is it used? What makes it special?" /></div>
+        <div className="field"><label htmlFor="entry-notes">Context & notes <span>optional</span></label><textarea id="entry-notes" rows={3} maxLength={2000} value={draft.notes} disabled={pending} onChange={(event) => update('notes', event.target.value)} placeholder="Date and context, transcription uncertainty, spelling variation, permission or source restrictions…" /></div>
         <AudioRecorder disabled={pending} file={audioFile} onBusyChange={setRecording} onFile={(file) => {
           setAudioFile(file)
           setRemoveAudio(false)
           update('review_status', 'unreviewed')
         }} />
-        <p className="helper-text">Audio stays a browser draft until you save. Saving uploads it privately to your account without sending it to Gemini. Only record people who have given permission.</p>
+        <p className="helper-text">Raw audio stays a browser draft until you save. Listen and transcribe by hand; there is no speech recognition or automatic transcription. Saving uploads it privately to this project. Only record people who have given permission.</p>
         {entry?.audio_filename && !audioFile && <div>
           {removeAudio ? <p className="helper-text">The attachment will be removed from this entry when you save. The original file is retained locally.</p> : <>
             <p className="helper-text">Current attachment: {entry.audio_filename}</p>
@@ -160,9 +161,9 @@ export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onS
           }}>{removeAudio ? 'Keep the existing attachment' : 'Remove attachment on save'}</button>
         </div>}
         <div className="entry-review">
-          <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, and meanings. Approve this entry for terminology matching.</span></label>
-          <p>Edits clear approval until you review the new version. <strong>Unreviewed</strong> entries are excluded from approved-source matching. Approval records your decision, not independent certification.</p>
-          <p>Approved text and glosses may be selected for an explicitly submitted AI request with terminology use enabled. Stored names, locations, notes and other metadata are not included in retrieved AI evidence.</p>
+          <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>I have reviewed the language, expression, annotations and provenance. Mark this entry approved.</span></label>
+          <p>Edits clear approval until you review the new version. Approval is your review decision, not independent certification. Saved sentence records may be used in corpus tests regardless of review status.</p>
+          <p>This does not change the project’s manual-transcription declaration. Record only what you can support; never label synthetic or reference text as collected research.</p>
         </div>
         {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>}
         <ErrorNotice message={validationError || error} />
@@ -267,7 +268,7 @@ export function Collection({ active }: { active: boolean }) {
 
   return <section className="page collection-page" aria-labelledby="collection-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow">LANGUAGE ASSETS</div><h1 id="collection-title">Terminology</h1><p>Manage approved terms and reusable phrases, keep source context and track items awaiting review.</p></div>
+      <div><div className="eyebrow">MANUAL FIELDWORK & ANNOTATION</div><h1 id="collection-title">Collection</h1><p>Transcribe genuine statements, annotate words and suggested topics, and keep provenance with raw recordings.</p></div>
       <button type="button" className="button button-primary" onClick={() => setEditor({ entry: null })}><Icon name="plus" size={18} />Add entry</button>
     </div>
     <div className="collection-stats" aria-label="Counts across the entire project">
@@ -276,23 +277,23 @@ export function Collection({ active }: { active: boolean }) {
       <div><span className="stat-icon"><Icon name="edit" size={23} /></span><div><strong>{dataset?.by_review_status?.unreviewed ?? '—'}</strong><span>Awaiting review</span></div></div>
     </div>
     <div className="collection-summary"><span className="helper-text">Counts cover your whole collection, not just the search results.</span>{dataset && <div className="type-counts">{Object.entries(dataset.by_type).map(([type, count]) => <span key={type}>{type || 'Unspecified'} <strong>{count}</strong></span>)}</div>}</div>
-    <p className="helper-text">Dictionary references are separate from your terminology. <a href="#dictionary">Search dictionary</a> or <a href="#imports">import a document</a> to review additional terms.</p>
+    <p className="helper-text">Import your own manually transcribed text file or add entries individually. <a href="#imports">Import a document</a> · <a href="#compiler">Open Compiler lab</a>. Dictionary and synthetic references are separate; neither is evidence of your own fieldwork.</p>
 
     <div className="collection-tools">
-      <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="collection-query">Search terminology</label><input id="collection-query" type="search" maxLength={200} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search terms, meanings or context" /></div>
+      <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="collection-query">Search collection</label><input id="collection-query" type="search" maxLength={200} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search statements, words, meanings or context" /></div>
       <div className="collection-filters">
         <label className="sr-only" htmlFor="language-filter">Filter by dataset language</label><select id="language-filter" value={language} onChange={(event) => setLanguage(event.target.value as DatasetLanguage | '')}><option value="">All languages</option>{datasetLanguages.map((value) => <option key={value} value={value}>{languageLabels[value as DatasetLanguage] ?? value}</option>)}</select>
-        <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · trusted</option><option value="unreviewed">Unreviewed</option></select>
+        <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · reviewed by you</option><option value="unreviewed">Unreviewed</option></select>
         <label className="sr-only" htmlFor="category-filter">Filter by category</label><select id="category-filter" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name} value={name}>{name}</option>)}</select>
         <label className="sr-only" htmlFor="type-filter">Filter by entry type</label><select id="type-filter" value={entryType} onChange={(event) => setEntryType(event.target.value)}><option value="">All types</option>{entryTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select>
-        <button type="button" className="icon-button refresh-collection" onClick={() => setRevision((value) => value + 1)} disabled={loading} aria-label="Refresh terminology" title="Refresh terminology"><Icon name="refresh" size={19} /></button>
+        <button type="button" className="icon-button refresh-collection" onClick={() => setRevision((value) => value + 1)} disabled={loading} aria-label="Refresh collection" title="Refresh collection"><Icon name="refresh" size={19} /></button>
       </div>
     </div>
     <ErrorNotice message={metadataError} onRetry={() => setRevision((value) => value + 1)} />
     {notice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{notice}</span><button className="icon-button" type="button" aria-label="Dismiss notification" onClick={() => setNotice('')}><Icon name="close" size={16} /></button></div>}
-    <div className="collection-list-heading"><h2>Terminology library <span>{loading ? 'Updating…' : error ? 'Unavailable' : `${entries.length.toLocaleString()} ${entries.length === 1 ? 'entry' : 'entries'}`}</span></h2><div className="submit-actions">{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>Clear filters <Icon name="close" size={14} /></button>}<button type="button" className="button button-secondary" disabled={loading || Boolean(error) || !entries.length} onClick={() => {
+    <div className="collection-list-heading"><h2>Collected records <span>{loading ? 'Updating…' : error ? 'Unavailable' : `${entries.length.toLocaleString()} ${entries.length === 1 ? 'entry' : 'entries'}`}</span></h2><div className="submit-actions">{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>Clear filters <Icon name="close" size={14} /></button>}<button type="button" className="button button-secondary" disabled={loading || Boolean(error) || !entries.length} onClick={() => {
       const data = { exported_at: new Date().toISOString(), entries }
-      if (download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), 'mboa-terminology.json')) {
+      if (download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), 'mboa-collection.json')) {
         setNotice(`Export started for ${entries.length} entries. Audio filenames are included, not the audio files themselves.`)
       }
     }}>Export results (JSON)<Icon name="arrow" size={15} /></button></div></div>
@@ -300,9 +301,9 @@ export function Collection({ active }: { active: boolean }) {
     <ErrorNotice message={downloadError} />
 
     <div className="collection-results" aria-busy={loading}>
-      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading terminology" /><p>Loading your terminology library…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
-        error ? <div className="collection-error"><Icon name="collection" size={34} /><h3>Terminology unavailable</h3><p>Check the connection and retry. No records were changed.</p><ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} /></div> :
-          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No matching terminology' : 'Build your terminology library'}</h3><p>{hasFilters ? 'Adjust your search or filters to see other entries.' : 'Add reusable terms, phrases and their meanings. Review entries before approving them for translation.'}</p><button type="button" className="button button-secondary" onClick={hasFilters ? resetFilters : () => setEditor({ entry: null })}>{hasFilters ? 'Clear all filters' : 'Add your first entry'}<Icon name={hasFilters ? 'refresh' : 'plus'} size={16} /></button></div> :
+      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading collection" /><p>Loading your collected records…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
+        error ? <div className="collection-error"><Icon name="collection" size={34} /><h3>Collection unavailable</h3><p>Check the connection and retry. No records were changed.</p><ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} /></div> :
+          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No matching records' : 'No collected statements yet'}</h3><p>{hasFilters ? 'Adjust your search or filters to see other entries.' : 'Your genuine corpus has not been supplied to this project. Import your manual transcript or add a real statement with its context. No sample data is inserted for you.'}</p><button type="button" className="button button-secondary" onClick={hasFilters ? resetFilters : () => setEditor({ entry: null })}>{hasFilters ? 'Clear all filters' : 'Add your first entry'}<Icon name={hasFilters ? 'refresh' : 'plus'} size={16} /></button></div> :
             <div className="entry-grid">{entries.map((entry) => <article className="entry-card" key={entry.id}>
               <div className="entry-topline"><div className="entry-badges"><span className="entry-type">{entry.entry_type || 'Unspecified'}</span><span className="entry-category">{entry.category || 'No category'}</span></div><div className="entry-actions"><button type="button" className="icon-button" aria-label={`Edit expression: ${entry.text.slice(0, 80)}`} title="Edit expression" onClick={() => setEditor({ entry })}><Icon name="edit" size={17} /></button><button type="button" className="icon-button delete-button" aria-label={`Delete expression: ${entry.text.slice(0, 80)}`} title="Delete expression" onClick={() => setDeleteTarget(entry)}><Icon name="trash" size={17} /></button></div></div>
               <div className="entry-trust-line"><span className="entry-language">{languageLabels[entry.language ?? 'unspecified'] ?? entry.language}</span><span className={`review-badge ${entry.review_status === 'approved' ? 'review-approved' : 'review-unreviewed'}`}>{entry.review_status === 'approved' ? 'Approved' : 'Unreviewed'}</span></div>
@@ -317,10 +318,10 @@ export function Collection({ active }: { active: boolean }) {
               <div className="entry-footer"><span><Icon name="location" size={14} />{entry.source_location || 'Location not recorded'}</span><time title={entry.timestamp}>{displayDate(entry.timestamp)}</time></div>
             </article>)}</div>}
     </div>
-    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Terminology is stored privately in your account on the application server. Browsing, saving and exporting do not contact Gemini. Explicit AI requests may use selected approved terms and meanings, not stored contributor details, private notes or the full library.</span></p>
+    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Statements, word annotations and raw recordings belong to this private project. No automatic transcription or generated data is added. Exports include provenance; share them only with permission.</span></p>
 
     {active && editor && <EntryEditor entry={editor.entry} metadata={metadata} onClose={() => setEditor(null)} onSaved={(saved) => {
-      setNotice(saved.review_status === 'approved' ? 'Saved privately as approved terminology.' : 'Saved privately. This entry is awaiting review.')
+      setNotice(saved.review_status === 'approved' ? 'Saved privately with your review marked approved.' : 'Saved privately. This entry is awaiting review.')
       setEditor(null)
       setRevision((value) => value + 1)
     }} />}

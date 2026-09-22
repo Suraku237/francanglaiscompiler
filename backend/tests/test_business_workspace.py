@@ -7,7 +7,9 @@ from data_collector import dataset
 
 
 class BusinessWorkspaceTests(ApiTestCase):
-    def test_default_workspace_does_not_expose_academic_routes(self):
+    include_academic = False
+
+    def test_explicit_nonacademic_mode_omits_coursework_and_examples(self):
         dataset.ensure_dataset_file()
         before = Path(dataset.DATASET_PATH).read_bytes()
         for path in (
@@ -21,20 +23,19 @@ class BusinessWorkspaceTests(ApiTestCase):
         )
         schema = self.client.get("/openapi.json").json()
         self.assertFalse(any(path.startswith(("/api/coursework", "/api/examples")) for path in schema["paths"]))
-        self.assertEqual(schema["info"]["title"], "Mboa Language Workspace")
+        self.assertEqual(schema["info"]["title"], "Mboa Compiler Lab")
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_disabled_practice_sources_are_rejected_without_loading_or_cloud_processing(self):
+    def test_removed_generation_routes_do_not_load_disabled_examples(self):
         with patch.object(examples, "load_examples", side_effect=AssertionError("Must not load archived data")):
             for path, data in (
                 ("/api/translate", {"text": "Constructed example", "use_examples": True}),
                 ("/api/chat", {"message": "Constructed example", "use_examples": True}),
             ):
                 response = self.client.post(path, json=data)
-                self.assertEqual(response.status_code, 422, response.text)
-                self.assertIn("not available", response.json()["detail"])
-        self.assertEqual(self.requests, [])
+                self.assertEqual(response.status_code, 404, response.text)
+        self.assert_no_outbound_http()
 
     def test_business_categories_support_creation_and_global_review_counts(self):
         metadata = self.client.get("/api/metadata").json()

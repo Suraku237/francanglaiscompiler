@@ -36,6 +36,7 @@ App --> Maintainer : Saved or recoverable editor state
 deactivate App
 deactivate Maintainer
 legend bottom
+  Preserved desktop compatibility only; web mutations also retain private entry revisions.
   Desktop edits preserve ID, timestamp, contributor and audio reference.
   Text, glosses, topic, location, notes, language and lexical metadata are editable.
   Locks prevent interleaved writes, not semantic last-writer-wins conflicts.

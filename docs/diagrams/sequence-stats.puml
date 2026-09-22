@@ -1,6 +1,6 @@
 @startuml
 !include theme.iuml
-title Consistent four-way statistics from one snapshot
+title Preserved desktop statistics from one snapshot
 hide footbox
 autonumber
 actor Maintainer
@@ -36,6 +36,6 @@ deactivate Maintainer
 legend bottom
   _refresh_views also supplies the same rows to count, recent and Browse views.
   Direct Stats refresh loads once; count_by() is not called by this handler.
-  Performance evidence includes active-tab Tk idle rendering, not only CSV timing.
+  Earlier desktop benchmarks are historical; this diagram makes no current timing claim.
 endlegend
 @enduml

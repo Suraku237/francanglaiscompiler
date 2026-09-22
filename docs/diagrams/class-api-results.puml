@@ -1,79 +1,31 @@
 @startuml
 !include theme.iuml
-title Translation and analysis result DTOs
+title Lexical analysis result values
 hide empty members
-' @class backend.schemas.TranslationContent
-class TranslationContent {
-  translation: Text
-  explanation: Text
-  note: Notes
+class "pydantic.BaseModel" as BaseModel <<external>> {
+  model_validate(value) {inherited}
+  model_dump() {inherited}
 }
-' @class backend.schemas.TranslationResponse
-class TranslationResponse {
-  source_language
-  target_language
-  model: str
-  origin: Origin
-}
-' @class backend.schemas.VocabularyItem
-class VocabularyItem {
-  term: str [1..200 chars]
-  meaning: Text
-}
-' @class backend.schemas.Evidence
-class Evidence {
-  id: str
-  text: str
-  language: DatasetLanguage
-  french_gloss: str
-  english_gloss: str
-  match_type: exact | phrase | token
-  source: dataset | dictionary
-  source_document; source_line
-  aliases: list[str]
-}
-' @class backend.schemas.Coverage
-class Coverage {
-  matched_terms: list[str]
-  unmatched_terms: list[str]
-  warnings: list[str]
-}
-' @class backend.schemas.TokenResult
 class TokenResult {
   text: str
   category: str
 }
-' @class backend.schemas.AnalysisResult
 class AnalysisResult {
   code_mixed_spans: list[str]
   verb_phrases: list[str]
 }
-' @class backend.schemas.ChatResponse
-class ChatResponse {
-  reply: Text
-  model: str
-  origin: Origin = ai
-}
-TranslationResponse --|> TranslationContent
-TranslationContent "0..*" --> "0..12" VocabularyItem : vocabulary
-TranslationResponse "0..*" --> "1" AnalysisResult : analysis
+TokenResult --|> BaseModel
+AnalysisResult --|> BaseModel
 AnalysisResult "0..*" --> "0..*" TokenResult : tokens
-TranslationResponse "0..*" --> "1" Coverage : coverage
-TranslationResponse "0..*" --> "0..*" Evidence : evidence
-ChatResponse "0..*" --> "0..*" Evidence : evidence
-note bottom of Evidence
-  Whitelist intentionally omits contributor,
-  location, notes, audio and timestamp.
-  Dictionary file/line and forms are public source citations,
-  not contributor or collection-location metadata.
-  Retrieval emits at most 8 evidence records,
-  but these DTO list types alone do not enforce 8.
+note bottom of AnalysisResult
+  Nested Pydantic values may be reused by Python callers:
+  this is an association, not exclusive composition.
+  Token strings preserve observed wording.
+  Code-mixed spans and verb phrases are heuristic annotations.
 end note
 legend bottom
-  All eight primary classes live in backend.schemas.
-  Each directly extends pydantic.BaseModel except TranslationResponse.
-  Associations describe nested values, not exclusive lifetimes;
-  Pydantic values may be shared/reused by Python callers.
-  Validation/serialization use inherited model_validate/model_dump.
+  Both primary classes live in backend.schemas.
+  Grammar analyses, parse traces and corpus reports are dictionaries, not hidden DTO classes.
+  No translation, provider-evidence or generated-reply classes remain.
 endlegend
 @enduml

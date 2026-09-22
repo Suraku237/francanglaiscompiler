@@ -59,7 +59,7 @@ deactivate Auth
 Web --> User : private workspace
 deactivate Web
 
-User -> Web : create terminology in selected project
+User -> Web : save a manual statement in selected project
 activate Web
 Web -> Auth : POST /api/dataset\ncookie, Origin, CSRF, project header
 activate Auth
@@ -74,7 +74,7 @@ alt valid session, origin and CSRF
   activate Workspace
   Workspace --> Context : store or storage error
   deactivate Workspace
-  Context --> Auth : request-local storage binding
+  Context --> Auth : request-local dataset + coursework bindings
   deactivate Context
   Auth -> API : dispatch validated request
   activate API

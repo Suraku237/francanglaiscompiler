@@ -138,8 +138,9 @@ def requirements(profile: ProjectProfile, entries: list[dict[str, str]], grammar
         item("data", "Group of three and 10-15 real manual transcriptions", 10, evidence,
              f"{stats['sentences']} sentence entries; {sum(bool(name) for name in profile.group_members)} members. "
              "Record the collection method and confirm authenticity yourself; software cannot verify fieldwork.", "Evidence"),
-        item("topics", "Cover the ten everyday topic areas", 0, not stats["missing_topics"],
-             "Missing sentence topics: " + (", ".join(stats["missing_topics"]) or "none"), "Evidence"),
+        item("topics", "Review coverage of the suggested everyday topics", 0, not stats["missing_topics"],
+             "The brief suggests these topic areas; it does not require one statement per topic. "
+             "Not yet represented: " + (", ".join(stats["missing_topics"]) or "none"), "Evidence"),
         item("lexical", "Nouns, verbs, slang and code-mixed expressions", 10, has_data,
              "Token tables and multiword expressions use your saved entries only. Inspect UNKNOWN labels.", "Lexical analysis"),
         item("frequency", "Custom regex lexer, frequency and observed variation", 10, has_data,
@@ -169,7 +170,7 @@ def requirements(profile: ProjectProfile, entries: list[dict[str, str]], grammar
              "Export includes editable slides with timing notes: three minutes per member plus a one-minute shared wrap-up. Rehearse and personalize.", "Deliverables"),
     ]
     for row in result:
-        if row["id"] in ("report", "presentation"):
+        if row["id"] in ("topics", "report", "presentation"):
             row["status"] = "review"
     return result
 

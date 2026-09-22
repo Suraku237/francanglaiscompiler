@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AudioPlayer, AudioRecorder } from '../../src/AudioRecorder'
 import { EntryEditor } from '../../src/Collection'
-import { Imports } from '../../src/Imports'
 import { audioFixtures } from '../audioFixtures'
-import { entry, importPreview, metadata } from '../fixtures'
+import { entry, metadata } from '../fixtures'
+import { speechFixtures } from '../speechFixtures'
 import { jsonResponse } from '../helpers'
 
-describe('recording, attachment review and consent', () => {
+describe('raw recording, manual transcription and attachment review', () => {
   it('uploads draft audio and entry fields together only after explicit save', async () => {
     audioFixtures()
     const user = userEvent.setup()
@@ -62,26 +62,20 @@ describe('recording, attachment review and consent', () => {
     expect(body.get('file')).toBeNull()
   })
 
-  it('retains a recording locally until import preview with explicit cloud consent', async () => {
+  it('never fills the manual transcript from a recording or uploads an empty-text draft', async () => {
     audioFixtures()
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(metadata))
+    const { recognition } = speechFixtures()
     const user = userEvent.setup()
-    render(<Imports active aiAvailable onUseText={vi.fn()} onAskAI={vi.fn()} onOpenCollection={vi.fn()} />)
+    render(<EntryEditor metadata={metadata} onClose={vi.fn()} onSaved={vi.fn()} />)
     await user.click(screen.getByRole('button', { name: 'Record audio' }))
     await user.click(screen.getByRole('button', { name: 'Stop recording' }))
     expect(await screen.findByText(/recording-\d+\.webm/)).toBeInTheDocument()
-    expect(fetch).toHaveBeenCalledTimes(1)
-    const consent = screen.getByRole('checkbox', { name: /I consent to sending/ })
-    expect(consent).not.toBeChecked()
-    await user.click(consent)
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(importPreview({ method: 'gemini' })))
-    await user.click(screen.getByRole('button', { name: 'Preview source text' }))
-    const body = vi.mocked(fetch).mock.calls[1]?.[1]?.body
-    if (!(body instanceof FormData)) throw new Error('Expected consented media preview')
-    expect(body.get('allow_cloud_processing')).toBe('true')
-    expect(body.get('file')).toBeInstanceOf(File)
-    await user.upload(screen.getByLabelText('Document, image, audio or video'), new File(['next'], 'next.txt'))
-    expect(consent).not.toBeChecked()
+    expect(screen.getByRole('textbox', { name: /^Expression/ })).toHaveValue('')
+    await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
+    expect(fetch).not.toHaveBeenCalled()
+    expect(recognition).not.toHaveBeenCalled()
+    expect(screen.getByText(/Listen and transcribe by hand/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /transcrib|dictat/i })).not.toBeInTheDocument()
   })
 
   it('revokes replaced preview URLs and surfaces playback errors', async () => {

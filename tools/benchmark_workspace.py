@@ -52,8 +52,8 @@ def run_benchmark(*, rows: int = 1000, text_characters: int = 500, runs: int = 2
             mail_mode="file", google_client_id="", google_client_secret=SecretStr(""),
         )
         app = create_app(
-            Settings(gemini_api_key=SecretStr(" ")), auth_settings=accounts,
-            transport=httpx.MockTransport(reject_provider),
+            Settings(), auth_settings=accounts,
+            auth_transport=httpx.MockTransport(reject_provider),
         )
         user_id = str(uuid4())
         auth = app.state.auth_store

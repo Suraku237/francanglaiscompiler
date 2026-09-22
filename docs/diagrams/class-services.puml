@@ -1,61 +1,36 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Actual provider service and local grounding result
+title Runtime configuration and actual function boundaries
 hide empty members
-' @class backend.config.Settings
-class Settings {
-  gemini_api_key: SecretStr
-  gemini_model: str
-  gemini_timeout_seconds: float
+class "backend.config.Settings" as Settings {
   cors_origins: list[str]
-  ai_configured: bool {readOnly}
+  model_config: env files / extra = ignore
 }
-class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
-' @class backend.gemini.GeminiService
-class GeminiService {
-  before_request: Callable | None
-  __init__(settings, client, before_request)
-  async _generate(contents, instruction, structured)
-  async translate(request, evidence, coverage)
-  async chat(request, evidence)
-  async explain_coursework(question, language, context)
+class "pydantic_settings.BaseSettings" as BaseSettings <<external>> {
+  model_validate(value) {inherited}
+  model_dump() {inherited}
 }
-' @class backend.gemini.AIError
-class AIError {
-  status_code: int
-  detail: str
-  __init__(status_code, detail)
-}
-' @class backend.grounding.Grounding
-class Grounding <<dataclass>> {
-  exact_translation: str | None
-  exact_sources: set[EvidenceSource]
-  ambiguous: bool
-}
-class "httpx.AsyncClient" as Client <<external>>
-class Exception <<external>>
-class "Evidence\n(result view)" as Evidence <<reference>>
-class "Coverage\n(result view)" as Coverage <<reference>>
-rectangle "grounding.py <<module>>\nretrieve(), local_translation(), ai_origin()\nwithout_local_sources(), evidence_json()" as Retrieval
+class "AuthSettings\n(account view)" as AuthSettings <<reference>>
+rectangle "main.py <<functions>>\ncreate_app(settings, include_academic=True,\nrequire_auth=True, auth_settings, auth_transport, mailer)\nanalyze(text, entries)" as Factory
+rectangle "auth.py <<functions>>\ninstall_auth(), Google identity exchange,\naccount email delivery" as Identity
+rectangle "coursework_api.py <<functions>>\ncourse_operation(), analyze_corpus(), parse_text()\ndownload_export(), screenshot routes" as Course
+rectangle "imports.py <<functions>>\npreview_file(), _local_preview(), split_segments()\nDOCX/PDF/UTF-8 extraction" as Imports
 Settings --|> BaseSettings
-AIError --|> Exception
-GeminiService "0..*" --> "1" Settings : settings
-GeminiService "0..*" --> "1" Client : client
-GeminiService ..> AIError : raises safe provider errors
-Grounding "0..*" --> "0..*" Evidence : evidence
-Grounding "0..*" --> "1" Coverage : coverage
-Retrieval ..> Grounding : constructs result
-GeminiService ..> Retrieval : serializes whitelisted evidence
-note bottom of Client
-  create_app's lifespan creates and closes
-  the client; GeminiService receives it.
-  Therefore this is not service composition.
+Factory ..> Settings : resolves CORS configuration
+Factory ..> AuthSettings : resolves identity/deployment policy
+Factory ..> Identity : installs account boundary
+Factory ..> Course : includes default compiler router
+Factory ..> Imports : includes local import router
+note bottom of Settings
+  There are no generation keys, model names,
+  AI timeouts or provider quotas in active settings.
+  Existing private GEMINI_* variables are ignored.
 end note
 legend bottom
-  GeminiService is a real class. Retrieval and route handlers are functions.
-  Grounding is a value holder, not a hidden training or translation service.
-  At most 8 selected evidence records are emitted by retrieve().
-  Hosted quota accounting runs before every actual provider attempt, including retry.
+  Settings is the only production class introduced in this view.
+  Other rectangles are actual function modules, not service classes.
+  Auth HTTP still needs httpx for optional Google OAuth; no generative provider client exists.
+  Class relationships across views are references; dependencies have no cardinalities.
 endlegend
 @enduml

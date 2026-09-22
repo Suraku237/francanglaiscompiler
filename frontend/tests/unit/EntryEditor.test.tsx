@@ -24,8 +24,8 @@ describe('collection entry review', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('never trusts imported approval and only creates a trimmed record after explicit save', async () => {
-    const saved = entry({ text: 'Imported fixture', review_status: 'unreviewed' })
+  it('never trusts imported approval and preserves raw text on explicit save', async () => {
+    const saved = entry({ text: '  Imported fixture  ', review_status: 'unreviewed' })
     vi.mocked(fetch).mockResolvedValue(jsonResponse(saved))
     const { user, onSaved } = renderEditor({
       initialDraft: { text: '  Imported fixture  ', review_status: 'approved', english_gloss: 'Draft meaning' },
@@ -37,7 +37,7 @@ describe('collection entry review', () => {
     expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/dataset')
     expect(vi.mocked(fetch).mock.calls[0]?.[1]?.method).toBe('POST')
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toEqual({
-      text: 'Imported fixture',
+      text: '  Imported fixture  ',
       entry_type: 'Sentence',
       language: 'unspecified',
       review_status: 'unreviewed',
@@ -118,7 +118,7 @@ describe('collection entry review', () => {
   it('clears a word-only lexical category when the entry becomes a phrase', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(entry({ entry_type: 'Phrase', review_status: 'unreviewed' })))
     const { user } = renderEditor({ entry: entry({ entry_type: 'Word', lexical_category: 'NOUN' }) })
-    expect(screen.queryByLabelText(/^Lexical category/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Lexical category/)).toHaveValue('NOUN')
     await user.selectOptions(screen.getByLabelText(/^Entry type$/), 'Phrase')
     expect(screen.queryByLabelText(/^Lexical category/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))

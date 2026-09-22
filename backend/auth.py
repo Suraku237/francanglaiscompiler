@@ -53,8 +53,6 @@ class AuthSettings(BaseSettings):
     mail_from: str = ""
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
-    ai_daily_user_limit: int = Field(default=100, ge=1, le=10000)
-    ai_daily_global_limit: int = Field(default=2000, ge=1, le=1000000)
 
     @model_validator(mode="after")
     def valid_deployment(self):
@@ -196,25 +194,6 @@ class AuthStore:
                 "INSERT INTO limits VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1",
                 (key, now + seconds),
             )
-
-    def charge_ai(self, user_id: str) -> None:
-        bucket = int(time.time() // 86400)
-        seconds = 86400 - int(time.time() % 86400)
-        with self.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
-            keys = (
-                (f"ai:{bucket}:{user_id}", self.settings.ai_daily_user_limit),
-                (f"ai:{bucket}:global", self.settings.ai_daily_global_limit),
-            )
-            for key, limit in keys:
-                row = db.execute("SELECT count FROM limits WHERE key=?", (key,)).fetchone()
-                if row and row["count"] >= limit:
-                    raise AuthError(429, "The daily AI allowance has been reached. Local lookups remain available.", seconds)
-            for key, _ in keys:
-                db.execute(
-                    "INSERT INTO limits VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1",
-                    (key, time.time() + seconds),
-                )
 
     def session(self, raw: str) -> UserIdentity | None:
         if not raw or len(raw) > 200:

@@ -1,7 +1,8 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CourseworkExport } from '../../src/CourseworkEvidence'
+import { configureSession, selectProject } from '../../src/api'
 import { deferred, jsonResponse } from '../helpers'
 
 function mockDownloads() {
@@ -22,8 +23,38 @@ const downloadButton = () => screen.getByRole('button', { name: 'Download course
 const zipResponse = () => new Response(new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)]), {
   headers: { 'Content-Type': 'application/zip' },
 })
+afterEach(() => configureSession(null))
 
 describe('coursework export', () => {
+  it('downloads only the authenticated selected project and not the default project', async () => {
+    configureSession('test-csrf')
+    selectProject('project with spaces')
+    mockDownloads()
+    vi.mocked(fetch).mockResolvedValueOnce(zipResponse())
+    render(<CourseworkExport active dirty={false} busy={false} />)
+    await userEvent.setup().click(downloadButton())
+    expect(await screen.findByText(/Draft download started/)).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/coursework/export?project=project%20with%20spaces', expect.objectContaining({
+      cache: 'no-store', credentials: 'same-origin',
+    }))
+  })
+
+  it('expires the account UI on an unauthorized private export without downloading', async () => {
+    const expired = vi.fn()
+    window.addEventListener('mboa:session-expired', expired)
+    const downloads = mockDownloads()
+    try {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Sign in to export this project.' }, 401))
+      render(<CourseworkExport active dirty={false} busy={false} />)
+      await userEvent.setup().click(downloadButton())
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to export')
+      expect(expired).toHaveBeenCalledOnce()
+      expect(downloads.create).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener('mboa:session-expired', expired)
+    }
+  })
+
   it.each([
     { dirty: true, busy: false },
     { dirty: false, busy: true },
@@ -78,7 +109,7 @@ describe('coursework export', () => {
       .mockResolvedValueOnce(zipResponse())
     render(<CourseworkExport active dirty={false} busy={false} />)
     await user.click(downloadButton())
-    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot download from the local backend.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot download from the application server.')
     await user.click(downloadButton())
     expect(await screen.findByText(/Draft download started/)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()

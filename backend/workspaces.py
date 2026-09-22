@@ -1,3 +1,4 @@
+import base64
 import json
 import re
 import sqlite3
@@ -14,9 +15,12 @@ from filelock import FileLock
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
+from compiler.parser.service import analyze_grammar
 from data_collector import dataset
+from . import coursework_store
 from .auth import UserIdentity, private_directory
 from .collection import CollectionError, storage_operation
+from .coursework_models import ProjectProfile
 from .schemas import DatasetEntry, EntryCreate, TranslationLanguage
 
 MAX_ENTRIES = 10000
@@ -119,6 +123,13 @@ class WorkspaceStore:
                     kind TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,
                     created_at TEXT NOT NULL,updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS coursework (
+                    project_id TEXT PRIMARY KEY REFERENCES projects(id),data TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS screenshots (
+                    id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),
+                    name TEXT NOT NULL,content TEXT NOT NULL
+                );
             """)
             db.execute("INSERT OR IGNORE INTO projects VALUES ('default','General',?)", (now(),))
             if db.execute("SELECT id FROM projects WHERE id=?", (project,)).fetchone() is None:
@@ -218,6 +229,58 @@ class WorkspaceStore:
         if len(files) >= 1000 or sum(path.stat().st_size for path in files) + additional > MAX_AUDIO_BYTES:
             raise CollectionError(409, "The workspace audio limit has been reached (128 MB or 1,000 recordings).")
 
+    def load_coursework(self) -> ProjectProfile | None:
+        with self.connection() as db:
+            row = db.execute("SELECT data FROM coursework WHERE project_id=?", (self.project,)).fetchone()
+        return ProjectProfile.model_validate_json(row["data"]) if row is not None else None
+
+    def save_coursework(self, profile: ProjectProfile) -> None:
+        with self.lock(), self.connection() as db:
+            db.execute(
+                "INSERT INTO coursework VALUES (?,?) ON CONFLICT(project_id) DO UPDATE SET data=excluded.data",
+                (self.project, profile.model_dump_json()),
+            )
+            self.bump(db)
+
+    def list_coursework_screenshots(self) -> list[dict[str, str]]:
+        with self.connection() as db:
+            return [dict(row) for row in db.execute(
+                "SELECT id,name FROM screenshots WHERE project_id=? ORDER BY rowid", (self.project,),
+            )]
+
+    def read_coursework_screenshot(self, image_id: str) -> bytes:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT content FROM screenshots WHERE id=? AND project_id=?", (image_id, self.project),
+            ).fetchone()
+        if row is None:
+            raise CollectionError(404, "Screenshot not found.")
+        return base64.b64decode(row["content"], validate=True)
+
+    def save_coursework_screenshot(self, image_id: str, name: str, content: bytes) -> None:
+        coursework_store.validate_stored_screenshot(content)
+        with self.lock(), self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if db.execute(
+                "SELECT count(*) FROM screenshots WHERE project_id=?", (self.project,),
+            ).fetchone()[0] >= coursework_store.MAX_SCREENSHOTS:
+                raise CollectionError(
+                    422, f"Keep at most {coursework_store.MAX_SCREENSHOTS} screenshots; remove one before uploading."
+                )
+            db.execute(
+                "INSERT INTO screenshots VALUES (?,?,?,?)",
+                (image_id, self.project, name, base64.b64encode(content).decode("ascii")),
+            )
+            self.bump(db)
+
+    def delete_coursework_screenshot(self, image_id: str) -> None:
+        with self.lock(), self.connection() as db:
+            if db.execute(
+                "DELETE FROM screenshots WHERE id=? AND project_id=?", (image_id, self.project),
+            ).rowcount != 1:
+                raise CollectionError(404, "Screenshot not found.")
+            self.bump(db)
+
     def projects(self) -> list[dict]:
         with self.connection() as db:
             return [dict(row) for row in db.execute("SELECT * FROM projects ORDER BY created_at,id")]
@@ -245,8 +308,8 @@ class WorkspaceStore:
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             if any(db.execute(f"SELECT 1 FROM {table} WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
-                   for table in ("entries", "history", "revisions")):
-                raise CollectionError(409, "Only empty projects without saved work or revision history can be deleted.")
+                   for table in ("entries", "history", "revisions", "coursework", "screenshots")):
+                raise CollectionError(409, "Only empty projects without saved work, coursework or revision history can be deleted.")
             if db.execute("DELETE FROM projects WHERE id=?", (project_id,)).rowcount != 1:
                 raise CollectionError(404, "Project not found.")
             self.bump(db)
@@ -328,18 +391,27 @@ class WorkspaceStore:
 
     def export_document(self) -> dict:
         with self.lock(), self.connection() as db:
-            document = {"format": 1, "version": self.version, "projects": self.projects()}
-            for table in ("entries", "history", "revisions"):
+            document = {"format": 2, "version": self.version, "projects": self.projects()}
+            for table in ("entries", "history", "revisions", "coursework", "screenshots"):
                 document[table] = [dict(row) for row in db.execute(f"SELECT * FROM {table} ORDER BY rowid")]
             return document
 
     @staticmethod
     def validate_document(document: object) -> dict:
-        if not isinstance(document, dict) or set(document) != {"format", "version", "projects", "entries", "history", "revisions"}:
+        if not isinstance(document, dict):
             raise CollectionError(422, "Unsupported backup structure.")
-        if document["format"] != 1 or not isinstance(document["version"], int) or document["version"] < 0:
+        base_fields = {"format", "version", "projects", "entries", "history", "revisions"}
+        if document.get("format") == 1 and set(document) == base_fields:
+            document = dict(document)
+            document.update(format=2, coursework=[], screenshots=[])
+        if set(document) != base_fields | {"coursework", "screenshots"}:
+            raise CollectionError(422, "Unsupported backup structure.")
+        if document["format"] != 2 or type(document["version"]) is not int or document["version"] < 0:
             raise CollectionError(422, "Unsupported backup version.")
-        limits = {"projects": 20, "entries": MAX_ENTRIES, "history": MAX_HISTORY, "revisions": MAX_REVISIONS}
+        limits = {
+            "projects": 20, "entries": MAX_ENTRIES, "history": MAX_HISTORY, "revisions": MAX_REVISIONS,
+            "coursework": 20, "screenshots": 20 * coursework_store.MAX_SCREENSHOTS,
+        }
         for table, limit in limits.items():
             if not isinstance(document[table], list) or len(document[table]) > limit:
                 raise CollectionError(422, "Backup record limits exceeded.")
@@ -390,20 +462,44 @@ class WorkspaceStore:
                                 WorkspaceStore.validate_entry(entry)
                                 if entry["id"] != row["entry_id"]:
                                     raise ValueError("Revision ID mismatch")
+            for row in document["coursework"]:
+                if set(row) != {"project_id", "data"} or row["project_id"] not in projects:
+                    raise ValueError("Invalid coursework profile")
+                if row["project_id"] in identifiers["coursework"]:
+                    raise ValueError("Duplicate coursework profile")
+                identifiers["coursework"].add(row["project_id"])
+                profile = ProjectProfile.model_validate_json(row["data"])
+                analyze_grammar(profile.grammar)
+            screenshot_counts: dict[str, int] = {}
+            for row in document["screenshots"]:
+                if set(row) != {"id", "project_id", "name", "content"} or row["project_id"] not in projects:
+                    raise ValueError("Invalid screenshot")
+                if re.fullmatch(r"[a-f0-9]{32}", row["id"]) is None or row["id"] in identifiers["screenshots"]:
+                    raise ValueError("Invalid or duplicate screenshot ID")
+                identifiers["screenshots"].add(row["id"])
+                if not isinstance(row["name"], str) or not row["name"].strip() or len(row["name"]) > 120:
+                    raise ValueError("Invalid screenshot name")
+                if not isinstance(row["content"], str) or len(row["content"]) > 2800000:
+                    raise ValueError("Invalid screenshot content")
+                coursework_store.validate_stored_screenshot(base64.b64decode(row["content"], validate=True))
+                count = screenshot_counts.get(row["project_id"], 0) + 1
+                if count > coursework_store.MAX_SCREENSHOTS:
+                    raise ValueError("Too many project screenshots")
+                screenshot_counts[row["project_id"]] = count
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
             raise CollectionError(422, "The backup contains invalid workspace records.") from exc
         return document
 
     def import_document(self, document: dict, expected_version: int):
-        self.validate_document(document)
+        document = self.validate_document(document)
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             version = int(db.execute("SELECT value FROM meta WHERE key='version'").fetchone()[0])
             if version != expected_version:
                 raise CollectionError(409, "Your workspace changed after preview. Preview the backup again.")
-            for table in ("entries", "history", "revisions", "projects"):
+            for table in ("entries", "history", "revisions", "coursework", "screenshots", "projects"):
                 db.execute(f"DELETE FROM {table}")
-            for table in ("projects", "entries", "history", "revisions"):
+            for table in ("projects", "entries", "history", "revisions", "coursework", "screenshots"):
                 for row in document[table]:
                     columns = list(row)
                     db.execute(
@@ -481,7 +577,7 @@ def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, R
         workspace = await run_in_threadpool(WorkspaceStore, data_dir, user.id, project)
         token = _workspace.set(workspace)
         try:
-            with dataset.use_storage(workspace):
+            with dataset.use_storage(workspace), coursework_store.use_storage(workspace):
                 yield workspace
         finally:
             _workspace.reset(token)

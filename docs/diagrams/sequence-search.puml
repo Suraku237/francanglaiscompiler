@@ -42,6 +42,7 @@ opt Contributor selects a visible row
 end
 deactivate Contributor
 legend bottom
+  Preserved desktop compatibility only; the web collection reads the selected private project.
   IDs should remain unique; manually corrupted identifiers are not repaired here.
   Filtering is read-only. Empty results are distinct from a failed read.
 endlegend

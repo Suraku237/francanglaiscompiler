@@ -5,6 +5,8 @@ Invalid notation and unsafe/oversized transformations raise ``GrammarError``
 parsing them returns an explicit rejection rather than choosing a table entry.
 """
 
+from functools import lru_cache
+import json
 from typing import Any
 
 from .analysis import (
@@ -42,7 +44,22 @@ def analyze_grammar(grammar_text: str) -> dict[str, Any]:
     Epsilon productions are empty lists. FIRST uses ``epsilon``; FOLLOW and
     table lookaheads use ``$`` for end of input. Only unambiguous table cells
     appear in ``table``; every competing production is retained in ``conflicts``.
+
+    Only the exact public teaching starter is cached, as immutable JSON.
+    Decoding returns independent mutable results. Custom grammars (including
+    their comments), corpus text and reviewed annotations are never cached here.
     """
+    if isinstance(grammar_text, str) and grammar_text == DEFAULT_GRAMMAR:
+        return json.loads(_default_analysis_json())
+    return _analyze_grammar(grammar_text)
+
+
+@lru_cache(maxsize=1)
+def _default_analysis_json() -> str:
+    return json.dumps(_analyze_grammar(DEFAULT_GRAMMAR))
+
+
+def _analyze_grammar(grammar_text: str) -> dict[str, Any]:
     original = read_grammar(grammar_text)
     start = next(iter(original))
     transformed, steps = transform_grammar(original)

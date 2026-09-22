@@ -17,7 +17,7 @@ const response = (overrides: Partial<DictionaryResult> = {}): DictionaryResult =
 describe('separate reference dictionary', () => {
   it('loads only when active and shows provenance without calling it collected fieldwork', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(response()))
-    const props = { active: false, onTranslate: vi.fn() }
+    const props = { active: false, onUseText: vi.fn() }
     const { rerender } = render(<Dictionary {...props} />)
     expect(fetch).not.toHaveBeenCalled()
     rerender(<Dictionary {...props} active />)
@@ -26,7 +26,7 @@ describe('separate reference dictionary', () => {
     expect(screen.getByText('a test meaning')).toBeInTheDocument()
     expect(screen.getByText('1 matching entry')).toBeInTheDocument()
     expect(screen.getByText(/No French translations were supplied/)).toBeInTheDocument()
-    expect(screen.getByText(/not approved terminology/)).toBeInTheDocument()
+    expect(screen.getByText(/not collected fieldwork/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next entries' })).toBeDisabled()
   })
 
@@ -36,7 +36,7 @@ describe('separate reference dictionary', () => {
       .mockResolvedValueOnce(jsonResponse(response({ total: 60, matched: 60, offset: 25 })))
       .mockResolvedValueOnce(jsonResponse(response({ total: 60 })))
     const user = userEvent.setup()
-    render(<Dictionary active onTranslate={vi.fn()} />)
+    render(<Dictionary active onUseText={vi.fn()} />)
     await screen.findByRole('heading', { name: record.text })
     await user.click(screen.getByRole('button', { name: 'Next entries' }))
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
@@ -51,18 +51,18 @@ describe('separate reference dictionary', () => {
 
   it('opens a listed form as a draft only and never saves or submits it', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(response()))
-    const onTranslate = vi.fn()
+    const onUseText = vi.fn()
     const user = userEvent.setup()
-    render(<Dictionary active onTranslate={onTranslate} />)
-    await user.click(await screen.findByRole('button', { name: 'Open fixture / alias in translator' }))
-    expect(onTranslate).toHaveBeenCalledWith('fixture')
+    render(<Dictionary active onUseText={onUseText} />)
+    await user.click(await screen.findByRole('button', { name: 'Open fixture / alias in compiler' }))
+    expect(onUseText).toHaveBeenCalledWith('fixture')
     expect(fetch).toHaveBeenCalledOnce()
     expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain('/api/dictionary?')
   })
 
   it('reports an empty lookup without claiming the reference knows every word', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(response({ entries: [], matched: 0 })))
-    render(<Dictionary active onTranslate={vi.fn()} />)
+    render(<Dictionary active onUseText={vi.fn()} />)
     expect(await screen.findByRole('heading', { name: 'No dictionary entries found.' })).toBeInTheDocument()
     expect(screen.getByText(/does not mean the word is invalid/)).toBeInTheDocument()
   })
@@ -72,7 +72,7 @@ describe('separate reference dictionary', () => {
       .mockResolvedValueOnce(jsonResponse({ detail: 'Reference dictionary unavailable.' }, 503))
       .mockResolvedValueOnce(jsonResponse(response()))
     const user = userEvent.setup()
-    render(<Dictionary active onTranslate={vi.fn()} />)
+    render(<Dictionary active onUseText={vi.fn()} />)
     expect(await screen.findByRole('alert')).toHaveTextContent('Reference dictionary unavailable.')
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: record.text })).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('separate reference dictionary', () => {
     const stale = deferred<Response>()
     vi.mocked(fetch).mockReturnValueOnce(stale.promise).mockResolvedValueOnce(jsonResponse(response()))
     const user = userEvent.setup()
-    render(<Dictionary active onTranslate={vi.fn()} />)
+    render(<Dictionary active onUseText={vi.fn()} />)
     await waitFor(() => expect(fetch).toHaveBeenCalledOnce())
     const signal = vi.mocked(fetch).mock.calls[0]?.[1]?.signal
     await user.type(screen.getByRole('searchbox'), 'current')

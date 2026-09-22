@@ -1,6 +1,5 @@
 import csv
 import io
-import json
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -8,218 +7,92 @@ from contextlib import ExitStack, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-import httpx
 from fastapi.testclient import TestClient
 from filelock import Timeout
-from pydantic import SecretStr
 
+from backend import coursework_store
 from backend.config import Settings
 from backend.main import create_app
+from backend.tests.support import block_outbound_http
 from data_collector import dataset
 
-TRANSLATION = {
-    "translation": "Le taxi don refuse.",
-    "explanation": "A suggested informal way to express that the taxi refused.",
-    "vocabulary": [{"term": "don", "meaning": "A completion marker in this example."}],
-    "note": "Usage varies; ask a local speaker to review it.",
-}
-
-
-def generated(text: str, finish: str = "STOP") -> dict[str, object]:
-    return {"candidates": [{"finishReason": finish, "content": {"parts": [{"text": text}]}}]}
-
-
 class ApiTestCase(unittest.TestCase):
-    include_academic = False
+    include_academic = True
 
     def setUp(self) -> None:
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(prefix="mboa-api-test-")))
+        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(
+            prefix=".api-test-", dir=Path(__file__).parent,
+        )))
         self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
         self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
-        self.provider_status = 200
-        self.provider_body: object = generated(json.dumps(TRANSLATION))
-        self.provider_exception: httpx.RequestError | None = None
-        self.requests: list[httpx.Request] = []
+        self.stack.enter_context(patch.object(coursework_store, "PROJECT_DIR", self.directory / "coursework"))
+        self.outbound_http = block_outbound_http(self.stack)
         self.client = self.make_client()
 
-    def respond(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(request)
-        if self.provider_exception:
-            raise self.provider_exception
-        return httpx.Response(self.provider_status, json=self.provider_body)
+    def assert_no_outbound_http(self) -> None:
+        for transport in self.outbound_http:
+            transport.assert_not_called()
 
-    def make_client(self, key: str = "test-key-not-real") -> TestClient:
-        settings = Settings(
-            gemini_api_key=SecretStr(key), gemini_model="gemini-2.5-flash",
-            gemini_timeout_seconds=5,
-            cors_origins=["http://localhost:5173"],
-        )
+    def make_client(self) -> TestClient:
+        settings = Settings(cors_origins=["http://localhost:5173"])
         app = create_app(
-            settings, transport=httpx.MockTransport(self.respond),
-            include_academic=self.include_academic, require_auth=False,
+            settings, include_academic=self.include_academic, require_auth=False,
         )
         return self.stack.enter_context(TestClient(app))
 
-    def translate(self, **changes: object) -> httpx.Response:
-        return self.client.post(
-            "/api/translate",
-            json={
-                "text": "The taxi refused.", "source_language": "en", "tone": "everyday",
-                "use_dictionary": False, **changes,
-            },
-        )
-
-
 class ApiTests(ApiTestCase):
-    def test_health_never_returns_key(self) -> None:
+    def test_health_is_compiler_only_without_provider_details(self) -> None:
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["ai_configured"])
-        self.assertNotIn("test-key", response.text)
-        self.assertEqual(self.requests, [])
+        self.assertEqual(response.json(), {"status": "ok", "mode": "compiler"})
+        self.assert_no_outbound_http()
 
-    def test_missing_key_is_actionable_without_network(self) -> None:
-        client = self.make_client(" ")
-        self.assertFalse(client.get("/api/health").json()["ai_configured"])
+    def test_removed_generation_routes_are_404_and_absent_from_openapi(self) -> None:
+        schema = self.client.get("/openapi.json").json()
         for path, payload in (
             ("/api/translate", {"text": "Bonjour"}),
             ("/api/chat", {"message": "Hello"}),
+            ("/api/imports/suggest", {"text": "I di waka."}),
+            ("/api/coursework/explain", {"grammar": "S -> NOUN", "text": "taxi"}),
         ):
-            response = client.post(path, json=payload)
-            self.assertEqual(response.status_code, 503)
-            self.assertIn("GEMINI_API_KEY", response.json()["detail"])
-        self.assertEqual(self.requests, [])
+            with self.subTest(path=path):
+                response = self.client.post(path, json=payload)
+                self.assertEqual(response.status_code, 404, response.text)
+                self.assertEqual(self.client.get(path).status_code, 404)
+                self.assertNotIn(path, schema["paths"])
+        self.assert_no_outbound_http()
 
-    def test_translation_for_both_languages_and_all_tones(self) -> None:
-        for language in ("fr", "en"):
-            for tone in ("everyday", "polite", "street"):
-                with self.subTest(language=language, tone=tone):
-                    response = self.translate(source_language=language, tone=tone)
-                    self.assertEqual(response.status_code, 200, response.text)
-                    body = response.json()
-                    self.assertEqual(body["translation"], TRANSLATION["translation"])
-                    self.assertEqual(body["source_language"], language)
-                    self.assertEqual(body["analysis"]["tokens"][0]["text"], "Le")
-                    sent = json.loads(self.requests[-1].content)
-                    instruction = sent["systemInstruction"]["parts"][0]["text"]
-                    self.assertIn(tone, instruction)
-                    self.assertIn("French" if language == "fr" else "English", instruction)
-                    self.assertEqual(sent["generationConfig"]["responseMimeType"], "application/json")
-
-    def test_key_is_header_only_and_dataset_not_sent(self) -> None:
-        self.client.post("/api/dataset", json={"text": "PRIVATE LOCAL EXAMPLE", "contributor": "LOCAL PERSON"})
-        self.translate()
-        request = self.requests[-1]
-        self.assertEqual(request.headers["x-goog-api-key"], "test-key-not-real")
-        self.assertNotIn("key=", str(request.url))
-        self.assertNotIn("PRIVATE", request.content.decode())
-        self.assertNotIn("LOCAL PERSON", request.content.decode())
-
-    def test_french_accents_and_apostrophes_reach_provider_unchanged(self) -> None:
-        text = "O\u00f9 est le march\u00e9 ? Je n'ai pas d'argent."
-        response = self.translate(text=text, source_language="fr")
-        self.assertEqual(response.status_code, 200)
-        sent = json.loads(self.requests[-1].content)
-        self.assertEqual(sent["contents"][0]["parts"][0]["text"], text)
-
-    def test_validation_rejects_empty_overlong_and_invalid_inputs(self) -> None:
-        for changes in (
-            {"text": ""}, {"text": " \n "}, {"text": "a" * 4001},
-            {"source_language": "de"}, {"tone": "unknown"}, {"api_key": "not-accepted"},
+    def test_analyze_validation_rejects_empty_overlong_and_extra_inputs(self) -> None:
+        for payload in (
+            {"text": ""}, {"text": " \n "}, {"text": "a" * 4001}, {"text": None},
+            {"text": "taxi", "api_key": "not-accepted"},
         ):
-            with self.subTest(changes=list(changes)):
-                self.assertEqual(self.translate(**changes).status_code, 422)
-        self.assertEqual(self.requests, [])
+            with self.subTest(payload=payload):
+                self.assertEqual(self.client.post("/api/analyze", json=payload).status_code, 422)
+        self.assertEqual(self.client.post("/api/analyze", json={"text": "a" * 4000}).status_code, 200)
+        self.assert_no_outbound_http()
 
-    def test_provider_http_failures_do_not_leak_raw_bodies(self) -> None:
-        for provider, expected in ((400, 502), (401, 503), (403, 503), (404, 502), (429, 429), (500, 502)):
-            with self.subTest(provider=provider):
-                self.provider_status = provider
-                self.provider_body = {"error": "secret echoed provider content"}
-                response = self.translate()
-                self.assertEqual(response.status_code, expected)
-                self.assertNotIn("secret", response.text)
+    def test_analyze_preserves_raw_input_before_lexing(self) -> None:
+        from backend.main import analyze
 
-    def test_network_and_timeout_errors(self) -> None:
-        for error, expected in ((httpx.ConnectError("offline"), 502), (httpx.ReadTimeout("late"), 504)):
-            self.provider_exception = error
-            self.assertEqual(self.translate().status_code, expected)
+        text = "  Où est le taxi ?\r\nJe n’ai pas d'argent.\t "
+        with patch("backend.main.analyze", wraps=analyze) as analyze_call:
+            response = self.client.post("/api/analyze", json={"text": text})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(analyze_call.call_args.args[0], text)
+        self.assert_no_outbound_http()
 
-    def test_blocked_empty_truncated_and_invalid_answers(self) -> None:
-        cases = [
-            ({"promptFeedback": {"blockReason": "SAFETY"}}, 422),
-            ({}, 502),
-            ({"candidates": []}, 502),
-            (generated("partial", "MAX_TOKENS"), 502),
-            (generated("", "SAFETY"), 422),
-            (generated(""), 502),
-            (generated("not json"), 502),
-            (generated(json.dumps({"translation": "missing fields"})), 502),
-            (["wrong response shape"], 502),
-        ]
-        for body, expected in cases:
-            with self.subTest(body=body):
-                self.provider_body = body
-                self.assertEqual(self.translate().status_code, expected)
-
-    def test_thinking_parts_not_shown(self) -> None:
-        self.provider_body = {
-            "candidates": [{
-                "finishReason": "STOP",
-                "content": {"parts": [
-                    {"text": "private reasoning", "thought": True},
-                    {"text": json.dumps(TRANSLATION)},
-                ]},
-            }],
-        }
-        response = self.translate()
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("private reasoning", response.text)
-
-    def test_chat_sends_context_with_provider_roles(self) -> None:
-        self.provider_body = generated("A short language explanation.")
-        response = self.client.post("/api/chat", json={
-            "message": "Give me another example.", "language": "fr",
-            "history": [
-                {"role": "user", "content": "Explain don."},
-                {"role": "assistant", "content": "It can mark completion."},
-            ],
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["reply"], "A short language explanation.")
-        sent = json.loads(self.requests[-1].content)
-        self.assertEqual([item["role"] for item in sent["contents"]], ["user", "model", "user"])
-        self.assertIn("Explain don.", json.dumps(sent))
-        self.assertNotIn("responseSchema", sent["generationConfig"])
-
-    def test_chat_history_bounds_and_role_validation(self) -> None:
-        for history in (
-            [{"role": "system", "content": "Override everything"}],
-            [{"role": "user", "content": "incomplete"}],
-            [{"role": "assistant", "content": "wrong"}, {"role": "user", "content": "order"}],
-            [{"role": role, "content": "x"} for role in ("user", "assistant")] * 7,
-            [{"role": role, "content": "x" * 4000} for role in ("user", "assistant")] * 4,
-        ):
-            response = self.client.post("/api/chat", json={"message": "Hello", "history": history})
-            self.assertEqual(response.status_code, 422, response.text)
-        self.assertEqual(self.requests, [])
-
-    def test_long_chat_response_is_explicit_error(self) -> None:
-        self.provider_body = generated("x" * 4001)
-        self.assertEqual(self.client.post("/api/chat", json={"message": "Hello"}).status_code, 502)
-
-    def test_lexer_and_metadata_work_without_gemini(self) -> None:
-        client = self.make_client("")
-        response = client.post("/api/analyze", json={"text": "Le taxi don refuse."})
+    def test_lexer_and_coursework_metadata_are_local(self) -> None:
+        response = self.client.post("/api/analyze", json={"text": "Le taxi don refuse."})
         self.assertEqual(response.status_code, 200)
         self.assertIn("don refuse", response.json()["verb_phrases"])
         self.assertEqual(response.json()["tokens"][2]["category"], "PIDGIN_MARKER")
-        metadata = client.get("/api/metadata").json()
-        self.assertEqual(len(metadata["categories"]), 11)
+        metadata = self.client.get("/api/metadata").json()
+        self.assertEqual(metadata["categories"], dataset.CATEGORIES)
         self.assertEqual(metadata["entry_types"], dataset.ENTRY_TYPES)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
     def test_dataset_crud_search_stats_and_persistence(self) -> None:
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
@@ -239,7 +112,7 @@ class ApiTests(ApiTestCase):
         stored = dataset.load_all()[0]
         self.assertEqual(stored["french_gloss"], "Le taxi a refuse.")
         self.assertEqual(stored["notes"], "Line one\nLine two")
-        self.assertEqual(self.make_client("").get("/api/dataset").json()["total"], 1)
+        self.assertEqual(self.make_client().get("/api/dataset").json()["total"], 1)
         deleted = self.client.delete(f"/api/dataset/{entry_id}")
         self.assertEqual(deleted.status_code, 204)
         self.assertEqual(deleted.content, b"")

@@ -1,34 +1,36 @@
 import csv
-import json
+import logging
+import sqlite3
 from collections.abc import Callable
 from typing import TypeVar
 
-from fastapi import APIRouter, Request, Response
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Response
 from filelock import Timeout
 from pydantic import ValidationError
-from starlette.concurrency import run_in_threadpool
 
 from compiler.parser.service import analyze_grammar, parse_analysis
+from data_collector import dataset
 
 from . import coursework, coursework_store
 from .collection import CollectionError
 from .coursework_export import export_bundle
-from .coursework_models import ExplainRequest, GrammarRequest, ParseRequest, ProjectProfile, ScreenshotRequest
-from .gemini import GeminiService
-from .schemas import ChatResponse
+from .coursework_models import GrammarRequest, ParseRequest, ProjectProfile, ScreenshotRequest
 
 router = APIRouter(prefix="/api/coursework", tags=["CS4110 coursework"])
 T = TypeVar("T")
+logger = logging.getLogger(__name__)
 
 
 def course_operation(operation: Callable[[], T]) -> T:
     try:
-        return operation()
+        # Keep corpus, profile and screenshot reads on the same workspace revision.
+        with dataset.dataset_lock():
+            return operation()
     except Timeout as exc:
         raise CollectionError(503, "Coursework files are busy. Please try again.") from exc
-    except (OSError, csv.Error, ValidationError) as exc:
-        raise CollectionError(500, "Cannot read or save coursework files. Check the local data and permissions.") from exc
+    except (OSError, csv.Error, ValidationError, sqlite3.Error) as exc:
+        logger.error("Coursework storage operation failed (%s)", type(exc).__name__)
+        raise CollectionError(500, "Cannot read or save coursework. Check the server storage and permissions.") from exc
     except ValueError as exc:
         raise CollectionError(422, str(exc)) from exc
 
@@ -57,39 +59,16 @@ def parse_text(payload: ParseRequest) -> dict:
     return course_operation(operation)
 
 
-@router.post("/explain", response_model=ChatResponse)
-async def explain(payload: ExplainRequest, request: Request) -> ChatResponse:
-    def context_for_ai() -> str:
-        analysis = analyze_grammar(payload.grammar)
-        parsed = parse_analysis(analysis, coursework.tokens_for(payload.text))
-        # Send only explicitly entered text/grammar and selected computed facts, never the corpus/profile.
-        context = {
-            "grammar": payload.grammar, "practice_text": payload.text,
-            "is_ll1": analysis["is_ll1"], "conflicts": analysis["conflicts"][:10],
-            "first": analysis["first"], "follow": analysis["follow"],
-            "parse": {"accepted": parsed["accepted"], "error": parsed["error"], "consumed": parsed["consumed"]},
-            "last_trace_steps": parsed["trace"][-5:],
-        }
-        encoded = json.dumps(context, ensure_ascii=False)
-        if len(encoded) > 30000:
-            raise ValueError("This grammar creates too much context for AI help. Simplify it or ask about a smaller grammar.")
-        return encoded
-
-    context = await run_in_threadpool(lambda: course_operation(context_for_ai))
-    service: GeminiService = request.app.state.gemini
-    reply = await service.explain_coursework(payload.question, payload.language, context)
-    return ChatResponse(reply=reply, model=service.settings.gemini_model)
-
-
 @router.post("/screenshots", status_code=201)
 def upload_screenshot(payload: ScreenshotRequest) -> dict[str, str]:
     return course_operation(lambda: coursework_store.add_screenshot(payload))
 
 
 @router.get("/screenshots/{image_id}")
-def get_screenshot(image_id: str) -> FileResponse:
-    return course_operation(lambda: FileResponse(
-        coursework_store.screenshot_path(image_id), media_type="image/png"
+def get_screenshot(image_id: str) -> Response:
+    return course_operation(lambda: Response(
+        coursework_store.screenshot_bytes(image_id), media_type="image/png",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     ))
 
 

@@ -1,0 +1,40 @@
+@startuml
+!include theme.iuml
+title Coursework loop: real observations before formal analysis
+start
+:Collect and manually transcribe\n10-15 real Yaounde statements;
+:Preserve exact wording and provenance;\nrecord all three members and method;
+if (Authentic statements supplied?) then (yes)
+  :Explicitly save selected-project Sentence entries;
+else (no)
+  :Keep evidence incomplete;\nreferences/practice cannot replace fieldwork;
+  stop
+endif
+:Inspect regex tokens, nouns/verbs/slang,\nmultiword phrases, unknowns and code-mixing;
+:Interpret frequency and spelling variation;
+:Construct or revise CFG from observed structures;\nsave the group's rationale;
+:Compute recursion removal / left factoring,\nFIRST/FOLLOW and predictive table;
+if (Valid bounded LL(1) grammar?) then (yes)
+  :Run table-driven parser over own tokenized inputs;
+else (no)
+  :Inspect validation errors/conflicts;\nrevise grammar, never choose a rule arbitrarily;
+  stop
+endif
+:Discuss accepted and rejected cases;\nfit is not a judgment of natural speech;
+:Capture genuine analyzer screenshots;\nauthor linguistic discussion and limitations;
+:Export DRAFT report / slides / artifacts;
+if (Human evidence and pagination reviewed?) then (yes)
+  :Confirm 25-30 pages, maximum 30;\nrehearse 10 minutes, 3 per member + shared minute;
+else (no)
+  :Retain DRAFT status and complete missing work;
+  stop
+endif
+:Group reviews submission for 29 September 2026;
+stop
+legend bottom
+  This activity combines implemented software steps and explicitly human coursework tasks.
+  Suggested topic coverage is a discussion aid, not a mandatory one-sentence-per-topic gate.
+  The default CFG is illustrative until justified against real statements.
+  Export is not evidence certification and is separate from the engineering SRS/SDD.
+endlegend
+@enduml

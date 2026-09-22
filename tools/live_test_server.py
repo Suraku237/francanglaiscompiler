@@ -20,7 +20,7 @@ def main() -> None:
         parser.error("The browser fixture requires its own new, empty mboa-live-* temporary directory.")
     os.environ.update({
         "MBOA_DATA_DIR": str(root), "MBOA_ENVIRONMENT": "development",
-        "MBOA_MAIL_MODE": "file", "GEMINI_API_KEY": " ",
+        "MBOA_MAIL_MODE": "file",
         "MBOA_GOOGLE_CLIENT_ID": "", "MBOA_GOOGLE_CLIENT_SECRET": "",
         "MBOA_PUBLIC_URL": f"http://127.0.0.1:{args.port}",
     })

@@ -36,6 +36,7 @@ alt valid callback state
   activate Google
   Google --> Auth : ID token or provider error
   deactivate Google
+  alt code exchange succeeded
   Auth -> Google : obtain signing keys
   activate Google
   Google --> Auth : JWKS or provider error
@@ -59,6 +60,9 @@ alt valid callback state
   else invalid identity token
     note over Auth : No identity or session is created.
   end
+  else token exchange failed
+    note over Auth : Return safe stage-specific error; no signing-key request follows.
+  end
 else missing, expired or replayed state
   note over Auth : No provider exchange is authorized.
 end
@@ -71,5 +75,6 @@ legend bottom
   Redirects are HTTP replies; following them begins a new request.
   Code, verifier, nonce and credentials are not written to browser storage.
   Query values are redacted from application access logs.
+  This optional identity exchange is retained; it is not a language-provider call.
 endlegend
 @enduml

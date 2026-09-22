@@ -32,6 +32,7 @@ else (no)
 endif
 stop
 legend bottom
+  Preserved desktop compatibility only; web saves use private WorkspaceStore transactions.
   Diamonds represent exclusive guarded decisions, not parallel work.
   One final node ends this attempt, not the collector application.
   Duplicate warnings are advisory on desktop; API duplicates return 409.

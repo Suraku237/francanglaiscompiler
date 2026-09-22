@@ -1,62 +1,69 @@
 @startuml
 !include theme.iuml
-title Shared locked CSV mutation and failure-safe replacement
+title One request, one account/project: dual storage context binding
 hide footbox
 autonumber
-participant "App / collection functions\n<<caller>>" as Caller
-participant "dataset.py\n<<module>>" as Dataset
-participant "path-keyed FileLock\n<<external>>" as Lock
-participant "Local filesystem\n<<external>>" as Files
+participant "auth.py middleware" as Auth
+participant "workspace_context()\n<<async context manager>>" as Context
+participant "workspace : WorkspaceStore" as Store
+participant "dataset.py / coursework_store.py\n<<ContextVar adapters>>" as Adapters
+participant "Private route / domain functions" as API
+participant "Account SQLite" as DB
 
-activate Caller
-Caller -> Dataset : append_entry / update_entry / delete_entry\n(or collection's outer transaction)
-activate Dataset
-Dataset -> Lock : acquire(timeout=10)
-activate Lock
-Lock --> Dataset : Lock held or Timeout
-deactivate Lock
-alt Lock acquired
-  Dataset -> Dataset : load_all()
-  activate Dataset
-  note over Dataset : Reentrant same-path lock; ensure storage.\nValidate 10/11/14-field exact header and row shape.
-  Dataset -> Files : Read UTF-8 CSV
-  activate Files
-  Files --> Dataset : Bytes / read failure
-  deactivate Files
-  Dataset --> Dataset : Normalized row dictionaries / error
-  deactivate Dataset
-  opt Read and mutation validation succeed
-    note over Dataset : Missing update/delete IDs raise EntryNotFoundError.\nModify rows in memory; reset approval on changed\nfields unless review status is explicitly supplied.
-    Dataset -> Dataset : _write_entries(entries)
-    activate Dataset
-    Dataset -> Files : Create sibling scratch file;\nwrite canonical header/rows; flush + fsync
-    activate Files
-    Files --> Dataset : Completed sibling or write failure
-    deactivate Files
-    opt Sibling completely written
-      Dataset -> Files : os.replace(sibling, dataset.csv)
-      activate Files
-      Files --> Dataset : Atomic replacement / replacement failure
-      deactivate Files
-    end
-    note over Dataset : Finally remove any leftover sibling.\nBefore replacement failure, previous CSV stays intact.
-    Dataset --> Dataset : Committed or exception
-    deactivate Dataset
-  end
-  Dataset -> Lock : release() in context-manager exit
-  activate Lock
-  Lock --> Dataset : Released, including on failure
-  deactivate Lock
-else Lock timed out
-  note over Dataset : No mutation; return busy/failure to caller.
+activate Auth
+note over Auth : Precondition: session, Origin/CSRF and request limits validated.\nUser ID comes from identity, not from the request's project selector.
+Auth -> Context : enter workspace_context(user, request)
+activate Context
+Context -> Store : construct(data_dir, user.id, selected project)\nin thread pool
+activate Store
+Store -> DB : ensure account tables; require selected project
+activate DB
+DB --> Store : existing/new account tables and validated project, or error
+deactivate DB
+Store --> Context : initialized store or safe storage error
+deactivate Store
+alt Initialization succeeded
+  Context -> Adapters : enter dataset.use_storage(store)\nand coursework_store.use_storage(store)
+  activate Adapters
+  Adapters --> Context : ContextVar tokens bound
+  deactivate Adapters
+else Invalid account/project or storage failure
+  note over Context : Do not dispatch private routes or fall back to global files.
 end
-Dataset --> Caller : Success or propagated exception
-deactivate Dataset
-deactivate Caller
+Context --> Auth : bound request context or rejection
+deactivate Context
+opt Valid private context
+  Auth -> API : dispatch coursework or dataset operation
+  activate API
+  API -> Adapters : load/save selected corpus, profile or screenshot
+  activate Adapters
+  Adapters -> Store : corresponding DatasetStorage / CourseworkStorage method
+  activate Store
+  Store -> DB : project-qualified read or locked transactional mutation
+  activate DB
+  note over DB : Mutations bump workspace version; entry changes also record revisions.\nProfile JSON and screenshot base64 remain in this account database.
+  DB --> Store : data/commit or database error
+  deactivate DB
+  Store --> Adapters : value/bytes or safe failure
+  deactivate Store
+  Adapters --> API : operation result
+  deactivate Adapters
+  API --> Auth : HTTP response or translated error
+  deactivate API
+  Auth -> Context : exit workspace context in finally
+  activate Context
+  Context -> Adapters : reset stored ContextVar tokens
+  activate Adapters
+  Adapters --> Context : previous contexts restored
+  deactivate Adapters
+  Context --> Auth : cleanup complete
+  deactivate Context
+end
+deactivate Auth
 legend bottom
-  collection functions take the same outer lock around duplicate/ID checks and write.
-  Lock activation shows the acquire/release call, not the duration of file ownership.
-  Append also rewrites the full dataset; there is no unsafe direct append path.
-  Protection covers cooperative users of this path, not external manual writers.
+  Protocol dispatch is structural; no per-user global CSV path is mutated.
+  No class association multiplicity is implied by a sequence participant.
+  Legacy CSV/profile/screenshot access requires no bound adapter and explicit no-auth maintenance.
+  Default web requests require authentication; production refuses require_auth=False.
 endlegend
 @enduml

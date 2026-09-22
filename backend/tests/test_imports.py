@@ -1,57 +1,33 @@
-import base64
 import io
 import json
-import tempfile
 import unittest
-from contextlib import ExitStack
 from pathlib import Path
-from unittest.mock import patch
 
 import httpx
-from fastapi.testclient import TestClient
 from PIL import Image
-from pydantic import SecretStr
 from pypdf import PdfReader, PdfWriter
 
-from backend.config import Settings
 from backend.import_models import MAX_EXTRACTED_TEXT, MAX_FILE_BYTES
 from backend.imports import split_segments
-from backend.main import create_app
 from backend.tests.import_fixtures import docx_bytes, pdf_bytes
+from backend.tests.test_api import ApiTestCase
 from data_collector import dataset
 
 
-class ImportTests(unittest.TestCase):
+class ImportTests(ApiTestCase):
     def setUp(self) -> None:
-        self.stack = ExitStack()
-        self.addCleanup(self.stack.close)
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
-        self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
-        self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
+        super().setUp()
         dataset.ensure_dataset_file()
         self.original_csv = Path(dataset.DATASET_PATH).read_bytes()
         self.original_files = {path.name for path in self.directory.iterdir() if path.is_file()}
-        self.requests: list[httpx.Request] = []
-        self.response_text = "Sample machine transcript."
-        self.finish = "STOP"
-        self.provider_status = 200
-        settings = Settings(gemini_api_key=SecretStr("test-key-not-real"), gemini_timeout_seconds=5)
-        self.client = self.stack.enter_context(TestClient(create_app(
-            settings, transport=httpx.MockTransport(self.respond), require_auth=False,
-        )))
 
-    def respond(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(request)
-        return httpx.Response(self.provider_status, json={
-            "candidates": [{"finishReason": self.finish, "content": {"parts": [{"text": self.response_text}]}}],
-        })
-
-    def upload(self, name: str, content: bytes, *, consent: str = "false") -> httpx.Response:
-        return self.client.post("/api/imports/preview", files={"file": (name, content)}, data={"allow_cloud_processing": consent})
+    def upload(self, name: str, content: bytes) -> httpx.Response:
+        return self.client.post("/api/imports/preview", files={"file": (name, content)})
 
     def assert_nothing_saved(self) -> None:
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), self.original_csv)
         self.assertEqual({path.name for path in self.directory.iterdir() if path.is_file()}, self.original_files)
+        self.assert_no_outbound_http()
 
     def test_local_utf8_preview_preserves_words_and_never_calls_ai(self) -> None:
         text = "Ça va ?\r\nI di waka.\n"
@@ -59,7 +35,7 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["text"], text)
         self.assertEqual(response.json()["method"], "local")
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
         self.assert_nothing_saved()
 
     def test_segments_preserve_all_input_without_truncation(self) -> None:
@@ -71,21 +47,34 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(response.status_code, 413)
 
     def test_dataset_csv_alignment_is_previewed_without_inherited_approval(self) -> None:
-        csv_text = "text,language,english_gloss,review_status\nmbolo,francanglais,hello,approved\n"
+        csv_text = (
+            "text,language,english_gloss,review_status,category,source_location,contributor,notes\n"
+            'mbolo,francanglais,hello,approved,Campus Life,  Campus  ,Collector,"  Original\nnotes  "\n'
+        )
         response = self.upload("words.csv", csv_text.encode())
         self.assertEqual(response.status_code, 200, response.text)
         draft = response.json()["drafts"][0]
         self.assertEqual((draft["text"], draft["english_gloss"], draft["language"]), ("mbolo", "hello", "francanglais"))
         self.assertEqual(draft["review_status"], "unreviewed")
-        self.assertEqual(self.requests, [])
+        self.assertEqual(draft["category"], "Campus Life")
+        self.assertEqual(draft["source_location"], "  Campus  ")
+        self.assertEqual(draft["contributor"], "Collector")
+        self.assertEqual(draft["notes"], "  Original\nnotes  ")
         self.assert_nothing_saved()
 
     def test_json_dataset_preview_supports_legacy_unknown_language(self) -> None:
-        response = self.upload("words.json", json.dumps({"entries": [{"text": "sample", "french_gloss": "exemple", "contributor": "PRIVATE"}]}).encode())
+        original = {
+            "text": "  n’éko\tà  ", "french_gloss": "exemple", "contributor": "PRIVATE",
+            "category": "Historical topic", "source_location": "  Original location  ",
+            "notes": "Original\r\nnotes", "review_status": "approved",
+        }
+        response = self.upload("words.json", json.dumps({"entries": [original]}).encode())
         self.assertEqual(response.status_code, 200, response.text)
         draft = response.json()["drafts"][0]
         self.assertEqual(draft["language"], "unspecified")
-        self.assertNotIn("contributor", draft)
+        self.assertEqual(draft["review_status"], "unreviewed")
+        for field in ("text", "french_gloss", "contributor", "category", "source_location", "notes"):
+            self.assertEqual(draft[field], original[field], field)
         self.assert_nothing_saved()
 
     def test_invalid_structured_files_are_not_silently_imported(self) -> None:
@@ -103,24 +92,22 @@ class ImportTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 422, response.text)
         response = self.upload("large.json", json.dumps([{"text": "word"}] * 101).encode())
         self.assertEqual(response.status_code, 413)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_pdf_text_is_local_and_scans_require_consent(self) -> None:
+    def test_pdf_text_is_local_and_scans_require_manual_transcription(self) -> None:
         response = self.upload("source.pdf", pdf_bytes())
         self.assertEqual(response.status_code, 200, response.text)
         self.assertIn("Cameroon language sample.", response.json()["text"])
         self.assertEqual(response.json()["method"], "local")
-        self.assertEqual(self.upload("scan.pdf", pdf_bytes(text=False)).status_code, 422)
-        self.assertEqual(self.requests, [])
-        response = self.upload("scan.pdf", pdf_bytes(text=False), consent="true")
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["method"], "gemini")
-        self.assertEqual(self.requests[-1].headers["x-goog-api-key"], "test-key-not-real")
+        scanned = self.upload("scan.pdf", pdf_bytes(text=False))
+        self.assertEqual(scanned.status_code, 422)
+        self.assertIn("manual", scanned.json()["detail"].lower())
+        self.assert_nothing_saved()
 
     def test_pdf_limits_and_encryption_are_explicit(self) -> None:
         for data, status in ((pdf_bytes(pages=41), 413), (pdf_bytes(encrypted=True), 422), (b"%PDF-1.7\nbroken", 422)):
             self.assertEqual(self.upload("source.pdf", data).status_code, status)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
     def test_pdf_character_limit_counts_only_separators_between_pages(self) -> None:
         cases = [
@@ -142,7 +129,7 @@ class ImportTests(unittest.TestCase):
                 self.assertEqual(preview["text"], expected)
                 self.assertEqual("".join(preview["segments"]), expected)
                 self.assertTrue(all(0 < len(part) <= 4000 for part in preview["segments"]))
-                self.assertEqual(self.requests, [])
+                self.assert_no_outbound_http()
         self.assert_nothing_saved()
 
     def test_pdf_character_limit_rejects_one_character_over_including_separators(self) -> None:
@@ -158,10 +145,10 @@ class ImportTests(unittest.TestCase):
                 response = self.upload("too-long.pdf", pdf_bytes(page_texts=pages))
                 self.assertEqual(response.status_code, 413, response.text)
                 self.assertIn("40,000 characters", response.json()["detail"])
-                self.assertEqual(self.requests, [])
+                self.assert_no_outbound_http()
         self.assert_nothing_saved()
 
-    def test_mixed_pdf_discloses_missing_text_and_uses_ocr_only_with_consent(self) -> None:
+    def test_mixed_pdf_keeps_local_text_and_discloses_empty_pages(self) -> None:
         writer = PdfWriter()
         writer.append(PdfReader(io.BytesIO(pdf_bytes())))
         writer.add_blank_page(595, 842)
@@ -169,26 +156,24 @@ class ImportTests(unittest.TestCase):
         writer.write(output)
         response = self.upload("mixed.pdf", output.getvalue())
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["method"], "local")
+        self.assertEqual(response.json()["text"], "Cameroon language sample.\n\n")
         self.assertIn("no text layer", " ".join(response.json()["warnings"]))
-        self.assertEqual(self.requests, [])
-        response = self.upload("mixed.pdf", output.getvalue(), consent="true")
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["method"], "gemini")
-        self.assertEqual(response.json()["text"], self.response_text)
+        self.assert_nothing_saved()
 
     def test_docx_body_paragraphs_and_tabs_are_preserved(self) -> None:
         response = self.upload("notes.docx", docx_bytes())
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["text"], "Bonjour\tCameroon\nSecond line.")
         self.assertTrue(response.json()["warnings"])
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
     def test_docx_entities_and_bombs_rejected(self) -> None:
         self.assertEqual(self.upload("bad.docx", b"not a zip").status_code, 422)
         self.assertEqual(self.upload("entities.docx", docx_bytes('<!DOCTYPE x [<!ENTITY x "data">]><x>&x;</x>')).status_code, 422)
         self.assertEqual(self.upload("bomb.docx", docx_bytes("<x>" + "a" * (4 * 1024 * 1024) + "</x>")).status_code, 413)
 
-    def test_all_advertised_media_formats_require_consent_and_use_inline_data(self) -> None:
+    def test_images_audio_and_video_are_rejected_with_manual_transcription_guidance(self) -> None:
         payloads = {
             "sample.mp3": b"ID3sample", "sample.wav": b"RIFF0000WAVEsample",
             "sample.m4a": b"0000ftypM4A sample", "sample.ogg": b"OggSsample",
@@ -201,31 +186,25 @@ class ImportTests(unittest.TestCase):
             payloads["image." + extension] = output.getvalue()
         for name, data in payloads.items():
             with self.subTest(name=name):
-                before = len(self.requests)
-                self.assertEqual(self.upload(name, data).status_code, 422)
-                self.assertEqual(len(self.requests), before)
-                response = self.upload(name, data, consent="true")
-                self.assertEqual(response.status_code, 200, response.text)
-                sent = json.loads(self.requests[-1].content)
-                self.assertEqual(base64.b64decode(sent["contents"][0]["parts"][1]["inline_data"]["data"]), data)
-                self.assertNotIn("file_data", json.dumps(sent))
-                self.assertEqual(response.json()["method"], "gemini")
+                response = self.upload(name, data)
+                self.assertEqual(response.status_code, 415, response.text)
+                self.assertIn("manual", response.json()["detail"].lower())
         self.assert_nothing_saved()
 
     def test_media_spoofing_empty_files_and_unsupported_formats(self) -> None:
         for name, contents, status in (
-            ("fake.mp3", b"not mp3", 422), ("fake.png", b"MZ executable", 422),
+            ("fake.mp3", b"not mp3", 415), ("fake.png", b"MZ executable", 415),
             ("fake.pdf", b"not pdf", 422), ("empty.txt", b"", 422),
             ("empty.txt", b" \n", 422), ("binary.txt", b"a\x00b", 422),
             ("latin.txt", b"\xff\xfe", 422), ("unknown.exe", b"data", 415),
         ):
-            self.assertEqual(self.upload(name, contents, consent="true").status_code, status)
-        self.assertEqual(self.requests, [])
+            self.assertEqual(self.upload(name, contents).status_code, status)
+        self.assert_no_outbound_http()
 
-    def test_upload_size_and_consent_validation(self) -> None:
+    def test_upload_size_filename_and_exactly_one_file_validation(self) -> None:
         self.assertEqual(self.upload("notes.txt", b"a" * (MAX_FILE_BYTES + 1)).status_code, 413)
-        self.assertEqual(self.upload("notes.txt", b"text", consent="yes").status_code, 422)
-        self.assertEqual(self.client.post("/api/imports/preview", data={"allow_cloud_processing": "true"}).status_code, 422)
+        self.assertEqual(self.client.post("/api/imports/preview", files={"wrong": ("notes.txt", b"text")}).status_code, 422)
+        self.assertEqual(self.client.post("/api/imports/preview", data={}).status_code, 422)
         response = self.client.post("/api/imports/preview", content=b"", headers={"content-length": str(MAX_FILE_BYTES + 65537)})
         self.assertEqual(response.status_code, 413)
         response = self.client.post("/api/imports/preview", files=[("file", ("a.txt", b"one")), ("file", ("b.txt", b"two"))])
@@ -234,12 +213,18 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertLessEqual(len(response.json()["filename"]), 200)
 
-    def test_ai_cutoff_and_empty_transcripts_are_failures(self) -> None:
-        self.finish = "MAX_TOKENS"
-        self.assertEqual(self.upload("sample.mp3", b"ID3sample", consent="true").status_code, 502)
-        self.finish = "STOP"
-        self.response_text = "[NO_TEXT]"
-        self.assertEqual(self.upload("sample.mp3", b"ID3sample", consent="true").status_code, 422)
+    def test_cloud_consent_and_unknown_multipart_fields_are_rejected(self) -> None:
+        for field, value in (
+            ("allow_cloud_processing", "true"), ("allow_cloud_processing", "false"),
+            ("allow_cloud_processing", "yes"), ("provider", "retired"),
+        ):
+            with self.subTest(field=field, value=value):
+                response = self.client.post(
+                    "/api/imports/preview", files={"file": ("notes.txt", b"Raw text")},
+                    data={field: value},
+                )
+                self.assertEqual(response.status_code, 400, response.text)
+                self.assertIn("Maximum number of fields is 0", response.json()["detail"])
         self.assert_nothing_saved()
 
     def test_chunked_upload_is_bounded_without_content_length(self) -> None:
@@ -254,53 +239,42 @@ class ImportTests(unittest.TestCase):
             headers={"content-type": "multipart/form-data; boundary=mboa"},
         )
         self.assertEqual(response.status_code, 413, response.text)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
-    def test_openapi_describes_file_and_explicit_cloud_consent(self) -> None:
-        operation = self.client.get("/openapi.json").json()["paths"]["/api/imports/preview"]["post"]
+    def test_openapi_describes_one_local_file_without_consent_or_generation_schemas(self) -> None:
+        specification = self.client.get("/openapi.json").json()
+        operation = specification["paths"]["/api/imports/preview"]["post"]
         schema = operation["requestBody"]["content"]["multipart/form-data"]["schema"]
         self.assertEqual(schema["properties"]["file"]["format"], "binary")
-        self.assertEqual(schema["properties"]["allow_cloud_processing"]["default"], "false")
+        self.assertEqual(set(schema["properties"]), {"file"})
+        self.assertEqual(schema["required"], ["file"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertIn("ImportEntry", specification["components"]["schemas"])
+        self.assertNotIn("SuggestedEntry", specification["components"]["schemas"])
+        self.assertNotIn("/api/imports/suggest", specification["paths"])
 
-    def test_suggestions_quote_reviewed_text_and_do_not_save(self) -> None:
-        self.response_text = json.dumps({"drafts": [{"text": "waka", "language": "pidgin", "entry_type": "Word", "english_gloss": "walk", "lexical_category": "VERB"}]})
+    def test_suggestion_endpoint_is_removed_without_saving(self) -> None:
         response = self.client.post("/api/imports/suggest", json={"text": "I di waka.", "language": "pidgin"})
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["drafts"][0]["review_status"], "unreviewed")
-        sent = json.loads(self.requests[-1].content)
-        self.assertEqual(sent["contents"][0]["parts"][0]["text"], "I di waka.")
-        self.assert_nothing_saved()
-
-    def test_invented_subword_approved_duplicate_and_invalid_ai_drafts_fail(self) -> None:
-        for drafts in (
-            [{"text": "invented"}], [{"text": "wa"}],
-            [{"text": "waka", "review_status": "approved"}],
-            [{"text": "waka"}, {"text": "waka"}],
-            [{"text": "waka", "lexical_category": "MAGIC"}],
-        ):
-            self.response_text = json.dumps({"drafts": drafts})
-            response = self.client.post("/api/imports/suggest", json={"text": "I di waka.", "language": "pidgin"})
-            self.assertEqual(response.status_code, 502, response.text)
+        self.assertEqual(response.status_code, 404, response.text)
         self.assert_nothing_saved()
 
     def test_changed_approved_evidence_requires_explicit_reapproval(self) -> None:
         created = self.client.post("/api/dataset", json={
-            "text": "Test expression", "language": "pidgin", "english_gloss": "test meaning",
-            "review_status": "approved",
+            "text": "zandolo", "language": "pidgin", "english_gloss": "test meaning",
+            "entry_type": "Word", "lexical_category": "NOUN", "review_status": "approved",
         }).json()
         endpoint = "/api/dataset/" + created["id"]
         unchanged = self.client.patch(endpoint, json={"english_gloss": "test meaning"})
         self.assertEqual(unchanged.json()["review_status"], "approved")
         changed = self.client.patch(endpoint, json={"english_gloss": "different meaning"})
         self.assertEqual(changed.json()["review_status"], "unreviewed")
-        lookup = self.client.post("/api/translate", json={
-            "text": "Test expression", "source_language": "pidgin",
-            "target_language": "en", "allow_ai": False,
-        })
-        self.assertEqual(lookup.status_code, 422)
+        analysis = self.client.post("/api/analyze", json={"text": "zandolo"})
+        self.assertEqual(analysis.json()["tokens"][0]["category"], "UNKNOWN")
         approved = self.client.patch(endpoint, json={"english_gloss": "reviewed meaning", "review_status": "approved"})
         self.assertEqual(approved.json()["review_status"], "approved")
-        self.assertEqual(self.requests, [])
+        self.assertEqual(self.client.post("/api/analyze", json={"text": "zandolo"}).json()["tokens"][0]["category"],
+                         "NOUN")
+        self.assert_no_outbound_http()
 
     def test_desktop_edits_cannot_inherit_approval_of_old_wording(self) -> None:
         created = self.client.post("/api/dataset", json={

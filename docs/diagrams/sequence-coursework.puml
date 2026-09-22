@@ -1,68 +1,84 @@
 @startuml
 !include theme.iuml
-title Save coursework, then export only saved evidence
+title Save project-scoped coursework; export only saved evidence as a DRAFT
 hide footbox
 autonumber
 actor Member
 participant "Coursework / CourseworkExport\n<<React functions>>" as Web
-participant "coursework_api\n<<functions>>" as API
-participant "coursework_store\n<<module>>" as Store
-participant "coursework_export / coursework\n<<modules>>" as Export
-participant "Local files / compiler" as Local
+participant "coursework_api.py" as API
+participant "coursework_store.py" as Profile
+participant "workspace : WorkspaceStore" as Store
+participant "coursework_export.py / coursework.py" as Export
+participant "Deterministic compiler / source files" as Local
 
 activate Member
-Member -> Web : Save project
+Member -> Web : Save project profile / grammar / discussion
 activate Web
-Web -> API : PUT /api/coursework/project\nProjectProfile snapshot
+Web -> API : PUT /api/coursework/project\nprofile + cookie/Origin/CSRF/project
 activate API
-API -> Store : save_project(profile)
-activate Store
-Store -> Local : Validate grammar; acquire project lock;\nwrite, flush/fsync, atomically replace JSON
+note over API : Authenticated identity and both storage adapters are bound.
+API -> Profile : save_project(profile)
+activate Profile
+Profile -> Local : analyze_grammar(profile.grammar)
 activate Local
-Local --> Store : Saved or validation/storage failure
+Local --> Profile : bounded valid grammar or GrammarError
 deactivate Local
-Store --> API : ProjectProfile or exception
-deactivate Store
-API --> Web : Saved ProjectProfile / safe HTTP error
+opt Grammar valid
+  Profile -> Store : save_coursework(profile)
+  activate Store
+  note over Store : Upsert JSON at project_id under account lock;\nbump workspace version in the same transaction.
+  Store --> Profile : committed or storage failure
+  deactivate Store
+end
+Profile --> API : submitted profile or exception
+deactivate Profile
+API --> Web : saved snapshot / safe error
 deactivate API
-note over Web : Mark submitted snapshot saved, not later edits.\nRefresh saved evidence while preserving editor draft.
-Web --> Member : Save notice or retained draft + error
+Web --> Member : mark submitted snapshot saved; preserve later edits/errors
 deactivate Web
 
 Member -> Web : Download coursework draft
 activate Web
-alt Editor dirty / save or screenshot work pending
-  note over Web : Export is disabled; save or finish current work.
-else Eligible explicit export
-  Web -> API : GET /api/coursework/export
+alt Unsaved profile / save or screenshot work pending
+  note over Web : Finish explicit save/upload first; no export of unsaved editor state.
+else Explicit eligible export
+  Web -> API : GET /api/coursework/export\ncookie + selected project
   activate API
   API -> Export : export_bundle()
   activate Export
-  Export -> Store : load_project(); list_screenshots(); screenshot_path()
+  Export -> Profile : load_project(); list_screenshots(); screenshot_bytes(id)
+  activate Profile
+  Profile -> Store : read selected-project profile and image bytes
   activate Store
-  Store --> Export : Saved profile and image references / error
+  Store --> Profile : saved values / missing or storage error
   deactivate Store
-  Export -> Local : Read current CSV and images;\nanalyze_coursework(saved grammar, entries)
+  Profile --> Export : saved profile and genuine supplied screenshots
+  deactivate Profile
+  Export -> Store : read selected-project entries via dataset adapter
+  activate Store
+  Store --> Export : bounded corpus or error
+  deactivate Store
+  Export -> Local : analyze saved grammar/corpus; read selected source files
   activate Local
-  Local --> Export : Saved evidence + computed results / error
+  Local --> Export : token/grammar/table/trace results and sources
   deactivate Local
-  Export -> Export : build_report(); build_presentation();\nassemble ZIP artifacts and selected sources
+  Export -> Export : build_report(); build_presentation(); assemble ZIP
   activate Export
-  Export --> Export : ZIP bytes
+  Export --> Export : DRAFT HTML / PPTX / CSV-JSON / images / source snapshots
   deactivate Export
   Export --> API : ZIP bytes or exception
   deactivate Export
   API --> Web : application/zip; no-store / safe error
   deactivate API
-  note over Web : Validate type/nonempty Blob, start download,\nrevoke object URL; label as DRAFT.
 end
-Web --> Member : Download started / actionable state
+Web --> Member : download started or retained state + actionable error
 deactivate Web
 deactivate Member
 legend bottom
-  No unsaved practice input or AI answer is included.
-  ZIP includes actual corpus/provenance/profile: review before sharing.
-  Individual files are protected, but export is not a global multi-file transaction.
-  Missing research remains visible; 25 sections do not guarantee 25-30 final pages.
+  Export is not a single global snapshot transaction across all sequential reads.
+  Real raw text and contributor metadata are private: review before sharing with course recipients.
+  Raw recordings are not embedded here; full workspace backups retain recordings and coursework.
+  Generated regression expectations replay current parser decisions, not an independent linguistic oracle.
+  Missing research stays visible; 25 sections do not guarantee a 25-30-page final report.
 endlegend
 @enduml

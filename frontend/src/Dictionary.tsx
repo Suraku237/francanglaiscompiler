@@ -1,9 +1,10 @@
-import { CopyButton, ErrorNotice, Icon, Spinner } from './components'
+import { CopyButton, ErrorNotice, Icon, ReadButton, Spinner } from './components'
 import type { DictionaryResult } from './types'
+import type { ReadAloud } from './voice'
 import { REFERENCE_PAGE_SIZE as PAGE_SIZE, useReferenceSearch } from './useReferenceSearch'
 import './dictionary.css'
 
-export function Dictionary({ active, onTranslate }: { active: boolean; onTranslate: (text: string) => void }) {
+export function Dictionary({ active, onUseText, speech }: { active: boolean; onUseText: (text: string) => void; speech?: ReadAloud }) {
   const { query, setQuery, offset, setOffset, result, pending, error, refresh, loading } =
     useReferenceSearch<DictionaryResult>('/dictionary', active)
 
@@ -11,7 +12,7 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
     <div className="page-intro compact-intro">
       <div><div className="eyebrow">REFERENCE LIBRARY</div><h1 id="dictionary-title">Dictionary</h1><p>Look up Francanglais words, variants and English meanings with traceable references.</p></div>
     </div>
-    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not approved terminology.</strong> Source meanings remain separate from your reviewed terms. No French translations were supplied. The origin describes etymology, not a translation. Review context before using a reference in business communications.</p></div>
+    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not collected fieldwork.</strong> Source meanings remain separate from your private corpus. No French translations were supplied. The origin describes etymology, not a translation. Check regional context and uncertainty; dictionary entries never increase your research counts.</p></div>
     <div className="collection-tools">
       <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="dictionary-query">Search reference dictionary</label><input id="dictionary-query" type="search" maxLength={200} value={query} placeholder="Try tchop, motard, pasho, or an English meaning" onChange={(event) => { setQuery(event.target.value); setOffset(0) }} /></div>
       <button type="button" className="icon-button" aria-label="Refresh reference dictionary" disabled={pending} onClick={refresh}><Icon name="refresh" size={19} /></button>
@@ -30,7 +31,7 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
             <div><dt>Origin (as supplied)</dt><dd>{entry.origin}</dd></div>
             <div><dt>Source</dt><dd><code>{entry.source_document}:{entry.source_line}</code></dd></div>
           </dl>
-          <button type="button" className="button button-secondary" onClick={() => onTranslate(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in translator`}>Open in translator<Icon name="arrow" size={16} /></button>
+          <div className="import-actions"><button type="button" className="button button-secondary" onClick={() => onUseText(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in compiler`}>Open in compiler<Icon name="arrow" size={16} /></button>{speech && <ReadButton speech={speech} id={`dictionary:${entry.id}`} text={entry.text} language="fr" />}</div>
         </article>)}</div> : <div className="collection-empty"><Icon name="search" size={32} /><h2>No dictionary entries found.</h2><p>Try another spelling or an English meaning. A missing reference does not mean the word is invalid.</p></div>}
         <nav className="dictionary-pagination" aria-label="Dictionary pages">
           <button type="button" className="button button-secondary" disabled={offset === 0 || pending} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous entries</button>
@@ -39,6 +40,6 @@ export function Dictionary({ active, onTranslate }: { active: boolean; onTransla
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening an entry fills a translation draft without submitting a request or saving terminology. Conflicting meanings remain visible for review.</p>
+    <p className="helper-text">Opening an entry fills the compiler’s manual input without running a computation or saving a corpus entry. Conflicting meanings remain visible. Optional local French-voice read-aloud is only a pronunciation approximation.</p>
   </section>
 }

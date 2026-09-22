@@ -15,7 +15,7 @@ activate Web
 Web -> Backup : POST /backups/preview\ncookie + Origin + CSRF
 activate Backup
 note over Backup : Authenticated account context precedes this domain interaction.
-Backup -> Backup : validate size, paths, hashes, schema and media
+Backup -> Backup : validate size/paths/hashes/media;\nnormalize workspace format 1 or validate format 2
 activate Backup
 Backup --> Backup : validated document or rejection
 deactivate Backup
@@ -59,7 +59,7 @@ alt preview valid and workspace unchanged
     Files --> Backup : staged files or error
     deactivate Files
     alt audio staged
-    Backup -> Store : import_document(document, expected_version)
+    Backup -> Store : import_document(document, expected_version)\nprojects/entries/revisions/history/coursework/screenshots
     activate Store
     Store --> Backup : committed new version or rolled-back SQL transaction
     deactivate Store
@@ -96,6 +96,9 @@ deactivate Web
 deactivate User
 legend bottom
   Backups replace logical workspace data, not account credentials or server settings.
+  Workspace document format 2 includes profile JSON and screenshot base64; outer manifest stays format 1.
+  Older format-1 documents normalize to empty coursework/screenshots before replacement.
+  Profile/screenshot mutations invalidate a previously captured expected_version.
   Late client cancellation does not promise server rollback.
   Existing committed media remains available for recovery; this is not a cross-file ACID transaction.
 endlegend

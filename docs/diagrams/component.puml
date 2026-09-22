@@ -1,97 +1,80 @@
 @startuml
 !include theme.iuml
-title Hosted business components and isolated legacy storage
+title Non-AI compiler workspace: authenticated request-local storage
 skinparam componentFontSize 14
-package "Browser: frontend/src" {
-  component "AuthGate + React function components\n7 business areas + dialogs/results" as UI
-  component "api.ts / useRequest.ts\ncookie, CSRF, project, cancellation" as WebAPI
-  component "voice.ts\nopt-in browser speech" as Voice
+package "Browser / React" {
+  component "AuthGate + App\nprivate compiler / collection /\nreferences / import / recovery" as UI
+  component "api.ts / useRequest.ts\ncookie, CSRF, project and cancellation" as WebAPI
+  component "Native recording / optional read-aloud\nno dictation or automatic upload" as Media
 }
-package "Python backend" {
-  component "main.py / schemas.py\nFastAPI routes and public DTOs" as Routes
-  component "auth.py\nverified accounts / Google / quotas" as Auth
-  component "workspaces.py\nrequest-bound private SQLite store" as Workspaces
-  component "workspace_backups.py\nverified backups / recovery / schedules" as Backups
-  component "web.py\nrequest bounds / headers / built frontend" as Web
-  component "collection.py\nvalidated CRUD functions" as Collection
-  component "grounding.py\nsource-labelled local retrieval" as Grounding
-  component "dictionary.py\nvalidated read-only reference lookup" as Dictionary
-  component "gemini.py / config.py\nprovider client and secret settings" as Gemini
-  component "import_api.py / imports.py\nbounded preview and suggestions" as Imports
+package "FastAPI / Python backend" {
+  component "main.py / web.py\nsame-origin routes / security boundary" as Web
+  component "auth.py\nverified identity / sessions / throttles" as Auth
+  component "workspaces.py\nWorkspaceStore + request contexts" as Workspaces
+  component "collection.py\nvalidated raw-entry CRUD" as Collection
+  component "coursework_api.py / coursework.py\nlexical report / corpus parsing / readiness" as Course
+  component "coursework_store.py\nCourseworkStorage dispatch" as CourseStore
+  component "coursework_export.py\nDRAFT report / slides / artifacts" as Export
+  component "imports.py / import_api.py\nbounded local text extraction" as Imports
+  component "dictionary.py / examples.py\nread-only labelled source material" as Reference
+  component "workspace_backups.py\nverified format-2 data / format-1 manifest" as Backups
 }
-package "Preserved developer-only academic modules" {
-  component "coursework*.py\nanalysis, profile, images, draft export" as Course
+package "Deterministic libraries" {
+  component "compiler/lexer\nregex / approved word annotations / phrases" as Lexer
+  component "compiler/parser\nCFG transforms / FIRST-FOLLOW /\nLL(1) table and traces" as Parser
+  component "data_collector/dataset.py\nDatasetStorage protocol dispatch" as Dataset
 }
-package "Local Python libraries" {
-  component "compiler/lexer\nregex, reviewed lexicon, reports" as Lexer
-  component "compiler/parser\nCFG transforms / LL(1) / traces" as Parser
-  component "data_collector/dataset.py\nrequest storage protocol / CSV fallback" as Dataset
+package "Explicit desktop / maintenance compatibility" {
+  component "App.py / audio_utils.py\nCustomTkinter collector and local audio" as Desktop
+  artifact "Legacy CSV / audio /\nproject.json / screenshots" as Legacy
 }
-package "Desktop collector" {
-  component "App.py\nCustomTkinter UI" as Desktop
-  component "audio_utils.py\nRecorder / file / playback" as Audio
-}
-artifact "dataset.csv\n14 fields; legacy-compatible" as CSV <<file>>
-artifact "auth.sqlite3\nidentities / sessions / tokens / quotas" as Accounts <<private>>
-folder "Per-account durable storage\nworkspace.sqlite3 / audio / backups" as Private
-artifact "dictionary/*.md\n179 supplied source entries" as References <<file>>
-folder "Local audio" as AudioFiles
-folder "coursework\nproject.json / screenshots" as Project
-cloud "Gemini HTTPS\noptional explicit requests" as Cloud
-cloud "Google OAuth / SMTP\nconfigured identity and email providers" as IdentityProviders
+database "auth.sqlite3\nidentities / sessions / tokens" as Accounts
+database "Per-account workspace.sqlite3\nprojects / entries / revisions / history /\ncoursework JSON / screenshot base64" as Private
+folder "Per-account audio / backups" as Files
+artifact "Versioned dictionary / practice\nreferences and constructed examples" as References
+cloud "Google OAuth / SMTP\nidentity and account mail only" as Identity
 
 UI ..> WebAPI
-UI ..> Voice
+UI ..> Media
 WebAPI ..> Web : same-origin /api
-Web ..> Auth : API access gate
+Web ..> Auth : private API gate
 Auth ..> Accounts
-Auth ..> IdentityProviders
-Auth ..> Workspaces : request identity / context
-Auth ..> Routes : permitted requests only
-Routes ..> Workspaces : projects / saved work / revisions
-Routes ..> Backups : account recovery
-Workspaces ..> Private
-Workspaces ..> Dataset : bind DatasetStorage context
-Dataset ..> Workspaces : runtime protocol dispatch
-Backups ..> Workspaces
-Backups ..> Private
-Routes ..> Collection
-Routes ..> Grounding
-Routes ..> Dictionary
-Routes ..> Gemini
-Routes ..> Imports : included router
-Routes ..> Lexer
-Routes ..> Dataset : analysis / retrieval snapshot
+Auth ..> Identity : configured network identity/mail
+Auth ..> Workspaces : bind verified user and project
+Web ..> Collection
+Web ..> Course
+Web ..> Imports
+Web ..> Reference
+Web ..> Backups
+Web ..> Lexer : individual /analyze
+Workspaces ..> Private : transactional project rows
+Workspaces ..> Files : private media / locking
+Dataset ..> Workspaces : bound DatasetStorage
+CourseStore ..> Workspaces : bound CourseworkStorage
 Collection ..> Dataset
-Grounding ..> Lexer : normalize / tokenize
-Dictionary ..> Lexer : normalize search
-Dictionary ..> References : read without corpus mutation
-Imports ..> Gemini : consented media / explicit suggestions
+Course ..> Dataset : selected-project corpus
 Course ..> Lexer
 Course ..> Parser
-Course ..> Dataset
-Course ..> Project : profile / screenshot operations
-Course ..> References : export source files, not fieldwork rows
-Course ..> Gemini : explicit tutoring only
-Gemini ..> Cloud
+Course ..> CourseStore : profile / screenshots
+Course ..> Export : explicit saved-evidence export
+Export ..> Course : compute saved-corpus artifacts
+Export ..> CourseStore : saved profile and screenshot bytes
+Reference ..> References : no corpus insertion
+Backups ..> Workspaces : all projects + coursework/screenshots
+Backups ..> Files
 Desktop ..> Dataset
-Desktop ..> Audio
-Dataset ..> CSV : only without private context
-Audio ..> AudioFiles
+Desktop ..> Legacy : local recording
+Dataset ..> Legacy : no bound adapter only
+CourseStore ..> Legacy : explicit no-auth maintenance only
 note bottom of Parser
-  Parser consumes token categories.
-  No provider determines acceptance.
-end note
-note bottom of Grounding
-  Modules are functions unless an actual class
-  is named in the class inventory.
-  Reviewed lookup is not training.
+  Acceptance comes from token categories and the submitted CFG.
+  No AI, translation, OCR, remote transcription or tutoring provider.
 end note
 legend bottom
-  Dashed arrows are dependencies, not timed calls.
-  Browser speech may contact a separate browser provider (deployment view).
-  Hosted requests never use the legacy CSV, profile or screenshots.
-  Academic routes cannot be enabled in the hosted application.
-  Imports never save terminology automatically. Configuration stays server-side.
+  Dashed arrows are dependencies, not associations with invented multiplicities.
+  Authentication is default; production rejects require_auth=False.
+  Legacy files are never assigned to a private account automatically.
+  Coursework ZIPs contain draft deliverables, not raw recordings; workspace backups retain audio.
+  Browser TTS behavior depends on browser/OS; no guarantee that all voices are offline.
 endlegend
 @enduml

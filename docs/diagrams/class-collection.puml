@@ -1,7 +1,7 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Separate collection and reference dictionary DTOs
+title Private manual collection and read-only reference DTOs
 hide empty members
 class "RequestModel\n(request view)" as RequestModel <<reference>>
 ' @class backend.schemas.EntryCreate
@@ -32,6 +32,7 @@ class DatasetResponse {
   total: int
   by_category: dict[str, int]
   by_type: dict[str, int]
+  by_review_status: dict[str, int]
 }
 ' @class backend.schemas.DictionaryEntry
 class DictionaryEntry {
@@ -48,8 +49,7 @@ class DictionaryResponse {
 ' @class backend.schemas.HealthResponse
 class HealthResponse {
   status: ok
-  ai_configured: bool
-  model: str
+  mode: compiler
 }
 ' @class backend.schemas.MetadataResponse
 class MetadataResponse {
@@ -88,9 +88,10 @@ legend bottom
   The six response DTOs directly extend pydantic.BaseModel.
   EntryCreate/EntryPatch inherit extra=forbid via RequestModel.
   DatasetEntry is an API DTO, not the storage representation:
-  Hosted storage serializes dictionaries to private SQLite JSON rows.
+  Authenticated storage serializes dictionaries to private SQLite JSON rows.
   Desktop fallback helpers still persist dictionaries as CSV.
   Reference entries are read-only, not approved corpus entries.
   Their etymological origin does not supply a French gloss or POS.
+  Pydantic response values inherit model_validate()/model_dump().
 endlegend
 @enduml

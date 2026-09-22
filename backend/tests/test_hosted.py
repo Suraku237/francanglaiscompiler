@@ -23,10 +23,11 @@ from jwt.algorithms import RSAAlgorithm
 from pydantic import SecretStr, ValidationError
 from starlette.concurrency import run_in_threadpool
 
-from backend.auth import AuthSettings, COOKIE, OAUTH_COOKIE, AuthError, digest
+from backend.auth import AuthSettings, AuthStore, COOKIE, OAUTH_COOKIE, AuthError, digest
 from backend.config import Settings
 from backend.main import create_app
 from backend.tests.import_fixtures import wav_bytes
+from backend.tests.support import block_outbound_http
 from backend.workspace_backups import BackupRestore, maintenance_cycle, maintain_backups, preview_backup, restore_backup, snapshot, validate_archive
 from backend.workspaces import WorkspaceStore, HistoryInput
 from backend.collection import CollectionError
@@ -45,24 +46,25 @@ class HostedCase(unittest.TestCase):
     def setUp(self):
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
-        self.root = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
+        self.root = Path(self.stack.enter_context(tempfile.TemporaryDirectory(
+            prefix=".hosted-test-", dir=Path(__file__).parent,
+        )))
         self.mail = []
-        self.requests = []
+        self.outbound_http = block_outbound_http(self.stack)
         self.settings = AuthSettings(
             data_dir=self.root, public_url="http://testserver", mail_mode="file",
             google_client_id="", google_client_secret=SecretStr(""),
         )
         self.app = create_app(
-            Settings(gemini_api_key=SecretStr(" ")), auth_settings=self.settings,
+            Settings(), auth_settings=self.settings,
             mailer=lambda address, subject, text: self.mail.append((address, text)),
-            transport=httpx.MockTransport(self.provider),
         )
         self.client = self.stack.enter_context(TestClient(self.app, headers={"Origin": "http://testserver"}))
         self.store = self.app.state.auth_store
 
-    def provider(self, request):
-        self.requests.append(request)
-        return httpx.Response(500)
+    def assert_no_outbound_http(self):
+        for transport in self.outbound_http:
+            transport.assert_not_called()
 
     def token(self, email):
         text = next(text for address, text in reversed(self.mail) if address == email)
@@ -197,12 +199,22 @@ class AccountTests(HostedCase):
         if retry_after is None:
             self.fail("Rate-limited requests must include a retry interval.")
         self.assertGreater(retry_after, 0)
-        self.register()
-        user_id = self.client.get("/api/auth/session").json()["user"]["id"]
-        self.store.settings.ai_daily_user_limit = 1
-        self.store.charge_ai(user_id)
-        with self.assertRaises(AuthError):
-            self.store.charge_ai(user_id)
+        reopened = AuthStore(self.settings)
+        with self.assertRaises(AuthError) as persisted:
+            reopened.throttle("test", 1, 60)
+        self.assertEqual(persisted.exception.status, 429)
+
+        def attempt(_index):
+            try:
+                reopened.throttle("concurrent-test", 4, 60)
+                return 200
+            except AuthError as failure:
+                return failure.status
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = list(executor.map(attempt, range(12)))
+        self.assertEqual(results.count(200), 4)
+        self.assertEqual(results.count(429), 8)
 
     def test_production_configuration_cannot_use_file_mail_or_plain_http(self):
         with patch.dict(AuthSettings.model_config, {"env_file": None}):
@@ -307,7 +319,7 @@ class PrivateWorkspaceTests(HostedCase):
         self.assertEqual(self.client.patch(f"/api/workspace/history/{identifier}", json={"name": "Renamed"}).status_code, 200)
         self.assertEqual(WorkspaceStore(self.root, user["id"]).histories()[0]["title"], "Renamed")
         self.assertEqual(self.client.delete(f"/api/workspace/history/{identifier}").status_code, 204)
-        self.assertEqual(self.requests, [])
+        self.assert_no_outbound_http()
 
     def test_revisions_restore_deleted_entries_as_unreviewed(self):
         self.register()
@@ -474,7 +486,7 @@ class WorkspaceBackupTests(HostedCase):
         saved = snapshot(store)
         raw = (store.root / "backups" / f"{saved['id']}.zip").read_bytes()
         with patch("backend.workspace_backups.MAX_ARCHIVE", len(raw)):
-            self.assertEqual(validate_archive(raw)[0]["format"], 1)
+            self.assertEqual(validate_archive(raw)[0]["format"], 2)
         with patch("backend.workspace_backups.MAX_ARCHIVE", len(raw) - 1), self.assertRaises(CollectionError) as error:
             validate_archive(raw)
         self.assertEqual(error.exception.status_code, 413)
@@ -532,7 +544,7 @@ class GoogleSignInTests(HostedCase):
         self.settings.google_client_id = "test-google-client"
         self.settings.google_client_secret = SecretStr("test-secret-not-real")
         app = create_app(
-            Settings(gemini_api_key=SecretStr(" ")), auth_settings=self.settings,
+            Settings(), auth_settings=self.settings,
             mailer=lambda address, subject, text: self.mail.append((address, text)),
             auth_transport=httpx.MockTransport(self.google),
         )

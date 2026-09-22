@@ -1,0 +1,54 @@
+\usepackage[a4paper,margin=2.3cm,headheight=16pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{iftex}
+\ifPDFTeX\usepackage[utf8]{inputenc}\fi
+\usepackage{lmodern,microtype,booktabs,longtable,tabularx,array}
+\usepackage{enumitem,xcolor,xurl,hyperref,fancyhdr}
+\definecolor{ink}{HTML}{183247}
+\definecolor{accent}{HTML}{126C70}
+\definecolor{muted}{HTML}{526676}
+\definecolor{paperblue}{HTML}{EDF5F7}
+\definecolor{gold}{HTML}{B68032}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\emergencystretch}{4em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlist{itemsep=3pt,topsep=4pt}
+\setcounter{tocdepth}{2}
+\raggedbottom
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\textcolor{muted}{MBOA / COMPILER CONSTRUCTION}}
+\cfoot{\small\textcolor{muted}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\newcommand{\notice}[2]{%
+  \par\medskip\noindent\colorbox{paperblue}{%
+    \begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}
+      \vspace{6pt}\textbf{\textcolor{accent}{#1}}\par
+      #2\vspace{6pt}
+    \end{minipage}}\par\medskip}
+\newcommand{\projectcover}[3]{%
+  \begin{titlepage}
+    {\small\bfseries\textcolor{accent}{CS4110 \quad / \quad SUMMER 2026 \quad / \quad SET A}}\par
+    \vspace{1.3cm}
+    {\color{gold}\rule{2.5cm}{3pt}}\par
+    \vspace{0.7cm}
+    {\Huge\bfseries\color{ink}#1\par}
+    \vspace{0.9cm}
+    {\LARGE\color{accent}Mboa Compiler Construction Lab\par}
+    \vspace{0.4cm}
+    {\large\color{muted}#2\par}
+    \vspace{1cm}
+    \notice{NON-AI / PRIVATE / EVIDENCE-LED}{#3}
+    \vfill
+    {\small\bfseries\color{muted}AUTHOR GROUP}\par
+    \begin{tabular}{@{}ll@{}}
+      Kwete Ngouba Junior Rayan & ICTU20241377\\
+      Djemtchimo Noukui Bruno Jonatan & ICTU20241585\\
+      Amina Boubakary & ICTU20241870
+    \end{tabular}
+    \par\vspace{0.7cm}
+    {\small Version 3.0 \quad|\quad 22 September 2026\par
+    Assignment due: 29 September 2026}
+  \end{titlepage}}

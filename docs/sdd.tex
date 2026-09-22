@@ -1,427 +1,473 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[a4paper,margin=2.3cm,headheight=15pt]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage{iftex}
-\ifPDFTeX\usepackage[utf8]{inputenc}\fi
-\usepackage{lmodern,microtype,graphicx,pdfpages}
-\usepackage{booktabs,longtable,tabularx,array,enumitem,xcolor,xurl,hyperref,fancyhdr}
-\definecolor{accent}{HTML}{17645E}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,
- pdftitle={Mboa - Hosted Business Software Design Description}}
-\setlength{\emergencystretch}{3em}
-\setlist{itemsep=3pt,topsep=5pt}
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\pagestyle{fancy}
-\fancyhf{}\lhead{Mboa Private Workspace}\rhead{SDD v2.0}\cfoot{\thepage}
+\usepackage{graphicx,pdfpages}
+\input{document-style.tex}
+\hypersetup{pdftitle={Mboa - Software Design Description - Non-AI Compiler Lab}}
+\rhead{\small SDD / v3.0}
 \newcommand{\diagram}[3]{\includepdf[pages=#2,fitpaper=true,
  pagecommand={\thispagestyle{empty}\refstepcounter{figure}\label{fig:#1}
  \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#3}}]{uml-atlas.pdf}}
-\title{\textbf{Software Design Description}\\[0.6em]
- \Large Mboa Private Language Workspace\\[0.6em]
- \large Account Isolation, Recovery and Source-grounded UML}
-\author{Engineering team\\[0.5em]
- Kwete Ngouba Junior Rayan\\
- Djemtchimo Noukui Bruno Jonatan\\
- Amina Boubakary}
-\date{Version 2.0 --- \today}
 \begin{document}
-\maketitle\thispagestyle{empty}
-\begin{center}\textit{Design evidence for the implemented hosted business scope.}\end{center}
-\vfill
-\noindent\textbf{Reading guide.} A4 explanations are followed by 35 full-size UML
-sheets. Figure links lead to readable large-format views; use PDF zoom or tiled
-printing. The standalone atlas contains the same diagram images.
-\par\medskip
-\noindent\textbf{Release boundary.} Operational configuration and human
-acceptance remain separate from automated verification. The previous academic
-SDD is retained as \nolinkurl{docs/sdd-legacy.tex}, not as deployment guidance.
-\newpage\tableofcontents\newpage\listoffigures\newpage
+\projectcover{Software Design Description}
+{Deterministic compiler. Project-scoped evidence. Recoverable private work.}
+{Source-grounded design for the non-AI assignment product. Full-size UML sheets
+follow the A4 narrative and are also published in the standalone atlas.
+Software diagrams and successful tests do not replace authentic fieldwork.}
+\tableofcontents\newpage\listoffigures\newpage
 
-\section{Architecture and Design Decisions}
-\subsection{Hosted application}
-Figure~\ref{fig:component} shows the browser, web boundary, account middleware,
-business routes, request-selected private storage and optional providers.
-FastAPI serves both the built React application and the API. This is a
-same-origin web application, not the previous unauthenticated shared CSV service.
+\section{Architecture and Decision Record}
+\subsection{Default product}
+Figure~\ref{fig:component} maps the implemented components.
+\nolinkurl{backend.main.create_app} defaults to authenticated operation with
+compiler/coursework routes enabled. FastAPI serves the built React application
+and API on one origin. The product reuses its actual lexer, grammar analysis,
+predictive parser, corpus analysis and draft export; it does not replace those
+features with a generic dashboard.
+
+Generation modules, keys/models/timeouts/quotas and translation/chat/suggestion/
+explanation endpoints are removed. Health returns \texttt{status=ok} and
+\texttt{mode=compiler}. Google OAuth and SMTP are retained identity/account-mail
+facilities. The \nolinkurl{httpx} dependency remains needed by Google code/key
+exchange; its presence is not evidence of an active AI provider.
 
 \begin{enumerate}
-\item \textbf{Identity before storage.} Every private API request resolves a
-verified account cookie before selecting a server-owned account directory.
-Client project identifiers are checked within that account.
-\item \textbf{Request-local binding.} Context variables hold the identity and
-dataset adapter only for that request. Private data selection never mutates
-global CSV paths. Initialization and blocking I/O use the thread pool.
-\item \textbf{Durable, bounded single-host storage.} Each account uses SQLite
-plus a cooperative file lock. The design does not assume a distributed database,
-ephemeral filesystem or multi-host lock service.
-\item \textbf{Explicit persistence and processing.} Translation/chat results
-remain transient until saved. File previews do not approve or save terms.
-Provider processing is labelled and bounded; local exact lookup avoids it.
-\item \textbf{Recoverable replacement.} Revision restore is version-checked.
-Workspace restore validates first, creates a safety backup and commits logical
-rows only after safe media staging.
+\item \textbf{Evidence before conclusions.} Raw manual text remains distinct
+from glosses, references and constructed examples. The default CFG is
+illustrative until the group justifies it from real statements.
+\item \textbf{Deterministic language processing.} Regex/lexicon rules classify
+tokens; explicit CFG algorithms produce transformations, sets/table and traces.
+No provider determines acceptance or writes the group's discussion.
+\item \textbf{Identity before storage.} A verified session supplies the
+server-owned account directory. Project selectors are validated within that
+account, never treated as arbitrary filesystem paths.
+\item \textbf{Dual request-local binding.} Dataset and coursework dispatch
+through separate protocols backed by the same selected \texttt{WorkspaceStore}.
+No global CSV/profile path is reassigned for a web request.
+\item \textbf{Explicit persistence.} Previewing, inspecting examples or
+running analysis does not silently save or approve field statements.
+Screenshots and profile changes require deliberate actions.
+\item \textbf{Recoverable compatibility.} Existing accounts, recordings and
+legacy saved histories remain. Workspace format 2 adds coursework/screenshots,
+while format-1 restoration remains supported.
 \end{enumerate}
 
-\subsection{Deployment topology}
-Figure~\ref{fig:deployment} shows a user's browser reaching an HTTPS reverse
-proxy. All paths reach one FastAPI/Uvicorn application on loopback or a
-firewalled private interface. The operator preserves the public Host and
-forwarded protocol/client identity, and configures trusted proxy addresses.
-Arbitrary internet clients must not supply trusted forwarding headers.
+\subsection{Deployment and trust boundary}
+Figure~\ref{fig:deployment} shows one durable application host behind an HTTPS
+reverse proxy. Private SQLite/audio/backup paths are outside public static
+assets and restricted to the operator/service account. Local development uses
+loopback and, by default, a private email outbox. Production requires HTTPS,
+real SMTP, secure cookies, trusted hosts/proxy headers and mandatory authentication.
+Vite is an optional development server, not the production web host.
 
-The backend serves \nolinkurl{frontend/dist}. Vite is optional during development,
-not the production static host. Local testing uses the one-origin launcher and
-loopback HTTP. Production requires a real HTTPS origin, SMTP, built assets and
-mandatory authentication; docs/OpenAPI are disabled.
+The application is not a stateless multi-host database service and account
+isolation is not end-to-end encryption. Off-host recovery must preserve identity
+data and protected configuration as well as workspace data. A per-account ZIP
+does not recreate authentication identities.
 
-Private storage must be persistent, outside the public web root and restricted
-to the service/operator account. Backups on that disk are not disaster recovery.
-Off-host recovery must include the identity database and configuration under
-separate protection, not only user-downloadable workspace ZIPs.
+Text extraction and compiler execution occur on the application server.
+There is no generative provider, OCR, remote transcription or browser dictation
+integration. Optional browser read-aloud is not evidence processing; available
+voices and use of an online voice service depend on browser/OS behavior.
 
-\subsection{Preserved compatibility boundary}
-The desktop collector, compiler and academic export modules remain in source.
-Without a hosted adapter, dataset functions still use the legacy CSV/audio
-locations. The business factory defaults to authenticated operation and refuses
-academic routes in that mode. Archive fixtures explicitly disable authentication;
-production forbids doing so. No legacy profile, identity, CSV row or screenshot
-is assigned to a new account.
+\subsection{Explicit legacy boundary}
+The desktop collector remains production source, so its real classes and selected
+workflows are still documented. Its CSV/audio path is a compatibility workflow,
+not the default authenticated product. Unbound coursework functions can access
+legacy profile/screenshot files only in the explicit no-auth maintenance context.
+The factory rejects \texttt{require\_auth=False} in production.
+New private accounts never adopt the old CSV, author identities or screenshots.
 
-\section{UML Conventions and Class Coverage}
-The inventory covers \textbf{75 authored production classes}: 73 Python class
-declarations, the generated lexer \texttt{Token}, and the TypeScript
-\texttt{ApiError}. Tests, maintenance tools, external framework types and erased
-TypeScript interfaces are not counted. Eleven class views distribute these
-classes into readable responsibility groups.
-
-\begin{itemize}
-\item Hollow triangles point to base classes. Dotted realization arrows point
-to a protocol contract; they do not claim Python nominal inheritance.
-\item Plain associations describe actual references or nested values and show
-multiplicities. Inheritance and module dependencies do not have cardinalities.
-Nested JSON alone does not establish exclusive lifecycle composition.
-\item Rectangles marked function/module/hook are not invented runtime classes.
-Framework types and cross-view references are marked explicitly.
-\item Every displayed synchronous or awaited message has an explicit receiver
-activation and matching dashed reply. Callers remain active while awaiting
-results. Actor activations represent participation, not CPU execution.
-\item Use-case include arrows point to mandatory reused behavior; extend arrows
-point toward the base use case. Activity branches use exclusive guards.
-State views represent logical editor/device states, not nonexistent enums.
-\end{itemize}
-The checker validates inventory completeness, per-view declarations, sequence
-activation balance, atlas mapping, rendered-image fingerprints and PDF layout
-logs. It is not a general UML theorem prover or substitute for design review.
-
-\subsection{Account and web classes}
-Figure~\ref{fig:class-accounts} separates deployment settings, persistent identity
-operations, public identity data and validated request DTOs. \texttt{AuthStore}
-retains one settings object; identity DTOs are returned from SQLite rows rather
-than retained in a fictional object aggregate. Request subclasses reuse
-\texttt{AuthInput}'s extra-field rejection. The web middleware retains the next
-ASGI application, while the log filter removes sensitive query values.
-
-\subsection{Private storage and recovery classes}
-Figure~\ref{fig:class-workspaces} shows \texttt{WorkspaceStore}'s structural
-conformance to \texttt{DatasetStorage}. One selected store retains one file-lock
-object; its tables persist values, not live request-model instances.
-\texttt{HistoryInput} holds exactly one of translation or conversation content
-and checks that the alternative agrees with its kind. Conversations contain
-1--100 messages. Project/revision/backup input classes share explicit validation
-rather than bypassing storage checks during recovery.
-
-\subsection{Existing domain groups}
-\begin{longtable}{L{4.1cm}L{10.3cm}}
-\toprule\textbf{Class view} & \textbf{Responsibility and current scope}\\\midrule\endhead
-Figure~\ref{fig:class-domain} & Preserved desktop App, Tooltip, Recorder and
-explicit storage/audio errors. Its optional recorder has lifecycle ownership.\\
-Figure~\ref{fig:class-compiler} & Token and bounded grammar/transformation
-classes. The compiler remains deterministic; no provider decides parser acceptance.\\
-Figure~\ref{fig:class-api-requests} & Typed language-service requests and bounded
-chat messages. Academic source options are rejected in hosted mode.\\
-Figure~\ref{fig:class-api-results} & Source-labelled translation/analysis
-results, vocabulary, evidence and coverage. Coverage is not accuracy.\\
-Figure~\ref{fig:class-collection} & Private entry DTOs, reviewed mutations,
-dictionary results, metadata, health and explicit collection errors.\\
-Figure~\ref{fig:class-import-coursework} & Import preview/candidate DTOs plus
-preserved academic/profile/practice DTOs. The latter are not business routes.\\
-Figure~\ref{fig:class-provider} & Provider response parsing classes; malformed,
-blocked or truncated results are not successful translations.\\
-Figure~\ref{fig:class-services} & Gemini service, secret-bearing configuration,
-grounding value and provider errors. Hosted allowance checks precede each
-actual outbound attempt, including retry.\\
-Figure~\ref{fig:class-frontend} & ApiError plus correctly labelled React
-functions/hooks, AuthGate and the seven business areas.\\
+\section{Source Map and UML Conventions}
+\begin{longtable}{L{4.6cm}L{9.6cm}}
+\toprule\textbf{Source area} & \textbf{Implemented responsibility}\\\midrule\endhead
+\nolinkurl{backend/main.py}, \nolinkurl{web.py}, \nolinkurl{auth.py} &
+Route composition, built assets, health, request bounds/headers and verified
+account/session/Google/email boundary\\\addlinespace
+\nolinkurl{backend/workspaces.py}, \nolinkurl{workspace_backups.py} &
+Account/project SQLite, revisions, legacy history, dual request binding,
+format-2 document validation and verified restore\\\addlinespace
+\nolinkurl{backend/coursework*.py} &
+Profile and screenshot protocol, assignment status, lexical/corpus results,
+grammar/parser routes and draft deliverable export\\\addlinespace
+\nolinkurl{backend/import*.py}, \nolinkurl{dictionary.py}, \nolinkurl{examples.py} &
+Bounded local extraction; source-labelled reference and constructed practice
+lookup without real-corpus mutation\\\addlinespace
+\nolinkurl{compiler/lexer}, \nolinkurl{compiler/parser} &
+Regex classification, approved word map, phrases, formal grammar transforms,
+FIRST/FOLLOW, predictive table and bounded parser traces\\\addlinespace
+\nolinkurl{data_collector/dataset.py} &
+DatasetStorage protocol dispatch, shared entry semantics and legacy CSV fallback\\\addlinespace
+\nolinkurl{data_collector/App.py}, \nolinkurl{audio_utils.py} &
+Optional desktop GUI, local recorder and guarded audio/file lifecycle\\\addlinespace
+\nolinkurl{frontend/src} &
+Authenticated function components, compiler/collection UI, local draft state,
+typed API boundary and request cancellation\\
 \bottomrule
 \end{longtable}
 
-\section{Identity and Request Boundary}
-\subsection{Email accounts}
+\subsection{Exact class scope}
+The checked inventory \nolinkurl{docs/diagrams/class-coverage.json} enumerates
+all authored production Python/TypeScript classes. It includes private classes,
+protocols and the lexer \texttt{Token} generated by \texttt{namedtuple}.
+It excludes tests, maintenance tools, external framework classes and erased
+TypeScript interfaces.
+
+Function modules, hooks, grammar dictionaries, table rows, screenshots and
+parse steps are not promoted into invented runtime classes. Selected methods
+are actual source operations; DTO serialization/validation inherited from
+Pydantic is identified as inherited behavior. The frontend's authored
+\texttt{ApiError} is distinct from its function components.
+
+\begin{itemize}
+\item Hollow triangles point to base types; dotted realization arrows point
+to structural protocol contracts, not nominal Python inheritance.
+\item True nested/stored references have multiplicities. Inheritance,
+realization and module dependencies do not receive decorative cardinalities.
+Reusable DTO references are not exclusive-lifecycle compositions.
+\item Every displayed sequence communication has an active sender, an explicit
+receiver activation and a matching reply/deactivation. Actors are active while
+participating; this does not claim CPU execution by people.
+\item State diagrams describe actual logical GUI/recorder states, not nonexistent
+enums. Activity decisions have exclusive guards; human assignment tasks are labelled.
+\item Full-size atlas images are embedded without squeezing complex graphs onto
+A4. Figures and their source filenames remain traceable.
+\end{itemize}
+
+\section{Accounts, Request Selection and Isolation}
+Figure~\ref{fig:class-accounts} documents \texttt{AuthSettings}, \texttt{AuthStore},
+identity/input/error models and web-boundary classes. The store retains one
+settings reference; it returns identity values from SQLite rather than maintaining
+a fictional aggregate of live user DTOs. Passwords use Argon2id and session/
+verification/reset values are stored as digests.
+
 Figure~\ref{fig:sequence-account} separates registration, email verification,
-password sign-in and a later private mutation. Passwords use Argon2id.
-Verification/reset tokens and session values are random and stored as hashes.
-Email tokens are single-use with one-hour expiry; sessions expire after seven
-days. Password reset revokes every existing session.
+sign-in and a later authenticated mutation. Private routes require a valid
+session; mutations additionally require allowed Origin and session-specific CSRF.
+Request throttles remain, but generation quotas do not. Blocking identity/storage
+work is dispatched off the event loop.
 
-Account emails contain a link with the token in a URL fragment and require an
-explicit confirmation button. GET navigation alone does not consume it.
-Development writes an access-restricted \texttt{.eml} outbox. Production rejects
-that mode and uses SMTP STARTTLS. Delivery failures are reported, not relabelled
-as successful mail delivery. The outbox must never be publicly served.
+Optional Google authorization uses PKCE, browser-bound state, nonce and signed
+identity-token validation (Figure~\ref{fig:sequence-google}). Invalid/replayed
+state cannot authorize an exchange. A token-exchange failure does not trigger
+the signing-key request. Equal email alone does not link an existing password
+account; signed-in explicit linking is required. Logs describe safe failure
+stages without leaking codes, tokens, credentials or provider response bodies.
 
-Private mutations require a configured Origin and session-specific CSRF header.
-Identity/rate storage failures produce safe errors. Persistent anonymous,
-account and email/IP limits bound requests; user/global daily AI counters are
-charged only at actual provider attempts. Exact local lookup remains available.
+\subsection{One request, two storage adapters}
+Figure~\ref{fig:sequence-storage} makes the key isolation decision explicit:
+\begin{enumerate}
+\item Middleware resolves \texttt{UserIdentity} and validates the requested
+project within that user's workspace.
+\item The context factory initializes \texttt{WorkspaceStore} in a worker
+thread and binds the workspace ContextVar.
+\item \nolinkurl{dataset.use_storage(workspace)} and
+\nolinkurl{coursework_store.use_storage(workspace)} bind both adapters.
+\item Routes call normal dataset/coursework functions; protocol dispatch uses
+the selected account/project store.
+\item Context tokens are reset on exit, including exceptions. Invalid selection
+does not fall back to global legacy files.
+\end{enumerate}
+Native screenshot/audio URLs carry a project query parameter because they
+cannot always attach the application's project header. The server still derives
+the account solely from the cookie, not from that query.
 
-\subsection{Google identity}
-Figure~\ref{fig:sequence-google} models the authorization-code flow with PKCE.
-The server stores expiring state, browser binding, verifier and nonce. The
-callback consumes matching state and verifies the ID-token signature, issuer,
-audience, expiry, nonce and verified email against Google's signing keys.
+\section{Private Data Model and Recovery}
+Figure~\ref{fig:class-workspaces} includes the real workspace input/history/backup
+classes and structural \texttt{DatasetStorage}/\texttt{CourseworkStorage} contracts.
+The store holds a file-lock object and paths/project ID; database rows do not
+constitute retained Pydantic object associations.
 
-Google subject identity is distinct from an email address. An email collision
-with a password account requires password sign-in and explicit linking.
-Unconfigured Google access is not displayed as a functioning sign-in method.
-Automated tests use signed synthetic tokens and a mocked provider; real Google
-consent/domain configuration is an operator acceptance gate.
-
-\subsection{Browser state}
-\texttt{AuthGate} renders no private pages until a session is resolved. CSRF and
-project state remain in memory; neither tokens nor private content are stored in
-localStorage. Cross-tab notifications contain a random change marker only.
-Account changes refresh the session and clear private transient UI.
-
-Project switching and sign-out confirm loss of drafts/recordings before
-remounting the application. The API helper rejects responses from an older
-account/project generation both before and after parsing their bodies. It does
-not retry a mutation under a newly signed-in identity.
-
-Request hooks suppress duplicate in-flight mutations. After a successful
-settings/history mutation, read refresh explicitly cancels an older read first:
-otherwise a pending read could discard the required refresh and hide a new
-backup. Errors after interrupted mutations state that completion may be uncertain.
-
-\section{Data Model and Transaction Boundaries}
-\subsection{Identity and private workspace databases}
-\begin{longtable}{L{3.0cm}L{11.4cm}}
-\toprule\textbf{Storage} & \textbf{Responsibility}\\\midrule\endhead
-\nolinkurl{auth.sqlite3} & users, sessions, email tokens, OAuth state and
-persistent rate counters. No browser-selected user directory.\\
-projects & Stable project ID, name, creation time. General is permanent.\\
-entries & Entry ID, project reference and validated fourteen-field JSON record.\\
-revisions & Project/entry IDs, action/time and before/after JSON. Recorded with
-the terminology change in the same transaction.\\
-history & Project, kind, title, bounded content, creation and update timestamps.
-Saved only by explicit user action.\\
-meta & Workspace version and owner-scoped backup catalog, schedule/state and
-preview metadata. Backup restore replaces logical data, not every metadata key.\\
-audio & Validated generated filenames. An entry refers to at most one recording;
-several historical revisions may refer to that same immutable file.\\
-backups & Manifest-verified ZIPs and bounded, expiring preview files.\\
+\begin{longtable}{L{3.1cm}L{6.1cm}L{5.0cm}}
+\toprule\textbf{Table / resource} & \textbf{Record structure} & \textbf{Scope / behavior}\\\midrule\endhead
+projects & ID, name, creation time & Account-wide; General is retained\\\addlinespace
+entries & ID, project ID, entry JSON & Exact raw wording, provenance, annotations
+and optional audio reference\\\addlinespace
+revisions & ID, project/entry IDs, action/time, before/after JSON & Recorded changes;
+version-checked restore\\\addlinespace
+history & ID, project ID, kind/title, content JSON, timestamps &
+Legacy translations/conversations remain readable/exportable\\\addlinespace
+coursework & Project ID primary key, profile JSON &
+At most one saved profile per project\\\addlinespace
+screenshots & Hex ID, project ID, name, base64 PNG content &
+At most six images per project; byte reads require ID and project\\\addlinespace
+meta & Key/value, including workspace version &
+New profile and screenshot mutations bump version\\\addlinespace
+audio / backups & Private generated files and validated ZIPs &
+Account storage/size limits; no public static exposure\\
 \bottomrule
 \end{longtable}
 
-SQLite enforces project references; parameterized queries scope records to the
-selected project. Per-account file locks coordinate cooperating writers across
-processes. They are not protection against manual operator edits or a malicious
-filesystem administrator. Private directories reject link/reparse-point paths.
+Saving a profile validates its grammar before upserting JSON. A missing profile
+returns a new default at the coursework layer, with three blank member strings
+and the illustrative grammar; it is not automatically persisted or marked genuine.
+Screenshot/profile records also prevent deletion of a supposedly empty project.
+No original account or private data migration/deletion is part of this change.
 
-Normal mutations preserve IDs and provenance. Duplicate normalized text within
-one language is rejected. Entry evidence changes invalidate approval unless the
-exact new fields are explicitly reviewed. Current-project statistics do not
-count other users or reference-dictionary rows.
+\subsection{Screenshot pipeline}
+Figure~\ref{fig:sequence-screenshot} follows actual upload and byte retrieval.
+The route allows a 3 MiB JSON request body to carry base64; the generic JSON cap
+remains 1 MiB. The request model bounds the name/data URL. The store validates
+base64, PNG/JPEG content, a 2 MiB input and 12-megapixel resolution, then converts
+to PNG and again rejects a normalized result over 2 MiB. Storage validates that
+PNG before inserting it under an account lock and transaction.
 
-\subsection{Project and revision semantics}
-Projects are per-account; current project selection is request-local.
-Project management and full-account backups deliberately use account scope,
-so deleting a formerly selected project does not lock the owner out of recovery.
-Projects containing entries, saved work or revisions cannot be deleted.
+The returned URL includes the selected project. Reads query both image ID and
+project ID in that authenticated account's SQLite database, return image bytes
+with private/no-store and nosniff headers, and do not reveal a legacy filesystem
+path. Deletion has the same project condition and increments the version.
+Image decoding cannot establish that the student supplied a genuine capture.
 
-Revision restore acquires the account lock, checks the workspace version,
-validates required media and duplicates, then saves the recovered term with
-\texttt{unreviewed} status and another revision. Revisions are not a regulatory
-tamper-proof audit ledger: the operator controls the database and restoring an
-earlier workspace replaces logical revision history.
+\subsection{Document format and verified restore}
+Workspace document \textbf{format 2} includes \texttt{coursework} and
+\texttt{screenshots} arrays. Validation checks project references, unique IDs,
+record bounds, profile schema/grammar and decoded PNG data. A legacy
+\textbf{format-1 workspace document} is copied and normalized to format 2 with
+empty coursework/screenshots. The enclosing ZIP \textbf{manifest remains format 1}.
+These version numbers describe different layers.
 
-\subsection{Audio publication}
-Recording remains in the browser until an explicit upload. Upload validation
-checks bounds, filename/type and content. A newly staged attachment is published
-with the terminology update under the storage lock; failure cleans only that
-new file. Existing committed recordings are retained for recovery.
+Figures~\ref{fig:sequence-backup} and \ref{fig:activity-restore} show preview,
+integrity/schema/media validation, expected-version checking and the pre-restore
+safety snapshot. A profile/image mutation after preview invalidates that version.
+Media is staged without overwriting colliding committed files; logical rows
+are replaced transactionally after validation. Failed staging/commit removes
+only newly staged files. A post-commit cleanup failure is explicit and does not
+mean the committed database automatically rolled back.
 
-There is no single database transaction covering all filesystem operations.
-Logical rollback and careful staging provide a narrower, explicit guarantee.
-A disk fault during cleanup must be surfaced rather than claimed to undo an
-already committed change. Physical microphone/speaker behavior needs real-device
-acceptance beyond mocked failures and synthetic audio streams.
+Checksums detect changed bytes, not trusted authorship. Backups preserve all
+private projects, coursework, screenshots and recordings but not identity secrets
+or server settings. They are separate from the coursework deliverable bundle.
 
-\section{Language and Import Workflows}
-Figure~\ref{fig:use-case} presents business goals, not academic roles. Visitors
-and owners describe session states; there is no shared-team authorization model.
-Optional AI suggestions extend translation only when enabled and needed.
-Cloud transcription extends preview only with explicit consent.
+\section{Manual Collection, References and Local Imports}
+\subsection{Raw evidence and annotation}
+Figure~\ref{fig:class-collection} separates editable entry inputs, stored-entry
+DTOs, read-only dictionary values, metadata/health and explicit errors.
+Raw \texttt{StoredText} fields preserve observed spelling/whitespace and reject
+blank-only content. ID, timestamp and attachment operations are not freely
+editable request fields. Duplicate entries and stale IDs are errors rather than
+silent replacement. Evidence changes invalidate approval unless explicitly
+reviewed as the new evidence.
 
-Figures~\ref{fig:sequence-translation}, \ref{fig:sequence-chat},
-\ref{fig:sequence-imports} and \ref{fig:sequence-dictionary} describe the
-domain interactions after authenticated project binding. Dataset reads in the
-hosted path delegate to the current private SQLite store. References are
-read-only resources with source provenance, not approved private entries.
+The assignment target counts Sentence entries, not Word/Phrase annotation rows.
+Corpus analysis can inspect all saved entries; this does not inflate the
+10--15-statement target. Suggested topic gaps are for discussion and remain
+review items, not a mandatory one-statement-in-every-topic gate.
 
-Exact whole-entry evidence is used without Gemini when unambiguous. Provider
-requests receive only bounded selected evidence, never the full workspace,
-contributor identities, arbitrary notes or stored audio attachments. A
-consented media import is a separate provider request. Output remains a
-suggestion requiring human review.
+\subsection{Source-labelled learning material}
+Figure~\ref{fig:sequence-dictionary} loads validated versioned references and
+returns paginated search results with filename/line and competing senses.
+The 179 source rows are not 179 unique words or manually collected statements.
+English meanings and etymological origins do not supply reviewed French glosses
+or part-of-speech labels.
 
-Source extraction occurs on the application server. Raw import files are
-temporary; preview content is transient until the user explicitly saves reviewed
-terms/results. Browser dictation/read-aloud is separate and may contact
-browser-vendor services. Source permissions, sensitive-data handling and
-translation/transcription quality remain owner responsibilities.
+The 26 supplied practice statements are explicitly constructed.
+\texttt{PracticeEntry.constructed} is always true. Reading either source never
+inserts it into the empirical corpus. Authenticity remains the responsibility of
+the group, not a side effect of a search result or parse success.
 
-\section{Backup and Recovery Design}
-\subsection{Snapshot format}
-A ZIP contains \nolinkurl{workspace.json}, managed \nolinkurl{audio/...} and
-\nolinkurl{manifest.json}. The manifest maps every payload member to its SHA-256
-digest. The logical export includes all projects, entries, history and revisions.
-Passwords, sessions, Google/Gemini credentials and server settings are excluded.
+\subsection{Bounded server-side extraction}
+Figure~\ref{fig:class-import-coursework} contains \texttt{ImportEntry} and
+\texttt{ImportPreview}; the latter is local-only. No suggestion request/result
+models or provider choices remain. Figure~\ref{fig:sequence-imports} separates
+file preview from an explicit reviewed save.
 
-Validation rejects unsupported paths, duplicates/case collisions, linked or
-encrypted members, inconsistent hashes, malformed records, invalid media and
-missing recordings referenced by current or historical records. Archive, expanded
-size and count limits apply before publication or replacement. SHA-256 detects
-changes but does not authenticate an archive's source.
+The upload must contain exactly one file and no cloud-consent fields. Supported
+formats are UTF-8 TXT/Markdown/CSV/JSON, DOCX and text-layer PDF. Local extraction
+is bounded to 12 MiB input, 40,000 characters, 40 PDF pages and 100 structured
+drafts. DOCX ZIP/XML and PDF safety checks apply before returning text.
+Unsupported media, encrypted/invalid documents and image-only PDFs are rejected,
+with no OCR/transcription fallback.
 
-\subsection{Preview and replacement}
-Figure~\ref{fig:sequence-backup} and activity Figure~\ref{fig:activity-restore}
-make the destructive boundary explicit. Preview stores an account-scoped token,
-counts and current version for one hour. Restore requires literal
-\texttt{REPLACE}, revalidates the archive and refuses stale versions.
+Partly scanned PDFs may return readable text with warnings; students must
+compare the complete source. Structured imports keep allowed raw/provenance
+fields but cannot import approval. Preview does not retain the original file
+as an attachment or save entries automatically.
 
-Before replacement the server creates a verified safety backup. New audio is
-staged immutably; name collisions with different content receive fresh names and
-all restored references are updated. Only then does one version-checked SQLite
-transaction replace logical rows. Failed staging/commit removes only new files.
-Previously committed files and the safety copy remain.
+\section{Deterministic Compiler Design}
+\subsection{Lexer and report}
+Figure~\ref{fig:class-compiler} identifies real runtime classes and function
+modules. The generated \texttt{Token} holds raw text and category; API
+\texttt{TokenResult} values are shown in Figure~\ref{fig:class-api-results}.
+The individual \texttt{AnalyzeRequest} preserves text and rejects blanks
+(Figure~\ref{fig:class-api-requests}).
 
-Successful replacement consumes the preview and resets the browser to General.
-Post-commit cleanup errors are explicit and may leave the browser uncertain:
-inspect saved state instead of repeating restore blindly. Reused or expired
-tokens cannot apply the same destructive operation again.
+The lexer splits raw tokens with regex, applies structural number/punctuation
+rules, then considers explicitly approved, unambiguous language-labelled Word
+annotations, small base lexical lists, morphological heuristics and UNKNOWN.
+Sentence rows are not training data. Conflicting annotations cannot silently
+choose one category. Multiword verb/slang patterns and code-mixed transitions
+are separate annotations, not claims of a complete multilingual model.
 
-\subsection{Scheduling and operations}
-Automatic backups are opt-in at 24-hour or 168-hour intervals. Maintenance
-checks each minute while the server runs, records attempts/errors and keeps
-1--10 automatic copies. Manual and safety copies are not pruned automatically.
-A storage-scan failure is logged and a later cycle still runs.
+Corpus reporting computes raw statements/tokens, token and category frequencies,
+unknown counts and normalized spelling-variation candidates. Case/accents are
+used for comparison without rewriting original wording. Variation grouping is
+orthographic, not proof of shared meaning; \texttt{\_LIKE} categories are
+heuristic guesses, not certified POS.
 
-Same-disk copies do not meet disaster-recovery needs. Operators must agree
-retention, free-space alerts, off-host consistency, access permissions, encryption,
-recovery-time and recovery-point objectives. Account identities require a
-separate complete-data-root backup. The release does not invent those objectives.
+\subsection{Grammar and predictive parser}
+Figure~\ref{fig:sequence-compiler} traces the shared corpus and single-input path.
+Grammar notation is read and validated, supported direct/indirect left recursion
+is removed, common prefixes are factored, and each changed stage retains bounded
+before/after evidence. FIRST/FOLLOW are computed to a fixed point and the LL(1)
+table records conflicts rather than silently picking one candidate.
 
-\section{Interface and Failure Contracts}
-\begin{longtable}{L{4.1cm}L{10.3cm}}
-\toprule\textbf{Surface} & \textbf{Design contract}\\\midrule\endhead
-Session and account APIs & \nolinkurl{/api/auth}; cookie identity, public session
-DTO and in-memory CSRF value. Registration is 202; verification/reset use
-explicit POSTs. Private profile/logout obey the same access checks.\\
-Projects, history and revisions & \nolinkurl{/api/workspace}; project header or
-native-media project query. General cannot be removed. Revision restore
-requires \nolinkurl{expected_version}.\\
-Backup APIs & list/create/download/delete, schedule settings, multipart preview,
-then token/version/REPLACE restore. Account-scoped rather than project-scoped.\\
-Terminology/audio & Existing validated DTOs and range-capable private media
-responses. No automatic adoption of global CSV files.\\
-Safe failures & 401 account required; 403 origin/CSRF; 404 absent private
-resource; 409 duplicate/version/capacity; 413 size; 415 unsupported type;
-422 invalid input; 429 allowance; explicit storage/provider 5xx failures.\\
-Web boundary & Same-origin assets/API, body and URL bounds, no-store private
-responses, no-framing/no-sniff/referrer policy and production HTTPS/HSTS.
-Known routes retain 405 and Allow for unsupported methods; absent API routes
-remain 404 rather than falling into static-file handling.\\
-\bottomrule
-\end{longtable}
+The parser consumes category labels, not a probabilistic sentence meaning.
+A bounded stack machine records pre-action stack/input/action traces, matches
+the end marker and reports accepted/error/consumed results. Residual recursion,
+conflicting tables, invalid grammar and excess work are explicit boundaries.
+LL(1) is the implemented alternative; there is no LR/SLR implementation claim.
 
-\section{Preserved Desktop and Academic Views}
-The original source is maintained, not exposed as hosted business functionality.
-Its diagrams remain in the inventory so every production class and retained
-workflow has an explicit scope:
+One corpus analysis reads a bounded selected-project snapshot (at most 500
+entries and 100,000 characters), analyzes the submitted grammar and parses each
+entry. Single-input parsing uses the same selected project's reviewed word map.
+Analysis does not implicitly save the editor/profile.
+
+\notice{Interpretation boundary}{
+A grammar can accept a constructed sentence or reject genuine speech.
+Neither result establishes authenticity or linguistic correctness.
+The default CFG remains an illustration until the group relates its rules to
+real observations and explains coverage, ambiguity and rejection.}
+
+\subsection{Optimization evidence}
+Algorithmic changes must preserve deterministic outputs, trace semantics and
+caller isolation. Any timing claim belongs with its actual fixture, warm-up,
+sample size, environment and exclusions. The current documentation register
+records fresh supplied measurements only after the compiler implementation
+stabilizes; historical benchmark JSON is not relabelled as current performance.
+
+\section{Coursework Evidence and Draft Deliverables}
+Figure~\ref{fig:activity-analysis} places human collection and interpretation
+around implemented analysis steps. Three distinct nonblank names, authentic
+manual-transcription confirmation, collection method, grammar rationale and
+discussion are explicit profile data, not hidden generated content.
+
+Figure~\ref{fig:sequence-coursework} separates saving a submitted profile snapshot
+from exporting saved evidence. The frontend must not mark later edits saved
+when an older request completes. Unsaved profile/screenshot work is finished
+before the explicit export. The backend uses saved profile/corpus/images and
+current deterministic analysis to assemble:
 \begin{itemize}
-\item Figure~\ref{fig:activity-collect} and states
-\ref{fig:state-entry}, \ref{fig:state-audio}: desktop entry/editor and device
-lifecycle, not a hosted account state machine.
-\item Figures~\ref{fig:sequence-collect}, \ref{fig:sequence-search},
-\ref{fig:sequence-edit}, \ref{fig:sequence-delete}: standalone collector
-operations against the legacy CSV.
-\item Figures~\ref{fig:sequence-record}, \ref{fig:sequence-playback},
-\ref{fig:sequence-stats}, \ref{fig:sequence-storage}: retained desktop device,
-measurement and CSV transaction boundaries.
-\item Figures~\ref{fig:sequence-compiler}, \ref{fig:sequence-coursework}:
-preserved compiler/research maintenance. These are not seven-area business UI
-features or evidence of genuine research completion.
+\item A \textbf{DRAFT} printable HTML report with 25 sections and missing-input
+markers, not a certified 25-page finished report.
+\item Editable PowerPoint slides and timing notes totaling ten minutes:
+three per member and one shared minute.
+\item Raw dataset, token, frequency, variation and acceptance CSV; grammar,
+lexical specification, parser cases, profile and checklist JSON.
+\item Genuine supplied screenshot PNGs, relevant source snapshots and
+own-corpus regression cases.
 \end{itemize}
-The archived SDD preserves the earlier prose. Historical student details and
-constructed examples are not silently reintroduced into private onboarding.
 
-\section{Verification, Limitations and Handover}
-Automated checks combine real SQLite/cookie/account behavior, mocked external
-services, synthetic recordings, delayed-request regressions and real browser
-downloads/restoration. In particular they cover account/project isolation,
-password-reset revocation, CSRF, malformed Google identity, backup tampering,
-stale versions, missing historical audio, rollback and maintenance retry.
+The coursework ZIP does \textbf{not} contain raw recordings. Full workspace
+backups preserve recordings together with coursework. Sequential export reads
+are not a global multi-resource snapshot transaction. Source snapshots omit
+environment secrets but raw text/contributor metadata are included, so the
+archive must be shared only with authorized course recipients.
 
-The full-stack suite uses a new, isolated temporary data directory, local
-development email and disabled provider configuration. It does not contact
-Google/Gemini or use physical hardware. Tests do not populate real business
-content. The verification register distinguishes current observations from
-previous-version counts and unexecuted remote CI.
+Generated test expectations snapshot the parser's current decisions; they are
+not independent proof that a linguistic judgment is right. The group must
+review accepted/rejected cases, author original discussion, inspect genuine
+screenshots and verify actual 25--30-page output, capped at 30. The SRS/SDD
+PDFs are separate engineering documents and have no such report-page target.
 
-Before launch, the owner supplies infrastructure and real mail/OAuth/provider
-configuration, approves content rights and retention/terms/support, evaluates
-language quality and physical accessibility, agrees performance/recovery
-targets and authorizes publication. No synthetic benchmark certifies an 8 GB
-reference machine or an unspecified hosted traffic level.
+\section{Frontend Boundaries and Compatibility Views}
+Figure~\ref{fig:class-frontend} keeps React function components/hooks distinct
+from the authored \texttt{ApiError} class. The API boundary attaches cookie,
+CSRF/project selection and cancellation context; older identity/project
+responses cannot overwrite a new session. Project switching/sign-out warns
+before discarding dirty drafts. Local recording and optional read-aloud are
+separate capabilities; neither is browser dictation.
+
+Legacy history can be inspected/exported without sending data to removed
+translation/chat endpoints. Retaining its schemas preserves old account data,
+not a live generation feature. Figure~\ref{fig:class-services} shows the reduced
+configuration class and actual function modules; no invented provider service
+remains in the inventory.
+
+\subsection{Why desktop diagrams remain}
+The optional desktop collector is still authored production code. Its actual
+\texttt{App}, \texttt{Tooltip}, \texttt{Recorder} and errors remain in
+Figure~\ref{fig:class-domain}, with real selected operations and ownership.
+It must therefore remain covered even though the authenticated compiler is the
+default product. These diagrams are explicitly labelled \emph{desktop
+compatibility}, never the current account/project storage flow.
+
+\begin{longtable}{L{5.0cm}L{9.2cm}}
+\toprule\textbf{View} & \textbf{Preserved behavior, not a web claim}\\\midrule\endhead
+Figures~\ref{fig:activity-collect}, \ref{fig:sequence-collect} &
+Ready-draft validation, staged audio, locked CSV save, truthful commit versus
+refresh/cleanup status\\\addlinespace
+Figures~\ref{fig:sequence-search}, \ref{fig:sequence-stats} &
+One read snapshot, cached selection, read-only filtering and consistent
+statistics; failed reads preserve visible data\\\addlinespace
+Figures~\ref{fig:sequence-edit}, \ref{fig:sequence-delete}, \ref{fig:state-entry} &
+Changed-field edits, review invalidation, explicit stale-ID errors and confirmed
+deletion without removing committed audio\\\addlinespace
+Figures~\ref{fig:sequence-record}, \ref{fig:sequence-playback}, \ref{fig:state-audio} &
+Device capture/stop/WAV-write retry states and library/OS playback fallback;
+accepted playback is not proof that sound was heard\\
+\bottomrule
+\end{longtable}
+
+\section{Validation, Measurement and Open Gates}
+The existing local PlantUML/LaTeX build renders all current sources and compiles
+atlas, SRS and SDD. The strict checker verifies exact production-class inventory,
+mapped declarations, one source/image/sheet per diagram, correct SDD/atlas page
+mapping, balanced call/reply activations, embedded image fingerprints and clean
+layout/reference logs. It does not prove every UML semantic claim, so class
+relationships and diagram scope also require source inspection.
+
+Documentation-specific tests exercise missing/obsolete classes, runtime
+TypeScript versus erased interfaces, generated namedtuple classes, pixel
+normalization and invalid sequence activations. Final counts/results are
+recorded in \nolinkurl{docs/README.md}; no prior suite totals are reused.
+
+Backend/compiler tests and isolated browser fixtures establish software
+behavior, not genuine fieldwork or public deployment acceptance. Historical
+\nolinkurl{docs/evidence/*.json} remains unmodified. Prior Gemini, translation,
+assistant, dictation and cloud-media acceptance has no bearing on the removed
+architecture.
+
+\notice{Open coursework gates}{
+The reviewed corpus was empty. Genuine manual text, corpus-derived grammar
+reasoning, authentic screenshots, original linguistic discussion, final
+pagination and rehearsed delivery remain outstanding. No diagram, generated
+draft or synthetic test is presented as their substitute.}
 
 \clearpage
-\section{Full-size UML Sheets}
-The following pages embed the exact atlas images. New hosted views are appended
-to preserve established atlas page references. All displayed sequence
-communications have explicit activation boxes.
-\diagram{component}{1}{Hosted business components and isolated legacy storage}
-\diagram{deployment}{2}{Same-origin deployment on one durable application host}
-\diagram{class-domain}{3}{Preserved desktop classes and optional audio ownership}
-\diagram{class-compiler}{4}{Deterministic compiler classes}
-\diagram{class-api-requests}{5}{Language-service request classes}
-\diagram{class-api-results}{6}{Translation and analysis result classes}
-\diagram{class-collection}{7}{Terminology and reference dictionary DTOs}
-\diagram{class-import-coursework}{8}{Import and preserved academic DTO classes}
-\diagram{class-provider}{9}{Provider response classes}
-\diagram{class-services}{10}{Provider service, configuration and grounding}
-\diagram{class-frontend}{11}{Frontend class and function-component responsibilities}
-\diagram{use-case}{12}{Hosted business user goals and supporting services}
-\diagram{activity-collect}{13}{Preserved desktop collection activity}
-\diagram{state-entry}{14}{Preserved entry and editor state model}
-\diagram{state-audio}{15}{Preserved desktop audio readiness model}
-\diagram{sequence-collect}{16}{Preserved desktop collection sequence}
-\diagram{sequence-search}{17}{Preserved desktop search sequence}
-\diagram{sequence-edit}{18}{Preserved desktop editing sequence}
-\diagram{sequence-delete}{19}{Preserved desktop deletion sequence}
-\diagram{sequence-record}{20}{Preserved desktop recording sequence}
-\diagram{sequence-playback}{21}{Preserved desktop playback sequence}
-\diagram{sequence-stats}{22}{Preserved desktop statistics sequence}
-\diagram{sequence-storage}{23}{Legacy CSV transaction sequence}
-\diagram{sequence-translation}{24}{Project-bound source-labelled translation}
-\diagram{sequence-chat}{25}{Explicit assistant and bounded provider interaction}
-\diagram{sequence-imports}{26}{Consented import preview and reviewed handoff}
-\diagram{sequence-compiler}{27}{Preserved compiler-analysis sequence}
-\diagram{sequence-coursework}{28}{Preserved academic-evidence sequence}
-\diagram{sequence-dictionary}{29}{Read-only dictionary search and draft handoff}
-\diagram{class-accounts}{30}{Hosted account and web-boundary classes}
-\diagram{class-workspaces}{31}{Private workspace and recovery classes}
-\diagram{sequence-account}{32}{Email access and private request binding}
-\diagram{sequence-google}{33}{Google sign-in and explicit account linking}
-\diagram{sequence-backup}{34}{Validated backup replacement and safety recovery}
-\diagram{activity-restore}{35}{Guarded workspace restore activity}
+\section{Full-size UML Plates}
+The following pages are the exact images in the standalone atlas. They use
+their own sheet sizes for legibility; zoom or tiled printing is preferable to
+forcing every detailed graph onto a single A4 page.
+\diagram{component}{1}{Current non-AI components and request-local private storage}
+\diagram{deployment}{2}{Durable single-host deployment and retained identity services}
+\diagram{use-case}{3}{Assignment user goals and identity/recovery use cases}
+\diagram{class-accounts}{4}{Account and web-boundary production classes}
+\diagram{class-workspaces}{5}{Private storage, coursework, legacy history and recovery classes}
+\diagram{class-compiler}{6}{Compiler runtime classes and deterministic function modules}
+\diagram{class-api-requests}{7}{Raw-preserving individual analysis request}
+\diagram{class-api-results}{8}{Lexical result DTOs and true nested association}
+\diagram{class-collection}{9}{Manual collection, reference, metadata and health classes}
+\diagram{class-import-coursework}{10}{Local import, coursework protocol and practice classes}
+\diagram{class-services}{11}{Reduced runtime configuration and function boundaries}
+\diagram{class-frontend}{12}{Frontend runtime class, function components and hooks}
+\diagram{class-domain}{13}{Preserved desktop application and audio ownership classes}
+\diagram{activity-analysis}{14}{Human fieldwork and deterministic coursework analysis loop}
+\diagram{activity-collect}{15}{Desktop compatibility: guarded collection save}
+\diagram{activity-restore}{16}{Private workspace recovery decisions}
+\diagram{state-entry}{17}{Desktop compatibility: entry/editor lifecycle}
+\diagram{state-audio}{18}{Desktop compatibility: capture and retry lifecycle}
+\diagram{sequence-account}{19}{Account access followed by a scoped private mutation}
+\diagram{sequence-google}{20}{Optional Google authorization and explicit linking}
+\diagram{sequence-storage}{21}{Dual DatasetStorage and CourseworkStorage request binding}
+\diagram{sequence-collect}{22}{Desktop compatibility: staged attachment and truthful save}
+\diagram{sequence-search}{23}{Desktop compatibility: search and cached selection}
+\diagram{sequence-edit}{24}{Desktop compatibility: changed-field editing and review}
+\diagram{sequence-delete}{25}{Desktop compatibility: confirmed deletion}
+\diagram{sequence-record}{26}{Desktop compatibility: microphone and WAV publication}
+\diagram{sequence-playback}{27}{Desktop compatibility: library and OS playback}
+\diagram{sequence-stats}{28}{Desktop compatibility: one-snapshot statistics}
+\diagram{sequence-dictionary}{29}{Read-only source-labelled reference lookup}
+\diagram{sequence-imports}{30}{Local extraction and explicit reviewed collection save}
+\diagram{sequence-compiler}{31}{Grammar analysis and category-token parser execution}
+\diagram{sequence-coursework}{32}{Private profile save and saved-evidence draft export}
+\diagram{sequence-screenshot}{33}{Genuine screenshot normalization and private byte retrieval}
+\diagram{sequence-backup}{34}{Verified backup restore with version check and safety copy}
 \end{document}

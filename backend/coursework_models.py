@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field, StringConstraints, field_validator
 
@@ -34,11 +34,6 @@ class GrammarRequest(RequestModel):
 
 class ParseRequest(GrammarRequest):
     text: PracticeText = ""
-
-
-class ExplainRequest(ParseRequest):
-    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
-    language: Literal["fr", "en"] = "en"
 
 
 class ScreenshotRequest(RequestModel):

@@ -2,23 +2,14 @@ export type Language = 'fr' | 'en'
 export type TranslationLanguage = Language | 'francanglais' | 'pidgin'
 export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified'
 export type ReviewStatus = 'unreviewed' | 'approved'
-export type AnswerOrigin = 'dataset' | 'dictionary' | 'examples' | 'local_sources' | 'ai_with_dataset' | 'ai_with_sources' | 'ai'
-export type Tone = 'everyday' | 'polite' | 'street'
-export type Page = 'translator' | 'assistant' | 'dictionary' | 'collection' | 'imports' | 'history' | 'settings'
-
-export function isLocalOrigin(origin?: AnswerOrigin): boolean {
-  return origin === 'dataset' || origin === 'dictionary' || origin === 'examples' || origin === 'local_sources'
-}
+export type Page = 'compiler' | 'dictionary' | 'examples' | 'collection' | 'imports' | 'history' | 'settings'
 
 export interface IncomingText {
   id: number
   text: string
-  source?: TranslationLanguage
-  target?: TranslationLanguage
-  kind?: 'dictionary' | 'examples'
+  kind?: 'dictionary' | 'examples' | 'import' | 'history'
 }
 
-export const translationLanguages: TranslationLanguage[] = ['fr', 'en', 'francanglais', 'pidgin']
 export const languageLabels: Record<TranslationLanguage | DatasetLanguage, string> = {
   fr: 'French',
   en: 'English',
@@ -26,19 +17,6 @@ export const languageLabels: Record<TranslationLanguage | DatasetLanguage, strin
   pidgin: 'Cameroon Pidgin',
   mixed: 'Mixed languages',
   unspecified: 'Unspecified',
-}
-
-export interface DatasetEvidence {
-  id: string
-  text: string
-  language: DatasetLanguage
-  french_gloss: string
-  english_gloss: string
-  match_type: 'exact' | 'phrase' | 'token'
-  source: 'dataset' | 'dictionary' | 'examples'
-  source_document: string
-  source_line: number | null
-  aliases: string[]
 }
 
 export interface DictionaryEntry {
@@ -84,48 +62,15 @@ export interface PracticeResult {
   sources: string[]
 }
 
-export interface DatasetCoverage {
-  matched_terms: string[]
-  unmatched_terms: string[]
-  warnings: string[]
-}
-
 export interface Health {
   status: 'ok'
-  ai_configured: boolean
-  model: string
+  mode: 'compiler'
 }
 
 export interface Analysis {
   tokens: { text: string; category: string }[]
   code_mixed_spans: string[]
   verb_phrases: string[]
-}
-
-export interface Translation {
-  translation: string
-  explanation: string
-  vocabulary: { term: string; meaning: string }[]
-  note: string
-  source_language: TranslationLanguage
-  target_language: TranslationLanguage
-  origin: AnswerOrigin
-  evidence: DatasetEvidence[]
-  coverage: DatasetCoverage
-  model: string
-  analysis: Analysis
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-export interface ChatReply {
-  reply: string
-  model: string
-  origin?: AnswerOrigin
-  evidence?: DatasetEvidence[]
 }
 
 export interface DatasetEntry {
@@ -177,21 +122,21 @@ export interface Metadata {
 
 export const defaultMetadata: Metadata = {
   categories: [
-    'Customer Service',
-    'Sales',
-    'Marketing',
-    'Operations',
-    'Logistics',
-    'Finance',
-    'Human Resources',
-    'Product & Technical',
-    'Legal & Compliance',
-    'General Communication',
+    'Taxi / Commuting',
+    'Internet Connectivity',
+    'Electricity Supply',
+    'Market Bargaining',
+    'Rainy Season',
+    'Fuel Scarcity',
+    'Roadside Business',
+    'Bendskin Communication',
+    'Security Checkpoint',
+    'Campus Life',
     'Other',
   ],
   entry_types: ['Word', 'Phrase', 'Sentence'],
   dataset_languages: ['francanglais', 'pidgin', 'mixed', 'unspecified'],
-  lexical_categories: [],
+  lexical_categories: ['NUMBER', 'PUNCTUATION', 'SLANG', 'PIDGIN_MARKER', 'NOUN', 'VERB', 'FRENCH_FUNCTION_WORD', 'ENGLISH_FUNCTION_WORD', 'ENGLISH_VERB_LIKE', 'FRENCH_VERB_LIKE', 'UNKNOWN'],
 }
 
 export const MAX_TEXT = 4000

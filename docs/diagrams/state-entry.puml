@@ -1,6 +1,6 @@
 @startuml
 !include theme.iuml
-title Logical entry and selected-editor lifecycle
+title Preserved desktop row and selected-editor lifecycle
 state "Unsaved draft" as Draft
 state "Check new entry" as CheckNew <<choice>>
 state "Stored entry\n(not necessarily approved)" as Persisted
@@ -32,6 +32,7 @@ DeleteAttempt --> Selected : stale ID or write failed / retain edits + error
 DeleteAttempt --> Deleted : committed / clear selection
 Deleted --> [*]
 legend bottom
+  Desktop compatibility view; web account/project lifecycle is separate.
   This is a logical row/editor model, not an implemented enum or whole-app lifecycle.
   The selected editor may outlive a row removed by another writer; stale errors are explicit.
   A successful commit is not reversed by later display/cleanup failure.

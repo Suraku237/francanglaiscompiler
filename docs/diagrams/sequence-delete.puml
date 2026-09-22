@@ -44,6 +44,7 @@ App --> Maintainer : Current truthful status
 deactivate App
 deactivate Maintainer
 legend bottom
+  Preserved desktop compatibility only; the authenticated web workspace has separate revisions.
   Confirmation is a decision, not an authorization or authentication check.
   Atomic replacement protects write integrity; there is no undo stack.
 endlegend

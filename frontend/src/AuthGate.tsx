@@ -58,9 +58,9 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
   return <main className="auth-screen">
     <section className="auth-card">
       <a href="#signin" className="auth-brand">Mboa</a>
-      <p className="eyebrow">YOUR PRIVATE LANGUAGE WORKSPACE</p>
+      <p className="eyebrow">YOUR PRIVATE COMPILER WORKSPACE</p>
       <h1>{titles[mode]}</h1>
-      <p>Translation, terminology and documents, organized for your work.</p>
+      <p>Collect real statements, build a grammar and trace the compiler’s decisions.</p>
       {errorCode && <ErrorNotice message={errorCode === 'google-link-required'
         ? 'This email already has an account. Sign in with your password, then link Google in Workspace settings.'
         : 'Google sign-in was cancelled. You can try again.'} />}
@@ -78,7 +78,7 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
         {mode === 'signin' && <><a href="#register">Create an account</a><a href="#forgot-password">Forgot password?</a><a href="#resend-verification">Resend verification</a></>}
       </nav>
       {session.development_mail && <p className="notice notice-subtle">Local test mode: account emails are written to the server's private mail outbox. Ask the operator for your verification link. This mode is not used when hosted.</p>}
-      <p className="helper-text">Your saved work is stored privately on this server. AI processing is optional; do not submit sensitive information without permission.</p>
+      <p className="helper-text">Your collection, grammar and evidence are stored privately on this server. Rule-based computation needs no model provider. Record or share personal information only with permission.</p>
     </section>
   </main>
 }
@@ -175,7 +175,7 @@ export default function AuthGate() {
       accept(next)
       announceSession()
       setNotice('')
-      window.location.hash = 'translator'
+      window.location.hash = 'compiler'
     }} /></>
   }
   return <>

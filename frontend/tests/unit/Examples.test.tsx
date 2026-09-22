@@ -2,10 +2,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Examples } from '../../src/Examples'
-import { Translator } from '../../src/Translator'
 import type { PracticeResult } from '../../src/types'
-import { jsonResponse, requestBody } from '../helpers'
-import { translation } from '../fixtures'
+import { jsonResponse } from '../helpers'
 
 const reference: PracticeResult = {
   entries: [{
@@ -17,24 +15,25 @@ const reference: PracticeResult = {
   total: 26, matched: 1, offset: 0, limit: 25, sources: ['camfranglais_statements.csv'],
 }
 
-describe('separate constructed practice material', () => {
-  it('shows original bilingual meanings, provenance and explicit draft-only handoff', async () => {
+describe('synthetic reference material', () => {
+  it('shows original meanings and provenance, with only an explicit manual compiler handoff', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(reference))
-    const onTranslate = vi.fn()
+    const onUseText = vi.fn()
     const user = userEvent.setup()
-    render(<Examples active onTranslate={onTranslate} />)
+    render(<Examples active onUseText={onUseText} />)
     expect(await screen.findByRole('heading', { name: 'Mon mbom, tu es where?' })).toBeInTheDocument()
     expect(screen.getByText('Mon pote, tu es où ?')).toBeInTheDocument()
     expect(screen.getByText('My guy, where are you?')).toBeInTheDocument()
     expect(screen.getByText('camfranglais_statements.csv:2')).toBeInTheDocument()
     expect(screen.getByText('Constructed examples, not genuine fieldwork.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Practice in French' }))
-    expect(onTranslate).toHaveBeenCalledExactlyOnceWith('Mon mbom, tu es where?', 'fr')
+    await user.click(screen.getByRole('button', { name: 'Test example in compiler' }))
+    expect(onUseText).toHaveBeenCalledExactlyOnceWith('Mon mbom, tu es where?')
     expect(fetch).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /translate|save|approve/i })).not.toBeInTheDocument()
   })
 
   it('does not load while inactive and supports an explicit retry', async () => {
-    const props = { active: false, onTranslate: vi.fn() }
+    const props = { active: false, onUseText: vi.fn() }
     const view = render(<Examples {...props} />)
     expect(fetch).not.toHaveBeenCalled()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Practice source unavailable.' }, 503))
@@ -43,31 +42,5 @@ describe('separate constructed practice material', () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(reference))
     await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: 'Mon mbom, tu es where?' })).toBeInTheDocument()
-  })
-
-  it('never exposes or enables archived practice sources in the business translator', async () => {
-    const props = {
-      active: true, aiAvailable: false,
-      speech: { supported: false, activeId: null, error: '', stop: vi.fn(), speak: vi.fn() },
-      onOpenAssistant: vi.fn(), onOpenCollection: vi.fn(), onOpenImports: vi.fn(),
-    }
-    const view = render(<Translator {...props} />)
-    expect(screen.queryByRole('checkbox', { name: /constructed practice/ })).not.toBeInTheDocument()
-    view.rerender(<Translator {...props} incomingText={{
-      id: 1, text: 'Mon mbom, tu es where?', source: 'francanglais', target: 'fr', kind: 'examples',
-    }} />)
-    expect(screen.queryByRole('checkbox', { name: /constructed practice/ })).not.toBeInTheDocument()
-    expect(fetch).not.toHaveBeenCalled()
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(translation({
-      translation: 'Mon pote, tu es où ?', origin: 'dataset', model: 'local-dataset',
-      source_language: 'francanglais', target_language: 'fr',
-    })))
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Translate' }))
-    expect(requestBody(vi.mocked(fetch).mock.calls[0])).toMatchObject({
-      text: 'Mon mbom, tu es where?', allow_ai: false,
-      source_language: 'francanglais', target_language: 'fr',
-    })
-    expect(requestBody(vi.mocked(fetch).mock.calls[0])).not.toHaveProperty('use_examples')
-    expect(screen.queryByText('Constructed practice example · local')).not.toBeInTheDocument()
   })
 })

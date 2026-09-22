@@ -1,11 +1,10 @@
 @startuml
 !include theme.iuml
-title Reference lookup: separate sources, explicit draft handoff
+title Read-only dictionary lookup: source rows, not fieldwork
 hide footbox
 autonumber
 actor User
 participant "Dictionary\n<<React function>>" as Web
-participant "App\n<<React function>>" as Shell
 participant "main.get_dictionary\n<<route function>>" as API
 participant "dictionary\n<<function module>>" as Reference
 participant "Versioned Markdown files" as Files
@@ -41,16 +40,11 @@ API --> Web : 200 paginated entries / 422 or 503
 deactivate API
 Web --> User : Meanings + source file/line / retryable error
 deactivate Web
-opt User chooses a reference entry
-  User -> Web : Open in translator
-  activate Web
-  Web -> Shell : onTranslate(listed form)
-  activate Shell
-  note over Shell : Fill a new draft; direction Francanglais to English.\nTranslator enables reference lookup on handoff.\nNo submit or save.
-  Shell --> Web : Translation draft state
-  deactivate Shell
-  Web --> User : Editable draft; explicit Translate still required
-  deactivate Web
-end
 deactivate User
+legend bottom
+  Every dictionary row remains a supplied reference, including repeated forms and senses.
+  English meanings and source origin are not a POS annotation or a reviewed French gloss.
+  The separate practice library is constructed material; neither source is real collected fieldwork.
+  This lookup has no translation/generation side effect.
+endlegend
 @enduml

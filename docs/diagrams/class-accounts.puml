@@ -1,7 +1,7 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Hosted accounts: actual classes and selected operations
+title Retained private accounts: actual classes and selected operations
 hide empty members
 package "backend.auth" {
   class AuthSettings {
@@ -9,7 +9,6 @@ package "backend.auth" {
     data_dir: Path
     public_url; mail_mode
     smtp_password; google_client_secret: SecretStr
-    ai_daily_user_limit; ai_daily_global_limit
     valid_deployment(): Self
   }
   class AuthStore {
@@ -21,7 +20,6 @@ package "backend.auth" {
     issue_token(user_id, purpose): str
     consume_token(raw, purpose, password)
     throttle(key, maximum, seconds)
-    charge_ai(user_id)
   }
   class UserIdentity {
     id; email; display_name
@@ -87,7 +85,7 @@ AuthStore "0..*" --> "1" AuthSettings : settings
 WebBoundaryMiddleware "0..*" --> "1" ASGI : app
 AuthStore ..> UserIdentity : returns validated identity
 AuthStore ..> AuthError : raises
-Auth ..> AuthStore : session, tokens and quota
+Auth ..> AuthStore : sessions, tokens and request throttles
 Auth ..> AuthInput : validates concrete request types
 Auth ..> UserIdentity : request ContextVar
 Factory ..> Auth : installs account routes

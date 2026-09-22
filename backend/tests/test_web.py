@@ -6,12 +6,12 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from backend.web import JSON_REQUEST_LIMIT, PrivateQueryFilter, install_web
+from backend.web import JSON_REQUEST_LIMIT, SCREENSHOT_REQUEST_LIMIT, PrivateQueryFilter, install_web
 
 
 class WebBoundaryTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory()
+        self.directory = tempfile.TemporaryDirectory(prefix=".web-test-", dir=Path(__file__).parent)
         self.addCleanup(self.directory.cleanup)
         self.frontend = Path(self.directory.name)
         self.frontend.joinpath("index.html").write_text("<h1>Mboa</h1>", encoding="utf-8")
@@ -24,6 +24,7 @@ class WebBoundaryTests(unittest.TestCase):
             return {"status": "ok"}
 
         @app.post("/api/echo")
+        @app.post("/api/coursework/screenshots")
         async def echo(request: Request):
             return {"bytes": len(await request.body())}
 
@@ -79,6 +80,25 @@ class WebBoundaryTests(unittest.TestCase):
         with self.client() as client:
             response = client.post("/api/echo", content=chunks())
             self.assertEqual(response.status_code, 413)
+
+    def test_screenshot_body_limit_allows_base64_overhead_without_relaxing_other_json_routes(self):
+        with self.client() as client:
+            response = client.post("/api/coursework/screenshots", content=b"x" * SCREENSHOT_REQUEST_LIMIT)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["bytes"], SCREENSHOT_REQUEST_LIMIT)
+            response = client.post("/api/coursework/screenshots", content=b"x" * (SCREENSHOT_REQUEST_LIMIT + 1))
+            self.assertEqual(response.status_code, 413)
+            for path in ("/api/echo", "/api/coursework/screenshots/unknown", "/api/coursework/project"):
+                self.assertEqual(client.post(path, content=b"x" * (JSON_REQUEST_LIMIT + 1)).status_code, 413)
+
+    def test_streamed_screenshot_body_cannot_bypass_its_limit(self):
+        def chunks():
+            yield b"x" * SCREENSHOT_REQUEST_LIMIT
+            yield b"x"
+
+        with self.client() as client:
+            response = client.post("/api/coursework/screenshots", content=chunks())
+        self.assertEqual(response.status_code, 413)
 
     def test_invalid_lengths_and_oversized_urls_are_explicit_errors(self):
         with self.client() as client:

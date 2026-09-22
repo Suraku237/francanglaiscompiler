@@ -124,18 +124,11 @@
 .lab-observations > div { display: grid; grid-template-columns: 115px minmax(0, 1fr); gap: 12px; border-top: 1px solid #e7ecdf; padding: 10px 0; }
 .lab-observations dt { color: #4b653c; font-weight: 500; }
 .lab-observations dd { margin: 0; color: #6d795f; overflow-wrap: anywhere; }
-.lab-regex, .lab-payload pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #476137; background: #edf3e3; border: 1px solid #dbe5cd; border-radius: 6px; padding: 13px; font-family: Consolas, "Cascadia Code", monospace; font-size: 11px; line-height: 1.9; max-height: 300px; overflow: auto; }
+.lab-regex { white-space: pre-wrap; overflow-wrap: anywhere; color: #476137; background: #edf3e3; border: 1px solid #dbe5cd; border-radius: 6px; padding: 13px; font-family: Consolas, "Cascadia Code", monospace; font-size: 11px; line-height: 1.9; max-height: 300px; overflow: auto; }
 .lab-empty { padding: 12px 0; }
 .lab-empty-panel { padding: 29px 24px 17px; text-align: center; margin-top: 23px; border: 1px dashed #cedcc0; border-radius: 10px; background: #f5f8ed; color: #819d69; }
 .lab-empty-panel h3 { font-family: var(--serif); font-size: 25px; font-weight: 400; margin-top: 14px; color: #5a7449; }
 .lab-empty-panel p { color: #6b7a5f; font-size: 11px; line-height: 1.9; max-width: 430px; margin: 12px auto; }
-.lab-ai-panel { margin-top: 27px; background: #f0f3e8; }
-.lab-ai-panel > summary > svg { margin-right: 8px; }
-.lab-payload { margin: 15px 0; }
-.lab-payload summary { font-size: 11px; color: #5f784d; cursor: pointer; padding: 9px 0; }
-.lab-ai-response { background: #fffef8; border: 1px solid #d9e3cc; border-radius: 8px; padding: 18px; margin-top: 20px; }
-.lab-ai-response .lab-result-heading { margin-top: 0; }
-.lab-ai-answer { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.95; color: #465e3a; margin: 15px 0; }
 .lab-writing-save { padding-bottom: 24px; border-bottom: 1px solid #e2e8d8; }
 .lab-screenshots { margin-top: 26px; padding-bottom: 25px; border-bottom: 1px solid #e2e8d8; }
 .lab-upload { background: #f6f8ee; border: 1px solid #e0e7d4; padding: 17px; border-radius: 9px; margin: 17px 0; }
@@ -214,5 +207,4 @@
   .lab-upload { padding: 12px; }
   .lab-screenshot-grid { grid-template-columns: minmax(0, 1fr); }
   .lab-screenshot-grid img { height: 180px; }
-  .lab-ai-response { padding: 13px; }
 }

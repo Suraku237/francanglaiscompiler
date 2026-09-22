@@ -33,6 +33,7 @@ note right of Recording
   Clear is disabled during live recording.
 end note
 legend bottom
+  Preserved desktop Recorder/GUI states, not browser dictation or an AI transcription flow.
   Conceptual states derive from recording, stream, pending-stop and captured-array fields.
   Ready may contain a staged filename; it does not mean an empty form.
   Failed cleanup keeps the window/retry state available, not a false closed status.

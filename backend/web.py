@@ -12,6 +12,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 JSON_REQUEST_LIMIT = 1024 * 1024
+SCREENSHOT_REQUEST_LIMIT = 3 * 1024 * 1024
 MEDIA_REQUEST_LIMIT = 12 * 1024 * 1024 + 65536
 BACKUP_REQUEST_LIMIT = 32 * 1024 * 1024 + 65536
 
@@ -36,8 +37,11 @@ class WebBoundaryMiddleware:
 
         path = scope["path"]
         api_request = path == "/api" or path.startswith("/api/")
+        size_error_sent = False
 
         async def guarded_send(message: Message) -> None:
+            if size_error_sent:
+                return
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
                 headers["X-Content-Type-Options"] = "nosniff"
@@ -69,6 +73,8 @@ class WebBoundaryMiddleware:
         limit = JSON_REQUEST_LIMIT
         if path == "/api/workspace/backups/preview":
             limit = BACKUP_REQUEST_LIMIT
+        elif path == "/api/coursework/screenshots":
+            limit = SCREENSHOT_REQUEST_LIMIT
         elif path.startswith("/api/import") or path.endswith("/audio"):
             limit = MEDIA_REQUEST_LIMIT
 
@@ -92,11 +98,17 @@ class WebBoundaryMiddleware:
         received = 0
 
         async def guarded_receive() -> Message:
-            nonlocal received
+            nonlocal received, size_error_sent
             message = await receive()
             if api_request and message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > limit:
+                    # Inner task groups can wrap receive errors and turn a 413 into a generic 400.
+                    # Send the boundary's rejection once, then discard that downstream response.
+                    await JSONResponse(
+                        {"detail": "The request exceeds the permitted size."}, status_code=413,
+                    )(scope, receive, guarded_send)
+                    size_error_sent = True
                     raise HTTPException(413, "The request exceeds the permitted size.")
             return message
 

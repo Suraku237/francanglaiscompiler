@@ -1,54 +1,50 @@
 @startuml
 !include theme.iuml
-title Hosted same-origin application: one durable application host
-node "User's device" <<device>> {
+title Deployment: one durable host, local compiler, retained identity services
+node "Student's device" <<device>> {
   node "Browser" as Browser <<executionEnvironment>> {
-    artifact "Built React frontend\nprivate drafts in memory" as React
-    artifact "Browser speech APIs\nopt-in dictation / read-aloud" as Speech
+    artifact "Built React frontend\nunsaved drafts / native recorder" as React
+    artifact "Optional read-aloud\nbrowser/OS voices" as Speech
   }
 }
-node "Public HTTPS reverse proxy" as Proxy <<executionEnvironment>>
+node "HTTPS reverse proxy" as Proxy <<executionEnvironment>>
 node "Durable application host\nrestricted service account" <<device>> {
-  node "Python / FastAPI + Uvicorn\nloopback or firewalled private interface" as Backend <<executionEnvironment>> {
-    artifact "Backend + compiler" as Python
-    artifact "frontend/dist\nserved by FastAPI" as WebAssets
-    artifact "Server-only configuration\nSMTP / Google / Gemini credentials" as Secret
+  node "FastAPI / Uvicorn / Python\nloopback or firewalled private interface" as Backend <<executionEnvironment>> {
+    artifact "Backend + deterministic compiler\nlocal document extraction" as Python
+    artifact "frontend/dist\nserved on the same origin" as Assets
+    artifact "Server-only configuration\nSMTP / optional Google / storage" as Configuration
   }
   node "Persistent private disk" <<device>> {
-    artifact "auth.sqlite3\nidentity / sessions / quotas" as Accounts
-    artifact "workspaces/<account UUID>/workspace.sqlite3" as Workspace
-    artifact "dictionary/camfranglais.md\n+ extra_lexicon.md (versioned)" as References
-    artifact "Per-account audio / generated filenames" as Audio
-    artifact "Per-account verified backup ZIPs" as Backups
+    artifact "auth.sqlite3" as Accounts
+    artifact "workspaces/<account UUID>/workspace.sqlite3\ncoursework + screenshot rows included" as Workspace
+    artifact "Per-account audio / verified backups" as PrivateFiles
   }
+  artifact "Versioned dictionary / constructed practice\nread-only reference sources" as Reference
 }
-node "Protected off-host backup location" as Recovery <<external storage>>
+node "Protected off-host backup destination" as Recovery <<external storage>>
 node "Microphone / speakers" as Devices <<device>>
-node "Gemini API" as Gemini <<external service>>
-node "Google OAuth + signing keys" as Google <<external service>>
+node "Google OAuth / signing keys" as Google <<external service>>
 node "SMTP provider" as Mail <<external service>>
-node "Browser-selected speech provider\nimplementation-dependent" as SpeechProvider <<external service>>
-Browser -- Proxy : HTTPS: frontend + API
-Proxy -- Backend : trusted forwarded headers;\nall paths, restricted HTTP
-Python ..> Accounts : SQLite transactions
-Python ..> Workspace : account-selected transactions + locks
-Python ..> Audio : private media I/O
-Python ..> Backups : validated snapshots / restore
-Python ..> References : read-only lookup
-Backend -- Recovery : operator-managed consistent backup
-Browser -- Devices : browser permissions
-Backend -- Gemini : HTTPS; explicit AI requests
-Browser -- Google : HTTPS; optional human authorization
-Backend -- Google : HTTPS; code exchange and JWT validation
-Backend -- Mail : SMTP STARTTLS; account links
-Browser -- SpeechProvider : may use online speech
-Secret ..> Python
+node "Optional browser-selected voice service\nimplementation-dependent" as VoiceService <<external service>>
+Browser -- Proxy : HTTPS: frontend and private APIs
+Proxy -- Backend : restricted HTTP;\ntrusted forwarded headers
+Python ..> Accounts : identity transactions
+Python ..> Workspace : account/project-selected transactions
+Python ..> PrivateFiles : locked media / recovery operations
+Python ..> Reference : read-only lookup
+Backend -- Recovery : operator-managed consistent snapshots
+Browser -- Devices : permissioned recording / playback
+Browser -- Google : optional human authorization
+Backend -- Google : optional HTTPS code exchange / JWT validation
+Backend -- Mail : configured account email via STARTTLS
+Browser -- VoiceService : only if browser TTS implementation uses it
+Configuration ..> Python
 legend bottom
-  Authentication is mandatory for private APIs. CORS is not access control.
-  Local pre-hosting testing: browser -> loopback FastAPI, no public proxy required.
-  Vite is an optional development server, not the production static host.
-  Legacy desktop CSV/audio/profile are separate and never adopted by a hosted account.
-  Disk backup requires identity data too; workspace ZIPs alone cannot recover accounts.
-  Single durable host only: no ephemeral disk or implied multi-host database cluster.
+  No language-model, OCR or transcription integration exists.
+  Google/SMTP are network identity services; local compilation is not a claim of an offline website.
+  Local development: browser -> loopback FastAPI; no public proxy needed.
+  Authentication stays enabled; legacy CSV/profile/screenshots are a separate maintenance boundary.
+  Backup identity/configuration separately from user ZIPs. Account isolation is not E2E encryption.
+  Do not deploy private SQLite to ephemeral disks or imply a multi-host database cluster.
 endlegend
 @enduml

@@ -204,8 +204,14 @@ def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
         token = uuid4().hex
         atomic_write(directory / f"{token}.zip", content)
         info = {"token": token, "expires_at": time.time() + 3600, "workspace_version": store.version,
-                "counts": {key: len(document[key]) for key in ("projects", "entries", "history", "revisions")},
-                "warnings": ["Restoring replaces all projects, terminology, saved work and revisions in your account. A safety backup is created first."]}
+                "counts": {key: len(document[key]) for key in (
+                    "projects", "entries", "history", "revisions", "coursework", "screenshots",
+                )},
+                "warnings": [
+                    "Restoring replaces all projects, collected entries, saved work, revisions, coursework profiles "
+                    "and screenshots in your account. A safety backup is created first.",
+                    "Older format-1 backups contain no coursework profiles or screenshots.",
+                ]}
         set_metadata(store, "backup:preview:" + token, info)
         return info
 

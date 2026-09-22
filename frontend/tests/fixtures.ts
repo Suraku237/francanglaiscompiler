@@ -1,21 +1,18 @@
 import type { CourseworkAnalysis, CourseworkState, ManualParse, Project } from '../src/courseworkTypes'
-import type { ImportPreview, ImportSuggestions } from '../src/importTypes'
-import type { ChatReply, Dataset, DatasetEntry, Health, Metadata, Translation } from '../src/types'
+import type { ImportPreview } from '../src/importTypes'
+import { defaultMetadata } from '../src/types'
+import type { Dataset, DatasetEntry, Health, Metadata } from '../src/types'
 
 // All records are synthetic test data. They never come from, or write to, the research CSV.
 export const metadata: Metadata = {
-  categories: ['Campus Life', 'Other'],
+  categories: defaultMetadata.categories,
   entry_types: ['Word', 'Phrase', 'Sentence'],
   dataset_languages: ['francanglais', 'pidgin', 'mixed', 'unspecified'],
   lexical_categories: ['NOUN', 'VERB', 'SLANG'],
 }
 
-export function health(aiConfigured = true): Health {
-  return { status: 'ok', ai_configured: aiConfigured, model: 'fixture-model' }
-}
-
-export function chatReply(overrides: Partial<ChatReply> = {}): ChatReply {
-  return { reply: 'Synthetic assistant reply.', model: 'fixture-model', origin: 'ai', evidence: [], ...overrides }
+export function health(): Health {
+  return { status: 'ok', mode: 'compiler' }
 }
 
 export function entry(overrides: Partial<DatasetEntry> = {}): DatasetEntry {
@@ -51,35 +48,6 @@ export function dataset(entries = [entry()]): Dataset {
   }
 }
 
-export function translation(overrides: Partial<Translation> = {}): Translation {
-  const record = entry()
-  return {
-    translation: record.text,
-    explanation: 'A synthetic local match for testing.',
-    vocabulary: [],
-    note: '',
-    source_language: 'fr',
-    target_language: 'francanglais',
-    origin: 'dataset',
-    evidence: [{
-      id: record.id,
-      text: record.text,
-      language: record.language,
-      french_gloss: record.french_gloss,
-      english_gloss: record.english_gloss,
-      match_type: 'exact',
-      source: 'dataset',
-      source_document: '',
-      source_line: null,
-      aliases: [],
-    }],
-    coverage: { matched_terms: ['Sens de test'], unmatched_terms: [], warnings: [] },
-    model: 'local-dataset',
-    analysis: { tokens: [], code_mixed_spans: [], verb_phrases: [] },
-    ...overrides,
-  }
-}
-
 export function importPreview(overrides: Partial<ImportPreview> = {}): ImportPreview {
   return {
     filename: 'fixture.txt',
@@ -98,22 +66,6 @@ export function importPreview(overrides: Partial<ImportPreview> = {}): ImportPre
       review_status: 'unreviewed',
     }],
     ...overrides,
-  }
-}
-
-export function importSuggestions(): ImportSuggestions {
-  return {
-    drafts: [{
-      text: 'AI fixture candidate',
-      entry_type: 'Word',
-      language: 'pidgin',
-      french_gloss: 'Proposition de test',
-      english_gloss: 'Suggested test meaning',
-      lexical_category: 'NOUN',
-      review_status: 'unreviewed',
-    }],
-    warnings: ['AI glosses need human review.'],
-    model: 'fixture-model',
   }
 }
 
@@ -159,7 +111,7 @@ export function courseworkState(savedProject = project()): CourseworkState {
       classification_order: ['Exact lexicon match', 'Regex rules', 'Unknown token'],
       limitations: ['Synthetic test specification.'],
     },
-    stats: { total: 0, sentences: 0, topic_counts: {}, missing_topics: ['Campus Life'] },
+    stats: { total: 0, sentences: 0, topic_counts: {}, missing_topics: defaultMetadata.categories.filter((topic) => topic !== 'Other') },
     screenshots: [],
   }
 }

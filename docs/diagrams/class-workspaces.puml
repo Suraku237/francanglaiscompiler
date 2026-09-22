@@ -1,7 +1,7 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Private projects, saved work and recovery: actual classes
+title Private projects, coursework, legacy history and recovery
 hide empty members
 package "backend.workspaces" {
   rectangle "install_workspace() <<route functions>>" as Routes
@@ -35,6 +35,11 @@ package "backend.workspaces" {
     connection()
     load_all(): list[dict]
     save_all(entries, action)
+    load_coursework(): ProjectProfile | None
+    save_coursework(profile)
+    read_coursework_screenshot(id): bytes
+    save_coursework_screenshot(id, name, content)
+    delete_coursework_screenshot(id)
     change_project(name, project_id)
     save_history(payload)
     restore_revision(id, expected_version)
@@ -68,6 +73,8 @@ class "DatasetStorage" as DatasetStorage <<protocol>> {
 class "pydantic.BaseModel" as BaseModel <<external>>
 class "filelock.FileLock" as FileLock <<external>>
 class "DatasetEntry\n(collection view)" as DatasetEntry <<reference>>
+class "CourseworkStorage\n(coursework view)" as CourseworkStorage <<reference protocol>>
+class "ProjectProfile\n(coursework view)" as ProjectProfile <<reference>>
 rectangle "dataset.py <<module>>\nuse_storage() / request ContextVar" as Adapter
 WorkspaceInput --|> BaseModel
 ProjectInput --|> WorkspaceInput
@@ -79,6 +86,7 @@ RestoreRevision --|> WorkspaceInput
 BackupSettings --|> WorkspaceInput
 BackupRestore --|> WorkspaceInput
 WorkspaceStore ..|> DatasetStorage : structural conformance
+WorkspaceStore ..|> CourseworkStorage : structural conformance
 WorkspaceStore "0..*" -left-> "1" FileLock : _lock
 SavedConversation "0..*" --> "1..100" SavedMessage : messages
 HistoryInput "0..*" --> "0..1" SavedTranslation : content\n{xor}
@@ -86,6 +94,7 @@ HistoryInput "0..*" --> "0..1" SavedConversation : content\n{xor}
 WorkspaceStore ..> HistoryInput : validates saved content
 WorkspaceStore ..> DatasetEntry : validates persisted entries
 WorkspaceStore ..> ProjectInput : validates restored projects
+WorkspaceStore ..> ProjectProfile : validates profile JSON; does not retain DTOs
 Adapter ..> DatasetStorage : delegates current request
 Backups ..> WorkspaceStore : versioned logical snapshot
 Backups ..> BackupSettings : validates scheduling
@@ -101,10 +110,16 @@ note bottom of WorkspaceStore
   Project IDs must exist in that account's SQLite database.
   Projects/backups management is account-scoped.
   Tables persist JSON/rows, not live DTO instances.
+  coursework: one profile JSON row per project.
+  screenshots: at most six ID/name/base64 rows per project.
+  Profile/image mutations increment the workspace version.
 end note
 legend bottom
   Generalization/realization point toward the base contract.
   The CSV fallback is used only without a hosted storage context.
+  SavedTranslation/Conversation remain for legacy history, not live generation.
+  Workspace document format 2 adds coursework/screenshots; format 1 restores remain supported.
+  The enclosing backup ZIP manifest stays format 1.
   Audio and SQLite are coordinated, not one filesystem-wide ACID transaction.
 endlegend
 @enduml

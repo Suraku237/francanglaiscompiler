@@ -3,46 +3,21 @@ import io
 import json
 import subprocess
 import sys
-import tempfile
 import unittest
-from contextlib import ExitStack
-from pathlib import Path
-from unittest.mock import patch
 from zipfile import ZipFile
 
-import httpx
-from fastapi.testclient import TestClient
 from PIL import Image
 from pptx import Presentation
-from pydantic import SecretStr
 
 from backend import coursework_store
-from backend.config import Settings
-from backend.main import create_app
+from backend.tests.test_api import ApiTestCase
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
 
 
-class CourseworkTests(unittest.TestCase):
+class CourseworkTests(ApiTestCase):
     def setUp(self):
-        self.stack = ExitStack()
-        self.addCleanup(self.stack.close)
-        self.directory = Path(self.stack.enter_context(tempfile.TemporaryDirectory(prefix="mboa-archive-test-")))
-        self.stack.enter_context(patch.object(dataset, "DATASET_PATH", str(self.directory / "dataset.csv")))
-        self.stack.enter_context(patch.object(dataset, "AUDIO_DIR", str(self.directory / "audio")))
-        self.stack.enter_context(patch.object(coursework_store, "PROJECT_DIR", self.directory / "coursework"))
-        self.sent: list[dict] = []
-
-        def respond(request: httpx.Request) -> httpx.Response:
-            self.sent.append(json.loads(request.content))
-            return httpx.Response(200, json={
-                "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "A test explanation of the grammar."}]}}]
-            })
-
-        settings = Settings(gemini_api_key=SecretStr("fake-coursework-test-key"))
-        self.client = self.stack.enter_context(TestClient(create_app(
-            settings, transport=httpx.MockTransport(respond), include_academic=True, require_auth=False,
-        )))
+        super().setUp()
         self.profile = {
             "group_members": ["", "", ""], "grammar": DEFAULT_GRAMMAR,
             "manual_transcription_confirmed": False, "grammar_rationale": "", "discussion": "",
@@ -66,7 +41,7 @@ class CourseworkTests(unittest.TestCase):
         statuses = {row["id"]: row["status"] for row in state["requirements"]}
         self.assertEqual(statuses["data"], "needs_input")
         self.assertEqual(statuses["report"], "review")
-        self.assertEqual(self.sent, [])
+        self.assert_no_outbound_http()
         self.assertFalse((self.directory / "coursework" / "project.json").exists())
 
     def test_profile_and_grammar_persist_and_bad_updates_do_not_replace(self):
@@ -110,7 +85,7 @@ class CourseworkTests(unittest.TestCase):
         self.assertEqual(body["lexical"]["total_tokens"], 10)
         self.assertIn({"token": "taxi", "count": 2}, body["lexical"]["frequencies"])
         self.assertTrue(any(row["normalized"] == "taxi" for row in body["lexical"]["variations"]))
-        self.assertEqual(self.sent, [])
+        self.assert_no_outbound_http()
 
     def test_parse_trace_full_input_and_unsupported_symbol(self):
         good = self.client.post("/api/coursework/parse", json={"grammar": "S -> NOUN", "text": "taxi"}).json()
@@ -135,17 +110,14 @@ class CourseworkTests(unittest.TestCase):
         for grammar in ("", "S ->", "S -> MISSING", "x" * 12001):
             self.assertEqual(self.client.post("/api/coursework/analyze", json={"grammar": grammar}).status_code, 422)
 
-    def test_ai_help_is_explicit_and_never_sends_collection(self):
+    def test_ai_explanation_is_removed_and_never_sends_collection(self):
         self.add_entry("PRIVATE FIELD OBSERVATION", contributor="PRIVATE CONTRIBUTOR")
         response = self.client.post("/api/coursework/explain", json={
             "grammar": "S -> NOUN", "text": "taxi", "question": "Explain why it is accepted.", "language": "en",
         })
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertIn("explanation", response.json()["reply"])
-        sent = json.dumps(self.sent)
-        self.assertNotIn("PRIVATE", sent)
-        self.assertIn("accepted", sent)
-        self.assertIn("NOUN", sent)
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertNotIn("/api/coursework/explain", self.client.get("/openapi.json").json()["paths"])
+        self.assert_no_outbound_http()
 
     @staticmethod
     def image_data():

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, ApiError, errorDetail, isCancelled } from './api'
+import { api, ApiError, errorDetail, isCancelled, nativeApiUrl } from './api'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
 import type { Screenshot } from './courseworkTypes'
 import { useRequest } from './useRequest'
@@ -12,7 +12,9 @@ async function downloadBundle(signal: AbortSignal): Promise<Blob> {
   signal.addEventListener('abort', cancel, { once: true })
   const timer = window.setTimeout(() => { timedOut = true; controller.abort() }, 120000)
   try {
-    const response = await fetch('/api/coursework/export', { signal: controller.signal, cache: 'no-store' })
+    const response = await fetch(nativeApiUrl('/coursework/export'), { signal: controller.signal, cache: 'no-store', credentials: 'same-origin' })
+    if (controller.signal.aborted) throw new DOMException('Request cancelled', 'AbortError')
+    if (response.status === 401) window.dispatchEvent(new Event('mboa:session-expired'))
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => null)
       throw new ApiError(errorDetail(body) ?? `The draft export failed (${response.status}). Save your project and check the grammar before trying again.`, response.status)
@@ -21,12 +23,13 @@ async function downloadBundle(signal: AbortSignal): Promise<Blob> {
       throw new Error('The server did not return a ZIP file. Check the backend and try again.')
     }
     const blob = await response.blob()
+    if (controller.signal.aborted) throw new DOMException('Request cancelled', 'AbortError')
     if (!blob.size) throw new Error('The export was empty. Please try again.')
     return blob
   } catch (error: unknown) {
     if (timedOut) throw new Error('The draft export timed out. Check the backend and try again.')
     if (isCancelled(error)) throw error
-    if (error instanceof TypeError) throw new Error('Cannot download from the local backend. Check the connection and try again.')
+    if (error instanceof TypeError) throw new Error('Cannot download from the application server. Check the connection and try again.')
     throw error
   } finally {
     window.clearTimeout(timer)
@@ -74,7 +77,7 @@ export function CourseworkExport({ active, dirty, busy }: { active: boolean; dir
 
   return <div className="lab-export">
     <div className="lab-result-heading"><h3>A submission draft, not a finished submission.</h3><Icon name="collection" size={25} /></div>
-    <p className="lab-copy">The ZIP is regenerated locally from the <strong>saved profile and grammar, current saved CSV, and attached screenshots</strong>. It never uses unsaved manual tests or AI answers.</p>
+    <p className="lab-copy">The ZIP is computed on this server from the <strong>selected project’s saved profile and grammar, current saved CSV, and attached screenshots</strong>. It never uses unsaved manual tests or legacy history.</p>
     <ul className="lab-list">
       <li><strong>report.html:</strong> a 25-section printable draft. Review it, then print to PDF; check the final layout reaches 25–30 pages and does not exceed 30.</li>
       <li><strong>presentation.pptx:</strong> a 10-minute draft. Rehearse the live demo and allocate about 3 minutes to each of 3 students.</li>
@@ -153,7 +156,7 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
 
   return <div className="lab-screenshots">
     <h3>Actual screenshots, attached by you</h3>
-    <p className="lab-copy">Capture the running lexer, grammar transformations, table and parser trace with your system screenshot tool. Attach only images you intend to store on this local backend and include in your export. Nothing is captured automatically or sent to Gemini.</p>
+    <p className="lab-copy">Capture the running lexer, grammar transformations, table and parser trace with your system screenshot tool. Attach only images you intend to store privately in this project and include in its export. Nothing is captured automatically or sent to a processing provider.</p>
     <form className="lab-upload" onSubmit={(event) => {
       event.preventDefault()
       if (!dataUrl || !name.trim() || upload.pending || removal.pending || busy) return
@@ -164,7 +167,7 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
         setFileName('')
         setName('')
         if (input.current) input.current.value = ''
-        setNotice('Screenshot saved locally. It will be included in the next draft export.')
+        setNotice('Screenshot saved privately in this project. It will be included in the next draft export.')
       })
     }}>
       <div className="lab-two-columns">
@@ -173,7 +176,7 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
       </div>
       {dataUrl && <div className="lab-image-preview"><img src={dataUrl} alt={`Selected screenshot: ${name || fileName}`} /><span>Preview only · not uploaded yet</span></div>}
       <ErrorNotice message={fileError || upload.error} />
-      <button type="submit" className="button button-secondary" disabled={!dataUrl || !name.trim() || upload.pending || removal.pending || busy || reading}>{upload.pending ? <Spinner label="Uploading screenshot" /> : <Icon name="plus" size={17} />}{upload.pending ? 'Saving screenshot…' : 'Upload screenshot locally'}</button>
+      <button type="submit" className="button button-secondary" disabled={!dataUrl || !name.trim() || upload.pending || removal.pending || busy || reading}>{upload.pending ? <Spinner label="Uploading screenshot" /> : <Icon name="plus" size={17} />}{upload.pending ? 'Saving screenshot…' : 'Save screenshot to project'}</button>
     </form>
     {notice && <p className="lab-save-notice" role="status">{notice}</p>}
     {!screenshots.length ? <p className="lab-copy lab-empty">No screenshots attached. A placeholder or generated image is not evidence of a running analyzer.</p> : <div className="lab-screenshot-grid">{screenshots.map((screenshot) => <figure key={screenshot.id}>
@@ -181,14 +184,14 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
       <figcaption><span>{screenshot.name}</span><button type="button" className="icon-button delete-button" aria-label={`Remove screenshot: ${screenshot.name}`} disabled={upload.pending || removal.pending || busy} onClick={() => { removal.clearError(); setDeleteTarget(screenshot) }}><Icon name="trash" size={17} /></button></figcaption>
     </figure>)}</div>}
     {deleteTarget && <Modal title="Remove this screenshot?" onClose={() => setDeleteTarget(null)} busy={removal.pending} className="delete-modal">
-      <p className="modal-description">“{deleteTarget.name}” will be removed from local storage and future exports. This does not remove your original image file.</p>
+      <p className="modal-description">“{deleteTarget.name}” will be removed from this project and future exports. This does not remove your original image file or existing backups.</p>
       <ErrorNotice message={removal.error} />
       <div className="modal-footer"><button type="button" className="button button-secondary" onClick={() => setDeleteTarget(null)} disabled={removal.pending}>Keep screenshot</button><button type="button" className="button button-danger" disabled={removal.pending} onClick={() => {
         const target = deleteTarget
         void removal.run((signal) => api<void>(`/coursework/screenshots/${encodeURIComponent(target.id)}`, { method: 'DELETE', signal }), () => {
           onChanged((items) => items.filter((item) => item.id !== target.id))
           setDeleteTarget(null)
-          setNotice('Screenshot removed from local evidence.')
+          setNotice('Screenshot removed from this project’s evidence.')
         })
       }}>{removal.pending ? <Spinner label="Removing screenshot" /> : <Icon name="trash" size={17} />}Remove screenshot</button></div>
     </Modal>}

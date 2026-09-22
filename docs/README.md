@@ -1,202 +1,114 @@
-# Mboa business documentation
+# Mboa compiler documentation
 
-Version 2.0 describes the **authenticated hosted web application**, with local
-pre-hosting testing. It replaces the earlier local-only deployment guidance.
+**Version 3.0 · 22 September 2026 · CS4110 SET A**
 
-## Documents and scope
+The current documents describe the **authenticated, non-AI assignment product**.
+Local testing and hosting exercise the same private account/project workflow.
+They supersede the business/AI product guidance without rewriting its history.
 
-- [SRS](srs.pdf), [LaTeX source](srs.tex): 19 business functional requirements,
-  six non-functional requirements, data limits, traceability and owner gates.
-- [SDD](sdd.pdf), [LaTeX source](sdd.tex): accounts, private SQLite projects,
-  request binding, saved work, media, verified recovery, deployment and failure
-  contracts.
-- [UML atlas](uml-atlas.pdf), [source](uml-atlas.tex): **35** full-size sheets,
-  including **11 class views** and **17 sequence views**.
-- [Editable diagrams and rendered images](diagrams): 75 authored production
-  classes in the [exact coverage inventory](diagrams/class-coverage.json).
-  Protocols count; erased TypeScript interfaces, external types and test helpers
-  do not. Actual references carry multiplicities; dependencies do not.
-- [Current operating instructions](../README.md): one-command startup,
-  configuration, backups and hosting.
+## Reading order
 
-Every sequence call/reply has an explicit activation box. The SDD embeds the
-same large-format atlas images rather than shrinking complex diagrams to
-unreadable A4 figures. Sources are rendered locally; project code is not sent
-to online diagram services.
+| Document | Purpose |
+| --- | --- |
+| [SRS](srs.pdf) · [LaTeX](srs.tex) | Assignment traceability, functional/quality requirements, limits, evidence and human completion gates |
+| [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Deterministic compiler, isolated coursework storage, local imports, retained accounts/recovery and source-grounded UML |
+| [UML atlas](uml-atlas.pdf) · [LaTeX](uml-atlas.tex) | Full-size readable diagram sheets, also embedded in the SDD |
+| [PlantUML sources and PNGs](diagrams) | Editable current diagrams and the exact [production class inventory](diagrams/class-coverage.json) |
+| [Operating guide](../README.md) | Startup, truthful assignment workflow, limits, configuration and verification commands |
 
-## Preserved historical material
+The author group is Kwete Ngouba Junior Rayan (**ICTU20241377**),
+Djemtchimo Noukui Bruno Jonatan (**ICTU20241585**) and Amina Boubakary
+(**ICTU20241870**). These document identities do not prepopulate private accounts.
 
-[Previous SRS source](srs-legacy.tex), [previous SDD source](sdd-legacy.tex),
-[previous documentation register](README.legacy.md) and [the archived local
-guide](../README.legacy.md) preserve earlier academic/local context. They are
-not current hosting instructions or evidence that human research was completed.
-The three supplied identities are retained in the archived author records.
+## Evidence and coursework status
 
-The SDD explicitly marks preserved desktop/compiler/coursework diagrams.
-Hosted users cannot access the old global CSV, academic profile, constructed
-examples or screenshot exports. The main business documents contain no school
-submission checklist or proposed academic sprint-completion claim.
+The supplied brief requires 10–15 **real manually transcribed Yaoundé
+statements**, a group of three, lexical specification/frequency/variation,
+a corpus-derived CFG and transformations, FIRST/FOLLOW and an LL(1) table
+(or the LR alternative), an implemented parser tested on the group's own data,
+a 25–30-page final report capped at 30 pages, and a ten-minute presentation.
+Each member presents for three minutes. The due date is **29 September 2026**.
+
+At the 22 September scope review, the legacy CSV and three inspected hosted
+workspaces had **zero entries**. The 179 dictionary rows, 26 constructed practice
+examples and illustrative default grammar are not empirical fieldwork.
+The user's genuine manually transcribed text file is still needed. The app can
+export a **DRAFT HTML report, editable presentation and artifacts**, not certify
+authenticity or final pagination. SRS/SDD PDFs are separate engineering documents,
+not that 25–30-page submission. Screenshots must be actual analyzer captures.
+
+## UML conventions
+
+Every authored production Python/TypeScript class, including protocols and the
+generated lexer `Token`, belongs in `class-coverage.json`. Tests, maintenance
+tools, external framework types and erased TypeScript interfaces are excluded.
+Selected operations use real method names. Function modules/hooks are shown as
+such, not invented service classes.
+
+Real nested/reference associations have cardinalities. Inheritance, protocol
+realization and module dependencies do not acquire artificial multiplicities.
+Each sequence call/reply has explicit, balanced caller/callee activations.
+Historical desktop classes remain covered as preserved production code, with
+their non-default legacy storage boundary made explicit.
+
+All sources render locally; repository code or field data is not uploaded to
+online diagram services. Large sheets retain their native aspect ratio instead
+of being shrunk to unreadable A4 figures.
 
 ## Rebuild and verify
 
-From the repository root, with Java and the already configured local tools:
+Use the existing VS Code **Build documentation PDFs** task, or from the root:
 
 ```powershell
 .\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
 if ($LASTEXITCODE -ne 0) { throw "Documentation build failed." }
 .\.venv\Scripts\python.exe -m tools.check_documentation
 if ($LASTEXITCODE -ne 0) { throw "Documentation verification failed." }
+.\.venv\Scripts\python.exe -m unittest tools.tests.test_documentation_checks -q
 ```
 
-The script renders every PlantUML source, then builds atlas → SRS → SDD.
-Use `-SkipDiagrams` only when sources are unchanged. The VS Code **Build
-documentation PDFs** task performs the full render/build.
+The script renders PlantUML and compiles atlas → SRS → SDD with existing local
+tools. `-SkipDiagrams` is only valid when diagram sources have not changed.
+PlantUML's 8,192-pixel canvas ceiling is a guard, not proof against clipping;
+inspect image bounds after layout changes.
 
-The renderer uses an 8,192-pixel canvas limit because the complete hosted
-component and deployment views exceed PlantUML's 4,096-pixel default. Check
-the full image bounds after layout changes; a successful render alone does
-not establish that a diagram is unclipped.
+The strict checker rejects incomplete/obsolete class inventories, mapped
+classes absent from diagrams, missing or duplicate sheets, wrong atlas page
+mapping, invalid sequence activations, stale embedded image pixels and LaTeX
+layout/reference warnings. New classes or changed architecture are not reasons
+to weaken these checks.
 
-The checker rejects missing production classes, undeclared mapped classes,
-duplicate/missing sheets, unbalanced sequence calls, stale embedded image
-pixels and LaTeX reference/layout warnings. It is not weakened for new classes
-or existing archived source.
+### Current verification
 
-## Verification boundaries
+The final source inventory, diagram/page counts and exact successful validation
+commands will be recorded here after the parallel implementation stabilizes and
+the current documents are rebuilt. Until then, existing generated PDFs must not
+be treated as verification of the new scope.
 
-The current [hosted verification record](evidence/hosted-verification.json)
-records an earlier full run of 360 passing Python tests, 124 frontend unit/component tests, 30 mocked
-browser tests and six real local desktop/mobile workflows. App/test types,
-production build, dependency consistency, workflow syntax and the unchanged
-strict documentation checker passed.
+## Historical material is not current acceptance
 
-The final Python suite also passed from clean tracked sources without private
-CSV/environment files. The [published CI run](https://github.com/Suraku237/francanglaiscompiler/actions/runs/35502314890)
-passed its frontend/browser and documentation jobs, but exposed a Python test
-that depended on the ignored local CSV. The synthetic-fixture correction is
-verified locally; it still needs publication and a passing full CI rerun.
+All `docs/evidence/*.json` records remain unmodified. They describe their original
+source versions, dates, fixtures and limits. Earlier Gemini, translation,
+assistant, browser dictation and cloud-media successes do not exercise the current
+non-AI product; earlier suite totals do not establish a current passing build.
+Historical email/Google/device records also do not replace fresh deployment
+acceptance.
 
-The subsequent Google callback diagnostics update passed **46 account/web-boundary
-tests**. A separate owner-assisted **real Google sign-in** succeeded on loopback
-after reloading the updated private configuration. The callback, authenticated
-Google-linked/verified-email session and private workspace access were checked.
-This local success does not verify production consent/redirect settings,
-explicit account linking, SMTP delivery or the VPS deployment.
+`README.legacy.md`, `srs-legacy.tex`, `sdd-legacy.tex` and the root
+`README.legacy.md` are explicitly archived. Previous business/AI implementation
+history also remains in version control. Obsolete AI diagrams are removed from
+the **current** atlas/inventory rather than presented as active architecture.
+Legacy saved AI history remains private readable/exportable data, not generation.
 
-The later bounded Gemini retry change passed **197 backend tests**. The
-[live translation record](evidence/translation-verification.json) contains one
-successful AI-only French-to-English sample; three measured directions failed
-with provider availability/quota errors, and eight were not attempted. It is
-not an all-language or native-speaker quality certification. The two affected
-sequence views and all published PDFs were rebuilt and strictly verified.
+## Remaining human gates
 
-The [real email acceptance record](evidence/email-verification.json) adds
-**22 passing HTTP checks** with real SMTP and owner-confirmed receipt of three
-test messages. Verification/resend, single-use links, password recovery,
-revocation of old sessions and preserved private data passed in isolated
-temporary storage. The owner's Google account was unaffected. This is local
-SMTP/API acceptance, not a new browser-form run or production VPS mail approval.
-
-The [local document acceptance record](evidence/document-verification.json)
-adds **23 passing import tests** and **4 real desktop/mobile-layout browser
-workflows** with passing app/test type checks. All six local formats passed
-representative previews, draft handoff and explicit unreviewed saving. A
-reproduced PDF page-separator counting defect was corrected at the exact
-40,000-character boundary. Invalid files and missing cloud consent produce
-explicit errors; test accounts and temporary storage were removed. The local
-server was restarted without losing the owner's Google session. No Gemini
-calls or real emails were used, and cloud OCR/transcription remain unverified.
-
-The [audio acceptance record](evidence/audio-verification.json) subsequently
-records **72 targeted backend tests**, **19 audio unit tests**, **4 mocked audio
-browser tests**, and **all 10 current real desktop/mobile-layout workflows**
-passing. Native recording, muted playback, byte-preserving private audio
-storage/download, range requests, access controls, explicit attachment removal
-and consent errors were checked without AI or real SMTP. Existing live accounts
-were reused for the audio scenarios without relaxing production rate limits.
-Only test fixtures/coverage changed for audio; physical devices, browser
-dictation, audible speech output and cloud transcription were separate gates
-at that stage.
-
-The owner subsequently confirmed physical microphone recording and audible
-playback in Chrome/Edge. The reported VS Code-only playback failure was also
-reproduced with a synthetic local WebM blob in its embedded browser, yielding
-media error 4 and an FFmpeg demuxer open failure. This is recorded separately
-from the automated results; use Chrome/Edge for audio acceptance.
-
-The [in-app speech record](evidence/speech-verification.json) then adds
-**36 passing unit/component tests** covering the shared dictation/read-aloud
-hooks, spoken input into translator/assistant requests, speech errors, audio
-focus and opt-in automatic reply reading. App/test type checks passed. The
-owner confirmed French dictation and English read-aloud of a local dictionary
-translation in Chrome/Edge. A separate voice-to-AI translation attempt hit a
-quota/rate limit. The controls were already wired; no production speech change
-was needed. At that point the full live AI path and real assistant replies had
-not been accepted.
-
-The September 21 [live assistant record](evidence/assistant-verification.json)
-adds **two successful real assistant requests** using synthetic business text and
-the unchanged model, with private/reference grounding off. The follow-up correctly
-used the previous complete exchange; no conversation was automatically saved.
-The synthetic browser thread was cleared after verification. **8 new assistant
-component regressions** plus **43 existing speech/translator/request tests**
-passed (**51 total**), with app/test type checks passing. No production assistant
-change was required. Shared speech assertions were preserved while extracting
-reusable chat/browser fixtures; earlier source hashes describe their recorded
-versions. These results do not establish sustained provider quota, completion of
-the structured-translation matrix or a fresh full spoken-AI workflow. Cloud
-media, every installed voice and physical-mobile acceptance were separate gates.
-
-The later [cloud media record](evidence/media-verification.json) verifies
-**three real consented previews** using a synthetic PNG, a one-page image-only PDF
-and a **9.495-second synthetic English PCM WAV**. OCR preserved the French text
-and accents after whitespace normalization, and the speech transcript matched its
-synthesis source exactly. All returned HTTP 200, complete passages and unreviewed
-AI/provider warnings. Fresh consent was required on file changes; no records were
-saved, and only the owned test files/previews were removed. No production media
-change was required. Video, other codecs/layouts, long/noisy recordings, native
-Francanglais/Pidgin quality and sustained provider capacity remain unverified.
-
-The published SRS has **9 pages**, the SDD **46 pages**, and the atlas **35 sheets**.
-All 75 production classes and 17 explicitly activated sequence views passed
-the source/PDF checks. Published PDFs match the final build byte-for-byte.
-
-Run the commands in the [main README](../README.md) to repeat verification.
-The [hosted performance measurements](evidence/hosted-benchmark.json) cover
-1,000 synthetic entries and real private API/SQLite/ZIP operations. All three
-local p95 values are below the 1,000 ms budget on the recorded machine.
-Older files in [evidence](evidence) remain historical, not current totals.
-
-The automated layers are:
-
-1. Isolated Python tests across accounts, API, storage, providers, archive code,
-   desktop behavior, snapshot recovery and maintenance tools.
-2. Frontend app/test type checks, unit/component regressions and production build.
-3. Mocked desktop/mobile browser workflows, including synthetic audio capture.
-4. Real local desktop/mobile browser accounts, local-email verification/reset,
-   cross-tab sign-out, private data, history, revisions, backup replacement and
-   local document extraction/review and native synthetic audio capture/playback.
-5. Workflow syntax, diagram rendering, LaTeX and strict PDF verification.
-
-No automated check here establishes real SMTP deliverability, Google consent,
-Gemini quality, physical microphone/speaker operation, assistive-technology
-acceptance, reference-machine compliance or hosted availability. The original
-desktop benchmark was measured on approximately 31.8 GiB RAM, not 8 GB.
-The hosted benchmark used that same memory configuration and excludes
-network/TLS, browser rendering and concurrent-user load certification.
-
-## Release-owner checklist
-
-- Hosting/domain/HTTPS, durable private storage, trusted proxy, monitoring,
-  service account and protected off-host recovery.
-- Production VPS SMTP delivery/recovery and sender/domain checks (local SMTP and
-  inbox acceptance passed); production Google consent/domain/redirect settings
-  and explicit account linking (local Google sign-in passed); provider budget
-  and authorized non-sensitive trials.
-- Reviewed business terminology/French meanings and redistribution permission
-  for supplied references.
-- Physical devices, real mobile browsers, browser voice and assistive technology.
-- Privacy, retention/deletion, terms/support and approved capacity/recovery goals.
-- Publication of the final local test fix and verification records, a passing
-  complete remote CI workflow and launch approval. Local success is not a public
-  deployment.
+- Supply and review the real manual statements, provenance, consent and exact
+  transcription; references and synthetic tests cannot substitute.
+- Justify the CFG against those statements; inspect labels, unknowns, table
+  conflicts, accepted/rejected cases and limitations.
+- Capture real screenshots, author the linguistic discussion, check final
+  25–30-page pagination and rehearse the ten-minute presentation.
+- For public hosting, validate HTTPS, SMTP, Google configuration if enabled,
+  browser recording/read-aloud, persistent storage and off-host recovery.
+- Do not call the report finished or claim remote CI/provider tests without
+  fresh evidence. No provider calls are required for the compiler workflow.

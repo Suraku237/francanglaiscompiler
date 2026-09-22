@@ -96,7 +96,7 @@ export function WorkspaceSettings({ active, account, googleEnabled, projects, se
         {account.google_linked && <span>Google account linked</span>}
       </div>
     </section>}
-    <section className="workspace-section"><h2>Projects</h2><p>Each project has separate terminology and saved work. All projects belong only to your account.</p>
+    <section className="workspace-section"><h2>Projects</h2><p>Each project has its own collection, grammar, coursework profile, screenshots, recordings and legacy history. All projects belong only to your account.</p>
       {selectedProject !== 'default' && <p className="helper-text">Switch to another project before deleting the active project.</p>}
       <label>New project name<input value={projectName} maxLength={100} onChange={(event) => setProjectName(event.target.value)} /></label>
       <button className="button button-primary" type="button" disabled={actions.pending || !projectName.trim()} onClick={() => {
@@ -109,26 +109,26 @@ export function WorkspaceSettings({ active, account, googleEnabled, projects, se
           void actions.run((signal) => api(`/workspace/projects/${project.id}`, { method: 'PATCH', body: { name: renameValue }, signal }), updatedProjects)
         }}>{renaming === project.id ? 'Save project name' : 'Rename project'}</button>
           {project.id !== 'default' && <button className="button button-secondary" type="button" disabled={actions.pending || project.id === selectedProject} onClick={() => {
-            if (!window.confirm(`Delete "${project.name}"? Only empty projects without history can be deleted.`)) return
+            if (!window.confirm(`Delete "${project.name}"? Only projects without collection records, saved history or coursework evidence can be deleted.`)) return
             void actions.run((signal) => api(`/workspace/projects/${project.id}`, { method: 'DELETE', signal }), () => { updatedProjects(); setNotice('Empty project deleted.') })
           }}>Delete empty project</button>}
         </div></div>)}
     </section>
     <section className="workspace-section"><h2>Change history and recovery</h2>
-      <p>Latest 200 terminology revisions in the selected project. Restoring a revision records another change and marks the entry unreviewed.</p>
-      {revisions?.revisions.length === 0 && <p>No terminology changes in this project yet.</p>}
+      <p>Latest 200 collection revisions in the selected project. Restoring a revision records another change and marks the entry unreviewed.</p>
+      {revisions?.revisions.length === 0 && <p>No collection changes in this project yet.</p>}
       {revisions?.revisions.map((revision) => <div className="workspace-row" key={revision.id}>
         <div><strong>{revision.data.text}</strong><p>{revision.action} · {new Date(revision.timestamp).toLocaleString()}</p><p>{revision.data.french_gloss || revision.data.english_gloss}</p></div>
         <button type="button" className="button button-secondary" disabled={actions.pending} onClick={() => {
-          if (!window.confirm('Restore this terminology version? It may replace the current version. The restored entry will need review.')) return
+          if (!window.confirm('Restore this collection version? It may replace the current version. The restored entry will need review.')) return
           void actions.run((signal) => api(`/workspace/revisions/${revision.id}/restore`, {
             method: 'POST', body: { expected_version: revisions.workspace_version }, signal,
-          }), () => { setNotice('Revision restored as unreviewed. Refresh Terminology to review it.'); refresh() })
+          }), () => { setNotice('Revision restored as unreviewed. Refresh Collection to review it.'); refresh() })
         }}>Restore revision</button>
       </div>)}
     </section>
     <section className="workspace-section"><h2>Private backups</h2>
-      <p>Backups contain every project, saved item, terminology revision and recording in your account, not your password or sessions. Downloads contain private data: store them securely.</p>
+      <p>Backups contain every project, collection revision, raw recording, legacy saved item, coursework profile and attached screenshot in your account, not your password or sessions. Saved grammars and report writing are included; unsaved browser drafts are not. Downloads contain private data: store them securely.</p>
       <div className="workspace-actions"><button type="button" className="button button-primary" disabled={actions.pending} onClick={() => {
         void actions.run((signal) => api('/workspace/backups', { method: 'POST', signal, timeout: 60000 }), () => { setNotice('Backup created and verified.'); refresh() })
       }}>Create verified backup</button></div>
@@ -158,8 +158,9 @@ export function WorkspaceSettings({ active, account, googleEnabled, projects, se
         void actions.run((signal) => api<Preview>('/workspace/backups/preview', { method: 'POST', body, signal, timeout: 60000 }), setPreview)
       }}>Validate and preview backup</button>
       {preview && <div className="workspace-section"><h3>Restore preview</h3>
-        <ul>{Object.entries(preview.counts).map(([key, count]) => <li key={key}>{count} {key}</li>)}</ul>
-        {preview.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+        <ul aria-label="Backup contents">{Object.entries(preview.counts).map(([key, count]) => <li key={key}>{count} {key === 'coursework' ? 'coursework profiles' : key === 'screenshots' ? 'coursework screenshots' : key}</li>)}</ul>
+        <div aria-label="Restore warnings">{preview.warnings.map((warning) => <p className="notice notice-subtle" key={warning}>{warning}</p>)}</div>
+        <p>Replacement includes project grammars, report writing and screenshot evidence. Read warnings about older backups: missing coursework is not reconstructed or inferred.</p>
         <label>Type REPLACE to confirm<input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" /></label>
         <button type="button" className="button button-danger" disabled={actions.pending || confirmation !== 'REPLACE'} onClick={() => {
           void actions.run((signal) => api<{ pre_restore_backup_id: string }>('/workspace/backups/restore', {

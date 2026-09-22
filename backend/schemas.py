@@ -1,15 +1,12 @@
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from compiler.lexer.lexicon import TERMINAL_CATEGORIES
 
-Language = Literal["fr", "en"]
 TranslationLanguage = Literal["fr", "en", "francanglais", "pidgin"]
 DatasetLanguage = Literal["francanglais", "pidgin", "mixed", "unspecified"]
 ReviewStatus = Literal["unreviewed", "approved"]
-Origin = Literal["dataset", "dictionary", "examples", "local_sources", "ai_with_dataset", "ai_with_sources", "ai"]
-EvidenceSource = Literal["dataset", "dictionary", "examples"]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
 Gloss = Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
@@ -17,19 +14,6 @@ Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)
 StoredText = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
 StoredGloss = Annotated[str, StringConstraints(max_length=4000)]
 StoredNotes = Annotated[str, StringConstraints(max_length=2000)]
-
-
-class Evidence(BaseModel):
-    id: str
-    text: str
-    language: DatasetLanguage
-    french_gloss: str
-    english_gloss: str
-    match_type: Literal["exact", "phrase", "token"]
-    source: EvidenceSource = "dataset"
-    source_document: str = ""
-    source_line: int | None = None
-    aliases: list[str] = Field(default_factory=list)
 
 
 class DictionaryEntry(BaseModel):
@@ -79,47 +63,19 @@ class PracticeResponse(BaseModel):
     sources: list[str]
 
 
-class Coverage(BaseModel):
-    matched_terms: list[str] = Field(default_factory=list)
-    unmatched_terms: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-
-
 class RequestModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
 class AnalyzeRequest(RequestModel):
-    text: Text
+    text: StoredText
 
-
-class TranslationRequest(AnalyzeRequest):
-    source_language: TranslationLanguage = "fr"
-    target_language: TranslationLanguage = "francanglais"
-    tone: Literal["everyday", "polite", "street"] = "everyday"
-    explanation_language: Language = "en"
-    use_dataset: bool = True
-    use_dictionary: bool = True
-    use_examples: bool = False
-    allow_ai: bool = True
-
-    @model_validator(mode="after")
-    def different_languages(self) -> Self:
-        if self.source_language == self.target_language:
-            raise ValueError("Source and target languages must differ.")
-        return self
-
-
-class VocabularyItem(BaseModel):
-    term: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
-    meaning: Text
-
-
-class TranslationContent(BaseModel):
-    translation: Text
-    explanation: Text
-    vocabulary: list[VocabularyItem] = Field(max_length=12)
-    note: Notes
+    @field_validator("text")
+    @classmethod
+    def nonblank_text(cls, text: str) -> str:
+        if not text.strip():
+            raise ValueError("Text must not be blank.")
+        return text
 
 
 class TokenResult(BaseModel):
@@ -131,50 +87,6 @@ class AnalysisResult(BaseModel):
     tokens: list[TokenResult]
     code_mixed_spans: list[str]
     verb_phrases: list[str]
-
-
-class TranslationResponse(TranslationContent):
-    source_language: TranslationLanguage
-    target_language: TranslationLanguage
-    model: str
-    analysis: AnalysisResult
-    origin: Origin
-    evidence: list[Evidence] = Field(default_factory=list)
-    coverage: Coverage = Field(default_factory=Coverage)
-
-
-class ChatMessage(RequestModel):
-    role: Literal["user", "assistant"]
-    content: Text
-
-
-class ChatRequest(RequestModel):
-    message: Text
-    language: Language = "en"
-    use_dataset: bool = True
-    use_dictionary: bool = True
-    use_examples: bool = False
-    source_language: TranslationLanguage = "francanglais"
-    target_language: TranslationLanguage = "en"
-    history: list[ChatMessage] = Field(default_factory=list, max_length=12)
-
-    @model_validator(mode="after")
-    def validate_history(self) -> Self:
-        if len(self.history) % 2:
-            raise ValueError("History must contain complete user/assistant exchanges.")
-        for index, message in enumerate(self.history):
-            if message.role != ("user" if index % 2 == 0 else "assistant"):
-                raise ValueError("History must alternate user and assistant messages.")
-        if sum(len(message.content) for message in self.history) > 24000:
-            raise ValueError("Conversation history must not exceed 24000 characters.")
-        return self
-
-
-class ChatResponse(BaseModel):
-    reply: Text
-    model: str
-    origin: Origin = "ai"
-    evidence: list[Evidence] = Field(default_factory=list)
 
 
 class EntryCreate(RequestModel):
@@ -252,8 +164,7 @@ class DatasetResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
-    ai_configured: bool
-    model: str
+    mode: Literal["compiler"] = "compiler"
 
 
 class MetadataResponse(BaseModel):

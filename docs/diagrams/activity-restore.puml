@@ -3,7 +3,7 @@
 title Private workspace restore: guarded replacement and failure paths
 start
 :Signed-in owner selects backup ZIP;
-:Validate byte limits, paths, manifest,\nrecord schema and referenced audio;
+:Validate byte limits, paths, manifest,\nformat-2 records/screenshots and audio;\nnormalize legacy format 1;
 if (Archive valid?) then (yes)
   :Show counts and replacement warning;\nstore one-hour owner-scoped preview;
 else (no)
@@ -29,7 +29,7 @@ else (no)
   stop
 endif
 if (Audio staging succeeded?) then (yes)
-  :Replace logical rows in one\nversion-checked SQLite transaction;
+  :Replace project/entry/history/revision/\ncoursework/screenshot rows in one\nversion-checked SQLite transaction;
 else (no)
   :Remove only newly staged files;\nrelease lock and report failure;
   stop
@@ -49,5 +49,6 @@ legend bottom
   Branch guards are exclusive; each final node ends this attempt.
   A cleanup error is explicit and does not imply a committed transaction rolled back.
   This activity does not delete account credentials or other users' workspaces.
+  The workspace document is format 2; the outer archive manifest remains format 1.
 endlegend
 @enduml

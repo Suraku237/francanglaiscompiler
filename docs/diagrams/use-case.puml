@@ -1,66 +1,67 @@
 @startuml
 !include theme.iuml
 left to right direction
-title Hosted business user goals and supporting services
+title Assignment user goals and retained identity/recovery
 actor "Visitor (signed out)" as Visitor
-actor "Account owner (signed in)" as Owner
+actor "Group member / private account owner" as Member
 actor "Email service" as Mail
 actor "Google identity service" as Google
-actor "Gemini provider" as AI
-rectangle "Mboa private language workspace" {
-  usecase "Register and verify email" as Register
-  usecase "Sign in with password" as Login
-  usecase "Sign in / explicitly link Google" as OAuth
-  usecase "Recover password" as Recover
-  usecase "Manage private projects\nand terminology" as Terms
+rectangle "Mboa non-AI compiler workspace" {
+  usecase "Register / verify / sign in /\nrecover account" as Account
+  usecase "Optional Google sign-in /\nexplicit account linking" as OAuth
+  usecase "Manage private projects" as Projects
+  usecase "Save exact manual statements\nand provenance" as Collect
   usecase "Record / attach / play audio" as Audio
-  usecase "Review terminology approval" as Review
-  usecase "Preview documents or media" as Preview
-  usecase "Consented cloud transcription" as Cloud
-  usecase "Translate with source labels" as Translate
-  usecase "Optional AI suggestion" as Suggest
-  usecase "Search reference dictionary" as Dictionary
-  usecase "Ask the business assistant" as Chat
-  usecase "Save / reopen / export /\ndelete selected work" as History
-  usecase "Restore a terminology revision" as Revision
+  usecase "Review lexical annotations" as Review
+  usecase "Preview local text documents" as Import
+  usecase "Read dictionary / constructed practice" as Reference
+  usecase "Tokenize corpus and inspect\nfrequency / variation / phrases" as Lexical
+  usecase "Construct and justify own-data CFG" as CFG
+  usecase "Compute transformations,\nFIRST/FOLLOW and LL(1) table" as Grammar
+  usecase "Parse own tokenized inputs\nand inspect accept/reject traces" as Parse
+  usecase "Upload genuine screenshots;\nauthor profile / discussion" as Evidence
+  usecase "Export DRAFT report / slides /\nsource and analysis artifacts" as Export
+  usecase "Read/export preserved legacy history" as History
+  usecase "Restore entry revisions" as Revision
   usecase "Create / schedule / download backup" as Backup
   usecase "Preview and confirm workspace restore" as Restore
-  usecase "Validate archive integrity\nand record limits" as Validate
+  usecase "Validate archive integrity\nand data bounds" as Validate
 }
-Visitor -- Register
-Visitor -- Login
+Visitor -- Account
 Visitor -- OAuth
-Visitor -- Recover
-Owner -- OAuth
-Owner -- Terms
-Owner -- Audio
-Owner -- Review
-Owner -- Preview
-Owner -- Translate
-Owner -- Dictionary
-Owner -- Chat
-Owner -- History
-Owner -- Revision
-Owner -- Backup
-Owner -- Restore
-Mail -- Register
-Mail -- Recover
+Member -- OAuth
+Member -- Projects
+Member -- Collect
+Member -- Audio
+Member -- Review
+Member -- Import
+Member -- Reference
+Member -- Lexical
+Member -- CFG
+Member -- Grammar
+Member -- Parse
+Member -- Evidence
+Member -- Export
+Member -- History
+Member -- Revision
+Member -- Backup
+Member -- Restore
+Mail -- Account
 Google -- OAuth
-AI -- Suggest
-AI -- Cloud
-AI -- Chat
-Suggest ..> Translate : <<extend>>\n[no exact answer and AI enabled]
-Cloud ..> Preview : <<extend>>\n[needed and explicitly consented]
+Parse ..> Grammar : <<include>>
+Export ..> Lexical : <<include>>
+Export ..> Grammar : <<include>>
 Backup ..> Validate : <<include>>
 Restore ..> Validate : <<include>>
-note bottom of Owner
-  These are session states, not team-access roles.
-  Private goals require a verified account.
-  Saved does not mean approved.
+note bottom of Member
+  Three names describe the assignment group,
+  not shared-team access permissions.
+  Each private goal requires a verified account.
 end note
 legend bottom
-  Include points to mandatory reused behavior; extend points to its base use case.
-  Preview never automatically saves or approves terminology.
-  Scheduling requires a running server; infrastructure operations are not an in-app admin role.
+  Include points to mandatory reused behavior; no dependency is decorated with cardinalities.
+  Import/reference lookup never automatically saves or authenticates a field statement.
+  Real listening/manual transcription, final pagination and presentation rehearsal remain human work.
+  No AI, translation, chat, OCR, remote transcription or browser dictation use case exists.
 endlegend
 @enduml

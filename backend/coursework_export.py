@@ -16,7 +16,7 @@ from data_collector import dataset
 
 from .coursework import BRIEF, analyze_coursework, corpus_stats, lexical_spec, read_corpus
 from .coursework_models import ProjectProfile
-from .coursework_store import list_screenshots, load_project, screenshot_path
+from .coursework_store import list_screenshots, load_project, screenshot_bytes
 from .dictionary import DICTIONARY_PATHS
 from .examples import EXAMPLES_PATH
 
@@ -207,7 +207,7 @@ def build_presentation(profile: ProjectProfile, analysis: dict) -> bytes:
     grammar, lexical = analysis["grammar"], analysis["lexical"]
     slides = [
         ("Real speech, a small compiler", [BRIEF["course"], BRIEF["title"], " / ".join(name or "Add member" for name in profile.group_members)]),
-        ("Our fieldwork and topic coverage", [f"{len(lexical['statements'])} saved expressions (check the 10-15 sentence target)", profile.collection_method[:500] or "Add where, when and how you manually transcribed real speech.", "Do not present AI examples as collected observations."]),
+        ("Our fieldwork and topic coverage", [f"{len(lexical['statements'])} saved expressions (check the 10-15 sentence target)", profile.collection_method[:500] or "Add where, when and how you manually transcribed real speech.", "Do not present constructed examples as collected observations."]),
         ("Lexical specification", ["Regex segmentation preserves raw forms, numbers and unsupported symbols.", "Nouns, verbs, slang and function words use small lexicons.", "DEMO: inspect a collected statement's token table and code-mixed spans."]),
         ("Frequency and variation", [f"{lexical['total_tokens']} tokens in the current corpus.", ", ".join(f"{r['token']}: {r['count']}" for r in lexical["frequencies"][:10]) or "Collect statements to obtain real frequencies.", "Spelling/case/accent groups are candidates, not equal meanings."]),
         ("Our context-free grammar", [profile.grammar_rationale[:550] or "Explain rules using specific collected statements.", _rules(grammar["original"])[:700], "Grammar terminals are lexer categories."]),
@@ -247,7 +247,7 @@ def export_bundle() -> bytes:
     profile = load_project()
     entries = read_corpus()
     analysis = analyze_coursework(profile.grammar, entries=entries)
-    images = [(item["name"], screenshot_path(item["id"]).read_bytes()) for item in list_screenshots()]
+    images = [(item["name"], screenshot_bytes(item["id"])) for item in list_screenshots()]
     lexical = analysis["lexical"]
     tokens = [
         {"entry_id": statement["id"], "sentence": statement["text"], **token}

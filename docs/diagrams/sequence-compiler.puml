@@ -1,6 +1,6 @@
 @startuml
 !include theme.iuml
-title Deterministic grammar analysis and category-token parsing
+title Authenticated compiler lab: grammar analysis and category-token parsing
 hide footbox
 autonumber
 actor Learner
@@ -15,6 +15,7 @@ Learner -> Web : Analyze corpus or Parse practice input
 activate Web
 Web -> API : POST /api/coursework/analyze or /parse
 activate API
+note over API : Identity and selected-project dataset/coursework contexts are already bound.
 opt Corpus analysis
   API -> Lexer : read_corpus()
   activate Lexer
@@ -44,7 +45,7 @@ else Corpus snapshot available or practice-only request
   else Valid result (possibly not LL(1))
     API -> Lexer : lexical_report(snapshot) or tokens_for(practice text)
     activate Lexer
-    note over Lexer : Practice reads the reviewed word map from the CSV.\nRegex, annotations, lists, heuristics; preserve UNKNOWN.
+    note over Lexer : Practice uses the selected project's reviewed word map.\nRegex, annotations, lists, heuristics; preserve UNKNOWN.
     Lexer --> API : Tokens/report or storage failure
     deactivate Lexer
     opt Lexical work succeeded
@@ -77,6 +78,7 @@ deactivate Learner
 legend bottom
   Module self-calls condense internal function boundaries.
   No provider determines parsing. Corpus/grammar fit is not linguistic authenticity.
-  Existing corpus/media stay unchanged; absent storage can bootstrap an empty header.
+  Corpus/media stay unchanged; a new private project starts with no statements.
+  Illustrative grammar/practice and successful parsing do not establish authentic fieldwork.
 endlegend
 @enduml

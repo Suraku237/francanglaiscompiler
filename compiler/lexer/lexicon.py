@@ -23,6 +23,9 @@ TOKEN_REGEX_RULES = [
     ("PUNCTUATION", r"^[.,!?;:\"()]+$"),
 ]
 
+# Combining diacritical-mark blocks, retained with a preceding letter.
+COMBINING_MARKS = r"\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f"
+
 # --- Function words (closed-class, small enough to enumerate exhaustively) ---
 
 FRENCH_FUNCTION_WORDS = {
@@ -70,11 +73,11 @@ SLANG_WORDS = {
 #     since they don't classify sensibly one token at a time) ---
 
 VERB_PHRASES = [
-    r"\bdrop me\b",
-    r"\bhala me\b(?:\s+\w+){0,3}\s+money\b",
-    r"\bdey for front\b",
-    r"\bdon spoil\b",
-    r"\bdon refuse\b",
-    r"\bcome down\b",
-    r"\bmove small\b",
+    r"\bdrop\s+me\b",
+    rf"\bhala\s+me\b(?:\s+[\w{COMBINING_MARKS}]+){{0,3}}\s+money\b",
+    r"\bdey\s+for\s+front\b",
+    r"\bdon\s+spoil\b",
+    r"\bdon\s+refuse\b",
+    r"\bcome\s+down\b",
+    r"\bmove\s+small\b",
 ]

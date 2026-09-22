@@ -1,0 +1,62 @@
+@startuml
+!include theme.iuml
+title Genuine screenshot evidence: normalized write and owner/project-scoped bytes
+hide footbox
+autonumber
+actor Member
+participant "CourseworkScreenshots\n<<React function>>" as Web
+participant "web/auth boundary + coursework_api" as API
+participant "coursework_store.py" as Images
+participant "workspace : WorkspaceStore" as Store
+
+activate Member
+Member -> Web : select actual analyzer capture and Upload
+activate Web
+Web -> API : POST /api/coursework/screenshots\n{name, data_url}; session/Origin/CSRF/project
+activate API
+note over API : Bound screenshot JSON to 3 MiB; ordinary JSON stays 1 MiB.\nBind identity/project before processing image data.
+API -> Images : add_screenshot(request)
+activate Images
+Images -> Images : validate base64 and PNG/JPEG; decode;\nlimit 2 MiB / 12 MP; normalize to PNG
+activate Images
+Images --> Images : normalized PNG <=2 MiB or validation error
+deactivate Images
+opt Image valid
+  Images -> Store : save_coursework_screenshot(uuid_hex, name, content)
+  activate Store
+  note over Store : Revalidate PNG; under account lock enforce six per project;\ninsert ID/project/name/base64 row and bump version atomically.
+  Store --> Images : saved or capacity/storage error
+  deactivate Store
+end
+Images --> API : ID/name/private URL with project query, or error
+deactivate Images
+API --> Web : 201 metadata or safe failure
+deactivate API
+Web --> Member : actual thumbnail or retryable upload feedback
+deactivate Web
+
+Member -> Web : view saved screenshot
+activate Web
+Web -> API : GET /api/coursework/screenshots/{id}?project={selected}\naccount cookie
+activate API
+API -> Images : screenshot_bytes(id)
+activate Images
+Images -> Store : read_coursework_screenshot(id)
+activate Store
+note over Store : Query ID AND project_id in authenticated account database.
+Store --> Images : decoded bytes or 404
+deactivate Store
+Images --> API : PNG bytes or safe failure
+deactivate Images
+API --> Web : image/png; private,no-store; nosniff / error
+deactivate API
+Web --> Member : real saved capture or access/missing error
+deactivate Web
+deactivate Member
+legend bottom
+  A selected project never selects another user's account directory.
+  Normal requests do not use legacy screenshot paths; stored bytes are not publicly served files.
+  Upload/delete mutate the workspace version; a prior restore preview becomes stale.
+  Image validation cannot prove capture authenticity; the student must supply genuine evidence.
+endlegend
+@enduml

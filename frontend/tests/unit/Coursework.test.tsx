@@ -7,7 +7,7 @@ import { deferred, jsonResponse, requestBody } from '../helpers'
 
 async function renderLab() {
   vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkState()))
-  const view = render(<Coursework active aiAvailable={false} />)
+  const view = render(<Coursework active />)
   await screen.findByLabelText('Context-free grammar')
   return { ...view, user: userEvent.setup() }
 }
@@ -43,6 +43,51 @@ describe('coursework draft, computation and persistence boundaries', () => {
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps a raw handoff unchanged, only applies new handoff ids, and never submits it automatically', async () => {
+    const { user, rerender } = await renderLab()
+    const raw = '  Mbom,\tTu  es where?\n\n'
+    const incoming = { id: 1, text: raw, kind: 'import' as const }
+    rerender(<Coursework active incomingText={incoming} />)
+    expect(screen.getByLabelText('Manual parser test')).toHaveValue(raw)
+    expect(screen.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+    expect(fetch).toHaveBeenCalledOnce()
+    await replaceText(user, screen.getByLabelText('Manual parser test'), 'My later draft')
+    rerender(<Coursework active incomingText={{ ...incoming }} />)
+    expect(screen.getByLabelText('Manual parser test')).toHaveValue('My later draft')
+    rerender(<Coursework active incomingText={{ ...incoming, id: 2, kind: 'examples' }} />)
+    expect(screen.getByLabelText('Manual parser test')).toHaveValue(raw)
+    expect(screen.getByText(/Synthetic example copied unchanged/)).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
+  it('sends raw input to the lexer on an explicit click and invalidates the result on input changes', async () => {
+    const { user } = await renderLab()
+    const raw = '  DROP \t me\n'
+    await replaceText(user, screen.getByLabelText('Manual parser test'), raw)
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({
+      tokens: [{ text: 'DROP', category: 'VERB' }, { text: 'me', category: 'UNKNOWN' }],
+      code_mixed_spans: [], verb_phrases: ['DROP \t me'],
+    }))
+    await user.click(screen.getByRole('button', { name: 'Analyze tokens' }))
+    expect(await screen.findByRole('heading', { name: 'Manual lexical result' })).toBeInTheDocument()
+    expect(requestBody(vi.mocked(fetch).mock.calls[1])).toEqual({ text: raw })
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe('/api/analyze')
+    await user.type(screen.getByLabelText('Manual parser test'), '!')
+    expect(screen.queryByRole('heading', { name: 'Manual lexical result' })).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('exposes absent corpus and starter limitations without inventing members or collection claims', async () => {
+    await renderLab()
+    expect(screen.getByText('No collected corpus in this project yet.')).toBeInTheDocument()
+    expect(screen.getByText(/starter, not a grammar derived from your data/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Group member 1')).toHaveValue('')
+    expect(screen.getByLabelText('Collection method & provenance')).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+    expect(screen.queryByRole('button', { name: /AI|explain|suggest/i })).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('saves a snapshot, but edits made while saving remain dirty after the evidence refresh', async () => {
     const { user } = await renderLab()
     await replaceText(user, screen.getByLabelText('Group member 1'), 'Fixture learner')
@@ -58,7 +103,7 @@ describe('coursework draft, computation and persistence boundaries', () => {
 
     await replaceText(user, screen.getByLabelText('Linguistic discussion'), 'Later unsaved writing')
     await act(async () => saving.resolve(jsonResponse({ saved: true })))
-    expect(await screen.findByText(/Project saved locally, including the grammar/)).toBeInTheDocument()
+    expect(await screen.findByText(/Project saved privately on this server, including the grammar/)).toBeInTheDocument()
     expect(screen.getByLabelText('Linguistic discussion')).toHaveValue('Later unsaved writing')
     expect(screen.getByText('Unsaved project changes')).toBeInTheDocument()
     expect(exportButton()).toBeDisabled()
@@ -131,7 +176,7 @@ describe('coursework draft, computation and persistence boundaries', () => {
     const oldAnalysis = deferred<Response>()
     vi.mocked(fetch).mockReturnValueOnce(oldAnalysis.promise)
     await user.click(screen.getByRole('button', { name: 'Analyze grammar & saved corpus' }))
-    rerender(<Coursework active={false} aiAvailable={false} />)
+    rerender(<Coursework active={false} />)
     expect(vi.mocked(fetch).mock.calls[1]?.[1]?.signal?.aborted).toBe(true)
     await act(async () => oldAnalysis.resolve(jsonResponse(courseworkAnalysis())))
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkState()))

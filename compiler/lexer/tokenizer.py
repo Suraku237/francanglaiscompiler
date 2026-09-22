@@ -20,8 +20,22 @@ Token = namedtuple("Token", ["text", "category"])
 # Segments text into tokens. A "word" is letters plus internal
 # apostrophes/hyphens (so "j'ai", "n'y", "go-slow" stay single tokens);
 # numbers and punctuation are their own token types.
+_LETTERS = rf"[^\W\d_]+(?:[{lexicon.COMBINING_MARKS}]+[^\W\d_]*)*"
 TOKEN_SPLIT_RE = re.compile(
-    r"[^\W\d_]+(?:['\u2019-][^\W\d_]+)*|\d+(?:[.,]\d+)?|[.,!?;:\"()]|\S"
+    rf"{_LETTERS}(?:['\u2018\u2019\u02bc-]{_LETTERS})*"
+    r"|\d+(?:[.,]\d+)?|[.,!?;:\"()]|\S"
+)
+_APOSTROPHES = str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
+_TOKEN_REGEX_RULES = tuple(
+    (category, re.compile(pattern)) for category, pattern in lexicon.TOKEN_REGEX_RULES
+)
+_WORD_CONTINUATION = rf"[\w{lexicon.COMBINING_MARKS}'\u2018\u2019\u02bc-]"
+_VERB_PHRASES = tuple(
+    (
+        re.compile(rf"(?<!{_WORD_CONTINUATION})(?:{pattern})(?!{_WORD_CONTINUATION})", re.IGNORECASE),
+        re.compile(pattern),
+    )
+    for pattern in lexicon.VERB_PHRASES
 )
 
 
@@ -31,23 +45,26 @@ def tokenize(text: str):
     return TOKEN_SPLIT_RE.findall(text)
 
 
+def _normalize_word(text: str) -> str:
+    if text.isascii():
+        return text.lower()
+    return unicodedata.normalize("NFC", text.casefold()).translate(_APOSTROPHES)
+
+
 def normalize_text(text: str) -> str:
     """Normalize matching only, preserving accents and the original stored text."""
-    return " ".join(unicodedata.normalize("NFC", text.casefold()).translate(
-        str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
-    ).split())
+    return " ".join(_normalize_word(text).split())
 
 
 def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None) -> str:
     """Classifies a single token into one lexical category."""
-    lower = token.lower()
-
-    for category, pattern in lexicon.TOKEN_REGEX_RULES:
-        if re.match(pattern, token):
+    for category, pattern in _TOKEN_REGEX_RULES:
+        if pattern.fullmatch(token):
             return category
 
+    lower = _normalize_word(token)
     if learned_lexicon is not None:
-        learned = learned_lexicon.get(normalize_text(token))
+        learned = learned_lexicon.get(lower)
         if learned in lexicon.TERMINAL_CATEGORIES:
             return learned
 
@@ -75,12 +92,14 @@ def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None)
 
 
 def find_verb_phrases(text: str):
-    """Returns any known multi-word verb phrases/idioms found in the raw text."""
-    lower = text.lower()
+    """Return raw, source-ordered phrase annotations, never collapsed tokens."""
     found = []
-    for pattern in lexicon.VERB_PHRASES:
-        found.extend(m.group(0) for m in re.finditer(pattern, lower))
-    return found
+    for pattern, normalized_pattern in _VERB_PHRASES:
+        for match in pattern.finditer(text):
+            # Unicode IGNORECASE is broader than casefold (e.g. dotless i).
+            if normalized_pattern.fullmatch(normalize_text(match.group(0))):
+                found.append((match.start(), match.group(0)))
+    return [phrase for _, phrase in sorted(found, key=lambda item: item[0])]
 
 
 # Which single-token categories count as "French" vs "English" vs "Pidgin"

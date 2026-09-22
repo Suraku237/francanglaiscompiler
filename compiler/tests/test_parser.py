@@ -8,6 +8,7 @@ from unittest.mock import patch
 from typing import Any
 
 from compiler.lexer.tokenizer import analyze_sentence
+from compiler.parser import service
 from compiler.parser.analysis import (
     calculate_first,
     calculate_follow,
@@ -428,7 +429,64 @@ class ConflictAndContractTests(unittest.TestCase):
         self.assertNotEqual(noun["table"], verb["table"])
 
 
+class DefaultAnalysisCacheTests(unittest.TestCase):
+    def setUp(self) -> None:
+        service._default_analysis_json.cache_clear()
+        self.addCleanup(service._default_analysis_json.cache_clear)
+
+    def test_only_exact_public_default_is_prepared_once(self) -> None:
+        with patch("compiler.parser.service._analyze_grammar", wraps=service._analyze_grammar) as prepare:
+            first = analyze_grammar(DEFAULT_GRAMMAR)
+            second = analyze_grammar(DEFAULT_GRAMMAR)
+        self.assertEqual(first, second)
+        prepare.assert_called_once_with(DEFAULT_GRAMMAR)
+        self.assertEqual(service._default_analysis_json.cache_info().maxsize, 1)
+        self.assertIsInstance(service._default_analysis_json(), str)
+
+    def test_mutating_returned_default_analysis_cannot_poison_the_cache(self) -> None:
+        first = analyze_grammar(DEFAULT_GRAMMAR)
+        expected = deepcopy(first)
+        first["table"]["Sentence"].clear()
+        first["steps"][0]["after"].clear()
+        first["original"].clear()
+        first["first"].clear()
+        first["warnings"].append("caller-specific")
+        self.assertEqual(analyze_grammar(DEFAULT_GRAMMAR), expected)
+        self.assertTrue(parse_tokens(DEFAULT_GRAMMAR, token_stream("VERB"))["accepted"])
+
+    def test_custom_grammars_and_private_comments_are_never_cached(self) -> None:
+        custom = DEFAULT_GRAMMAR + "\n# private project annotation"
+        with patch("compiler.parser.service._analyze_grammar", wraps=service._analyze_grammar) as prepare:
+            first = analyze_grammar(custom)
+            first["warnings"].append("private result mutation")
+            second = analyze_grammar(custom)
+            analyze_grammar("S -> NOUN")
+            analyze_grammar("S -> VERB")
+        self.assertEqual(prepare.call_count, 4)
+        self.assertNotIn("private result mutation", second["warnings"])
+        self.assertEqual(service._default_analysis_json.cache_info().currsize, 0)
+
+    def test_warming_default_does_not_bypass_custom_limits_or_conflict_refusal(self) -> None:
+        analyze_grammar(DEFAULT_GRAMMAR)
+        with self.assertRaises(GrammarError):
+            analyze_grammar("S -> NOUN\n#" + "x" * MAX_GRAMMAR_CHARACTERS)
+        conflicting = "S -> A | B\nA -> NOUN\nB -> NOUN"
+        self.assertFalse(parse_tokens(conflicting, token_stream("NOUN"))["accepted"])
+        self.assertFalse(parse_tokens("S -> NOUN", token_stream("UNKNOWN"))["accepted"])
+
+
 class PredictiveParserTests(unittest.TestCase):
+    def test_multiword_annotations_do_not_hide_unconsumed_terminals(self) -> None:
+        lexical = analyze_sentence("DROP\tME")
+        tokens = [token._asdict() for token in lexical["tokens"]]
+        result = parse_tokens("S -> VERB", tokens)
+        self.assertFalse(result["accepted"])
+        self.assertEqual(result["consumed"], 1)
+        self.assertIn("trailing token UNKNOWN", result["error"])
+        exact = parse_tokens("S -> VERB UNKNOWN", tokens)
+        self.assertTrue(exact["accepted"])
+        self.assertEqual(exact["consumed"], 2)
+
     def test_exact_table_driven_trace_and_complete_consumption(self) -> None:
         result = parse_tokens("S -> NOUN VERB", token_stream("NOUN", "VERB"))
         self.assertEqual(set(result), {"accepted", "error", "trace", "consumed"})

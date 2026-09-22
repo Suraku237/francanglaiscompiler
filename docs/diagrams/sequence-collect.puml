@@ -64,6 +64,7 @@ App --> Contributor : Saved status or retained draft with error
 deactivate App
 deactivate Contributor
 legend bottom
+  Preserved desktop compatibility only; authenticated web saves never use this global CSV.
   Files are staged before row creation; CSV and audio are not one transaction.
   Committed audio survives draft clearing and row deletion.
   Dialog/widget and low-level I/O calls are condensed, not additional messages.

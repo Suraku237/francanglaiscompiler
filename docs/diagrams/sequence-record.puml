@@ -75,6 +75,7 @@ deactivate App
 end
 deactivate Contributor
 legend bottom
+  Preserved desktop recorder, not browser dictation or remote transcription.
   Device activation spans each callback delivery interval below the start request.
   Save, attach and playback are blocked while audio remains unfinished.
   Retry audio save calls save_recording again without opening the microphone.

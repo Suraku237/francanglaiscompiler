@@ -3,12 +3,16 @@ Token frequency and variation analysis across the whole dataset.
 """
 
 from collections import Counter
+from collections.abc import Iterable
+
+from .tokenizer import Token
 
 
-def compute_frequencies(all_tokens):
-    """all_tokens: list of Token(text, category) across every collected sentence."""
-    by_text = Counter(t.text.lower() for t in all_tokens)
-    by_category = Counter(t.category for t in all_tokens)
+def compute_frequencies(all_tokens: Iterable[Token]) -> tuple[Counter[str], Counter[str]]:
+    """Count raw spellings (lowercased) and categories, including one-shot inputs."""
+    tokens = tuple(all_tokens)
+    by_text = Counter(t.text.lower() for t in tokens)
+    by_category = Counter(t.category for t in tokens)
     return by_text, by_category
 
 

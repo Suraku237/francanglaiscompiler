@@ -8,22 +8,20 @@ export interface ImportDraft {
   english_gloss: string
   lexical_category: string
   review_status: 'unreviewed'
+  category?: string
+  source_location?: string
+  contributor?: string
+  notes?: string
 }
 
 export interface ImportPreview {
   filename: string
   format: string
-  method: 'local' | 'gemini'
+  method: 'local'
   text: string
   segments: string[]
   warnings: string[]
   drafts: ImportDraft[]
-}
-
-export interface ImportSuggestions {
-  drafts: ImportDraft[]
-  warnings: string[]
-  model: string
 }
 
 export interface ImportReview {
@@ -31,5 +29,5 @@ export interface ImportReview {
   fields: Partial<EditableEntry>
 }
 
-export const IMPORT_ACCEPT = '.txt,.md,.csv,.json,.pdf,.docx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.flac,.mp4,.webm,.mov'
+export const IMPORT_ACCEPT = '.txt,.md,.csv,.json,.pdf,.docx'
 export const MAX_IMPORT_BYTES = 12 * 1024 * 1024

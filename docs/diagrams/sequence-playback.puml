@@ -1,6 +1,6 @@
 @startuml
 !include theme.iuml
-title Play Audio with Library and OS Fallback
+title Preserved desktop playback with library and OS fallback
 hide footbox
 autonumber
 actor Contributor
@@ -48,6 +48,7 @@ App --> Contributor : Return; show an error only on failure
 deactivate App
 deactivate Contributor
 legend bottom
+  This is the desktop compatibility path, not the browser's private audio download flow.
   true means a playback request was accepted, not that sound was heard to completion.
   OS launch acceptance is not playback completion; media decoding is external.
   Expected audio errors are reported by the GUI; CSV is unchanged.
