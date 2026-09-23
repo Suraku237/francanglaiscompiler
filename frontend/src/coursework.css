@@ -100,9 +100,57 @@
 .analyzer-verdict .lab-status { font-size: 16px; padding: 7px 14px; }
 .analysis-source { white-space: pre-wrap; overflow-wrap: anywhere; border-left: 3px solid #b5c7a1; padding: 12px 15px; background: #f5f8ed; color: #3f5935; font-size: 14px; line-height: 1.8; }
 .analysis-corpus > summary { font-weight: 600; }
+.analyzer-classifications { margin-top: 20px; }
+.test-dashboard { margin-top: 28px; padding: 25px; border: 1px solid #d8e5e2; border-radius: 16px; background: #fff; min-width: 0; }
+.test-dashboard-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.test-dashboard-heading > div { min-width: 0; max-width: 680px; }
+.test-dashboard-heading > .button { flex-shrink: 0; }
+.test-eyebrow { display: block; margin-bottom: 8px; color: #507b76; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.test-dashboard h2 { color: #1b4f4b; font-size: 29px; line-height: 1.3; letter-spacing: -.6px; }
+.test-dashboard h3 { color: #254f4a; font-size: 16px; line-height: 1.5; font-weight: 600; }
+.test-dashboard .lab-copy { color: #5c746f; }
+.test-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.test-metric { min-width: 0; border: 1px solid #dce8e5; border-radius: 10px; padding: 18px; background: #f5f9f8; }
+.test-metric dt { font-size: 11px; color: #55706b; }
+.test-metric dd { margin: 9px 0 0; color: #193e3a; font-size: 29px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.test-metric.accepted { border-color: #bcdbce; background: #f1f8f4; }
+.test-metric.accepted dd { color: #246346; }
+.test-metric.rejected { border-color: #ecd7cd; background: #fdf7f3; }
+.test-metric.rejected dd { color: #a04f37; }
+.test-token-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 20px 0 10px; gap: 12px; }
+.test-token-totals > div { min-width: 0; padding: 5px 0 5px 13px; border-left: 3px solid #dbe9e4; }
+.test-token-totals dt { font-size: 10px; color: #607973; line-height: 1.6; }
+.test-token-totals dd { margin: 3px 0 0; font-size: 18px; color: #254e48; font-weight: 600; }
+.test-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.test-frequency-panel { padding: 18px; border: 1px solid #e0e9e5; border-radius: 10px; min-width: 0; margin-top: 17px; }
+.test-frequency-panel .lab-table-scroll { border-color: #dfebe5; max-height: 350px; }
+.test-frequency-panel .lab-table th { background: #f1f7f4; }
+.test-frequency-panel .lab-table td { background: #fff; }
+.test-frequency-panel .lab-table tbody th { background: #fff; color: #34564e; font-weight: 400; }
+.test-frequency-table { table-layout: fixed; }
+.test-frequency-table th:first-child { width: 57%; }
+.test-frequency-table td { padding: 7px 10px; }
+.test-frequency-value { position: relative; display: block; min-width: 35px; padding: 3px 9px; }
+.test-frequency-value strong { position: relative; font-weight: 500; font-variant-numeric: tabular-nums; }
+.test-frequency-bar { position: absolute; left: 0; top: 0; height: 100%; background: #dfede6; border-radius: 4px; }
+.test-review-panel { margin-top: 22px; padding: 3px 0 15px; border-top: 1px solid #e2ebe7; }
+.test-positive-note { display: flex; align-items: center; gap: 9px; color: #2c6a50; font-size: 12px; padding: 10px 0; }
+.test-records { margin-top: 24px; border-top: 1px solid #e1eae6; }
+.test-record-list { list-style: none; padding: 0; margin: 15px 0 0; display: grid; gap: 10px; }
+.test-record-list > li { border: 1px solid #dce6e1; border-radius: 9px; padding: 15px 17px; background: #fbfcfb; min-width: 0; }
+.test-record-list > li.is-selected { border-color: #91bcb3; background: #f0f7f4; }
+.test-record-topline { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 10px; color: #657c73; }
+.test-record-topline time { margin-left: auto; }
+.test-record-source { margin: 12px 0; color: #294b42; font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.test-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.test-pagination .lab-copy { text-align: center; flex: 1; }
+.selected-test { margin-top: 24px; }
 
 @media (max-width: 960px) {
   .lab-two-columns { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .test-dashboard-heading { flex-direction: column; gap: 4px; }
+  .test-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .test-chart-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 @media (max-width: 570px) {
   .main-nav { flex-wrap: wrap; gap: 6px; }
@@ -125,4 +173,12 @@
   .lab-table th, .lab-table td { padding: 9px; }
   .lab-observations > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .lab-result-heading { align-items: flex-start; }
+  .test-dashboard { padding: 18px 13px; border-radius: 11px; }
+  .test-metric { padding: 13px; }
+  .test-metric dd { font-size: 25px; }
+  .test-token-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .test-frequency-panel { padding: 14px 10px; }
+  .test-frequency-table th:first-child { width: 60%; }
+  .test-record-topline time { width: 100%; margin-left: 0; }
+  .test-pagination .lab-copy { flex-basis: 100%; order: -1; }
 }

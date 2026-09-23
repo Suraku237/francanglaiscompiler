@@ -487,7 +487,7 @@ class WorkspaceBackupTests(HostedCase):
         saved = snapshot(store)
         raw = (store.root / "backups" / f"{saved['id']}.zip").read_bytes()
         with patch("backend.workspace_backups.MAX_ARCHIVE", len(raw)):
-            self.assertEqual(validate_archive(raw)[0]["format"], 2)
+            self.assertEqual(validate_archive(raw)[0]["format"], 3)
         with patch("backend.workspace_backups.MAX_ARCHIVE", len(raw) - 1), self.assertRaises(CollectionError) as error:
             validate_archive(raw)
         self.assertEqual(error.exception.status_code, 413)

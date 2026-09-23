@@ -205,12 +205,13 @@ def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
         atomic_write(directory / f"{token}.zip", content)
         info = {"token": token, "expires_at": time.time() + 3600, "workspace_version": store.version,
                 "counts": {key: len(document[key]) for key in (
-                    "projects", "entries", "history", "revisions", "coursework", "screenshots",
+                    "projects", "entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests",
                 )},
                 "warnings": [
-                    "Restoring replaces all projects, collected entries, saved work, revisions, coursework profiles "
-                    "and screenshots in your account. A safety backup is created first.",
+                    "Restoring replaces all projects, collected entries, saved work, revisions, coursework profiles, "
+                    "screenshots and recorded analyzer tests in your account. A safety backup is created first.",
                     "Older format-1 backups contain no coursework profiles or screenshots.",
+                    "Older format-1 and format-2 backups contain no recorded analyzer tests.",
                 ]}
         set_metadata(store, "backup:preview:" + token, info)
         return info

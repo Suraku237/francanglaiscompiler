@@ -2,8 +2,9 @@ import base64
 import binascii
 import io
 import re
-from collections.abc import Generator
-from contextlib import contextmanager
+import sqlite3
+from collections.abc import Generator, Iterator
+from contextlib import closing, contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Protocol
@@ -14,7 +15,9 @@ from PIL import Image, UnidentifiedImageError
 from PIL.PngImagePlugin import PngInfo
 
 from compiler.parser.service import DEFAULT_GRAMMAR, analyze_grammar
+from data_collector import dataset
 
+from .analyzer_models import RecordedTest, StoredAnalyzerTest
 from .collection import CollectionError
 from .coursework_models import ProjectProfile, ScreenshotRequest
 from .file_storage import atomic_write as _atomic_write
@@ -33,6 +36,9 @@ class CourseworkStorage(Protocol):
     def read_coursework_screenshot(self, image_id: str) -> bytes: ...
     def save_coursework_screenshot(self, image_id: str, name: str, content: bytes) -> None: ...
     def delete_coursework_screenshot(self, image_id: str) -> None: ...
+    def load_analyzer_test(self, test_id: str) -> RecordedTest | None: ...
+    def save_analyzer_test(self, record: RecordedTest) -> None: ...
+    def iter_analyzer_tests(self) -> Iterator[RecordedTest]: ...
 
 
 _storage: ContextVar[CourseworkStorage | None] = ContextVar("coursework_storage", default=None)
@@ -79,6 +85,44 @@ def save_project(profile: ProjectProfile) -> ProjectProfile:
     with FileLock(PROJECT_DIR / "project.lock", timeout=10):
         _atomic_write(PROJECT_DIR / "project.json", profile.model_dump_json(indent=2).encode("utf-8"))
     return profile
+
+
+@contextmanager
+def _analyzer_database() -> Generator[sqlite3.Connection]:
+    PROJECT_DIR.mkdir(parents=True, exist_ok=True)
+    with dataset.dataset_lock(), closing(sqlite3.connect(PROJECT_DIR / "analyzer-tests.sqlite3", timeout=10)) as db:
+        db.row_factory = sqlite3.Row
+        with db:
+            db.execute("CREATE TABLE IF NOT EXISTS analyzer_tests (id TEXT PRIMARY KEY,data TEXT NOT NULL)")
+            yield db
+
+
+def load_analyzer_test(test_id: str) -> RecordedTest | None:
+    storage = _storage.get()
+    if storage is not None:
+        return storage.load_analyzer_test(test_id)
+    with _analyzer_database() as db:
+        row = db.execute("SELECT id,data FROM analyzer_tests WHERE id=?", (test_id,)).fetchone()
+    return StoredAnalyzerTest.model_validate({**dict(row), "project_id": "default"}).data if row is not None else None
+
+
+def save_analyzer_test(record: RecordedTest) -> None:
+    storage = _storage.get()
+    if storage is not None:
+        storage.save_analyzer_test(record)
+        return
+    with _analyzer_database() as db:
+        db.execute("INSERT INTO analyzer_tests VALUES (?,?)", (record.id, record.model_dump_json()))
+
+
+def iter_analyzer_tests() -> Iterator[RecordedTest]:
+    storage = _storage.get()
+    if storage is not None:
+        yield from storage.iter_analyzer_tests()
+        return
+    with _analyzer_database() as db:
+        for row in db.execute("SELECT id,data FROM analyzer_tests ORDER BY rowid DESC"):
+            yield StoredAnalyzerTest.model_validate({**dict(row), "project_id": "default"}).data
 
 
 def list_screenshots() -> list[dict[str, str]]:

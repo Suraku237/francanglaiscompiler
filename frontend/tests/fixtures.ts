@@ -1,5 +1,5 @@
 import type { CourseworkAnalysis, CourseworkState, LexicalStatistics, ManualParse, Project } from '../src/courseworkTypes'
-import type { AnalyzerResult, AnalyzerState } from '../src/analyzerTypes'
+import type { AnalyzerResult, AnalyzerState, RecordedTest, TestReport } from '../src/analyzerTypes'
 import type { ImportPreview } from '../src/importTypes'
 import { defaultMetadata } from '../src/types'
 import type { Dataset, DatasetEntry, Health, Metadata } from '../src/types'
@@ -232,4 +232,48 @@ export function tokenAnalysisResult(): AnalyzerResult {
       summary: { accepted: 0, rejected: 1, total: 1 },
     },
   }
+
+}
+
+export function recordedTest(overrides: Partial<RecordedTest> = {}): RecordedTest {
+  const result = analyzerResult()
+  return {
+    id: '4fbc8606-4d79-44f9-9d87-87c0e386ebc0',
+    created_at: '2026-09-23T12:00:00Z',
+    grammar_source: 'S -> NOUN',
+    metadata: { topics: [], languages: [], matching_entries: 0 },
+    text: result.text, lexical: result.lexical, grammar: result.grammar, parse: result.parse,
+    ...overrides,
+  }
+}
+
+export function testReport(overrides: Partial<TestReport> = {}): TestReport {
+  return {
+    summary: { total: 0, accepted: 0, rejected: 0, acceptance_rate: null },
+    statistics: { ...lexicalStatistics(), raw_frequencies: [], normalized_frequencies: [] },
+    unknown_review: [], topic_counts: {}, language_counts: {}, tests: [], offset: 0, limit: 25,
+    ...overrides,
+  }
+}
+
+export function retainedTestReport(): TestReport {
+  const frequencies = [{ token: 'veux', count: 3 }, { token: '+', count: 2 }, { token: 'taxi', count: 2 }]
+  return testReport({
+    summary: { total: 3, accepted: 2, rejected: 1, acceptance_rate: 200 / 3 },
+    statistics: {
+      frequencies, normalized_frequencies: frequencies,
+      raw_frequencies: [{ token: 'veux', count: 2 }, { token: '+', count: 2 }, { token: 'taxi', count: 2 }, { token: 'VEUX', count: 1 }],
+      category_counts: { VERB: 3, UNKNOWN: 2, NOUN: 2 }, total_tokens: 7,
+      unknown_tokens: [{ token: '+', count: 2 }],
+      variations: [{ normalized: 'veux', forms: [{ text: 'veux', count: 2 }, { text: 'VEUX', count: 1 }] }],
+    },
+    unknown_review: [{ token: '+', count: 2, tests: 1, forms: ['+'] }],
+    topic_counts: { 'Not recorded': 2, 'Taxi / Commuting': 1 },
+    language_counts: { 'Not recorded': 2, francanglais: 1 },
+    tests: [
+      { id: '01270d9d-aa38-452d-9f51-546514425bca', created_at: '2026-09-23T12:02:00Z', text: 'veux', accepted: true, token_count: 1, error: null },
+      { id: '2518c8e9-fd48-4452-bce3-6a7a039b2190', created_at: '2026-09-23T12:01:00Z', text: '  taxi taxi\n', accepted: true, token_count: 2, error: null },
+      { id: recordedTest().id, created_at: '2026-09-23T12:00:00Z', text: '  veux VEUX + +\t', accepted: false, token_count: 4, error: 'No rule for S with lookahead VERB.' },
+    ],
+  })
 }

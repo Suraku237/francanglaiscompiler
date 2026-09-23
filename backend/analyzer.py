@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from compiler.lexer import tokenizer
 from compiler.lexer.learned import build_lexicon
 from compiler.parser.service import analyze_grammar, parse_analysis
@@ -20,6 +22,15 @@ def analyze(text: str, grammar_text: str) -> dict:
     entries = coursework.read_corpus()
     grammar = analyze_grammar(grammar_text)
     learned = build_lexicon(entries)
+    return {
+        **analyze_manual(text, grammar, learned),
+        "corpus": coursework.parse_corpus(
+            grammar, coursework.lexical_report(entries, learned_lexicon=learned),
+        ),
+    }
+
+
+def analyze_manual(text: str, grammar: dict, learned: Mapping[str, str]) -> dict:
     result = tokenizer.analyze_sentence(text, learned)
     lexical = AnalysisResult(
         tokens=[TokenResult(text=token.text, category=token.category) for token in result["tokens"]],
@@ -35,7 +46,4 @@ def analyze(text: str, grammar_text: str) -> dict:
         },
         "grammar": grammar,
         "parse": parse_analysis(grammar, lexical["tokens"]),
-        "corpus": coursework.parse_corpus(
-            grammar, coursework.lexical_report(entries, learned_lexicon=learned),
-        ),
     }

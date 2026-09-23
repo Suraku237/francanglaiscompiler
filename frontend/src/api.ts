@@ -61,9 +61,11 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const version = accountVersion
   const controller = new AbortController()
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
-    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' ||
+    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' || path === '/analyzer/tests' ||
       path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
-  const recovery = path.startsWith('/analyzer')
+  const recovery = path === '/analyzer/tests'
+    ? 'Open Analysis and refresh saved tests to check. Retrying an unchanged test in this tab will not record it twice.'
+    : path.startsWith('/analyzer')
     ? 'Refresh saved grammar before trying again; your editor draft will be kept.'
     : path.startsWith('/coursework')
       ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
@@ -109,7 +111,9 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
         response.status,
       )
     }
-    if (body === null) throw new Error('The server returned an unreadable response. Please try again.')
+    if (body === null) throw new Error(isMutation
+      ? `The server returned an unreadable response. The change may have completed. ${recovery}`
+      : 'The server returned an unreadable response. Please try again.')
     return body as T
   } catch (error: unknown) {
     if (timedOut) {

@@ -117,6 +117,7 @@ describe('API response and error contracts', () => {
     { path: '/translate', method: 'POST' as const, message: 'Cannot reach the server.' },
     { path: '/dataset/fixture', method: 'PATCH' as const, message: 'The change may have completed. Close this dialog and refresh the collection' },
     { path: '/coursework/project', method: 'PUT' as const, message: 'The change may have completed. Refresh the saved coursework evidence' },
+    { path: '/analyzer/tests', method: 'POST' as const, message: 'The change may have completed. Open Analysis and refresh saved tests' },
   ])('distinguishes read failures from uncertain mutations at $path', async ({ path, method, message }) => {
     vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
     await expect(api(path, { method, body: {} })).rejects.toThrow(message)
@@ -126,6 +127,11 @@ describe('API response and error contracts', () => {
     vi.mocked(fetch).mockRejectedValue(new TypeError('Upload connection interrupted'))
     await expect(api('/dataset/audio', { method: 'POST', body: new FormData() }))
       .rejects.toThrow('The change may have completed. Close this dialog and refresh the collection')
+  })
+
+  it('discloses uncertain recorded-test completion after an unreadable success response', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response('not JSON', { status: 200 }))
+    await expect(api('/analyzer/tests', { method: 'POST', body: {} })).rejects.toThrow('The change may have completed. Open Analysis and refresh saved tests')
   })
 })
 

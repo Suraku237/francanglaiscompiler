@@ -1,166 +1,199 @@
 import { test, expect } from './fixtures'
-import { analyzerResult, analyzerState, lexicalStatistics, manualParse, tokenAnalysisResult } from '../fixtures'
+import { analyzerState, lexicalStatistics, manualParse, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
 import { openGrammarSettings } from '../browserGrammar'
+import type { RecordedTest } from '../../src/analyzerTypes'
 
-test('one Analyze action gives a verdict and moves every detailed result to Analysis', async ({ page, api }, testInfo) => {
-  const raw = '  Mbom\t\n'
-  const result = analyzerResult({ text: raw })
-  result.grammar.steps = [{
-    operation: 'Left recursion elimination', before: { S: [['S', 'NOUN'], ['NOUN']] },
-    after: { S: [['NOUN', 'S_tail']], S_tail: [['NOUN', 'S_tail'], []] },
-    description: 'Synthetic deterministic transformation fixture.',
-  }]
-  result.grammar.warnings = ['Fixture warning: grammar coverage still needs observed data.']
-  api.reply('POST', '/api/analyzer/analyze', result)
-  await page.goto('/')
-  await page.getByLabel('Statement to analyze').fill(raw)
-  await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill('S -> S NOUN | NOUN')
-  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Parser result', exact: true })).toBeVisible()
-  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Analyzed sentence or word' })).toBeVisible()
-  expect(await page.getByLabel('Analyzed source text').textContent()).toBe(raw)
-  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
-  await expect(page.getByRole('table')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Syntactic analysis', exact: true })).toHaveCount(0)
-  await page.screenshot({ path: testInfo.outputPath('analyzer-source.png') })
-  await page.getByRole('link', { name: 'View detailed analysis' }).click()
-  await expect(page).toHaveURL(/#analysis$/)
-  await expect(page).toHaveTitle('Analysis — Mboa Compiler')
-  await expect(page.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Analyzed sentence or word', exact: true })).toBeVisible()
-  expect(await page.getByLabel('Analyzed source text').textContent()).toBe(raw)
-  await expect(page.getByText('Grammar settings', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Context-free grammar')).not.toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('analysis-source.png') })
-  await page.getByText('Parser trace for this input', { exact: true }).click()
-  await expect(page.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
-  await page.getByText('Transformations, FIRST/FOLLOW & LL(1) table', { exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Computed grammar' })).toBeVisible()
-  await expect(page.getByText('Fixture warning: grammar coverage still needs observed data.')).toBeVisible()
-  await page.getByText('Left recursion elimination', { exact: false }).click()
-  await expect(page.getByText('Synthetic deterministic transformation fixture.')).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'LL(1) predictive parsing table, scroll horizontally' })).toBeVisible()
-  await page.getByText('Saved Collection - 0 records', { exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Saved-statement token analysis' })).toBeVisible()
-  await expect(page.getByText('Token frequencies · 0 forms', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Own-data acceptance tests' })).toBeVisible()
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(1)
-  expect(api.calls('/api/analyzer/analyze')[0]?.body).toEqual({ text: raw, grammar: 'S -> S NOUN | NOUN' })
-  expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
-  expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
-  expect(api.calls('/api/coursework/parse')).toHaveLength(0)
-  expect(api.calls('/api/analyze')).toHaveLength(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-
-  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue(raw)
-  await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill('S -> epsilon')
-  await expect(page.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
-  await page.getByLabel('Statement to analyze').fill('')
-  const empty = analyzerResult({
-    text: '', lexical: { tokens: [], code_mixed_spans: [], verb_phrases: [], slang_expressions: [], statistics: lexicalStatistics() }, parse: manualParse().parse,
+test('Franc Analyzer classifies every word directly while Analysis retains all-test statistics', async ({ page, api }, testInfo) => {
+  const input = tokenAnalysisResult()
+  const saved = recordedTest({ text: input.text, lexical: input.lexical, parse: input.parse })
+  api.on('POST', '/api/analyzer/tests', async (route) => {
+    api.testReport = retainedTestReport()
+    await route.fulfill({ json: saved })
   })
-  empty.grammar = {
-    ...empty.grammar, original: { S: [[]] }, transformed: { S: [[]] }, terminals: [],
-    first: { S: ['epsilon'] }, table: { S: { $: [] } },
-  }
-  api.reply('POST', '/api/analyzer/analyze', empty)
-  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Analyzed source text')).toHaveText('(empty input)')
-  expect(api.calls('/api/analyzer/analyze')[1]?.body).toEqual({ text: '', grammar: 'S -> epsilon' })
-  await page.getByRole('link', { name: 'View detailed analysis' }).click()
-  await expect(page.getByRole('region', { name: 'Analyzed sentence or word' }).getByText('0 tokens · 0 distinct forms', { exact: true })).toBeVisible()
-  await expect(page.getByText('No lexical tokens. The parser will see only $.')).toBeVisible()
+  await page.goto('/')
+  await page.getByLabel('Statement to analyze').fill(saved.text)
+  await openGrammarSettings(page)
+  await page.getByLabel('Context-free grammar').fill('S -> VERB')
   await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-  await page.getByLabel('Statement to analyze').fill('New input, not fieldwork.')
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Analysis', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(2)
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const verdict = page.getByRole('region', { name: 'Parser result' })
+  await expect(verdict.getByText('REJECT', { exact: true })).toBeVisible()
+  expect(await verdict.getByLabel('Analyzed source text').textContent()).toBe(saved.text)
+  await expect(verdict.getByRole('region', { name: 'Lexical tokens in source order' }).getByRole('row')).toHaveText([
+    '#Observed textLexer category', '1veuxVERB', '2VEUXVERB', '3+UNKNOWN', '4+UNKNOWN',
+  ])
+  await expect(page.getByRole('heading', { name: 'Test statistics' })).toHaveCount(0)
+  await expect(page.getByText('Grammar settings', { exact: true })).toHaveCount(0)
+  await verdict.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('direct-word-classifications.png') })
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await expect(page).toHaveTitle('Analysis — Mboa Compiler')
+  const stats = page.getByRole('region', { name: 'Test statistics' })
+  await expect(stats.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
+  await expect(stats.getByRole('group', { name: 'Accepted', exact: true })).toContainText('2')
+  await expect(stats.getByRole('group', { name: 'Rejected', exact: true })).toContainText('1')
+  await expect(stats.getByRole('group', { name: 'Acceptance rate' })).toContainText('66.7%')
+  await expect(stats.getByRole('region', { name: 'Raw token frequency counts' }).getByRole('row')).toHaveText(['TermCount', 'veux2', '+2', 'taxi2', 'VEUX1'])
+  await expect(stats.getByRole('region', { name: 'Normalized token frequency counts' }).getByRole('row')).toHaveText(['TermCount', 'veux3', '+2', 'taxi2'])
+  await expect(stats.getByRole('region', { name: 'Unknown-word review counts' }).getByRole('row')).toHaveText(['FormObserved spellingsOccurrencesTests affected', '++21'])
+  await stats.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('all-test-statistics.png'), fullPage: true })
+  const selected = page.getByRole('region', { name: 'Analyzed sentence or word' })
+  await selected.getByText('Token details for this test', { exact: true }).click()
+  await expect(selected.getByText('4 tokens · 2 distinct forms', { exact: true })).toBeVisible()
+  await selected.getByText('Parser trace for this input', { exact: true }).click()
+  await expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
+  await selected.getByText('Saved grammar, transformations & FIRST/FOLLOW', { exact: true }).click()
+  await expect(selected.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(1)
+  expect(api.calls('/api/analyzer/tests', 'POST')[0]?.body).toEqual({ request_id: expect.any(String), text: saved.text, grammar: 'S -> VERB' })
+  expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
+  expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('grammar saving is explicit and does not expose report or presentation generation', async ({ page, api }) => {
-  const grammar = 'S -> VERB'
+test('saved tests survive reload and can be inspected or handed off without another computation', async ({ page, api }) => {
+  api.testReport = retainedTestReport()
+  const saved = recordedTest({ text: '  veux VEUX + +\t', grammar_source: 'S -> NOUN' })
+  api.reply('GET', `/api/analyzer/tests/${saved.id}`, saved)
+  await page.goto('/#analysis')
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
+  await page.reload()
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
+  await expect(page.getByLabel('Analyzed source text')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Inspect test 1', exact: true }).click()
+  expect(await page.getByLabel('Analyzed source text').textContent()).toBe(saved.text)
+  await page.getByRole('button', { name: 'Use as analyzer input' }).click()
+  await expect(page).toHaveURL(/#compiler$/)
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue(saved.text)
+  await expect(page.getByLabel('Statement to analyze')).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
+  expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
+})
+
+test('test-list pagination never narrows the dashboard aggregate to one page', async ({ page, api }) => {
+  const base = retainedTestReport()
+  const sample = base.tests[0]
+  if (!sample) throw new Error('The synthetic report must contain a test.')
+  const tests = Array.from({ length: 26 }, (_, index) => ({ ...sample, id: `test-${index}`, text: `Synthetic test ${index + 1}` }))
+  api.on('GET', '/api/analyzer/tests', async (route, request) => {
+    const offset = Number(request.url.searchParams.get('offset'))
+    await route.fulfill({ json: { ...base, summary: { total: 26, accepted: 25, rejected: 1, acceptance_rate: 2500 / 26 }, tests: tests.slice(offset, offset + 25), offset, limit: 25 } })
+  })
+  await page.goto('/#analysis')
+  await expect(page.getByText('1-25 of 26 tests / statistics include all 26', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Next tests' }).click()
+  await expect(page.getByText('26-26 of 26 tests / statistics include all 26', { exact: true })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('26')
+  await expect(page.getByRole('button', { name: 'Next tests' })).toBeDisabled()
+  await expect(page.getByRole('region', { name: 'Normalized token frequency counts' }).getByRole('row')).toHaveText(['TermCount', 'veux3', '+2', 'taxi2'])
+  await page.getByRole('button', { name: 'Previous tests' }).click()
+  await expect(page.getByText('1-25 of 26 tests / statistics include all 26', { exact: true })).toBeVisible()
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
+})
+
+test('complete frequency lists and long words stay readable without page overflow', async ({ page, api }) => {
+  const unknown = [
+    ...Array.from({ length: 119 }, (_, index) => ({
+      token: `lexeme${String.fromCharCode(97 + Math.floor(index / 26), 97 + index % 26)}`, count: 1,
+    })),
+    { token: 'x'.repeat(4000), count: 1 },
+  ]
+  const frequencies = [{ token: 'je', count: 1 }, ...unknown]
+  const total = frequencies.length
+  api.testReport = testReport({
+    summary: { total, accepted: 0, rejected: total, acceptance_rate: 0 },
+    statistics: {
+      ...lexicalStatistics({
+        total_tokens: total, frequencies, unknown_tokens: unknown,
+        category_counts: { FRENCH_FUNCTION_WORD: 1, UNKNOWN: unknown.length },
+      }),
+      raw_frequencies: frequencies, normalized_frequencies: frequencies,
+    },
+    unknown_review: unknown.map((row) => ({ ...row, tests: 1, forms: [row.token] })),
+    topic_counts: { 'Not recorded': total }, language_counts: { 'Not recorded': total },
+    tests: frequencies.slice(0, 25).map((row, index) => ({
+      id: `large-vocabulary-test-${index}`, created_at: '2026-09-23T12:00:00Z',
+      text: row.token, accepted: false, error: 'No matching grammar rule.', token_count: 1,
+    })),
+  })
+  await page.goto('/#analysis')
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('121')
+  for (const name of ['Raw token frequency counts', 'Normalized token frequency counts']) {
+    const counts = page.getByRole('region', { name, exact: true })
+    await expect(counts.getByRole('row')).toHaveCount(122)
+    await expect(counts.getByRole('row').last()).toHaveText(`${'x'.repeat(4000)}1`)
+    expect(await counts.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+  }
+  await expect(page.getByRole('region', { name: 'Unknown-word review counts' }).getByRole('row')).toHaveCount(121)
+  await expect(page.getByRole('region', { name: 'Grammatical category frequency counts' })).toContainText('FRENCH_FUNCTION_WORD')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
+})
+
+test('grammar saving remains explicit and preserves recorded statistics without report-writing tools', async ({ page, api }) => {
+  api.testReport = retainedTestReport()
   api.on('PUT', '/api/analyzer/grammar', async (route, request) => {
-    expect(request.body).toEqual({ grammar })
-    api.analyzer = analyzerState(grammar)
-    await route.fulfill({ json: { grammar } })
+    expect(request.body).toEqual({ grammar: 'S -> VERB' })
+    api.analyzer = analyzerState('S -> VERB')
+    await route.fulfill({ json: { grammar: 'S -> VERB' } })
   })
   await page.goto('/')
   await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill(grammar)
+  await page.getByLabel('Context-free grammar').fill('S -> VERB')
   await expect(page.getByText('Using unsaved grammar', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
   await expect(page.getByText('Using saved grammar', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save grammar', exact: true })).toBeDisabled()
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
   await page.reload()
   await openGrammarSettings(page)
-  await expect(page.getByLabel('Context-free grammar')).toHaveValue(grammar)
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
   await expect(page.getByRole('button', { name: /Download coursework|Save project|Upload screenshot/ })).toHaveCount(0)
-  await expect(page.getByLabel(/Group member|Linguistic discussion/)).toHaveCount(0)
-  expect(api.calls('/api/analyzer/grammar')).toHaveLength(1)
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
-  expect(api.calls('/api/coursework/export')).toHaveLength(0)
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
 })
 
-test('combined analysis failures remain explicit and do not display a stale successful parse', async ({ page, api }) => {
-  api.reply('POST', '/api/analyzer/analyze', analyzerResult())
+test('failed recording and failed statistics reads remain explicit without success-shaped fallback', async ({ page, api }) => {
+  api.reply('POST', '/api/analyzer/tests', { detail: 'Cannot save recorded test.' }, 500)
   await page.goto('/')
   await page.getByLabel('Statement to analyze').fill('Mbom')
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toBeVisible()
-  api.reply('POST', '/api/analyzer/analyze', { detail: 'Invalid grammar notation.' }, 422)
-  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Invalid grammar notation.')
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue('Mbom')
+  await expect(page.getByRole('alert')).toContainText('Cannot save recorded test.')
+  await expect(page.getByRole('region', { name: 'Parser result' })).toHaveCount(0)
+  api.reply('GET', '/api/analyzer/tests', { detail: 'Cannot read saved statistics.' }, 503)
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Analysis', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Invalid grammar notation.')
-  await expect(page.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Token statistics' })).toHaveCount(0)
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(2)
+  const error = page.getByRole('alert').filter({ hasText: 'Cannot read saved statistics.' })
+  await expect(error).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toHaveCount(0)
+  api.reply('GET', '/api/analyzer/tests', testReport())
+  await error.getByRole('button', { name: 'Try again' }).click()
+  await expect(page.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(1)
 })
 
-test('Analysis separates sentence and Collection frequencies and preserves raw handoffs', async ({ page, api }, testInfo) => {
-  const result = tokenAnalysisResult()
-  api.reply('POST', '/api/analyzer/analyze', result)
-  await page.goto('/#analysis')
-  await expect(page.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
-  await page.getByRole('link', { name: 'Analyze a sentence or word' }).click()
-  await page.getByLabel('Statement to analyze').fill(result.text)
+test('empty input is a real saved epsilon test rather than a fabricated empty dashboard', async ({ page, api }) => {
+  const saved: RecordedTest = recordedTest({
+    text: '', grammar_source: 'S -> epsilon',
+    lexical: { tokens: [], code_mixed_spans: [], verb_phrases: [], slang_expressions: [], statistics: lexicalStatistics() },
+    parse: manualParse().parse,
+  })
+  api.analyzer = analyzerState('S -> epsilon')
+  api.on('POST', '/api/analyzer/tests', async (route) => {
+    api.testReport = testReport({
+      summary: { total: 1, accepted: 1, rejected: 0, acceptance_rate: 100 },
+      tests: [{ id: saved.id, created_at: saved.created_at, text: '', accepted: true, error: null, token_count: 0 }],
+      topic_counts: { 'Not recorded': 1 }, language_counts: { 'Not recorded': 1 },
+    })
+    await route.fulfill({ json: saved })
+  })
+  await page.goto('/')
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
-  await expect(page.getByRole('table')).toHaveCount(0)
+  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Analyzed source text')).toHaveText('(empty input)')
+  await expect(page.getByText('No lexical tokens. The parser will see only $.')).toBeVisible()
   await page.getByRole('link', { name: 'View detailed analysis' }).click()
-  const sentence = page.getByRole('region', { name: 'Analyzed sentence or word' })
-  await expect(sentence.getByText('4 tokens · 2 distinct forms', { exact: true })).toBeVisible()
-  await expect(sentence.getByRole('region', { name: 'Observed token frequencies' }).getByRole('row')).toHaveText(['TokenCount', 'veux2', '+2'])
-  await expect(sentence.getByRole('region', { name: 'Token category frequencies' }).getByRole('row')).toHaveText(['CategoryCount', 'VERB2', 'UNKNOWN2'])
-  await sentence.getByText('Unknown tokens · 1 forms', { exact: true }).click()
-  await expect(sentence.getByRole('region', { name: 'Unknown token frequencies' }).getByRole('row')).toHaveText(['TokenCount', '+2'])
-  await expect(sentence.getByRole('region', { name: 'Observed orthographic variation candidates' })).toContainText('veux (1) · VEUX (1)')
-  await page.screenshot({ path: testInfo.outputPath('token-analysis.png') })
-  await page.getByText('Saved Collection - 1 records', { exact: true }).click()
-  const corpus = page.getByRole('region', { name: 'Saved Collection results' })
-  await expect(corpus.getByText('2 tokens · 1 distinct forms', { exact: true })).toBeVisible()
-  await expect(corpus.getByRole('region', { name: 'Observed token frequencies' }).getByRole('row')).toHaveText(['TokenCount', 'taxi2'])
-  const tests = corpus.getByRole('region', { name: 'Saved Collection parser results' })
-  await tests.getByText('taxi taxi', { exact: true }).click()
-  await tests.getByRole('button', { name: 'Use as analyzer input' }).click()
-  await expect(page).toHaveURL(/#compiler$/)
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue('  taxi taxi\n')
-  await expect(page.getByLabel('Statement to analyze')).toBeFocused()
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(1)
-  expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('1')
+  await expect(page.getByRole('group', { name: 'Acceptance rate' })).toContainText('100%')
+  await expect(page.getByRole('heading', { name: 'No saved tests yet' })).toHaveCount(0)
 })

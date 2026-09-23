@@ -2,83 +2,79 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Analysis } from '../../src/Analysis'
-import type { AnalyzerResult } from '../../src/analyzerTypes'
-import { analyzerResult, analyzerState, tokenAnalysisResult } from '../fixtures'
+import type { RecordedTest } from '../../src/analyzerTypes'
+import { analyzerState, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
 
-function renderAnalysis(result: AnalyzerResult | null = tokenAnalysisResult()) {
-  const onUseText = vi.fn()
-  render(<Analysis result={result} lexicalSpec={analyzerState().lexical_spec} analyzing={false} onCancel={vi.fn()} onUseText={onUseText} />)
-  return { user: userEvent.setup(), onUseText }
+function renderAnalysis(result: RecordedTest | null = recordedTest()) {
+  const actions = { onUseText: vi.fn(), onCancel: vi.fn(), onRefresh: vi.fn(), onPage: vi.fn(), onInspect: vi.fn(), onRetryInspect: vi.fn() }
+  const props = {
+    result, report: result ? retainedTestReport() : testReport(), lexicalSpec: analyzerState().lexical_spec,
+    analyzing: false, loading: false, loadError: '', inspecting: false, inspectError: '', ...actions,
+  }
+  const view = render(<Analysis {...props} />)
+  return { ...view, props, user: userEvent.setup(), ...actions }
 }
 
-describe('separate token Analysis page', () => {
-  it('shows every raw token and exact frequency, category, unknown and variation counts', async () => {
-    const { user } = renderAnalysis()
-    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
-    expect(statement.getByLabelText('Analyzed source text').textContent).toBe('  veux VEUX + +\t')
-    const tokens = within(statement.getByRole('region', { name: 'Lexical tokens in source order' }))
-    expect(tokens.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
-      '1veuxVERB', '2VEUXVERB', '3+UNKNOWN', '4+UNKNOWN',
-    ])
-    const frequencies = within(statement.getByRole('region', { name: 'Observed token frequencies' }))
-    expect(frequencies.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['veux2', '+2'])
-    expect(statement.getByText('4 tokens · 2 distinct forms')).toBeVisible()
-    const categories = within(statement.getByRole('region', { name: 'Token category frequencies' }))
-    expect(categories.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['VERB2', 'UNKNOWN2'])
-    await user.click(statement.getByText('Unknown tokens · 1 forms'))
-    expect(within(statement.getByRole('region', { name: 'Unknown token frequencies' })).getAllByRole('row')[1]).toHaveTextContent('+2')
-    expect(statement.getByRole('region', { name: 'Observed orthographic variation candidates' })).toHaveTextContent('veux (1) · VEUX (1)')
-    expect(screen.getByRole('region', { name: 'Saved Collection results' })).not.toBeVisible()
+describe('retained test Analysis page', () => {
+  it('distinguishes all-test statistics from an inspected test and preserves raw source', async () => {
+    const single = tokenAnalysisResult()
+    const { user } = renderAnalysis(recordedTest({ text: single.text, lexical: single.lexical, parse: single.parse }))
+    const all = within(screen.getByRole('region', { name: 'Test statistics' }))
+    expect(all.getByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
+    expect(all.getByRole('group', { name: 'Acceptance rate' })).toHaveTextContent('66.7%')
+    const selected = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
+    expect(selected.getByLabelText('Analyzed source text').textContent).toBe(single.text)
+    expect(selected.getByRole('region', { name: 'Lexical tokens in source order' })).not.toBeVisible()
+    await user.click(selected.getByText('Token details for this test'))
+    expect(selected.getByText('4 tokens · 2 distinct forms')).toBeVisible()
+    expect(selected.getByRole('region', { name: 'Lexical tokens in source order' })).toHaveTextContent('1veuxVERB2VEUXVERB3+UNKNOWN4+UNKNOWN')
+    expect(all.getByRole('region', { name: 'Normalized token frequency counts' })).toHaveTextContent('veux3')
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('keeps saved Collection counts separate and hands off raw text only on an explicit click', async () => {
-    const { user, onUseText } = renderAnalysis()
-    await user.click(screen.getByText('Saved Collection - 1 records'))
-    const corpus = within(screen.getByRole('region', { name: 'Saved Collection results' }))
-    expect(corpus.getByText('2 tokens · 1 distinct forms')).toBeVisible()
-    const frequencies = within(corpus.getByRole('region', { name: 'Observed token frequencies' }))
-    expect(frequencies.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['taxi2'])
-    const tests = within(corpus.getByRole('region', { name: 'Saved Collection parser results' }))
-    await user.click(tests.getByText('taxi taxi'))
+  it('opens saved grammar and parser evidence without recomputing and hands off exact input only on request', async () => {
+    const raw = '  Mbom\t\n'
+    const { user, onUseText } = renderAnalysis(recordedTest({ text: raw, grammar_source: 'S -> NOUN\nTail -> epsilon' }))
+    const selected = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
+    await user.click(selected.getByText('Parser trace for this input'))
+    expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
+    await user.click(selected.getByText('Saved grammar, transformations & FIRST/FOLLOW'))
+    expect(selected.getByText('S -> NOUN Tail -> epsilon')).toBeVisible()
+    expect(selected.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
     expect(onUseText).not.toHaveBeenCalled()
-    await user.click(tests.getByRole('button', { name: 'Use as analyzer input' }))
-    expect(onUseText).toHaveBeenCalledExactlyOnceWith('  taxi taxi\n')
+    await user.click(selected.getByRole('button', { name: 'Use as analyzer input' }))
+    expect(onUseText).toHaveBeenCalledExactlyOnceWith(raw)
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('retains rejection reasons, parser steps, grammar details and lexer rules behind disclosures', async () => {
-    const { user } = renderAnalysis()
-    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
-    expect(statement.getByRole('region', { name: 'Table-driven parser step trace' })).not.toBeVisible()
-    await user.click(screen.getByText('Parser trace for this input'))
-    expect(statement.getByText('REJECT', { exact: true })).toBeVisible()
-    expect(statement.getByRole('region', { name: 'Table-driven parser step trace' })).toHaveTextContent('VERB VERB UNKNOWN UNKNOWN $')
-    await user.click(screen.getByText('Transformations, FIRST/FOLLOW & LL(1) table'))
-    expect(screen.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
-    expect(screen.getByRole('region', { name: 'LL(1) predictive parsing table, scroll horizontally' })).toBeVisible()
-    await user.click(screen.getByText('Lexer rules & limitations'))
-    expect(screen.getByRole('region', { name: 'Lexer regular expression rules' })).toBeVisible()
-  })
-
-  it('does not invent a sentence, statistics or parser verdict before the first run', () => {
+  it('shows an honest empty state without fabricating a recoverable earlier run', () => {
     renderAnalysis(null)
-    expect(screen.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Analyze a sentence or word' })).toHaveAttribute('href', '#compiler')
-    expect(screen.queryByRole('heading', { name: 'Token statistics' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Analyzed sentence or word' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
+    expect(screen.getByText(/Earlier runs made before test storage/)).toBeVisible()
+    expect(screen.getByRole('group', { name: 'Acceptance rate' })).toHaveTextContent('Not available')
+    expect(screen.queryByLabelText('Analyzed source text')).not.toBeInTheDocument()
     expect(screen.queryByText('ACCEPT', { exact: true })).not.toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('shows an empty Collection without substituting the manually analyzed sentence', async () => {
-    const { user } = renderAnalysis(analyzerResult())
-    await user.click(screen.getByText('Saved Collection - 0 records'))
-    const corpus = within(screen.getByRole('region', { name: 'Saved Collection results' }))
-    expect(corpus.getByText('0 tokens · 0 distinct forms')).toBeVisible()
-    expect(corpus.getByText('No token categories were observed.')).toBeVisible()
-    expect(corpus.getByText(/No saved records/)).toBeVisible()
-    expect(corpus.queryByText('Mbom')).not.toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Analyzed sentence or word' })).toHaveTextContent('1 tokens · 1 distinct forms')
+  it('shows loading and explicit report/detail recovery instead of stale statistics', async () => {
+    const { user, rerender, props, onRefresh, onRetryInspect } = renderAnalysis(null)
+    rerender(<Analysis {...props} report={null} loading />)
+    expect(screen.getByText('Loading all-test statistics...')).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'No saved tests yet' })).not.toBeInTheDocument()
+    rerender(<Analysis {...props} report={null} loadError="Cannot read recorded tests." />)
+    await user.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Try again' }))
+    expect(onRefresh).toHaveBeenCalledOnce()
+    rerender(<Analysis {...props} report={null} inspectError="This saved test was not found." />)
+    await user.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Try again' }))
+    expect(onRetryInspect).toHaveBeenCalledOnce()
+  })
+
+  it('keeps current lexer rules distinct from immutable saved snapshots', async () => {
+    const { user } = renderAnalysis()
+    await user.click(screen.getByText('Lexer rules & limitations'))
+    expect(screen.getByRole('heading', { name: 'Current token boundary regex' })).toBeVisible()
+    expect(screen.getByRole('region', { name: 'Lexer regular expression rules' })).toBeVisible()
+    expect(screen.getByText(/original results, not a new analysis/)).toBeVisible()
   })
 })

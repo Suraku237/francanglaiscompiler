@@ -53,5 +53,5 @@ test('backend recovery updates compiler connectivity without sending or discardi
   await page.getByRole('button', { name: 'Check backend connection' }).click()
   await expect(page.getByText('Compiler connected', { exact: true })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Statement to analyze' })).toHaveValue('Draft while offline')
-  expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
 })

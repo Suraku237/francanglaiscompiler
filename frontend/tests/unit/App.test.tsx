@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../src/App'
 import AuthGate from '../../src/AuthGate'
 import { configureSession } from '../../src/api'
-import { analyzerResult, analyzerState, health } from '../fixtures'
+import { analyzerState, health, recordedTest, retainedTestReport, testReport } from '../fixtures'
 import { jsonResponse } from '../helpers'
 
 beforeEach(() => {
@@ -18,6 +18,7 @@ function compilerApi() {
   vi.mocked(fetch).mockImplementation(async (url) => {
     if (url === '/api/health') return jsonResponse(health())
     if (url === '/api/analyzer') return jsonResponse(analyzerState())
+    if (String(url).startsWith('/api/analyzer/tests?')) return jsonResponse(testReport())
     throw new Error(`Unexpected API request ${String(url)}`)
   })
 }
@@ -46,14 +47,14 @@ describe('compiler-only navigation and account scope', () => {
     compilerApi()
     window.history.replaceState(null, '', '/#analysis')
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'No completed analysis' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
     expect(document.title).toBe('Analysis — Mboa Compiler')
     expect(screen.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible()
     expect(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Analysis' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Grammar settings')).toBeVisible()
     expect(screen.getByLabelText('Context-free grammar')).not.toBeVisible()
     expect(screen.getByRole('region', { name: 'Lexer regular expression rules' })).not.toBeVisible()
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => url).sort()).toEqual(['/api/analyzer', '/api/health'])
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url).sort()).toEqual(['/api/analyzer', '/api/analyzer/tests?offset=0&limit=25', '/api/health'])
   })
 
   it('requires authentication before loading the analyzer and remounts all drafts on project selection', async () => {
@@ -73,7 +74,11 @@ describe('compiler-only navigation and account scope', () => {
         const selected = new Headers(init?.headers).get('X-Mboa-Project')
         return jsonResponse(analyzerState(selected === 'other' ? 'S -> VERB' : 'S -> NOUN'))
       }
-      if (url === '/api/analyzer/analyze') return jsonResponse(analyzerResult({ text: 'Private unsaved text' }))
+      if (url === '/api/analyzer/tests') return jsonResponse(recordedTest({ text: 'Private unsaved text' }))
+      if (String(url).startsWith('/api/analyzer/tests?')) {
+        const selected = new Headers(init?.headers).get('X-Mboa-Project')
+        return jsonResponse(selected === 'other' ? testReport() : retainedTestReport())
+      }
       throw new Error(`Unexpected request ${String(url)}`)
     })
     const user = userEvent.setup()
@@ -93,7 +98,7 @@ describe('compiler-only navigation and account scope', () => {
     await user.click(await screen.findByRole('link', { name: 'View detailed analysis' }))
     expect(await screen.findByLabelText('Analyzed source text')).toHaveTextContent('Private unsaved text')
     await user.selectOptions(screen.getByLabelText('Active project'), 'other')
-    expect(await screen.findByRole('heading', { name: 'No completed analysis' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
     expect(screen.queryByLabelText('Analyzed source text')).not.toBeInTheDocument()
     await user.click(screen.getByText('Grammar settings'))
     await waitFor(() => expect(screen.getByLabelText('Context-free grammar')).toHaveValue('S -> VERB'))
@@ -103,7 +108,7 @@ describe('compiler-only navigation and account scope', () => {
     expect(screen.queryByLabelText('Group member 1')).not.toBeInTheDocument()
     const scope = vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/analyzer').at(-1)
     expect(new Headers(scope?.[1]?.headers).get('X-Mboa-Project')).toBe('other')
-    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'POST').map(([url]) => url)).toEqual(['/api/analyzer/analyze'])
+    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'POST').map(([url]) => url)).toEqual(['/api/analyzer/tests'])
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
   })
 
@@ -118,6 +123,8 @@ describe('compiler-only navigation and account scope', () => {
     expect(dialog).toHaveTextContent('no OCR or automatic transcription')
     expect(dialog).toHaveTextContent('Google sign-in')
     expect(dialog).toHaveTextContent('Existing backups and legacy records remain on the server')
+    expect(dialog).toHaveTextContent('Analyze records each completed test')
+    expect(dialog).toHaveTextContent('remain after refresh or sign-out')
     expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument()
     expect(dialog).not.toHaveTextContent(/Gemini|API key|AI allowance|provider retention/i)

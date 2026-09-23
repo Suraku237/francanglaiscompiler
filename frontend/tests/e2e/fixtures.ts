@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test'
 import type { Route } from '@playwright/test'
-import { analyzerState, dataset, entry, health, metadata } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata, testReport } from '../fixtures'
 
 export interface RecordedRequest {
   method: string
@@ -19,6 +19,7 @@ export class MockApi {
   health = health()
   entries = [entry()]
   analyzer = analyzerState()
+  testReport = testReport()
   private readonly handlers = new Map<string, Handler>()
 
   on(method: string, path: string, handler: Handler) {
@@ -58,6 +59,7 @@ export class MockApi {
       if (recorded.path === '/api/health') return route.fulfill({ json: this.health })
       if (recorded.path === '/api/metadata') return route.fulfill({ json: metadata })
       if (recorded.path === '/api/analyzer') return route.fulfill({ json: this.analyzer })
+      if (recorded.path === '/api/analyzer/tests') return route.fulfill({ json: this.testReport })
       if (recorded.path === '/api/dataset') {
         const query = url.searchParams.get('query')?.toLowerCase() ?? ''
         const entries = this.entries.filter((item) => [item.text, item.french_gloss, item.english_gloss]

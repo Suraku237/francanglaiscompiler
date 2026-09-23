@@ -1,59 +1,72 @@
 import type { ReactNode } from 'react'
-import type { AnalyzerResult, AnalyzerState } from './analyzerTypes'
-import { Icon, Spinner } from './components'
-import { AnalyzedSource, CorpusResults, GrammarResults, LexicalResults, ParseTrace, TableScroll, TokenStatistics, TokenTable } from './CourseworkResults'
+import { useEffect, useRef } from 'react'
+import type { AnalyzerState, RecordedTest, TestReport } from './analyzerTypes'
+import { ErrorNotice, Icon, Spinner } from './components'
+import { AnalyzedSource, GrammarResults, ParseTrace, TableScroll, TokenStatistics, TokenTable } from './CourseworkResults'
+import { TestStatistics } from './TestStatistics'
 
-export function Analysis({ result, lexicalSpec, analyzing, grammarSettings, onCancel, onUseText }: {
-  result: AnalyzerResult | null
+export function Analysis({ result, report, lexicalSpec, analyzing, loading, loadError, inspecting, inspectError, grammarSettings, onCancel, onRefresh, onPage, onInspect, onRetryInspect, onUseText }: {
+  result: RecordedTest | null
+  report: TestReport | null
   lexicalSpec: AnalyzerState['lexical_spec']
   analyzing: boolean
+  loading: boolean
+  loadError: string
+  inspecting: boolean
+  inspectError: string
   grammarSettings?: ReactNode
   onCancel: () => void
+  onRefresh: () => void
+  onPage: (offset: number) => void
+  onInspect: (id: string) => void
+  onRetryInspect: () => void
   onUseText: (text: string) => void
 }) {
+  const details = useRef<HTMLElement>(null)
+  const requestedInspection = useRef(false)
+  useEffect(() => {
+    if (result && requestedInspection.current) {
+      requestedInspection.current = false
+      details.current?.focus({ preventScroll: true })
+      details.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    }
+  }, [result])
+
   return <>
     <a className="text-button" href="#compiler">Back to Franc Analyzer<Icon name="arrow" size={16} /></a>
     {grammarSettings}
-    {analyzing && <div className="lab-actions"><p className="lab-loading" role="status"><Spinner label="Running analysis" />Analyzing the input and saved Collection...</p><button type="button" className="text-button" onClick={onCancel}>Cancel analysis</button></div>}
-    {!result && !analyzing && <div className="lab-empty-panel">
-      <Icon name="chart" size={28} /><h2>No completed analysis</h2>
-      <p>Enter a sentence or word and select Analyze in Franc Analyzer. Its token details and saved Collection statistics will appear here separately. Nothing is saved or computed just by opening this page.</p>
-      <a className="button button-primary" href="#compiler">Analyze a sentence or word<Icon name="arrow" size={16} /></a>
-    </div>}
-    {result && <>
-      <p className="lab-copy">Results from your latest run in this tab. The input below is not added to Collection. Run Analyze again after changing your input, vocabulary or grammar.</p>
-      <section className="lab-card" aria-labelledby="analysis-input-title">
-        <div className="lab-card-heading"><div><h2 id="analysis-input-title">Analyzed sentence or word</h2><p>Tokens appear in source order with the exact categories passed to the parser.</p></div></div>
-        <AnalyzedSource text={result.text} />
-        <TokenTable tokens={result.lexical.tokens} />
-        <dl className="lab-observations">
-          <div><dt>Verb phrases</dt><dd>{result.lexical.verb_phrases.join(' / ') || 'None detected'}</dd></div>
-          <div><dt>Slang expressions</dt><dd>{result.lexical.slang_expressions.join(' / ') || 'None detected'}</dd></div>
-          <div><dt>Code-mixed spans</dt><dd>{result.lexical.code_mixed_spans.join(' / ') || 'None detected'}</dd></div>
-        </dl>
-        <TokenStatistics statistics={result.lexical.statistics} />
-        <details className="lab-disclosure">
-          <summary>Parser trace for this input</summary>
-          <div className="lab-disclosure-body"><ParseTrace result={result.parse} /></div>
-        </details>
-      </section>
-      <details className="lab-disclosure analysis-corpus">
-        <summary>Saved Collection - {result.corpus.lexical.statements.length} records</summary>
-        <div className="lab-disclosure-body" role="region" aria-label="Saved Collection results">
-          <p className="lab-copy">A separate snapshot of all saved entries in this project, including Words, Phrases and Sentences. These counts do not include the unsaved analyzer input.</p>
-          <LexicalResults lexical={result.corpus.lexical} />
-          <CorpusResults tests={result.corpus.tests} summary={result.corpus.summary} onUseText={onUseText} />
+    {analyzing && <div className="lab-actions"><p className="lab-loading" role="status"><Spinner label="Running analysis" />Analyzing and recording this test...</p><button type="button" className="text-button" onClick={onCancel}>Stop waiting</button></div>}
+    <ErrorNotice message={loadError} onRetry={onRefresh} />
+    {loading && <p className="lab-loading" role="status"><Spinner label="Loading saved tests" />Loading all-test statistics...</p>}
+    {report && <TestStatistics report={report} busy={loading} selectedId={result?.id} onRefresh={onRefresh} onPage={onPage} onInspect={(id) => { requestedInspection.current = true; onInspect(id) }} />}
+    <ErrorNotice message={inspectError} onRetry={onRetryInspect} />
+    {inspecting && <p className="lab-loading" role="status"><Spinner label="Loading recorded test" />Opening the saved snapshot...</p>}
+    {result && <section ref={details} tabIndex={-1} className="lab-card selected-test" aria-labelledby="analysis-input-title">
+      <div className="lab-card-heading"><div><span className="test-eyebrow">Selected saved test</span><h2 id="analysis-input-title">Analyzed sentence or word</h2><p>Recorded {new Date(result.created_at).toLocaleString()}. These are the original results, not a new analysis using today's settings.</p></div></div>
+      <AnalyzedSource text={result.text} />
+      <div className="lab-actions"><span className={`lab-status ${result.parse.accepted ? 'ready' : 'needs_input'}`}>{result.parse.accepted ? 'ACCEPT' : 'REJECT'}</span><button type="button" className="text-button" onClick={() => onUseText(result.text)}>Use as analyzer input<Icon name="arrow" size={16} /></button></div>
+      <details className="lab-disclosure">
+        <summary>Token details for this test</summary>
+        <div className="lab-disclosure-body">
+          <TokenTable tokens={result.lexical.tokens} />
+          <dl className="lab-observations">
+            <div><dt>Verb phrases</dt><dd>{result.lexical.verb_phrases.join(' / ') || 'None detected'}</dd></div>
+            <div><dt>Slang expressions</dt><dd>{result.lexical.slang_expressions.join(' / ') || 'None detected'}</dd></div>
+            <div><dt>Code-mixed spans</dt><dd>{result.lexical.code_mixed_spans.join(' / ') || 'None detected'}</dd></div>
+          </dl>
+          <TokenStatistics statistics={result.lexical.statistics} />
         </div>
       </details>
-      <section className="lab-card" aria-labelledby="analysis-grammar-title">
-        <div className="lab-card-heading"><div><h2 id="analysis-grammar-title">Syntactic analysis</h2><p>{result.grammar.is_ll1 ? 'The transformed grammar has no LL(1) table conflicts.' : 'The grammar has conflicts or unresolved recursion. Inspect the details before relying on a parse.'}</p></div></div>
-        <details className="lab-disclosure"><summary>Transformations, FIRST/FOLLOW &amp; LL(1) table</summary><div className="lab-disclosure-body"><GrammarResults grammar={result.grammar} /></div></details>
-      </section>
-    </>}
+      <details className="lab-disclosure"><summary>Parser trace for this input</summary><div className="lab-disclosure-body"><ParseTrace result={result.parse} /></div></details>
+      <details className="lab-disclosure">
+        <summary>Saved grammar, transformations &amp; FIRST/FOLLOW</summary>
+        <div className="lab-disclosure-body"><h3>Grammar used for this test</h3><pre className="lab-regex">{result.grammar_source}</pre><GrammarResults grammar={result.grammar} /></div>
+      </details>
+    </section>}
     <details className="lab-disclosure">
       <summary>Lexer rules &amp; limitations</summary>
       <div className="lab-disclosure-body">
-        <h3>Token boundary regex</h3><pre className="lab-regex">{lexicalSpec.token_pattern}</pre>
+        <h3>Current token boundary regex</h3><pre className="lab-regex">{lexicalSpec.token_pattern}</pre>
         <h3>Classification precedence</h3><ol className="lab-list">{lexicalSpec.classification_order.map((rule, index) => <li key={index}>{rule}</li>)}</ol>
         <TableScroll label="Lexer regular expression rules"><table className="lab-table"><thead><tr><th scope="col">Category</th><th scope="col">Regex pattern</th></tr></thead><tbody>{lexicalSpec.regex_rules.map((rule, index) => <tr key={index}><td><code>{rule.category}</code></td><td><code>{rule.pattern}</code></td></tr>)}</tbody></table></TableScroll>
         <div className="lab-two-columns"><div><h4>Verb-phrase lexicon</h4><p className="lab-copy">{lexicalSpec.verb_phrases.join(' / ') || 'No phrases specified'}</p></div><div><h4>Slang-phrase lexicon</h4><p className="lab-copy">{lexicalSpec.slang_phrases.join(' / ') || 'No phrases specified'}</p></div></div>

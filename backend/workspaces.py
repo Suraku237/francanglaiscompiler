@@ -16,9 +16,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from compiler.parser.service import analyze_grammar
+from compiler.parser.grammar import read_grammar
 from data_collector import dataset
 from . import coursework_store
 from .auth import UserIdentity, private_directory
+from .analyzer_models import RecordedTest, StoredAnalyzerTest
 from .collection import CollectionError, storage_operation
 from .coursework_models import ProjectProfile
 from .schemas import DatasetEntry, EntryCreate, TranslationLanguage
@@ -129,6 +131,10 @@ class WorkspaceStore:
                 CREATE TABLE IF NOT EXISTS screenshots (
                     id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),
                     name TEXT NOT NULL,content TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS analyzer_tests (
+                    id TEXT NOT NULL,project_id TEXT NOT NULL REFERENCES projects(id),data TEXT NOT NULL,
+                    PRIMARY KEY (project_id,id)
                 );
             """)
             db.execute("INSERT OR IGNORE INTO projects VALUES ('default','General',?)", (now(),))
@@ -242,6 +248,27 @@ class WorkspaceStore:
             )
             self.bump(db)
 
+    def load_analyzer_test(self, test_id: str) -> RecordedTest | None:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT id,project_id,data FROM analyzer_tests WHERE project_id=? AND id=?", (self.project, test_id),
+            ).fetchone()
+        return StoredAnalyzerTest.model_validate(dict(row)).data if row is not None else None
+
+    def save_analyzer_test(self, record: RecordedTest) -> None:
+        with self.lock(), self.connection() as db:
+            db.execute(
+                "INSERT INTO analyzer_tests VALUES (?,?,?)", (record.id, self.project, record.model_dump_json()),
+            )
+            self.bump(db)
+
+    def iter_analyzer_tests(self) -> Iterator[RecordedTest]:
+        with self.connection() as db:
+            for row in db.execute(
+                "SELECT id,project_id,data FROM analyzer_tests WHERE project_id=? ORDER BY rowid DESC", (self.project,),
+            ):
+                yield StoredAnalyzerTest.model_validate(dict(row)).data
+
     def list_coursework_screenshots(self) -> list[dict[str, str]]:
         with self.connection() as db:
             return [dict(row) for row in db.execute(
@@ -308,8 +335,10 @@ class WorkspaceStore:
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             if any(db.execute(f"SELECT 1 FROM {table} WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
-                   for table in ("entries", "history", "revisions", "coursework", "screenshots")):
-                raise CollectionError(409, "Only empty projects without saved work, coursework or revision history can be deleted.")
+                   for table in ("entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests")):
+                raise CollectionError(
+                    409, "Only empty projects without saved work, coursework, analyzer tests or revision history can be deleted."
+                )
             if db.execute("DELETE FROM projects WHERE id=?", (project_id,)).rowcount != 1:
                 raise CollectionError(404, "Project not found.")
             self.bump(db)
@@ -391,8 +420,8 @@ class WorkspaceStore:
 
     def export_document(self) -> dict:
         with self.lock(), self.connection() as db:
-            document = {"format": 2, "version": self.version, "projects": self.projects()}
-            for table in ("entries", "history", "revisions", "coursework", "screenshots"):
+            document = {"format": 3, "version": self.version, "projects": self.projects()}
+            for table in ("entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests"):
                 document[table] = [dict(row) for row in db.execute(f"SELECT * FROM {table} ORDER BY rowid")]
             return document
 
@@ -404,9 +433,12 @@ class WorkspaceStore:
         if document.get("format") == 1 and set(document) == base_fields:
             document = dict(document)
             document.update(format=2, coursework=[], screenshots=[])
-        if set(document) != base_fields | {"coursework", "screenshots"}:
+        if document.get("format") == 2 and set(document) == base_fields | {"coursework", "screenshots"}:
+            document = dict(document)
+            document.update(format=3, analyzer_tests=[])
+        if set(document) != base_fields | {"coursework", "screenshots", "analyzer_tests"}:
             raise CollectionError(422, "Unsupported backup structure.")
-        if document["format"] != 2 or type(document["version"]) is not int or document["version"] < 0:
+        if document["format"] != 3 or type(document["version"]) is not int or document["version"] < 0:
             raise CollectionError(422, "Unsupported backup version.")
         limits = {
             "projects": 20, "entries": MAX_ENTRIES, "history": MAX_HISTORY, "revisions": MAX_REVISIONS,
@@ -415,6 +447,8 @@ class WorkspaceStore:
         for table, limit in limits.items():
             if not isinstance(document[table], list) or len(document[table]) > limit:
                 raise CollectionError(422, "Backup record limits exceeded.")
+        if not isinstance(document["analyzer_tests"], list):
+            raise CollectionError(422, "Unsupported analyzer test records.")
         projects = set()
         identifiers: dict[str, set[str]] = {key: set() for key in limits}
         try:
@@ -486,6 +520,15 @@ class WorkspaceStore:
                 if count > coursework_store.MAX_SCREENSHOTS:
                     raise ValueError("Too many project screenshots")
                 screenshot_counts[row["project_id"]] = count
+            test_identifiers = set()
+            for row in document["analyzer_tests"]:
+                saved = StoredAnalyzerTest.model_validate(row)
+                key = (saved.project_id, saved.id)
+                if saved.project_id not in projects or key in test_identifiers:
+                    raise ValueError("Invalid project or duplicate analyzer test")
+                if read_grammar(saved.data.grammar_source) != saved.data.grammar.original:
+                    raise ValueError("Saved grammar source does not match its original rules")
+                test_identifiers.add(key)
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
             raise CollectionError(422, "The backup contains invalid workspace records.") from exc
         return document
@@ -497,9 +540,9 @@ class WorkspaceStore:
             version = int(db.execute("SELECT value FROM meta WHERE key='version'").fetchone()[0])
             if version != expected_version:
                 raise CollectionError(409, "Your workspace changed after preview. Preview the backup again.")
-            for table in ("entries", "history", "revisions", "coursework", "screenshots", "projects"):
+            for table in ("entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests", "projects"):
                 db.execute(f"DELETE FROM {table}")
-            for table in ("projects", "entries", "history", "revisions", "coursework", "screenshots"):
+            for table in ("projects", "entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests"):
                 for row in document[table]:
                     columns = list(row)
                     db.execute(
