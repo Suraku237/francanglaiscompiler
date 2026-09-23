@@ -1,5 +1,6 @@
 import unicodedata
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Mapping
 
 from compiler.lexer import lexicon, tokenizer
 from compiler.lexer.learned import build_lexicon
@@ -76,35 +77,23 @@ def corpus_stats(entries: list[dict[str, str]]) -> dict:
     }
 
 
-def lexical_report(entries: list[dict[str, str]]) -> dict:
+def token_statistics(tokens: Iterable[Mapping[str, str]]) -> dict:
     frequencies: Counter[str] = Counter()
     categories: Counter[str] = Counter()
     unknown: Counter[str] = Counter()
     variants: dict[str, Counter[str]] = defaultdict(Counter)
-    statements = []
-    learned = build_lexicon(entries)
-    for entry in entries:
-        result = tokenizer.analyze_sentence(entry["text"], learned)
-        tokens = [{"text": token.text, "category": token.category} for token in result["tokens"]]
-        for token in tokens:
-            raw = token["text"]
-            frequencies[raw.casefold()] += 1
-            categories[token["category"]] += 1
-            if token["category"] == "UNKNOWN":
-                unknown[raw.casefold()] += 1
-            normalized = "".join(
-                character for character in unicodedata.normalize("NFKD", raw.casefold())
-                if not unicodedata.combining(character)
-            ).replace("\u2019", "'")
-            variants[normalized][raw] += 1
-        statements.append({
-            "id": entry["id"], "text": entry["text"], "category": entry["category"],
-            "tokens": tokens, "code_mixed_spans": result["code_mixed_spans"],
-            "verb_phrases": result["verb_phrases"],
-            "slang_expressions": tokenizer.find_slang_phrases(entry["text"]),
-        })
+    for token in tokens:
+        raw = token["text"]
+        frequencies[raw.casefold()] += 1
+        categories[token["category"]] += 1
+        if token["category"] == "UNKNOWN":
+            unknown[raw.casefold()] += 1
+        normalized = "".join(
+            character for character in unicodedata.normalize("NFKD", raw.casefold())
+            if not unicodedata.combining(character)
+        ).replace("\u2019", "'")
+        variants[normalized][raw] += 1
     return {
-        "statements": statements,
         "frequencies": [{"token": token, "count": count} for token, count in frequencies.most_common()],
         "category_counts": dict(categories),
         "variations": [
@@ -113,6 +102,26 @@ def lexical_report(entries: list[dict[str, str]]) -> dict:
         ],
         "unknown_tokens": [{"token": token, "count": count} for token, count in unknown.most_common()],
         "total_tokens": sum(frequencies.values()),
+    }
+
+
+def lexical_report(
+    entries: list[dict[str, str]], *, learned_lexicon: Mapping[str, str] | None = None,
+) -> dict:
+    statements = []
+    learned = build_lexicon(entries) if learned_lexicon is None else learned_lexicon
+    for entry in entries:
+        result = tokenizer.analyze_sentence(entry["text"], learned)
+        statements.append({
+            "id": entry["id"], "text": entry["text"], "category": entry["category"],
+            "tokens": [{"text": token.text, "category": token.category} for token in result["tokens"]],
+            "code_mixed_spans": result["code_mixed_spans"],
+            "verb_phrases": result["verb_phrases"],
+            "slang_expressions": tokenizer.find_slang_phrases(entry["text"]),
+        })
+    return {
+        "statements": statements,
+        **token_statistics(token for statement in statements for token in statement["tokens"]),
     }
 
 
@@ -181,18 +190,24 @@ def coursework_state() -> dict:
     }
 
 
-def analyze_coursework(grammar_text: str, *, entries: list[dict[str, str]] | None = None) -> dict:
-    entries = read_corpus() if entries is None else entries
-    grammar = analyze_grammar(grammar_text)
-    lexical = lexical_report(entries)
+def parse_corpus(grammar: dict, lexical: dict) -> dict:
     tests = []
     for statement in lexical["statements"]:
         parsed = parse_analysis(grammar, statement["tokens"])
         tests.append({"id": statement["id"], "text": statement["text"], **parsed})
     accepted = sum(test["accepted"] for test in tests)
+    return {
+        "lexical": lexical, "tests": tests,
+        "summary": {"accepted": accepted, "rejected": len(tests) - accepted, "total": len(tests)},
+    }
+
+
+def analyze_coursework(grammar_text: str, *, entries: list[dict[str, str]] | None = None) -> dict:
+    entries = read_corpus() if entries is None else entries
+    grammar = analyze_grammar(grammar_text)
+    corpus = parse_corpus(grammar, lexical_report(entries))
     profile = load_project().model_copy(update={"grammar": grammar_text})
     return {
-        "grammar": grammar, "lexical": lexical, "tests": tests,
-        "summary": {"accepted": accepted, "rejected": len(tests) - accepted, "total": len(tests)},
+        "grammar": grammar, **corpus,
         "requirements": requirements(profile, entries, grammar),
     }

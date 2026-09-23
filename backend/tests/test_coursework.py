@@ -9,7 +9,7 @@ from zipfile import ZipFile
 from PIL import Image
 from pptx import Presentation
 
-from backend import coursework_store
+from backend import coursework_export, coursework_store
 from backend.tests.test_api import ApiTestCase
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
@@ -28,6 +28,11 @@ class CourseworkTests(ApiTestCase):
         response = self.client.post("/api/dataset", json={"text": text, **fields})
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
+
+    @staticmethod
+    def legacy_export():
+        with dataset.dataset_lock():
+            return coursework_export.export_bundle()
 
     def test_empty_workspace_is_honest_and_does_not_invent_data(self):
         response = self.client.get("/api/coursework")
@@ -160,15 +165,18 @@ class CourseworkTests(ApiTestCase):
         for value in ("data:image/png;base64,bm90YW5pbWFnZQ==", "data:text/html;base64,SGk="):
             self.assertEqual(self.client.post("/api/coursework/screenshots", json={"name": "invalid", "data_url": value}).status_code, 422)
 
-    def test_export_contains_real_results_report_slides_source_not_secrets(self):
+    def test_report_export_route_is_removed(self):
+        response = self.client.get("/api/coursework/export")
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertNotIn("/api/coursework/export", self.client.get("/openapi.json").json()["paths"])
+        self.assert_no_outbound_http()
+
+    def test_legacy_export_helper_contains_results_report_slides_source_not_secrets(self):
         self.add_entry("taxi")
         self.profile.update(grammar="S -> NOUN", discussion="<script>do not execute</script>")
         self.client.put("/api/coursework/project", json=self.profile)
         self.client.post("/api/coursework/screenshots", json={"name": "Example image", "data_url": self.image_data()})
-        response = self.client.get("/api/coursework/export")
-        self.assertEqual(response.status_code, 200, response.text[:100] if response.status_code != 200 else "")
-        self.assertEqual(response.headers["content-type"], "application/zip")
-        with ZipFile(io.BytesIO(response.content)) as archive:
+        with ZipFile(io.BytesIO(self.legacy_export())) as archive:
             names = archive.namelist()
             self.assertFalse(any(".env" in name or "node_modules" in name for name in names))
             self.assertIn("source/compiler/parser/service.py", names)
@@ -199,13 +207,11 @@ class CourseworkTests(ApiTestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
-    def test_exporting_empty_data_is_explicit_draft(self):
+    def test_legacy_export_helper_with_empty_data_is_explicit_draft(self):
         self.assertEqual(self.client.get("/api/dictionary").json()["total"], 179)
         self.assertEqual(self.client.get("/api/examples").json()["total"], 26)
         self.assertEqual(self.client.get("/api/coursework").json()["stats"]["total"], 0)
-        response = self.client.get("/api/coursework/export")
-        self.assertEqual(response.status_code, 200)
-        with ZipFile(io.BytesIO(response.content)) as archive:
+        with ZipFile(io.BytesIO(self.legacy_export())) as archive:
             self.assertEqual(json.loads(archive.read("source/tests/collected_cases.json")), [])
             self.assertIn("source/examples/camfranglais_statements.csv", archive.namelist())
             self.assertIn("TO COMPLETE", archive.read("report.html").decode())
@@ -223,9 +229,7 @@ class CourseworkTests(ApiTestCase):
         corpus = self.client.post("/api/coursework/analyze", json={"grammar": self.profile["grammar"]}).json()
         self.assertEqual(corpus["summary"]["accepted"], 2)
         self.assertEqual({case["id"] for case in corpus["tests"]}, {entry["id"], sentence["id"]})
-        exported = self.client.get("/api/coursework/export")
-        self.assertEqual(exported.status_code, 200)
-        with ZipFile(io.BytesIO(exported.content)) as archive:
+        with ZipFile(io.BytesIO(self.legacy_export())) as archive:
             root = self.directory / "learned-export"
             archive.extractall(root)
             token_csv = archive.read("artifacts/tokens.csv").decode()

@@ -13,6 +13,7 @@ from compiler.lexer.tokenizer import analyze_sentence
 from data_collector import dataset
 
 from . import collection, dictionary, examples
+from .analyzer_api import router as analyzer_router
 from .audio_api import router as audio_router
 from .auth import AuthSettings, install_auth
 from .collection import storage_operation
@@ -131,6 +132,7 @@ def create_app(
         return Response(status_code=204)
 
     if include_academic:
+        app.include_router(analyzer_router)
         app.include_router(coursework_router)
         app.add_api_route("/api/examples", get_examples, response_model=PracticeResponse, methods=["GET"])
     app.include_router(import_router)

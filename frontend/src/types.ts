@@ -2,7 +2,7 @@ export type Language = 'fr' | 'en'
 export type TranslationLanguage = Language | 'francanglais' | 'pidgin'
 export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified'
 export type ReviewStatus = 'unreviewed' | 'approved'
-export type Page = 'compiler' | 'dictionary' | 'examples' | 'collection'
+export type Page = 'compiler' | 'analysis' | 'dictionary' | 'examples' | 'collection'
 
 export interface IncomingText {
   id: number

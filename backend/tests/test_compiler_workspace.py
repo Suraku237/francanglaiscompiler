@@ -25,7 +25,7 @@ from backend.main import create_app
 from backend.tests.test_hosted import HostedCase
 from backend.web import JSON_REQUEST_LIMIT, SCREENSHOT_REQUEST_LIMIT
 from backend.workspace_backups import validate_archive
-from backend.workspaces import WorkspaceStore, current_workspace
+from backend.workspaces import WorkspaceStore
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
 from data_collector.tests.support import synthetic_entry
@@ -100,11 +100,12 @@ class CompilerHostedCase(HostedCase):
         return output.getvalue()
 
     def export(self, client=None):
-        response = (client or self.client).get("/api/coursework/export")
-        self.assertEqual(response.status_code, 200, response.text if response.status_code != 200 else "")
-        self.assertEqual(response.headers["content-type"], "application/zip")
-        self.assertIn("no-store", response.headers["cache-control"])
-        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        client = client or self.client
+        user = client.get("/api/auth/session").json()["user"]
+        store = WorkspaceStore(self.root, user["id"], client.headers.get("X-Mboa-Project", "default"))
+        with dataset.use_storage(store), coursework_store.use_storage(store), dataset.dataset_lock():
+            content = coursework_export.export_bundle()
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
             return {name: archive.read(name) for name in archive.namelist()}
 
 
@@ -129,6 +130,8 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.register()
         self.assertFalse(hasattr(self.app.state, "gemini"))
         specification = self.client.get("/openapi.json").json()
+        self.assertEqual(self.client.get("/api/coursework/export").status_code, 404)
+        self.assertNotIn("/api/coursework/export", specification["paths"])
         for path, payload in (
             ("/api/translate", {"text": "PRIVATE expression"}),
             ("/api/chat", {"message": "PRIVATE question"}),
@@ -421,11 +424,11 @@ class HostedCourseworkTests(CompilerHostedCase):
         build_report = coursework_export.build_report
 
         def observe_analysis(entries):
-            lock_checks.append(("lexical", current_workspace().lock().is_locked))
+            lock_checks.append(("lexical", dataset.dataset_lock().is_locked))
             return lexical_report(entries)
 
         def observe_export(*args, **kwargs):
-            lock_checks.append(("report", current_workspace().lock().is_locked))
+            lock_checks.append(("report", dataset.dataset_lock().is_locked))
             return build_report(*args, **kwargs)
 
         with patch.object(coursework, "lexical_report", side_effect=observe_analysis), \

@@ -7,7 +7,7 @@ export type IconName =
   | 'translate' | 'sparkles' | 'collection' | 'arrow' | 'mic' | 'stop'
   | 'volume' | 'copy' | 'check' | 'close' | 'search' | 'plus' | 'edit'
   | 'trash' | 'shield' | 'globe' | 'chevron' | 'refresh' | 'info' | 'code'
-  | 'send' | 'location' | 'leaf' | 'headphones' | 'swap' | 'upload'
+  | 'send' | 'location' | 'leaf' | 'headphones' | 'swap' | 'upload' | 'chart'
 
 const iconPaths: Record<IconName, ReactNode> = {
   translate: <><path d="M3 5h12M9 3v2m-4 4c2 4 5 6 8 7M13 5c-1 5-5 9-10 12m11 4 4-10 4 10m-6.5-4h5" /></>,
@@ -30,6 +30,7 @@ const iconPaths: Record<IconName, ReactNode> = {
   refresh: <><path d="M20 8a8 8 0 0 0-14-3L3 8m0-5v5h5M4 16a8 8 0 0 0 14 3l3-3m0 5v-5h-5" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v.1" /></>,
   code: <><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16" /></>,
+  chart: <><path d="M4 3v18h17M8 17v-5m5 5V6m5 11V9" /></>,
   send: <><path d="m21 3-7 18-4-7-7-4L21 3ZM10 14 21 3" /></>,
   location: <><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z" /><circle cx="12" cy="10" r="2" /></>,
   leaf: <><path d="M20 3c-8-1-15 2-15 9a7 7 0 0 0 7 7c7 0 9-8 8-16ZM3 21 15 9" /></>,

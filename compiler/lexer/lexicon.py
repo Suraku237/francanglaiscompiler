@@ -60,7 +60,7 @@ NOUN_LEXICON = {
 
 VERB_LEXICON = {
     "drop", "hala", "dey", "go", "come", "waka", "sabi", "spoil", "block",
-    "attendre", "payer", "acheter", "vendre", "chercher", "courir",
+    "attendre", "payer", "acheter", "vendre", "chercher", "courir", "veux",
     "bloquer", "augmenter", "refuser", "refuse", "tomber", "flood",
 }
 

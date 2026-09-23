@@ -34,7 +34,7 @@ export function Examples({ active, onUseText, speech }: {
             <div><dt>Original note</dt><dd>{entry.notes}</dd></div>
           </dl>
           <div className="import-actions">
-            <button type="button" className="button button-secondary" onClick={() => onUseText(entry.text)}>Test example in compiler<Icon name="arrow" size={16} /></button>
+            <button type="button" className="button button-secondary" onClick={() => onUseText(entry.text)}>Open in Franc Analyzer<Icon name="arrow" size={16} /></button>
             {speech && <ReadButton speech={speech} id={`example:${entry.id}`} text={entry.text} language="fr" />}
           </div>
         </article>)}</div> : <div className="collection-empty"><h2>No practice examples found.</h2><p>Try another word, meaning or topic.</p></div>}
@@ -45,6 +45,6 @@ export function Examples({ active, onUseText, speech }: {
         </nav>
       </>}
     </div>
-    <p className="helper-text">Testing an example fills a manual compiler draft only. Nothing is computed or saved until you explicitly act. Supplied meanings and optional French-voice read-aloud are unverified references, not evidence of speaker usage.</p>
+    <p className="helper-text">Opening an example fills Franc Analyzer only. Nothing is computed or saved until you explicitly act. Supplied meanings and optional French-voice read-aloud are unverified references, not evidence of speaker usage.</p>
   </section>
 }

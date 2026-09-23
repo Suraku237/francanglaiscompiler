@@ -14,7 +14,7 @@ class BusinessWorkspaceTests(ApiTestCase):
         before = Path(dataset.DATASET_PATH).read_bytes()
         for path in (
             "/api/coursework", "/api/coursework/export", "/api/coursework/screenshots",
-            "/api/examples",
+            "/api/examples", "/api/analyzer",
         ):
             self.assertEqual(self.client.get(path).status_code, 404, path)
         self.assertEqual(
@@ -22,7 +22,7 @@ class BusinessWorkspaceTests(ApiTestCase):
             404,
         )
         schema = self.client.get("/openapi.json").json()
-        self.assertFalse(any(path.startswith(("/api/coursework", "/api/examples")) for path in schema["paths"]))
+        self.assertFalse(any(path.startswith(("/api/coursework", "/api/examples", "/api/analyzer")) for path in schema["paths"]))
         self.assertEqual(schema["info"]["title"], "Mboa Compiler Lab")
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
         self.assert_no_outbound_http()

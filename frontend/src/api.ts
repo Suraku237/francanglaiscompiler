@@ -63,8 +63,10 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
     ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' ||
       path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
-  const recovery = path.startsWith('/coursework')
-    ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
+  const recovery = path.startsWith('/analyzer')
+    ? 'Refresh saved grammar before trying again; your editor draft will be kept.'
+    : path.startsWith('/coursework')
+      ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
     : path.startsWith('/workspace/') || path.startsWith('/auth/')
       ? 'Refresh the saved state before trying again; do not repeat a restore blindly.'
       : 'Close this dialog and refresh the collection before trying again.'

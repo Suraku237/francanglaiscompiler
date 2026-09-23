@@ -3,14 +3,12 @@ import type { Page } from '@playwright/test'
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
-import type { ImportPreview } from '../../src/importTypes'
 import type { Dataset } from '../../src/types'
+import type { AnalyzerResult } from '../../src/analyzerTypes'
+import type { CourseworkState } from '../../src/courseworkTypes'
 import { checkAudioErrorsAndManualDrafts, recordPrivateAudio } from './audioWorkflows'
 
 const password = 'Live-browser-test-passphrase-2026!'
-const importDocuments = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'fixtures', 'imports')
-type ImportFile = string | { name: string; mimeType: string; buffer: Buffer }
 
 async function emailLink(email: string, kind: string): Promise<string> {
   const directory = process.env.MBOA_LIVE_DATA_DIR
@@ -55,17 +53,6 @@ async function addEntry(page: Page, text: string) {
   await expect(page.getByRole('heading', { name: text, exact: true })).toBeVisible()
 }
 
-async function previewDocument(page: Page, file: ImportFile, status = 200) {
-  await page.getByLabel('Text document').setInputFiles(file)
-  await expect(page.getByRole('checkbox')).toHaveCount(0)
-  const result = page.waitForResponse((response) =>
-    response.url().endsWith('/api/imports/preview') && response.request().method() === 'POST')
-  await page.getByRole('button', { name: 'Preview source text', exact: true }).click()
-  const response = await result
-  expect(response.status(), await response.text()).toBe(status)
-  return response
-}
-
 async function importedDataset(page: Page): Promise<Dataset> {
   const response = await page.request.get('/api/dataset')
   expect(response.ok()).toBe(true)
@@ -76,7 +63,7 @@ function processingRequests(page: Page): string[] {
   const requests: string[] = []
   page.on('request', (request) => {
     const path = new URL(request.url()).pathname
-    if (['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain'].includes(path)) requests.push(path)
+    if (['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain', '/api/coursework/export'].includes(path)) requests.push(path)
   })
   return requests
 }
@@ -128,95 +115,80 @@ test('real registration, compiler workflows, private data, sessions and reload p
   }
 })
 
-test('legacy history, coursework, projects, revision recovery and verified backup restoration', async ({ page }) => {
+test('grammar-only saving preserves legacy project notes, history and project isolation without report tools', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
   const session = await (await page.request.get('/api/auth/session')).json()
+  const headers = { 'X-CSRF-Token': session.csrf_token, Origin: 'http://127.0.0.1:4190' }
+  const originalResponse = await page.request.get('/api/coursework')
+  expect(originalResponse.status()).toBe(200)
+  const original: CourseworkState = await originalResponse.json()
+  const legacyProfile = {
+    ...original.project,
+    grammar: 'S -> NOUN',
+    discussion: 'Existing synthetic report notes, not fieldwork.',
+    collection_method: 'Existing synthetic provenance notes.',
+    grammar_rationale: 'Existing synthetic grammar rationale.',
+  }
+  const savedProfile = await page.request.put('/api/coursework/project', { headers, data: legacyProfile })
+  expect(savedProfile.status(), await savedProfile.text()).toBe(200)
   const legacy = await page.request.post('/api/workspace/history', {
-    headers: { 'X-CSRF-Token': session.csrf_token, Origin: 'http://127.0.0.1:4190' },
+    headers,
     data: { kind: 'translation', title: 'Legacy synthetic item', content: {
       source_text: '  Tchop\t ', source_language: 'francanglais', target_language: 'en',
       translation: 'to eat', explanation: 'Synthetic old history fixture, not generated during this run.', note: 'Not fieldwork.',
     } },
   })
   expect(legacy.status(), await legacy.text()).toBe(201)
-  await navigation.getByRole('link', { name: 'History', exact: true }).click()
-  await page.getByRole('button', { name: 'Open Legacy synthetic item', exact: true }).click()
-  await expect(page.getByLabel('Saved work details')).toContainText('to eat')
-  await page.getByRole('button', { name: 'Use source in compiler', exact: true }).click()
-  await expect(page.getByLabel('Manual parser test')).toHaveValue('  Tchop\t ')
-  await page.getByRole('tab', { name: 'Syntactic analysis', exact: true }).click()
-  await page.getByLabel('Context-free grammar').fill('S -> NOUN')
-  await page.getByText('Grammar notation & rationale', { exact: true }).click()
-  await page.getByLabel('Why this grammar fits your observations').fill('Synthetic backup test rationale. No genuine corpus supplied.')
-  await page.getByRole('button', { name: 'Save project', exact: true }).click()
-  await expect(page.getByText(/Project saved privately on this server/)).toBeVisible()
-  await page.getByRole('tab', { name: 'Report & presentation', exact: true }).click()
-  await page.getByLabel('Choose PNG or JPEG · max 2 MB').setInputFiles(join(importDocuments, 'image.png'))
-  await page.getByLabel('Screenshot caption').fill('Synthetic screenshot fixture')
-  await page.getByRole('button', { name: 'Save screenshot to project' }).click()
-  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toBeVisible()
-  await addEntry(page, 'Synthetic recoverable term')
-  await page.getByRole('button', { name: 'Delete expression: Synthetic recoverable term' }).click()
-  await page.getByRole('button', { name: 'Yes, remove it' }).click()
-  await navigation.getByRole('link', { name: 'Workspace settings', exact: true }).click()
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('button', { name: 'Restore revision', exact: true }).first().click()
-  await expect(page.getByRole('status').filter({ hasText: 'Revision restored as unreviewed' })).toBeVisible()
-  await page.getByRole('button', { name: 'Create verified backup' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Backup created and verified' })).toBeVisible()
-  const downloaded = page.waitForEvent('download')
-  await page.getByRole('link', { name: 'Download backup' }).first().click()
-  const download = await downloaded
-  const path = await download.path()
-  if (!path) throw new Error('Expected a real private backup download.')
-  await addEntry(page, 'Synthetic post-backup term')
-  await navigation.getByRole('link', { name: 'Workspace settings', exact: true }).click()
-  await page.getByLabel('Backup ZIP (maximum 32 MB)').setInputFiles(path)
-  await page.getByRole('button', { name: 'Validate and preview backup' }).click()
-  await expect(page.getByRole('heading', { name: 'Restore preview', exact: true })).toBeVisible()
-  await expect(page.getByLabel('Backup contents')).toContainText('1 coursework profiles')
-  await expect(page.getByLabel('Backup contents')).toContainText('1 coursework screenshots')
-  await expect(page.getByLabel('Restore warnings')).toContainText(/coursework|grammar|screenshots/i)
-  await expect(page.getByRole('button', { name: 'Replace my workspace' })).toBeDisabled()
-  await page.getByLabel('Type REPLACE to confirm').fill('REPLACE')
-  await page.getByRole('button', { name: 'Replace my workspace' }).click()
-  await expect(page.getByText('Workspace restored. Review the restored information before using it.')).toBeVisible()
-  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Synthetic recoverable term', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Synthetic post-backup term', exact: true })).toHaveCount(0)
-  await navigation.getByRole('link', { name: 'Compiler lab', exact: true }).click()
-  await page.getByRole('tab', { name: 'Syntactic analysis', exact: true }).click()
-  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> NOUN')
-  await expect(page.getByLabel('Why this grammar fits your observations')).toHaveValue('Synthetic backup test rationale. No genuine corpus supplied.')
-  await page.getByRole('tab', { name: 'Report & presentation', exact: true }).click()
-  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toBeVisible()
-  await navigation.getByRole('link', { name: 'Workspace settings', exact: true }).click()
-  await page.getByLabel('New project name').fill('Synthetic second project')
-  await page.getByRole('button', { name: 'Create project', exact: true }).click()
+  const historyBefore = await (await page.request.get('/api/workspace/history')).json()
+  expect(historyBefore.entries).toHaveLength(1)
+  const otherProject = await page.request.post('/api/workspace/projects', { headers, data: { name: 'Synthetic second project' } })
+  expect(otherProject.status(), await otherProject.text()).toBe(201)
+  for (const retired of ['history', 'settings', 'imports']) {
+    await page.goto(`/#${retired}`)
+    await expect(page).toHaveURL(/#compiler$/)
+    await expect(navigation.getByRole('link')).toHaveText(['Franc Analyzer', 'Analysis', 'Collection', 'Dictionary', 'Synthetic examples'])
+  }
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await page.getByLabel('Context-free grammar').fill('S -> VERB')
+  await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
+  await expect(page.getByText(/Grammar saved privately/)).toBeVisible()
+  const retainedProfile: CourseworkState = await (await page.request.get('/api/coursework')).json()
+  expect(retainedProfile.project).toEqual({ ...legacyProfile, grammar: 'S -> VERB' })
+  await expect(page.getByRole('button', { name: /Download coursework|Upload screenshot|Save project/ })).toHaveCount(0)
+  await expect(page.getByLabel(/Linguistic discussion|Group member/)).toHaveCount(0)
+  await addEntry(page, 'Synthetic persistent term')
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Synthetic persistent term', exact: true })).toBeVisible()
+  await navigation.getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
   await expect(page.getByLabel('Active project')).toContainText('Synthetic second project')
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByLabel('Active project').selectOption({ label: 'Synthetic second project' })
   await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
-  await navigation.getByRole('link', { name: 'Compiler lab', exact: true }).click()
-  await expect(page.getByRole('tab', { name: 'Lexical analysis', exact: true })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByLabel('Why this grammar fits your observations')).toHaveValue('')
-  await expect(page.getByLabel('Sentence to analyze')).toHaveValue('')
-  await expect(page.getByRole('link', { name: 'Open screenshot: Synthetic screenshot fixture' })).toHaveCount(0)
+  await navigation.getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Franc Analyzer', exact: true })).toBeVisible()
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue('')
+  await expect(page.getByLabel('Context-free grammar')).not.toHaveValue('S -> VERB')
+  const retainedHistory = await page.request.get('/api/workspace/history', { headers: { 'X-Mboa-Project': 'default' } })
+  expect(retainedHistory.status()).toBe(200)
+  expect((await retainedHistory.json()).entries).toEqual(historyBefore.entries)
   expect(submitted).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('real password recovery revokes existing sessions and replaces the old password', async ({ page, browser }) => {
   const email = await signUp(page)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Workspace settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Email password reset', exact: true }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'reset link' })).toBeVisible()
   const recoveryContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4190' })
   try {
     const recovery = await recoveryContext.newPage()
+    await recovery.goto('/#forgot-password')
+    await recovery.getByLabel('Email address').fill(email)
+    await recovery.getByRole('button', { name: 'Send email', exact: true }).click()
+    await expect(recovery.getByRole('status').filter({ hasText: 'reset link' })).toBeVisible()
     await recovery.goto(await emailLink(email, 'reset-password'))
     const replacement = 'Replacement-live-test-passphrase-2026!'
     await recovery.getByLabel(/^Password/).fill(replacement)
@@ -239,190 +211,174 @@ test('real password recovery revokes existing sessions and replaces the old pass
 async function exerciseCompiler(page: Page) {
   const submitted = processingRequests(page)
   await expect(page).toHaveURL(/#compiler$/)
-  await expect(page.getByLabel('Sentence to analyze')).toBeVisible()
-  await page.getByRole('tab', { name: 'Data collection', exact: true }).click()
-  await expect(page.getByText('No collected corpus in this project yet.', { exact: true })).toBeVisible()
-  await page.getByRole('tab', { name: 'Syntactic analysis', exact: true }).click()
-  await page.getByLabel('Context-free grammar').fill('S -> S NOUN | NOUN')
-  await page.getByRole('button', { name: 'Analyze grammar & saved corpus' }).click()
+  await expect(page.getByRole('heading', { name: 'Franc Analyzer', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab')).toHaveCount(0)
+  await expect(page.getByLabel('Statement to analyze')).toBeVisible()
+  await page.getByLabel('Statement to analyze').fill('  123\t')
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await page.getByLabel('Context-free grammar').fill('S -> S NUMBER | NUMBER')
+  const firstRun = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/analyze'))
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const response = await firstRun
+  expect(response.status(), await response.text()).toBe(200)
+  const analyzed: AnalyzerResult = await response.json()
+  expect(response.request().postDataJSON()).toEqual({ text: '  123\t', grammar: 'S -> S NUMBER | NUMBER' })
+  expect(analyzed.text).toBe('  123\t')
+  expect(analyzed.lexical.tokens).toEqual([{ text: '123', category: 'NUMBER' }])
+  expect(analyzed.parse.accepted).toBe(true)
+  expect(analyzed.grammar.is_ll1).toBe(true)
+  expect(analyzed.corpus.summary.total).toBe(0)
+  await expect(page.getByRole('heading', { name: 'Parser result', exact: true })).toBeVisible()
+  await expect(page.getByRole('table')).toHaveCount(0)
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await expect(page.getByRole('heading', { name: 'Analyzed sentence', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Syntactic analysis', exact: true })).toBeVisible()
+  await page.getByText('Parser trace for this sentence', { exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
+  await page.getByText('Transformations, FIRST/FOLLOW & LL(1) table', { exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Computed grammar' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Computed FIRST and FOLLOW sets' })).toBeVisible()
   await expect(page.getByText('LL(1) · no table conflicts', { exact: true })).toBeVisible()
-  await page.getByRole('tab', { name: 'Lexical analysis', exact: true }).click()
-  await page.getByLabel('Sentence to analyze').fill('  Mbom\t')
-  await page.getByRole('button', { name: 'Analyze tokens' }).click()
-  await expect(page.getByRole('heading', { name: 'Manual lexical result' })).toBeVisible()
-  await page.getByRole('button', { name: 'Open parser test', exact: true }).click()
-  const parsing = page.waitForResponse((response) => response.url().endsWith('/api/coursework/parse'))
-  await page.getByRole('button', { name: 'Parse test input' }).click()
-  const parsed = await parsing
-  expect(parsed.status(), await parsed.text()).toBe(200)
-  expect(parsed.request().postDataJSON().text).toBe('  Mbom\t')
-  await expect(page.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
-
-  await page.getByRole('tab', { name: 'Syntactic analysis', exact: true }).click()
-  await page.getByLabel('Context-free grammar').fill('S -> A NOUN\nA -> NOUN | epsilon')
-  await page.getByRole('button', { name: 'Analyze grammar & saved corpus' }).click()
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await page.getByLabel('Context-free grammar').fill('S -> A NUMBER\nA -> NUMBER | epsilon')
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await page.getByText('Transformations, FIRST/FOLLOW & LL(1) table', { exact: true }).click()
   await expect(page.getByText('Not LL(1) · inspect conflicts', { exact: true })).toBeVisible()
   await expect(page.getByText('A deterministic LL(1) choice is not available.', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+  await page.getByText('Grammar settings', { exact: true }).click()
   await page.getByLabel('Context-free grammar').fill('S -> epsilon')
-  await page.getByRole('tab', { name: 'Parser tests', exact: true }).click()
-  await page.getByLabel('Manual parser test').fill('')
-  await page.getByRole('button', { name: 'Parse test input' }).click()
+  await page.getByLabel('Statement to analyze').fill('')
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
   await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
-  await page.getByRole('tab', { name: 'Report & presentation', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Download coursework draft (.zip)' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Save project', exact: true }).click()
-  await expect(page.getByText(/Project saved privately on this server/)).toBeVisible()
-  const downloaded = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download coursework draft (.zip)' }).click()
-  expect((await downloaded).suggestedFilename()).toBe('francanglais-coursework.zip')
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await expect(page.getByText('No lexical tokens. The parser will see only $.')).toBeVisible()
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
+  await expect(page.getByText(/Grammar saved privately/)).toBeVisible()
   await page.reload()
+  await page.getByText('Grammar settings', { exact: true }).click()
   await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> epsilon')
-  await page.getByRole('tab', { name: 'Data collection', exact: true }).click()
-  await page.getByText('Collection notes for the report', { exact: true }).click()
-  await expect(page.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+  await expect(page.getByRole('button', { name: /Download coursework|Save project|Upload screenshot/ })).toHaveCount(0)
   expect((await importedDataset(page)).total).toBe(0)
   expect(submitted).toEqual([])
 }
 
-test('local documents preserve all six formats, hand off drafts and save only after review', async ({ page }) => {
+test('manual statement and French meaning persist unreviewed and reach corpus analysis unchanged', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
-  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
-  await expect(page.getByRole('checkbox')).toHaveCount(0)
-  const term = {
-    text: 'synthetic-import-term', entry_type: 'Word', language: 'francanglais',
-    english_gloss: 'delivery', french_gloss: 'exp\u00e9dition', review_status: 'approved',
-    category: 'Campus Life', source_location: 'Original transcript line 8', contributor: 'TEST-CONTRIBUTOR', notes: 'TEST-NOTE',
-  }
-  const json = JSON.stringify({ entries: [term] })
-  const csv = `${Object.keys(term).join(',')}\r\n${Object.values(term).join(',')}\r\n`
-  const text = 'Commande TEST-1042.\r\nLivraison \u00e0 Yaound\u00e9.'
-  const markdown = '# Commande TEST-1042\n\nLivraison \u00e0 Yaound\u00e9.'
-  const documents: { file: ImportFile; text: string; structured?: boolean }[] = [
-    { file: { name: 'business.txt', mimeType: 'text/plain', buffer: Buffer.from('\ufeff' + text) }, text },
-    { file: { name: 'business.md', mimeType: 'text/markdown', buffer: Buffer.from(markdown) }, text: markdown },
-    { file: join(importDocuments, 'business.docx'), text: 'Commande TEST-1042.\nExp\u00e9dition\tmardi.\n3 articles.' },
-    { file: join(importDocuments, 'business.pdf'), text: 'Order TEST-1042 contains 3 items. Do not send before Tuesday.' },
-    { file: { name: 'terms.json', mimeType: 'application/json', buffer: Buffer.from(json) }, text: json, structured: true },
-    { file: { name: 'terms.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) }, text: csv, structured: true },
-  ]
-  for (const document of documents) {
-    const response = await previewDocument(page, document.file)
-    const preview: ImportPreview = await response.json()
-    expect(preview.method).toBe('local')
-    expect(preview.text).toBe(document.text)
-    expect(preview.segments.join('')).toBe(document.text)
-    await expect(page.getByLabel('Review and correct this passage')).toHaveValue(document.text.replace(/\r\n/g, '\n'))
-    await page.getByText('Original extracted text (read-only)', { exact: true }).click()
-    expect(await page.locator('.import-original pre').textContent()).toBe(document.text)
-    if (document.structured) {
-      expect(preview.drafts).toEqual([expect.objectContaining({
-        text: term.text, english_gloss: term.english_gloss, french_gloss: term.french_gloss,
-        review_status: 'unreviewed',
-      })])
-      expect(preview.drafts[0]).toMatchObject({
-        category: term.category, source_location: term.source_location, contributor: term.contributor, notes: term.notes,
-      })
-      await expect(page.getByRole('heading', { name: term.text, exact: true })).toBeVisible()
-    } else expect(preview.drafts).toEqual([])
-    expect((await importedDataset(page)).total).toBe(0)
-  }
-  await expect(page.getByRole('button', { name: /AI|suggest|translat/i })).toHaveCount(0)
-  const correction = '  Please\tdeliver order TEST-1042.\n\n'
-  await page.getByLabel('Review and correct this passage').fill(correction)
-  expect(await page.locator('.import-original pre').textContent()).toBe(csv)
-  await page.getByRole('button', { name: 'Open in compiler', exact: true }).click()
-  await expect(page.getByLabel('Manual parser test')).toHaveValue(correction)
-  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
-  await expect(page.getByLabel('Review and correct this passage')).toHaveValue(correction)
-  expect(submitted).toEqual([])
-  expect((await importedDataset(page)).total).toBe(0)
-  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
-  await page.getByRole('button', { name: 'Review and save candidate', exact: true }).click()
+  const text = '  Le taxi\tdon refuse.\n'
+  const meaning = '  Le taxi a refus\u00e9.\n'
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
   const editor = page.getByRole('dialog', { name: 'Add collection entry' })
-  await expect(editor.getByRole('textbox', { name: /^Expression/ })).toHaveValue(term.text)
+  await editor.getByRole('textbox', { name: /^Expression/ }).fill(text)
+  await editor.getByLabel(/^French meaning/).fill(meaning)
+  await editor.getByRole('combobox', { name: 'Language', exact: true }).selectOption('francanglais')
+  await editor.getByLabel(/^Context & notes/).fill('Synthetic test fixture, not fieldwork.')
   expect((await importedDataset(page)).total).toBe(0)
   await editor.getByRole('button', { name: 'Save unreviewed', exact: true }).click()
   await expect(editor).not.toBeVisible()
-  await expect(page.getByRole('button', { name: 'Saved - manage in Collection' })).toBeDisabled()
+  await page.reload()
   const saved = await importedDataset(page)
   expect(saved.total).toBe(1)
   expect(saved.entries).toHaveLength(1)
   const entry = saved.entries[0]
-  if (!entry) throw new Error('Expected the explicitly saved synthetic import.')
+  if (!entry) throw new Error('Expected the explicitly saved synthetic statement.')
   expect(entry).toMatchObject({
-    text: term.text, review_status: 'unreviewed', french_gloss: term.french_gloss, english_gloss: term.english_gloss,
+    text, review_status: 'unreviewed', french_gloss: meaning, english_gloss: '', entry_type: 'Sentence',
+    language: 'francanglais', source_location: '', contributor: '', notes: 'Synthetic test fixture, not fieldwork.',
   })
-  expect(entry).toMatchObject({
-    contributor: term.contributor, notes: term.notes, category: term.category, source_location: term.source_location,
-  })
-  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
-  await page.reload()
-  await expect(page.getByRole('heading', { name: term.text, exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /^Edit expression:/ }).click()
+  const review = page.getByRole('dialog', { name: 'Review collection entry' })
+  await expect(review.getByRole('textbox', { name: /^Expression/ })).toHaveValue(text)
+  await expect(review.getByLabel(/^French meaning/)).toHaveValue(meaning)
+  await review.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
+  const computation = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/analyze'))
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const response = await computation
+  expect(response.status(), await response.text()).toBe(200)
+  const analysis: AnalyzerResult = await response.json()
+  expect(analysis.corpus.lexical.statements).toHaveLength(1)
+  expect(analysis.corpus.lexical.statements[0]?.text).toBe(text)
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await page.getByText('Saved Collection - 1 records', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved-statement token analysis' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Own-data acceptance tests' })).toBeVisible()
+  expect(analysis.corpus.tests[0]?.text).toBe(text)
+  expect((await importedDataset(page)).entries[0]?.review_status).toBe('unreviewed')
   expect(submitted).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('local document limits, invalid files and scanned PDF manual-transcript errors recover clearly', async ({ page }) => {
+test('French veux classifications reach the parser and Analysis shows exact isolated token counts', async ({ page }) => {
+  await signUp(page)
+  await addEntry(page, 'taxi taxi')
+  const saved = await importedDataset(page)
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
+  await page.getByLabel('Statement to analyze').fill('je Veux acheter')
+  await page.getByText('Grammar settings', { exact: true }).click()
+  await page.getByLabel('Context-free grammar').fill('S -> FRENCH_FUNCTION_WORD VERB VERB')
+  const acceptedRun = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/analyze'))
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const accepted: AnalyzerResult = await (await acceptedRun).json()
+  expect(accepted.lexical.tokens).toEqual([
+    { text: 'je', category: 'FRENCH_FUNCTION_WORD' },
+    { text: 'Veux', category: 'VERB' },
+    { text: 'acheter', category: 'VERB' },
+  ])
+  expect(accepted.parse.accepted).toBe(true)
+  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
+  await expect(page.getByRole('table')).toHaveCount(0)
+
+  const text = '  Je veux veux, VEUX + + 12\t'
+  await page.getByLabel('Statement to analyze').fill(text)
+  await page.getByLabel('Context-free grammar').fill('S -> NOUN')
+  const frequencyRun = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/analyze'))
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const response = await frequencyRun
+  expect(response.status(), await response.text()).toBe(200)
+  const result: AnalyzerResult = await response.json()
+  expect(result.text).toBe(text)
+  expect(result.parse.accepted).toBe(false)
+  expect(result.lexical.statistics.total_tokens).toBe(8)
+  expect(result.lexical.statistics.frequencies).toEqual([
+    { token: 'veux', count: 3 }, { token: '+', count: 2 }, { token: 'je', count: 1 },
+    { token: ',', count: 1 }, { token: '12', count: 1 },
+  ])
+  expect(result.corpus.lexical.total_tokens).toBe(2)
+  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
+  await expect(page.getByRole('table')).toHaveCount(0)
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  const sentence = page.getByRole('region', { name: 'Analyzed sentence' })
+  expect(await sentence.getByLabel('Analyzed source text').textContent()).toBe(text)
+  await expect(sentence.getByText('8 tokens · 5 distinct forms', { exact: true })).toBeVisible()
+  await expect(sentence.getByRole('region', { name: 'Lexical tokens in source order' }).getByRole('row')).toHaveCount(9)
+  await expect(sentence.getByRole('region', { name: 'Observed token frequencies' }).getByRole('row')).toHaveText(['TokenCount', 'veux3', '+2', 'je1', ',1', '121'])
+  await expect(sentence.getByRole('region', { name: 'Token category frequencies' }).getByRole('row')).toHaveText(['CategoryCount', 'FRENCH_FUNCTION_WORD1', 'VERB3', 'PUNCTUATION1', 'UNKNOWN2', 'NUMBER1'])
+  await page.getByText('Saved Collection - 1 records', { exact: true }).click()
+  const corpus = page.getByRole('region', { name: 'Saved Collection results' })
+  await expect(corpus.getByText('2 tokens · 1 distinct forms', { exact: true })).toBeVisible()
+  expect((await importedDataset(page)).entries).toEqual(saved.entries)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.goBack()
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue(text)
+  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
+  await page.goForward()
+  await expect(page).toHaveTitle('Analysis — Mboa Compiler')
+  await expect(sentence.getByText('8 tokens · 5 distinct forms', { exact: true })).toBeVisible()
+})
+
+test('manual collection audio errors recover without importing or transcribing documents', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
-  let previews = 0
-  page.on('request', (request) => {
-    if (request.url().endsWith('/api/imports/preview')) previews += 1
-  })
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Document import', exact: true }).click()
-  const boundary = 'A'.repeat(39996) + 'END!'
-  for (const file of [
-    join(importDocuments, 'at-limit.pdf'),
-    { name: 'at-limit.txt', mimeType: 'text/plain', buffer: Buffer.from(boundary) },
-  ]) {
-    const response = await previewDocument(page, file)
-    const preview: ImportPreview = await response.json()
-    expect(preview.text).toBe(boundary)
-    expect(preview.segments).toHaveLength(10)
-    expect(preview.segments.every((segment) => segment.length === 4000)).toBe(true)
-    expect(preview.segments.join('')).toBe(boundary)
-    await page.getByLabel('Choose a passage').selectOption('9')
-    await expect(page.getByLabel('Review and correct this passage')).toHaveValue(boundary.slice(36000))
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  }
-  const invalid: { file: ImportFile; status: number; error: string }[] = [
-    { file: join(importDocuments, 'over-limit.pdf'), status: 413, error: '40,000 characters' },
-    { file: { name: 'over-limit.txt', mimeType: 'text/plain', buffer: Buffer.from(boundary + '!') }, status: 413, error: '40,000 characters' },
-    { file: { name: 'blank.txt', mimeType: 'text/plain', buffer: Buffer.from(' \n') }, status: 422, error: 'No readable text' },
-    { file: { name: 'encoding.txt', mimeType: 'text/plain', buffer: Buffer.from([255]) }, status: 422, error: 'UTF-8 encoding' },
-    { file: { name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{broken') }, status: 422, error: 'JSON file is invalid' },
-    { file: { name: 'invalid.csv', mimeType: 'text/csv', buffer: Buffer.from('text,text\none,two') }, status: 422, error: 'column names must not be repeated' },
-    { file: join(importDocuments, 'no-text-layer.pdf'), status: 422, error: 'Manually transcribe' },
-  ]
-  for (const { file, status, error } of invalid) {
-    await previewDocument(page, file, status)
-    await expect(page.getByRole('alert')).toContainText(error)
-    await expect(page.getByRole('heading', { name: 'Content preview', exact: true })).toHaveCount(0)
-  }
-  const before = previews
-  const input = page.getByLabel('Text document')
-  const button = page.getByRole('button', { name: 'Preview source text', exact: true })
-  await input.setInputFiles({ name: 'empty.txt', mimeType: 'text/plain', buffer: Buffer.alloc(0) })
-  await expect(button).toBeDisabled()
-  await expect(page.getByRole('alert')).toContainText('This file is empty.')
-  await input.setInputFiles({ name: 'maximum-bytes.txt', mimeType: 'text/plain', buffer: Buffer.alloc(12 * 1024 * 1024, 65) })
-  await expect(button).toBeEnabled()
-  await input.setInputFiles({ name: 'too-many-bytes.txt', mimeType: 'text/plain', buffer: Buffer.alloc(12 * 1024 * 1024 + 1, 65) })
-  await expect(page.getByRole('alert')).toContainText('This file exceeds 12 MB.')
-  await expect(button).toBeDisabled()
-  await input.setInputFiles(join(importDocuments, 'image.png'))
-  await expect(page.getByRole('alert')).toContainText('manual text transcript')
-  await expect(button).toBeDisabled()
-  expect(previews).toBe(before)
-  await previewDocument(page, { name: 'recovery.txt', mimeType: 'text/plain', buffer: Buffer.from('Recovery works.') })
-  await expect(page.getByRole('alert')).toHaveCount(0)
-  await expect(page.getByLabel('Review and correct this passage')).toHaveValue('Recovery works.')
   expect((await importedDataset(page)).total).toBe(0)
-  expect(submitted).toEqual([])
   await checkAudioErrorsAndManualDrafts(page)
   expect(submitted).toEqual([])
 })

@@ -29,6 +29,17 @@ class LexerCoverageTests(unittest.TestCase):
         self.assertIn("don refuse", result["verb_phrases"])
         self.assertIn("drop me", result["verb_phrases"])
 
+    def test_french_veux_is_a_known_verb_without_changing_raw_spelling(self):
+        for word in ("veux", "Veux", "VEUX"):
+            with self.subTest(word=word):
+                self.assertEqual(classify_token(word), "VERB")
+                self.assertEqual(analyze_sentence(f"je {word} acheter")["tokens"], [
+                    Token("je", "FRENCH_FUNCTION_WORD"),
+                    Token(word, "VERB"),
+                    Token("acheter", "VERB"),
+                ])
+        self.assertEqual(classify_token("veuxx"), "UNKNOWN")
+
     def test_only_reviewed_single_words_with_unambiguous_categories_teach(self):
         def entry(text, **changes):
             return {

@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test'
 import type { Route } from '@playwright/test'
-import { courseworkState, dataset, entry, health, metadata } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata } from '../fixtures'
 
 export interface RecordedRequest {
   method: string
@@ -18,7 +18,7 @@ export class MockApi {
   readonly unexpected: string[] = []
   health = health()
   entries = [entry()]
-  coursework = courseworkState()
+  analyzer = analyzerState()
   private readonly handlers = new Map<string, Handler>()
 
   on(method: string, path: string, handler: Handler) {
@@ -57,7 +57,7 @@ export class MockApi {
       } })
       if (recorded.path === '/api/health') return route.fulfill({ json: this.health })
       if (recorded.path === '/api/metadata') return route.fulfill({ json: metadata })
-      if (recorded.path === '/api/coursework') return route.fulfill({ json: this.coursework })
+      if (recorded.path === '/api/analyzer') return route.fulfill({ json: this.analyzer })
       if (recorded.path === '/api/dataset') {
         const query = url.searchParams.get('query')?.toLowerCase() ?? ''
         const entries = this.entries.filter((item) => [item.text, item.french_gloss, item.english_gloss]
@@ -107,13 +107,11 @@ export const test = base.extend<{ api: MockApi }>({
     await use(api)
     await context.unrouteAll({ behavior: 'ignoreErrors' })
     expect(api.unexpected, 'Every API request must have an isolated fixture; no backend passthrough is allowed.').toEqual([])
-    expect(api.requests.filter((request) => ['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain'].includes(request.path)),
-      'Compiler workflows must never call retired generation endpoints.').toEqual([])
+    expect(api.requests.filter((request) => ['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain', '/api/coursework/export'].includes(request.path)),
+      'Analyzer workflows must never call retired generation endpoints.').toEqual([])
     expect(externalRequests, 'No provider, external asset, or other origin may be contacted.').toEqual([])
     expect(pageErrors, 'The browser must not encounter uncaught application errors.').toEqual([])
   }, { auto: true }],
 })
 
 export { expect }
-
-export const emptyZip = Buffer.from([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)])

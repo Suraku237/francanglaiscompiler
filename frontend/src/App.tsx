@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
 import { Collection } from './Collection'
-import { Coursework } from './Coursework'
+import { FrancAnalyzer } from './FrancAnalyzer'
 import { Dictionary } from './Dictionary'
 import { Examples } from './Examples'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
@@ -12,7 +12,8 @@ import { useReadAloud } from './voice'
 import type { Account, Project } from './accountTypes'
 
 const navigation: { page: Page; label: string; icon: IconName }[] = [
-  { page: 'compiler', label: 'Compiler lab', icon: 'code' },
+  { page: 'compiler', label: 'Franc Analyzer', icon: 'code' },
+  { page: 'analysis', label: 'Analysis', icon: 'chart' },
   { page: 'collection', label: 'Collection', icon: 'collection' },
   { page: 'dictionary', label: 'Dictionary', icon: 'search' },
   { page: 'examples', label: 'Synthetic examples', icon: 'info' },
@@ -25,7 +26,7 @@ function currentPage(): Page {
 
 function PrivacyDialog({ onClose }: { onClose: () => void }) {
   return <Modal title="Data & privacy" onClose={onClose} className="privacy-modal">
-    <p className="modal-description">Your collection, grammar, report, screenshots and recordings belong to your private account and selected project.</p>
+    <p className="modal-description">Your collection, grammar and recordings belong to your private account and selected project.</p>
     <div className="privacy-sections">
       <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Collection and storage</h3><p>Save statements and project edits explicitly. Unsaved drafts stay in this tab and are lost on reload, project switch or sign-out. Approval records your review, not verified fieldwork.</p><p>Exports can include source context and contributor details. Share only with permission. Existing backups and legacy records remain on the server; removing their screens does not delete stored data. Contact the server operator for recovery.</p></div></section>
       <section><span className="privacy-section-icon"><Icon name="code" size={21} /></span><div><h3>Rule-based computation and audio</h3><p>The lexer and parser run on this server without AI. ACCEPT / REJECT describes grammar coverage, not whether the speaker is correct. The starter grammar and synthetic examples are not fieldwork.</p><p>Transcribe recordings manually and record only with permission. There is no OCR or automatic transcription. Optional read-aloud uses installed local browser voices and may mispronounce words.</p></div></section>
@@ -73,7 +74,7 @@ export default function App({ account, projects = [], selectedProject = 'default
   }, [checkHealth])
 
   useEffect(() => {
-    document.title = `${navigation.find((item) => item.page === page)?.label ?? 'Compiler lab'} — Mboa Compiler`
+    document.title = `${navigation.find((item) => item.page === page)?.label ?? 'Franc Analyzer'} — Mboa Compiler`
     if (previousPage.current !== page) {
       stop()
       if (page === 'compiler' && handoffFocusPending.current) {
@@ -88,7 +89,7 @@ export default function App({ account, projects = [], selectedProject = 'default
 
   const connected = Boolean(health?.status === 'ok' && !healthError)
   const statusText = checkingHealth ? 'Connecting' : healthError ? 'Backend offline' : connected ? 'Compiler connected' : 'Not connected'
-  const pageLabel = navigation.find((item) => item.page === page)?.label ?? 'Compiler lab'
+  const pageLabel = navigation.find((item) => item.page === page)?.label ?? 'Franc Analyzer'
 
   function openCompiler(text: string, kind: IncomingText['kind']) {
     handoffFocusPending.current = true
@@ -99,7 +100,7 @@ export default function App({ account, projects = [], selectedProject = 'default
   return <div className="app-shell">
     <a className="skip-link" href="#main-content" onClick={(event) => { event.preventDefault(); main.current?.focus() }}>Skip to content</a>
     <aside className="sidebar" aria-label="Workspace navigation">
-      <a className="brand" href="#compiler" aria-label="Mboa home, compiler lab">
+      <a className="brand" href="#compiler" aria-label="Mboa home, Franc Analyzer">
         <span className="brand-mark" aria-hidden="true"><svg width="29" height="28" viewBox="0 0 32 30" fill="none"><path d="M3 26V5h6l7 10 7-10h6v21h-7V16l-6 9-6-9v10H3Z" fill="currentColor" /><circle cx="28" cy="3" r="2.5" fill="#edb975" /></svg></span>
         <span className="brand-word">Mboa</span>
       </a>
@@ -137,7 +138,7 @@ export default function App({ account, projects = [], selectedProject = 'default
         {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>Server computation and saving may be unavailable. Your current editor drafts are kept; check the connection before retrying.</p></div>}
         {speech.error && <ErrorNotice message={speech.error} />}
         {speech.activeId && <div className="playback-banner" role="status"><Icon name="volume" size={18} /><span>Reading with a browser voice</span><button type="button" className="text-button" onClick={speech.stop}><Icon name="stop" size={14} />Stop reading</button></div>}
-        <div hidden={page !== 'compiler'}><Coursework active={page === 'compiler'} incomingText={compilerDraft} /></div>
+        <div hidden={page !== 'compiler' && page !== 'analysis'}><FrancAnalyzer active={page === 'compiler' || page === 'analysis'} showAnalysis={page === 'analysis'} incomingText={compilerDraft} onUseText={(text) => openCompiler(text, undefined)} /></div>
         <div hidden={page !== 'collection'}><Collection active={page === 'collection'} /></div>
         <div hidden={page !== 'dictionary'}><Dictionary active={page === 'dictionary'} speech={speech} onUseText={(text) => openCompiler(text, 'dictionary')} /></div>
         <div hidden={page !== 'examples'}><Examples active={page === 'examples'} speech={speech} onUseText={(text) => openCompiler(text, 'examples')} /></div>

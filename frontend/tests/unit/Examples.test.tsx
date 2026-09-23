@@ -26,7 +26,7 @@ describe('synthetic reference material', () => {
     expect(screen.getByText('My guy, where are you?')).toBeInTheDocument()
     expect(screen.getByText('camfranglais_statements.csv:2')).toBeInTheDocument()
     expect(screen.getByText('Constructed examples, not genuine fieldwork.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Test example in compiler' }))
+    await user.click(screen.getByRole('button', { name: 'Open in Franc Analyzer' }))
     expect(onUseText).toHaveBeenCalledExactlyOnceWith('Mon mbom, tu es where?')
     expect(fetch).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: /translate|save|approve/i })).not.toBeInTheDocument()

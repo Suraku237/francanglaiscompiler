@@ -13,7 +13,6 @@ from data_collector import dataset
 
 from . import coursework, coursework_store
 from .collection import CollectionError
-from .coursework_export import export_bundle
 from .coursework_models import GrammarRequest, ParseRequest, ProjectProfile, ScreenshotRequest
 
 router = APIRouter(prefix="/api/coursework", tags=["CS4110 coursework"])
@@ -76,12 +75,3 @@ def get_screenshot(image_id: str) -> Response:
 def delete_screenshot(image_id: str) -> Response:
     course_operation(lambda: coursework_store.delete_screenshot(image_id))
     return Response(status_code=204)
-
-
-@router.get("/export")
-def download_export() -> Response:
-    content = course_operation(export_bundle)
-    return Response(content, media_type="application/zip", headers={
-        "Content-Disposition": 'attachment; filename="francanglais-coursework.zip"',
-        "Cache-Control": "no-store",
-    })

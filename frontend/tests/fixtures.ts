@@ -1,4 +1,5 @@
-import type { CourseworkAnalysis, CourseworkState, ManualParse, Project } from '../src/courseworkTypes'
+import type { CourseworkAnalysis, CourseworkState, LexicalStatistics, ManualParse, Project } from '../src/courseworkTypes'
+import type { AnalyzerResult, AnalyzerState } from '../src/analyzerTypes'
 import type { ImportPreview } from '../src/importTypes'
 import { defaultMetadata } from '../src/types'
 import type { Dataset, DatasetEntry, Health, Metadata } from '../src/types'
@@ -154,6 +155,81 @@ export function manualParse(): ManualParse {
       error: null,
       consumed: 0,
       trace: [{ stack: ['$', 'S'], remaining: ['$'], action: 'S → epsilon' }],
+    },
+  }
+}
+
+export function analyzerState(grammar = 'S -> NOUN'): AnalyzerState {
+  return { grammar, lexical_spec: courseworkState().lexical_spec, stats: { total: 0, sentences: 0 } }
+}
+
+export function lexicalStatistics(overrides: Partial<LexicalStatistics> = {}): LexicalStatistics {
+  return { frequencies: [], category_counts: {}, variations: [], unknown_tokens: [], total_tokens: 0, ...overrides }
+}
+
+export function analyzerResult(overrides: Partial<AnalyzerResult> = {}): AnalyzerResult {
+  const corpus = courseworkAnalysis()
+  return {
+    text: 'Mbom',
+    lexical: {
+      tokens: [{ text: 'Mbom', category: 'NOUN' }], code_mixed_spans: [], verb_phrases: [], slang_expressions: [],
+      statistics: lexicalStatistics({ frequencies: [{ token: 'mbom', count: 1 }], category_counts: { NOUN: 1 }, total_tokens: 1 }),
+    },
+    grammar: corpus.grammar,
+    parse: {
+      accepted: true, error: null, consumed: 1,
+      trace: [
+        { stack: ['$', 'S'], remaining: ['NOUN', '$'], action: 'S -> NOUN' },
+        { stack: ['$', 'NOUN'], remaining: ['NOUN', '$'], action: 'match NOUN' },
+        { stack: ['$'], remaining: ['$'], action: 'accept' },
+      ],
+    },
+    corpus: { lexical: corpus.lexical, tests: corpus.tests, summary: corpus.summary },
+    ...overrides,
+  }
+}
+
+export function tokenAnalysisResult(): AnalyzerResult {
+  const tokens = [
+    { text: 'veux', category: 'VERB' }, { text: 'VEUX', category: 'VERB' },
+    { text: '+', category: 'UNKNOWN' }, { text: '+', category: 'UNKNOWN' },
+  ]
+  const corpusStatistics = lexicalStatistics({
+    frequencies: [{ token: 'taxi', count: 2 }], category_counts: { NOUN: 2 }, total_tokens: 2,
+  })
+  const result = analyzerResult({
+    text: '  veux VEUX + +\t',
+    lexical: {
+      tokens, code_mixed_spans: [], verb_phrases: [], slang_expressions: [],
+      statistics: lexicalStatistics({
+        frequencies: [{ token: 'veux', count: 2 }, { token: '+', count: 2 }],
+        category_counts: { VERB: 2, UNKNOWN: 2 },
+        variations: [{ normalized: 'veux', forms: [{ text: 'veux', count: 1 }, { text: 'VEUX', count: 1 }] }],
+        unknown_tokens: [{ token: '+', count: 2 }], total_tokens: 4,
+      }),
+    },
+    parse: {
+      accepted: false, error: 'No rule for S with lookahead VERB.', consumed: 0,
+      trace: [{ stack: ['$', 'S'], remaining: ['VERB', 'VERB', 'UNKNOWN', 'UNKNOWN', '$'], action: 'No rule for S with lookahead VERB.' }],
+    },
+  })
+  return {
+    ...result,
+    corpus: {
+      lexical: {
+        ...corpusStatistics,
+        statements: [{
+          id: 'frequency-fixture', text: '  taxi taxi\n', category: 'Other',
+          tokens: [{ text: 'taxi', category: 'NOUN' }, { text: 'taxi', category: 'NOUN' }],
+          code_mixed_spans: [], verb_phrases: [], slang_expressions: [],
+        }],
+      },
+      tests: [{
+        id: 'frequency-fixture', text: '  taxi taxi\n', accepted: false,
+        consumed: 1, error: 'Unexpected trailing token NOUN.',
+        trace: [{ stack: ['$'], remaining: ['NOUN', '$'], action: 'Unexpected trailing token NOUN.' }],
+      }],
+      summary: { accepted: 0, rejected: 1, total: 1 },
     },
   }
 }

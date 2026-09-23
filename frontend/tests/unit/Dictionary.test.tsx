@@ -54,7 +54,7 @@ describe('separate reference dictionary', () => {
     const onUseText = vi.fn()
     const user = userEvent.setup()
     render(<Dictionary active onUseText={onUseText} />)
-    await user.click(await screen.findByRole('button', { name: 'Open fixture / alias in compiler' }))
+    await user.click(await screen.findByRole('button', { name: 'Open fixture / alias in Franc Analyzer' }))
     expect(onUseText).toHaveBeenCalledWith('fixture')
     expect(fetch).toHaveBeenCalledOnce()
     expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain('/api/dictionary?')

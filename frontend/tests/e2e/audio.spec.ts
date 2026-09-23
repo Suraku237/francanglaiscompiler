@@ -20,7 +20,7 @@ test('records synthetic audio locally and uploads it only with an explicit colle
   await dialog.getByRole('textbox', { name: /^Expression/ }).fill('Synthetic audio test')
   await dialog.getByRole('button', { name: 'Record audio', exact: true }).click()
   await expect(dialog.getByRole('button', { name: 'Save unreviewed' })).toBeDisabled()
-  await expect(dialog.getByText('Recording 00:01', { exact: true })).toBeVisible()
+  await expect(dialog.getByRole('status')).toHaveText(/^Recording (?!00:00$)\d{2}:[0-5]\d$/)
   await expect.poll(() => page.evaluate(() => window.recordedTestBytes ?? 0)).toBeGreaterThan(0)
   expect(api.calls('/api/dataset/audio')).toHaveLength(0)
   await dialog.getByRole('button', { name: 'Stop recording', exact: true }).click()

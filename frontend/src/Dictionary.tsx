@@ -31,7 +31,7 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
             <div><dt>Origin (as supplied)</dt><dd>{entry.origin}</dd></div>
             <div><dt>Source</dt><dd><code>{entry.source_document}:{entry.source_line}</code></dd></div>
           </dl>
-          <div className="import-actions"><button type="button" className="button button-secondary" onClick={() => onUseText(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in compiler`}>Open in compiler<Icon name="arrow" size={16} /></button>{speech && <ReadButton speech={speech} id={`dictionary:${entry.id}`} text={entry.text} language="fr" />}</div>
+          <div className="import-actions"><button type="button" className="button button-secondary" onClick={() => onUseText(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in Franc Analyzer`}>Open in Franc Analyzer<Icon name="arrow" size={16} /></button>{speech && <ReadButton speech={speech} id={`dictionary:${entry.id}`} text={entry.text} language="fr" />}</div>
         </article>)}</div> : <div className="collection-empty"><Icon name="search" size={32} /><h2>No dictionary entries found.</h2><p>Try another spelling or an English meaning. A missing reference does not mean the word is invalid.</p></div>}
         <nav className="dictionary-pagination" aria-label="Dictionary pages">
           <button type="button" className="button button-secondary" disabled={offset === 0 || pending} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous entries</button>
@@ -40,6 +40,6 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening an entry fills the compiler’s manual input without running a computation or saving a corpus entry. Conflicting meanings remain visible. Optional local French-voice read-aloud is only a pronunciation approximation.</p>
+    <p className="helper-text">Opening an entry fills Franc Analyzer without running a computation or saving a corpus entry. Conflicting meanings remain visible. Optional local French-voice read-aloud is only a pronunciation approximation.</p>
   </section>
 }

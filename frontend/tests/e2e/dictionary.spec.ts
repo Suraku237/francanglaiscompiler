@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { analyzerResult, lexicalStatistics } from '../fixtures'
 import type { DictionaryEntry, DictionaryResult } from '../../src/types'
 
 const reference: DictionaryEntry = {
@@ -13,27 +14,33 @@ const dictionary: DictionaryResult = {
 test('dictionary hands a raw form to the compiler without populating or certifying collection', async ({ page, api }) => {
   api.entries = []
   api.reply('GET', '/api/dictionary', dictionary)
-  api.reply('POST', '/api/analyze', {
-    tokens: [{ text: 'Tchop', category: 'VERB' }], code_mixed_spans: [], verb_phrases: [],
-  })
+  api.reply('POST', '/api/analyzer/analyze', analyzerResult({
+    text: '  Tchop\t ',
+    lexical: {
+      tokens: [{ text: 'Tchop', category: 'VERB' }], code_mixed_spans: [], verb_phrases: [], slang_expressions: [],
+      statistics: lexicalStatistics({ frequencies: [{ token: 'tchop', count: 1 }], category_counts: { VERB: 1 }, total_tokens: 1 }),
+    },
+    parse: { accepted: false, consumed: 0, error: 'No rule for S with lookahead VERB.', trace: [] },
+  }))
   await page.goto('/#dictionary')
   await expect(page).toHaveTitle('Dictionary — Mboa Compiler')
   await expect(page.getByRole('heading', { name: 'tchop', exact: true })).toBeVisible()
   await expect(page.getByText(/No French translations were supplied/)).toBeVisible()
   await page.getByRole('searchbox', { name: 'Search reference dictionary' }).fill('tchop')
   await expect.poll(() => api.calls('/api/dictionary').at(-1)?.url.searchParams.get('query')).toBe('tchop')
-  await page.getByRole('button', { name: 'Open tchop in compiler' }).click()
+  await page.getByRole('button', { name: 'Open tchop in Franc Analyzer' }).click()
   await expect(page).toHaveURL(/#compiler$/)
-  await expect(page.getByLabel('Manual parser test')).toHaveValue('  Tchop\t ')
-  await expect(page.getByLabel('Manual parser test')).toBeFocused()
-  expect(api.calls('/api/analyze')).toHaveLength(0)
-  expect(api.calls('/api/coursework/parse')).toHaveLength(0)
-  await page.getByRole('button', { name: 'Analyze tokens', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Manual lexical result' })).toBeVisible()
-  expect(api.calls('/api/analyze')[0]?.body).toEqual({ text: '  Tchop\t ' })
-  await page.getByRole('tab', { name: 'Data collection', exact: true }).click()
-  await page.getByText('Collection notes for the report', { exact: true }).click()
-  await expect(page.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue('  Tchop\t ')
+  await expect(page.getByLabel('Statement to analyze')).toBeFocused()
+  expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Parser result' })).toBeVisible()
+  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
+  await expect(page.getByRole('table')).toHaveCount(0)
+  await page.getByRole('link', { name: 'View detailed analysis' }).click()
+  await expect(page.getByRole('heading', { name: 'Analyzed sentence' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Lexical tokens in source order' })).toContainText('Tchop')
+  expect(api.calls('/api/analyzer/analyze')[0]?.body).toEqual({ text: '  Tchop\t ', grammar: 'S -> NOUN' })
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
   expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Icon } from './components'
-import type { CorpusTest, GrammarAnalysis, LexicalReport, LexicalToken, ParseResult, Requirement, Rules, TokenCount } from './courseworkTypes'
+import type { CorpusTest, GrammarAnalysis, LexicalReport, LexicalStatistics, LexicalToken, ParseResult, Rules, TokenCount } from './courseworkTypes'
 
 export function TableScroll({ label, children }: { label: string; children: ReactNode }) {
   return <div className="lab-table-scroll" role="region" aria-label={label} tabIndex={0}>{children}</div>
@@ -14,15 +14,6 @@ function RuleList({ rules }: { rules: Rules }) {
   return <div className="lab-rules">{Object.entries(rules).map(([name, productions]) =>
     <div key={name}><strong>{name}</strong><span aria-label="produces"> → </span><code>{productions.map(productionText).join(' | ') || '∅'}</code></div>,
   )}</div>
-}
-
-export function Requirements({ items }: { items: Requirement[] }) {
-  const labels: Record<Requirement['status'], string> = { ready: 'Evidence available', needs_input: 'Needs input', review: 'Human review' }
-  return <div className="lab-requirements">{items.map((item) => <article key={item.id} className="lab-requirement">
-    <div className="lab-requirement-heading"><h3>{item.title}</h3><span className={`lab-status ${item.status}`}>{labels[item.status]}</span></div>
-    <p>{item.detail}</p>
-    <div className="lab-requirement-meta"><span>{item.section}</span><span>{item.marks} available marks · not a grade</span></div>
-  </article>)}</div>
 }
 
 export function GrammarResults({ grammar }: { grammar: GrammarAnalysis }) {
@@ -102,7 +93,6 @@ export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
   return <div className="lab-results">
     <div className="lab-result-heading"><h3>Saved-statement token analysis</h3><span className="lab-status review">{lexical.total_tokens.toLocaleString()} tokens · rule-based labels</span></div>
     <p className="lab-copy">Only saved collection entries in the selected project are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
-    <div className="lab-category-counts">{Object.entries(lexical.category_counts).map(([name, count]) => <span key={name}><code>{name}</code><strong>{count}</strong></span>)}</div>
     <details className="lab-disclosure" open>
       <summary>Statement token tables, verbs, slang & code mixing · {lexical.statements.length} records</summary>
       <div className="lab-disclosure-body">
@@ -115,16 +105,28 @@ export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
         </details>)}
       </div>
     </details>
+    <TokenStatistics statistics={lexical} />
+  </div>
+}
+
+export function TokenStatistics({ statistics }: { statistics: LexicalStatistics }) {
+  return <div className="lab-results">
+    <div className="lab-result-heading"><h3>Token statistics</h3><span className="lab-copy">{statistics.total_tokens.toLocaleString()} tokens · {statistics.frequencies.length.toLocaleString()} distinct forms</span></div>
+    <p className="lab-copy">Frequencies combine letter case. Numbers, punctuation and UNKNOWN tokens are included. Original spelling is preserved in token tables and variation groups.</p>
+    <TableScroll label="Token category frequencies"><table className="lab-table"><thead><tr><th scope="col">Category</th><th scope="col">Count</th></tr></thead><tbody>
+      {Object.entries(statistics.category_counts).map(([category, count]) => <tr key={category}><th scope="row"><code>{category}</code></th><td>{count}</td></tr>)}
+      {!statistics.total_tokens && <tr><td colSpan={2}>No token categories were observed.</td></tr>}
+    </tbody></table></TableScroll>
     <div className="lab-two-columns">
-      <details className="lab-disclosure" open><summary>Token frequencies · {lexical.frequencies.length} forms</summary><div className="lab-disclosure-body"><CountTable rows={lexical.frequencies} label="Observed token frequencies" /></div></details>
-      <details className="lab-disclosure"><summary>Unknown tokens · {lexical.unknown_tokens.length} forms</summary><div className="lab-disclosure-body"><p className="lab-copy">UNKNOWN means the custom lexer has no matching category, not that the word is invalid.</p><CountTable rows={lexical.unknown_tokens} label="Unknown token frequencies" /></div></details>
+      <details className="lab-disclosure" open><summary>Token frequencies · {statistics.frequencies.length} forms</summary><div className="lab-disclosure-body"><CountTable rows={statistics.frequencies} label="Observed token frequencies" /></div></details>
+      <details className="lab-disclosure"><summary>Unknown tokens · {statistics.unknown_tokens.length} forms</summary><div className="lab-disclosure-body"><p className="lab-copy">UNKNOWN means the custom lexer has no matching category, not that the word is invalid.</p><CountTable rows={statistics.unknown_tokens} label="Unknown token frequencies" /></div></details>
     </div>
     <details className="lab-disclosure" open>
-      <summary>Observed spelling-variation candidates · {lexical.variations.length} groups</summary>
+      <summary>Observed spelling-variation candidates · {statistics.variations.length} groups</summary>
       <div className="lab-disclosure-body"><p className="lab-copy">These are observed orthographic candidates grouped by normalization, not verified semantic equivalents. Explain any equivalence using your own context and evidence.</p>
-        {lexical.variations.length ? <TableScroll label="Observed orthographic variation candidates"><table className="lab-table"><thead><tr><th scope="col">Normalized form</th><th scope="col">Observed spellings (counts)</th></tr></thead><tbody>
-          {lexical.variations.map((variation, index) => <tr key={index}><td><code>{variation.normalized}</code></td><td>{variation.forms.map((form) => `${form.text} (${form.count})`).join(' · ')}</td></tr>)}
-        </tbody></table></TableScroll> : <p className="lab-copy">No variation candidates were observed in this corpus.</p>}
+        {statistics.variations.length ? <TableScroll label="Observed orthographic variation candidates"><table className="lab-table"><thead><tr><th scope="col">Normalized form</th><th scope="col">Observed spellings (counts)</th></tr></thead><tbody>
+          {statistics.variations.map((variation, index) => <tr key={index}><td><code>{variation.normalized}</code></td><td>{variation.forms.map((form) => `${form.text} (${form.count})`).join(' · ')}</td></tr>)}
+        </tbody></table></TableScroll> : <p className="lab-copy">No variation candidates were observed in these tokens.</p>}
       </div>
     </details>
   </div>
@@ -135,13 +137,13 @@ export function CorpusResults({ tests, summary, onUseText }: {
   summary: { total: number; accepted: number; rejected: number }
   onUseText: (text: string) => void
 }) {
-  return <div className="lab-results">
+  return <div className="lab-results" role="region" aria-label="Saved Collection parser results">
     <div className="lab-result-heading"><h3>Own-data acceptance tests</h3><span className="lab-copy">{summary.total} tested · {summary.accepted} accepted · {summary.rejected} rejected</span></div>
     <p className="lab-copy">Acceptance means “matches this grammar over these token categories.” Rejection does not mean the speaker or their Francanglais is wrong. Inspect the grammar’s scope and lexer limitations.</p>
     {!tests.length && <div className="notice notice-subtle"><Icon name="collection" size={19} /><span>No corpus test cases yet. No demo or generated statements are substituted for your own data.</span></div>}
     {tests.map((test, index) => <details className="lab-statement" key={`${test.id}-${index}`}>
       <summary><span className={`lab-status ${test.accepted ? 'ready' : 'needs_input'}`}>{test.accepted ? 'ACCEPT' : 'REJECT'}</span><span>{test.text || '(empty record)'}</span></summary>
-      <div className="lab-disclosure-body"><div className="lab-result-heading"><span className="lab-record-id">Record: {test.id}</span><button type="button" className="text-button" onClick={() => onUseText(test.text)}>Copy to manual test<Icon name="arrow" size={15} /></button></div><ParseTrace result={test} /></div>
+      <div className="lab-disclosure-body"><div className="lab-result-heading"><span className="lab-record-id">Record: {test.id}</span><button type="button" className="text-button" onClick={() => onUseText(test.text)}>Use as analyzer input<Icon name="arrow" size={15} /></button></div><ParseTrace result={test} /></div>
     </details>)}
   </div>
 }

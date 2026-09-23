@@ -88,7 +88,7 @@ export async function recordPrivateAudio(page: Page): Promise<string> {
   expect(await downloadedBytes(page, link)).toEqual(local)
   const player = page.getByLabel(`Play recording: ${saved.audio_filename}`, { exact: true })
   await playMuted(player)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Document import', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
   await expect(player).toHaveCount(1)
   await expect.poll(() => player.evaluate((element) => {
     if (!(element instanceof HTMLAudioElement)) throw new Error('Expected the actual audio player.')
@@ -177,7 +177,7 @@ export async function checkAudioErrorsAndManualDrafts(page: Page) {
   await draft.getByRole('button', { name: 'Discard draft audio', exact: true }).click()
   await expect(draft.getByRole('link', { name: 'Download audio' })).toHaveCount(0)
   await draft.getByRole('button', { name: 'Close dialog', exact: true }).click()
-  await navigation.getByRole('link', { name: 'Document import', exact: true }).click()
+  await navigation.getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Record audio', exact: true })).toHaveCount(0)
   await expect(page.getByRole('checkbox')).toHaveCount(0)
   expect(previews).toBe(0)

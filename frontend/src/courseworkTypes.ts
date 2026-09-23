@@ -80,7 +80,15 @@ export interface TokenCount {
   count: number
 }
 
-export interface LexicalReport {
+export interface LexicalStatistics {
+  frequencies: TokenCount[]
+  category_counts: Record<string, number>
+  variations: { normalized: string; forms: { text: string; count: number }[] }[]
+  unknown_tokens: TokenCount[]
+  total_tokens: number
+}
+
+export interface LexicalReport extends LexicalStatistics {
   statements: {
     id: string
     text: string
@@ -90,11 +98,6 @@ export interface LexicalReport {
     verb_phrases: string[]
     slang_expressions: string[]
   }[]
-  frequencies: TokenCount[]
-  category_counts: Record<string, number>
-  variations: { normalized: string; forms: { text: string; count: number }[] }[]
-  unknown_tokens: TokenCount[]
-  total_tokens: number
 }
 
 export interface ParseResult {
