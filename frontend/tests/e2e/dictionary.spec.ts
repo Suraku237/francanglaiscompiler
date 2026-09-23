@@ -31,6 +31,8 @@ test('dictionary hands a raw form to the compiler without populating or certifyi
   await page.getByRole('button', { name: 'Analyze tokens', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Manual lexical result' })).toBeVisible()
   expect(api.calls('/api/analyze')[0]?.body).toEqual({ text: '  Tchop\t ' })
+  await page.getByRole('tab', { name: 'Data collection', exact: true }).click()
+  await page.getByText('Collection notes for the report', { exact: true }).click()
   await expect(page.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()

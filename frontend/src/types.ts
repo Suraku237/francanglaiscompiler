@@ -2,12 +2,12 @@ export type Language = 'fr' | 'en'
 export type TranslationLanguage = Language | 'francanglais' | 'pidgin'
 export type DatasetLanguage = 'francanglais' | 'pidgin' | 'mixed' | 'unspecified'
 export type ReviewStatus = 'unreviewed' | 'approved'
-export type Page = 'compiler' | 'dictionary' | 'examples' | 'collection' | 'imports' | 'history' | 'settings'
+export type Page = 'compiler' | 'dictionary' | 'examples' | 'collection'
 
 export interface IncomingText {
   id: number
   text: string
-  kind?: 'dictionary' | 'examples' | 'import' | 'history'
+  kind?: 'dictionary' | 'examples'
 }
 
 export const languageLabels: Record<TranslationLanguage | DatasetLanguage, string> = {

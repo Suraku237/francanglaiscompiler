@@ -8,15 +8,15 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 
 ## Contents
 
-- [People and ways of addressing them](#people-and-ways-of-addressing-them) (26)
-- [Greetings, exclamations and social formulas](#greetings-exclamations-and-social-formulas) (16)
-- [Money, work and hustle](#money-work-and-hustle) (16)
-- [Common verbs and actions](#common-verbs-and-actions) (21)
-- [Places, movement and transport](#places-movement-and-transport) (15)
-- [Food and drink](#food-and-drink) (13)
-- [Describing people and things](#describing-people-and-things) (13)
-- [Trouble, luck and street life](#trouble-luck-and-street-life) (9)
-- [Grammar glue and discourse markers](#grammar-glue-and-discourse-markers) (14)
+- [People and ways of addressing them](#people-and-ways-of-addressing-them)
+- [Greetings, exclamations and social formulas](#greetings-exclamations-and-social-formulas)
+- [Money, work and hustle](#money-work-and-hustle)
+- [Common verbs and actions](#common-verbs-and-actions)
+- [Places, movement and transport](#places-movement-and-transport)
+- [Food and drink](#food-and-drink)
+- [Describing people and things](#describing-people-and-things)
+- [Trouble, luck and street life](#trouble-luck-and-street-life)
+- [Grammar glue and discourse markers](#grammar-glue-and-discourse-markers)
 
 ## People and ways of addressing them
 
@@ -33,7 +33,7 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **mbindi** | a small or younger person; a junior | Cameroonian langs |
 | **muna** | child; kid | Duala |
 | **petit** | younger sibling; junior; small boy | French |
-| **pater / pasho** | father; dad | French |
+| **pater / pasho / pere** | father; dad (also used as a general vocative to a man) | French |
 | **mater / masho** | mother; mum | French |
 | **mbut** | fool; gullible person; someone easily deceived | Cameroonian langs |
 | **ndoss** | a sharp, streetwise operator; a smooth trickster | Cameroonian langs |
@@ -46,7 +46,7 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **bayam-sellam** | a market trader who buys to resell | Pidgin buy-and-sell-them |
 | **call-boxeur** | someone running a street phone-credit stand | Eng. + Fr. suffix |
 | **sapeur** | a stylish, elaborately dressed man | French |
-| **kombi** | close friend; companion | Pidgin |
+| **kombi / combi** | close friend; companion | Pidgin |
 | **boss / patron** | boss; superior; also flattering address to a stranger | French |
 
 ## Greetings, exclamations and social formulas
@@ -90,6 +90,7 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **njoh** | free of charge; something obtained for nothing | Cameroonian langs |
 | **damer** | to eat; by extension to spend or consume | French |
 | **lancer / se lancer** | to show off; to splash money around | French |
+| **price** | price (used interchangeably with Fr. *prix* in bargaining talk) | English |
 
 ## Common verbs and actions
 
@@ -98,7 +99,7 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **ya** | to hear; to understand; to feel | Pidgin hear |
 | **sabi** | to know; to be knowledgeable about | Pidgin |
 | **mimba** | to think; to remember | Pidgin |
-| **tchop** | to eat | Pidgin chop |
+| **tchop / chop** | to eat | Pidgin chop |
 | **damer** | to eat | French |
 | **ndem** | to fail; to break down; to go wrong | Cameroonian langs |
 | **gauler** | to catch; to arrest; to be caught out | French |
@@ -116,6 +117,17 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **nang** | to sleep; to spend the night | Cameroonian langs |
 | **bosh** | to study; to revise hard | Eng. bosh |
 | **saper / se saper** | to dress smartly; to dress up | French |
+| **mban** | to fail (an exam, a plan, an attempt) | Cameroonian langs |
+| **yabat** | to be in pain; to be suffering or in trouble | Cameroonian langs |
+| **yamo** | to waste one's time (on something) | Cameroonian langs |
+| **shoua** | to wash (clothes, dishes) | Cameroonian langs |
+| **cote** | to cut (power, water); short for Fr. *couper* | Fr. couper, clipped |
+| **shiba** | to lower; to bring down (a price) | Cameroonian langs |
+| **falla** | to look for; to search for | Cameroonian langs |
+| **back** | to come back; to return | English |
+| **came** | came; arrived | English |
+| **talk** | to talk; to speak | English |
+| **go** | to go; also a future/intentive marker ("je go nang" = I'm going to sleep) | Eng. go |
 
 ## Places, movement and transport
 
@@ -136,6 +148,7 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **call box** | a street stall selling phone calls and airtime | English |
 | **tournedos** | a cheap roadside eating spot | French |
 | **circuit** | a small local drinking bar | French |
+| **school** | school; university (used for any place of study) | English |
 
 ## Food and drink
 
@@ -172,6 +185,8 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **long** | tall; lengthy | English / French |
 | **top** | excellent; first-rate | English |
 | **mbut** | foolish; naive | Cameroonian langs |
+| **kass** | tired; exhausted; worn out | Cameroonian langs |
+| **free** | freely; without constraint (adverbial use) | English |
 
 ## Trouble, luck and street life
 
@@ -205,7 +220,11 @@ Camfranglais is the urban youth speech of Cameroon, built by mixing French with 
 | **sha** | anyway; just; softens a statement | Pidgin |
 | **comme ca** | like that; just so | French |
 | **on** | we; people in general | French |
+| **bayar** | a long time; for ages ("depuis bayar" = for a long time) | Cameroonian langs |
+| **sharp / shap** | this morning; early (time marker, not the Eng. sense of 'sharp') | Pidgin, reinterpreted |
+| **man** | vocative filler tacked onto a phrase, roughly 'man', 'dude' | English |
+| **flop** | a lot; much (intensifier of quantity) | Cameroonian langs |
 
 ---
 
-*143 entries. Compiled independently as a learner's reference.*
+*164 entries. Compiled independently as a learner's reference, extended with terms drawn from 12 manually transcribed sentences.*

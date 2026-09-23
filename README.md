@@ -21,18 +21,21 @@ they are **not the final coursework report**.
 
 ## What the product does
 
-- **Compiler lab:** assignment checklist, group/profile notes, lexical
-  specification and token tables, frequencies and spelling variation,
-  CFG transformations, FIRST/FOLLOW, LL(1) table/conflicts, individual and corpus
-  parse traces, genuine screenshot attachments and draft deliverable exports.
+- **Compiler lab:** five assignment sections, shown one at a time: Data
+  collection, Lexical analysis, Syntactic analysis, Parser tests, and Report &
+  presentation. It opens directly on the sentence lexer, not a research dashboard.
 - **Collection:** preserve exact manually transcribed wording, glosses and notes;
   save provenance, explicitly review entries and attach private recordings.
 - **Dictionary and Synthetic examples:** read-only source-labelled references
   and clearly constructed material for learning/testing, never automatic fieldwork.
-- **Document import:** preview TXT, Markdown, CSV, JSON, DOCX and
-  text-layer PDF on the application server; review drafts before saving.
-- **Private organization:** accounts, projects, revisions, existing saved
-  history, verified backups and version-checked recovery.
+- **Private access:** accounts and selection of existing projects. Statements
+  are entered and reviewed directly in Collection.
+
+The main navigation has only **Compiler lab, Collection, Dictionary and Synthetic
+examples**. History, Workspace settings and Document import are no longer app
+screens; their old links return to Compiler lab. This interface cleanup does not
+delete accounts, projects, stored history, recordings, revisions or backups.
+Authenticated maintenance APIs remain available for compatibility and recovery.
 
 There is **no AI generation, translator, chat assistant, automatic explanation,
 remote transcription, OCR or browser dictation**. No model key is needed.
@@ -42,6 +45,28 @@ fallback. Voice availability and that locality claim depend on browser/OS
 implementation, not an application guarantee about all underlying network use.
 Google sign-in and SMTP remain optional/required identity
 services as configured, not language providers.
+
+### Find the assignment outputs in Compiler lab
+
+1. **Data collection:** open Collection, select **Add entry**, and explicitly
+   save each of the required 10–15 manually transcribed statements.
+2. **Lexical analysis:** enter a sentence and select **Analyze tokens**. Expand
+   **Regular expressions & classification rules** for the custom specification.
+   **Analyze saved statements** computes corpus token tables, frequencies and
+   variation using the current grammar as part of the shared analysis.
+3. **Syntactic analysis:** edit the CFG and select **Analyze grammar & saved
+   corpus** to see recursion removal, factoring, FIRST/FOLLOW and the LL(1) table.
+   Grammar computation works even when the saved corpus is empty.
+4. **Parser tests:** parse one input or **Run saved-statement tests** to inspect
+   acceptance/rejection and stack traces. These results test grammar coverage,
+   not linguistic correctness.
+5. **Report & presentation:** enter group names/matricules and the linguistic
+   discussion, attach actual analyzer screenshots, then download the draft ZIP.
+   Review the report's 25–30-page limit, source/tests and ten-minute presentation.
+
+Switching sections preserves input and project drafts. **Save project** persists
+grammar and report fields; running analysis does not save them. Keyboard users
+can move between tabs with Left/Right, Home and End.
 
 ## Run locally
 
@@ -95,14 +120,13 @@ incomplete sentences and mistakes. Keep the raw text separate from glosses.
 Record contributor, location/context, collection method and limitations without
 exposing unnecessary speaker-identifying information; obtain appropriate consent.
 
-Prepare the user's genuine text file with clearly separated statements and
-corresponding provenance. Preview it under Document import, compare extracted text with
-the original, then explicitly save each statement as a **Sentence**. Structured
-CSV/JSON can carry metadata; imported approval is never trusted. Word/Phrase
+Keep the original transcript separately. In Collection, use **Add entry**, copy
+the exact statement into Expression, select **Sentence**, and add meanings and
+available provenance without inventing missing facts. Save it as unreviewed
+until its annotations have been checked. Word/Phrase
 annotations can support classification but do not inflate the 10–15-statement
 target. A manual-transcription checkbox is self-attestation, not software proof.
 
-Import previews and frontend handoffs preserve the supplied provenance values.
 On create/edit, the backend keeps raw statement text, both glosses and notes
 exact, but its existing `ShortText` validation trims leading/trailing whitespace
 from supplied `contributor` and `source_location` values. This save-time metadata
@@ -231,15 +255,18 @@ rows in the same account SQLite database. Screenshot downloads enforce the same
 owner/project boundary. New profile/screenshot mutations increment the workspace
 version. These are not globally shared academic files.
 
-Legacy AI-generated saved translations/conversations remain readable and
-exportable as **legacy history**; retaining them does not re-enable generation.
+Legacy AI-generated saved translations/conversations remain in storage and
+are accessible through the authenticated maintenance API and backups; there is
+no History screen. Retaining the records does not re-enable generation.
 No original accounts are migrated or deleted by this product change.
 The standalone desktop collector and explicitly unauthenticated maintenance
 factory can still access the legacy CSV/profile/screenshots. Normal application
 startup is authenticated, and production refuses `require_auth=False`.
 
-In Workspace settings, create and download a verified ZIP, optionally schedule
-daily/weekly copies, or validate a restore preview before typing **REPLACE**.
+The authenticated workspace maintenance API retains verified ZIP creation,
+download, daily/weekly scheduling and restore previews; there is no Settings
+screen. Operators must authenticate as the owner and explicitly confirm
+**REPLACE** before a restore.
 Restore requires an unchanged version and creates a verified safety backup.
 The **workspace document format is 2**, including coursework and screenshots;
 format-1 documents remain restorable without those fields. The outer ZIP
@@ -266,7 +293,9 @@ storage or an assumed multi-host SQLite cluster.
    Production rejects development file-mail mode.
 3. Optionally configure a Google Web OAuth client and the exact
    `<MBOA_PUBLIC_URL>/api/auth/google/callback` redirect. Existing password
-   accounts must explicitly link Google; matching email is not automatic linking.
+   accounts must explicitly link Google through the authenticated maintenance
+   API before using it; matching email is not automatic linking. Otherwise use
+   the existing password and the sign-in screen's recovery flow.
 4. Supervise `python -m tools.run_app` under a restricted service account.
    Bind the backend to loopback or a firewalled private interface.
 5. Proxy all paths, preserve Host and set forwarded protocol/client address.

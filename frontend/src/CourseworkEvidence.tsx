@@ -76,15 +76,17 @@ export function CourseworkExport({ active, dirty, busy }: { active: boolean; dir
   }
 
   return <div className="lab-export">
-    <div className="lab-result-heading"><h3>A submission draft, not a finished submission.</h3><Icon name="collection" size={25} /></div>
+    <div className="lab-result-heading"><h3>Download report, source code & presentation</h3></div>
     <p className="lab-copy">The ZIP is computed on this server from the <strong>selected project’s saved profile, grammar, collection entries, and attached screenshots</strong>. It never uses unsaved manual tests or legacy history.</p>
+    <details className="lab-disclosure"><summary>Export contents & submission requirements</summary><div className="lab-disclosure-body">
     <ul className="lab-list">
       <li><strong>report.html:</strong> a 25-section printable draft. Review it, then print to PDF; check the final layout reaches 25–30 pages and does not exceed 30.</li>
       <li><strong>presentation.pptx:</strong> a 10-minute draft. Rehearse the live demo and allocate about 3 minutes to each of 3 students.</li>
       <li><strong>Evidence:</strong> raw-data, token, frequency, variation and acceptance CSVs; grammar, FIRST/FOLLOW, table and trace JSON; attached screenshots.</li>
       <li><strong>Implementation:</strong> actual source code and generated unittest cases using your saved corpus. Review and run those tests before submission.</li>
     </ul>
-    <div className="notice notice-subtle"><Icon name="info" size={18} /><span>Missing data, unconfirmed transcription, starter rules or unfinished writing remain gaps in a draft. Export does not certify authenticity, report length, correctness of linguistic claims, or coursework completion.</span></div>
+    <p className="lab-copy">This is a draft. Check the fieldwork, grammar, writing and final page count before submission.</p>
+    </div></details>
     {dirty && <p className="lab-unsaved" role="status">Save project first: the export cannot include your unsaved edits.</p>}
     <ErrorNotice message={error} />
     <div className="lab-actions"><button type="button" className="button button-primary" disabled={dirty || busy || pending} onClick={exportDraft}>{pending ? <Spinner label="Building coursework ZIP" /> : <Icon name="collection" size={17} />}{pending ? 'Preparing draft…' : 'Download coursework draft (.zip)'}</button>{pending && <button type="button" className="text-button" onClick={cancel}>Cancel download</button>}</div>
@@ -132,6 +134,7 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
     }
     const nextReader = new FileReader()
     reader.current = nextReader
+    setName(file.name.replace(/\.(png|jpe?g)$/i, '').slice(0, 120))
     setReading(true)
     nextReader.onload = () => {
       if (reader.current !== nextReader) return
@@ -143,7 +146,6 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
       }
       setDataUrl(value)
       setFileName(file.name)
-      setName(file.name.replace(/\.(png|jpe?g)$/i, '').slice(0, 120))
     }
     nextReader.onerror = () => {
       if (reader.current === nextReader) {
@@ -155,8 +157,8 @@ export function CourseworkScreenshots({ screenshots, onChanged, busy, onBusyChan
   }
 
   return <div className="lab-screenshots">
-    <h3>Actual screenshots, attached by you</h3>
-    <p className="lab-copy">Capture the running lexer, grammar transformations, table and parser trace with your system screenshot tool. Attach only images you intend to store privately in this project and include in its export. Nothing is captured automatically or sent to a processing provider.</p>
+    <h3>Screenshots of the working analyzer</h3>
+    <p className="lab-copy">Attach actual captures of token tables, grammar transformations, the parsing table and parser trace for your report.</p>
     <form className="lab-upload" onSubmit={(event) => {
       event.preventDefault()
       if (!dataUrl || !name.trim() || upload.pending || removal.pending || busy) return

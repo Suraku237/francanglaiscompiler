@@ -100,10 +100,10 @@ function CountTable({ rows, label }: { rows: TokenCount[]; label: string }) {
 
 export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
   return <div className="lab-results">
-    <div className="lab-result-heading"><h3>Inside the saved corpus</h3><span className="lab-status review">{lexical.total_tokens.toLocaleString()} tokens · rule-based labels</span></div>
+    <div className="lab-result-heading"><h3>Saved-statement token analysis</h3><span className="lab-status review">{lexical.total_tokens.toLocaleString()} tokens · rule-based labels</span></div>
     <p className="lab-copy">Only saved collection entries in the selected project are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
     <div className="lab-category-counts">{Object.entries(lexical.category_counts).map(([name, count]) => <span key={name}><code>{name}</code><strong>{count}</strong></span>)}</div>
-    <details className="lab-disclosure">
+    <details className="lab-disclosure" open>
       <summary>Statement token tables, verbs, slang & code mixing · {lexical.statements.length} records</summary>
       <div className="lab-disclosure-body">
         {!lexical.statements.length && <p className="lab-copy">No saved records. Add your real, manually transcribed statements in Collection.</p>}
@@ -116,10 +116,10 @@ export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
       </div>
     </details>
     <div className="lab-two-columns">
-      <details className="lab-disclosure"><summary>Token frequencies · {lexical.frequencies.length} forms</summary><div className="lab-disclosure-body"><CountTable rows={lexical.frequencies} label="Observed token frequencies" /></div></details>
+      <details className="lab-disclosure" open><summary>Token frequencies · {lexical.frequencies.length} forms</summary><div className="lab-disclosure-body"><CountTable rows={lexical.frequencies} label="Observed token frequencies" /></div></details>
       <details className="lab-disclosure"><summary>Unknown tokens · {lexical.unknown_tokens.length} forms</summary><div className="lab-disclosure-body"><p className="lab-copy">UNKNOWN means the custom lexer has no matching category, not that the word is invalid.</p><CountTable rows={lexical.unknown_tokens} label="Unknown token frequencies" /></div></details>
     </div>
-    <details className="lab-disclosure">
+    <details className="lab-disclosure" open>
       <summary>Observed spelling-variation candidates · {lexical.variations.length} groups</summary>
       <div className="lab-disclosure-body"><p className="lab-copy">These are observed orthographic candidates grouped by normalization, not verified semantic equivalents. Explain any equivalence using your own context and evidence.</p>
         {lexical.variations.length ? <TableScroll label="Observed orthographic variation candidates"><table className="lab-table"><thead><tr><th scope="col">Normalized form</th><th scope="col">Observed spellings (counts)</th></tr></thead><tbody>

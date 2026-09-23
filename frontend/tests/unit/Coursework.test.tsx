@@ -5,13 +5,15 @@ import { Coursework } from '../../src/Coursework'
 import { courseworkAnalysis, courseworkState, manualParse, project } from '../fixtures'
 import { deferred, jsonResponse, requestBody } from '../helpers'
 
-async function renderLab() {
-  vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkState()))
+async function renderLab(savedProject = project()) {
+  vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkState(savedProject)))
   const view = render(<Coursework active />)
-  await screen.findByLabelText('Context-free grammar')
+  await screen.findByRole('textbox', { name: 'Sentence to analyze' })
   return { ...view, user: userEvent.setup() }
 }
 
+const selectTab = (user: ReturnType<typeof userEvent.setup>, name: string) =>
+  user.click(screen.getByRole('tab', { name }))
 const grammarInput = () => screen.getByLabelText('Context-free grammar')
 const saveButton = () => screen.getByRole('button', { name: 'Save project' })
 const exportButton = () => screen.getByRole('button', { name: 'Download coursework draft (.zip)' })
@@ -23,21 +25,72 @@ async function replaceText(user: ReturnType<typeof userEvent.setup>, input: HTML
 }
 
 describe('coursework draft, computation and persistence boundaries', () => {
+  it('opens directly on the lexer and exposes only the five assignment sections, one at a time', async () => {
+    const { user } = await renderLab()
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      '1Data collection', '2Lexical analysis', '3Syntactic analysis', '4Parser tests', '5Report & presentation',
+    ])
+    expect(screen.getByRole('tab', { selected: true })).toHaveTextContent('Lexical analysis')
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1)
+    expect(screen.getByRole('textbox', { name: 'Sentence to analyze' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Analyze tokens' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Analyze saved statements' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Save project' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Saved coursework evidence counts')).not.toBeInTheDocument()
+    expect(screen.queryByText(/SUGGESTED TOPIC COVERAGE|RESEARCH ATTESTATION|REAL WORDS/)).not.toBeInTheDocument()
+    await selectTab(user, 'Syntactic analysis')
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1)
+    expect(grammarInput()).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Analyze grammar & saved corpus' })).toBeEnabled()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
+  it('supports keyboard tabs and keeps sentence and grammar drafts without saving or computing', async () => {
+    const { user } = await renderLab()
+    const raw = '  Raw\tstatement\n'
+    await replaceText(user, screen.getByLabelText('Sentence to analyze'), raw)
+    await user.click(screen.getByRole('tab', { name: 'Lexical analysis' }))
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Syntactic analysis' })).toHaveFocus()
+    await replaceText(user, grammarInput(), 'S -> NOUN')
+    await user.click(screen.getByRole('tab', { name: 'Syntactic analysis' }))
+    await user.keyboard('{End}')
+    expect(screen.getByRole('tab', { name: 'Report & presentation' })).toHaveFocus()
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Data collection' })).toHaveFocus()
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByRole('tab', { name: 'Report & presentation' })).toHaveFocus()
+    await user.keyboard('{Home}')
+    expect(screen.getByRole('tab', { name: 'Data collection' })).toHaveFocus()
+    await selectTab(user, 'Parser tests')
+    expect(screen.getByLabelText('Manual parser test')).toHaveValue(raw)
+    await user.click(screen.getByRole('button', { name: 'Edit grammar' }))
+    expect(grammarInput()).toHaveValue('S -> NOUN')
+    expect(grammarInput()).toHaveFocus()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('analyzes the editor grammar without saving, blocks dirty exports and invalidates results on grammar edits', async () => {
     const { user } = await renderLab()
+    await selectTab(user, 'Syntactic analysis')
     await replaceText(user, grammarInput(), 'S -> NOUN\nTail -> epsilon')
     expect(screen.getByText('Unsaved project changes')).toBeInTheDocument()
+    await selectTab(user, 'Report & presentation')
     expect(exportButton()).toBeDisabled()
 
+    await selectTab(user, 'Syntactic analysis')
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkAnalysis()))
     await user.click(screen.getByRole('button', { name: 'Analyze grammar & saved corpus' }))
     expect(await screen.findByRole('heading', { name: 'Computed grammar' })).toBeInTheDocument()
-    expect(screen.getByText(/Only saved collection entries in the selected project are analyzed/)).toBeInTheDocument()
+    await selectTab(user, 'Lexical analysis')
+    expect(screen.getByText(/Only saved collection entries in the selected project are analyzed/)).toBeVisible()
     expect(requestBody(vi.mocked(fetch).mock.calls[1])).toEqual({ grammar: 'S -> NOUN\nTail -> epsilon' })
     expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe('/api/coursework/analyze')
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+    await selectTab(user, 'Report & presentation')
     expect(exportButton()).toBeDisabled()
 
+    await selectTab(user, 'Syntactic analysis')
     await replaceText(user, grammarInput(), 'S -> NOUN\nTail -> epsilon\nExtra -> VERB')
     expect(screen.queryByRole('heading', { name: 'Computed grammar' })).not.toBeInTheDocument()
     expect(screen.getByText(/Grammar edited: previous computations have been cleared/)).toBeInTheDocument()
@@ -50,8 +103,13 @@ describe('coursework draft, computation and persistence boundaries', () => {
     const incoming = { id: 1, text: raw, kind: 'import' as const }
     rerender(<Coursework active incomingText={incoming} />)
     expect(screen.getByLabelText('Manual parser test')).toHaveValue(raw)
+    expect(screen.getByLabelText('Manual parser test')).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Parser tests', selected: true })).toBeInTheDocument()
+    await selectTab(user, 'Data collection')
+    await user.click(screen.getByText('Collection notes for the report'))
     expect(screen.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
     expect(fetch).toHaveBeenCalledOnce()
+    await selectTab(user, 'Parser tests')
     await replaceText(user, screen.getByLabelText('Manual parser test'), 'My later draft')
     rerender(<Coursework active incomingText={{ ...incoming }} />)
     expect(screen.getByLabelText('Manual parser test')).toHaveValue('My later draft')
@@ -64,7 +122,7 @@ describe('coursework draft, computation and persistence boundaries', () => {
   it('sends raw input to the lexer on an explicit click and invalidates the result on input changes', async () => {
     const { user } = await renderLab()
     const raw = '  DROP \t me\n'
-    await replaceText(user, screen.getByLabelText('Manual parser test'), raw)
+    await replaceText(user, screen.getByLabelText('Sentence to analyze'), raw)
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({
       tokens: [{ text: 'DROP', category: 'VERB' }, { text: 'me', category: 'UNKNOWN' }],
       code_mixed_spans: [], verb_phrases: ['DROP \t me'],
@@ -73,26 +131,32 @@ describe('coursework draft, computation and persistence boundaries', () => {
     expect(await screen.findByRole('heading', { name: 'Manual lexical result' })).toBeInTheDocument()
     expect(requestBody(vi.mocked(fetch).mock.calls[1])).toEqual({ text: raw })
     expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe('/api/analyze')
-    await user.type(screen.getByLabelText('Manual parser test'), '!')
+    await user.type(screen.getByLabelText('Sentence to analyze'), '!')
     expect(screen.queryByRole('heading', { name: 'Manual lexical result' })).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 
   it('exposes absent corpus and starter limitations without inventing members or collection claims', async () => {
-    await renderLab()
+    const { user } = await renderLab()
+    await selectTab(user, 'Data collection')
     expect(screen.getByText('No collected corpus in this project yet.')).toBeInTheDocument()
-    expect(screen.getByText(/starter, not a grammar derived from your data/)).toBeInTheDocument()
-    expect(screen.getByText('current editor grammar + saved collection in this project')).toBeInTheDocument()
     expect(screen.getByText(/total collection records/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Group member 1')).toHaveValue('')
+    await user.click(screen.getByText('Collection notes for the report'))
     expect(screen.getByLabelText('Collection method & provenance')).toHaveValue('')
     expect(screen.getByRole('checkbox', { name: /We manually transcribed/ })).not.toBeChecked()
+    await selectTab(user, 'Report & presentation')
+    expect(screen.getByLabelText('Group member 1')).toHaveValue('')
+    expect(screen.queryByLabelText('Limitations & critical evaluation')).not.toBeInTheDocument()
+    await selectTab(user, 'Syntactic analysis')
+    expect(screen.getByText(/starter, not a grammar derived from your data/)).toBeInTheDocument()
+    expect(screen.getByText('current editor grammar + saved collection in this project')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /AI|explain|suggest/i })).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledOnce()
   })
 
   it('saves a snapshot, but edits made while saving remain dirty after the evidence refresh', async () => {
     const { user } = await renderLab()
+    await selectTab(user, 'Report & presentation')
     await replaceText(user, screen.getByLabelText('Group member 1'), 'Fixture learner')
     const snapshot = project({ group_members: ['Fixture learner', '', ''] })
     const saving = deferred<Response>()
@@ -115,8 +179,9 @@ describe('coursework draft, computation and persistence boundaries', () => {
 
   it('enables export only after saving and refreshing the matching draft', async () => {
     const { user } = await renderLab()
-    await replaceText(user, screen.getByLabelText('Limitations & critical evaluation'), 'Fixture limitation')
-    const savedProject = project({ limitations: 'Fixture limitation' })
+    await selectTab(user, 'Report & presentation')
+    await replaceText(user, screen.getByLabelText('Linguistic discussion'), 'Fixture discussion')
+    const savedProject = project({ discussion: 'Fixture discussion' })
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse({ saved: true }))
       .mockResolvedValueOnce(jsonResponse(courseworkState(savedProject)))
@@ -131,6 +196,7 @@ describe('coursework draft, computation and persistence boundaries', () => {
 
   it('retains the draft on failed saves and keeps export blocked', async () => {
     const { user } = await renderLab()
+    await selectTab(user, 'Report & presentation')
     await replaceText(user, screen.getByLabelText('Group member 1'), 'Unsaved fixture learner')
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'))
     await user.click(saveButton())
@@ -147,6 +213,7 @@ describe('coursework draft, computation and persistence boundaries', () => {
     window.dispatchEvent(cleanUnload)
     expect(cleanUnload.defaultPrevented).toBe(false)
 
+    await selectTab(user, 'Syntactic analysis')
     await replaceText(user, grammarInput(), 'S -> NOUN\nTail -> epsilon')
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(courseworkState(project({ discussion: 'Saved elsewhere' }))))
     await user.click(screen.getByRole('button', { name: 'Refresh saved coursework evidence, preserve editor draft' }))
@@ -160,7 +227,9 @@ describe('coursework draft, computation and persistence boundaries', () => {
 
   it('allows an explicit empty parser test and clears its trace when the input changes', async () => {
     const { user } = await renderLab()
+    await selectTab(user, 'Syntactic analysis')
     await replaceText(user, grammarInput(), 'S -> epsilon')
+    await selectTab(user, 'Parser tests')
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(manualParse()))
     await user.click(screen.getByRole('button', { name: 'Parse test input' }))
     expect(requestBody(vi.mocked(fetch).mock.calls[1])).toEqual({ grammar: 'S -> epsilon', text: '' })
@@ -175,7 +244,9 @@ describe('coursework draft, computation and persistence boundaries', () => {
 
   it('cancels analysis on navigation and ignores its stale result while preserving the draft', async () => {
     const { user, rerender } = await renderLab()
+    await selectTab(user, 'Report & presentation')
     await replaceText(user, screen.getByLabelText('Group member 1'), 'Draft member')
+    await selectTab(user, 'Syntactic analysis')
     const oldAnalysis = deferred<Response>()
     vi.mocked(fetch).mockReturnValueOnce(oldAnalysis.promise)
     await user.click(screen.getByRole('button', { name: 'Analyze grammar & saved corpus' }))
@@ -187,5 +258,38 @@ describe('coursework draft, computation and persistence boundaries', () => {
     expect(screen.getByLabelText('Group member 1')).toHaveValue('Draft member')
     expect(screen.queryByRole('heading', { name: 'Computed grammar' })).not.toBeInTheDocument()
     expect(screen.getByText(/your editor draft is kept/)).toBeInTheDocument()
+  })
+
+  it('preserves previously saved extra notes when saving fields from the simplified report', async () => {
+    const existing = project({ limitations: 'Existing private report notes' })
+    const { user } = await renderLab(existing)
+    await selectTab(user, 'Report & presentation')
+    await user.click(screen.getByText('Previously saved additional report notes'))
+    expect(screen.getByLabelText('Limitations & critical evaluation')).toHaveValue(existing.limitations)
+    await replaceText(user, screen.getByLabelText('Linguistic discussion'), 'New linguistic discussion')
+    const savedProject = { ...existing, discussion: 'New linguistic discussion' }
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(savedProject))
+      .mockResolvedValueOnce(jsonResponse(courseworkState(savedProject)))
+    await user.click(saveButton())
+    expect(await screen.findByText('No unsaved editor changes')).toBeInTheDocument()
+    expect(requestBody(vi.mocked(fetch).mock.calls[1])).toEqual(savedProject)
+  })
+
+  it('invalidates a pending lexical result when the shared sentence is edited in Parser tests', async () => {
+    const { user } = await renderLab()
+    await replaceText(user, screen.getByLabelText('Sentence to analyze'), 'Old synthetic text')
+    const response = deferred<Response>()
+    vi.mocked(fetch).mockReturnValueOnce(response.promise)
+    await user.click(screen.getByRole('button', { name: 'Analyze tokens' }))
+    await user.click(screen.getByRole('button', { name: 'Open parser test' }))
+    expect(screen.getByLabelText('Manual parser test')).toHaveFocus()
+    await replaceText(user, screen.getByLabelText('Manual parser test'), 'New synthetic text')
+    expect(vi.mocked(fetch).mock.calls[1]?.[1]?.signal?.aborted).toBe(true)
+    await act(async () => response.resolve(jsonResponse({ tokens: [], code_mixed_spans: [], verb_phrases: [] })))
+    await selectTab(user, 'Lexical analysis')
+    expect(screen.getByLabelText('Sentence to analyze')).toHaveValue('New synthetic text')
+    expect(screen.queryByRole('heading', { name: 'Manual lexical result' })).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
 })

@@ -27,6 +27,8 @@ A heading of the form `## LANGUAGE: topic` sets the language for the rows below 
 | **chek point** | a police checkpoint | Eng. checkpoint |
 | **kontrol** | a police check | Fr. controle |
 | **borne fontaine** | a public standpipe | French |
+| **taco** | a taxi | Cameroonian langs |
+| **light** | electricity; mains power (as in "the light don cut") | English |
 
 ## CAMFRANGLAIS: university and phones
 
@@ -56,3 +58,4 @@ A heading of the form `## LANGUAGE: topic` sets the language for the rows below 
 | **djibs** | food | Cameroonian langs |
 | **dja** | to eat | Cameroonian langs |
 | **nyoxer** | vulgar term for sexual intercourse | Cameroonian langs |
+| **kako** | clothes; outfit | Cameroonian langs |

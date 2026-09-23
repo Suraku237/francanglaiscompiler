@@ -62,7 +62,7 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
       <h1>{titles[mode]}</h1>
       <p>Collect real statements, build a grammar and trace the compiler’s decisions.</p>
       {errorCode && <ErrorNotice message={errorCode === 'google-link-required'
-        ? 'This email already has an account. Sign in with your password, then link Google in Workspace settings.'
+        ? 'This email already has an account. Sign in with your existing password; matching emails are not automatically linked to Google.'
         : 'Google sign-in was cancelled. You can try again.'} />}
       {notice && <p className="notice notice-success" role="status">{notice}</p>}
       <ErrorNotice message={error} />
@@ -181,10 +181,7 @@ export default function AuthGate() {
   return <>
     {notice && <p className="account-notice" role="status">{notice}</p>}
     {error && <div className="account-notice"><ErrorNotice message={error} onRetry={() => void load()} /></div>}
-    <App key={`${session.user.id}:${project}:${generation}`} account={session.user} googleEnabled={session.google_enabled}
-      onProfileChanged={(next) => {
-        if (next.user?.id === session.user?.id && next.csrf_token === session.csrf_token) setSession(next)
-      }}
+    <App key={`${session.user.id}:${project}:${generation}`} account={session.user}
       projects={projects} selectedProject={project} onSelectProject={(id) => {
         if (id !== project && window.confirm('Switch projects? Unsaved drafts and recordings in this tab will be discarded.')) {
           selectProject(id); setProject(id); setGeneration((value) => value + 1)
