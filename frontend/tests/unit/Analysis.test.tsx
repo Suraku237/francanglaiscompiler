@@ -14,7 +14,7 @@ function renderAnalysis(result: AnalyzerResult | null = tokenAnalysisResult()) {
 describe('separate token Analysis page', () => {
   it('shows every raw token and exact frequency, category, unknown and variation counts', async () => {
     const { user } = renderAnalysis()
-    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence' }))
+    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
     expect(statement.getByLabelText('Analyzed source text').textContent).toBe('  veux VEUX + +\t')
     const tokens = within(statement.getByRole('region', { name: 'Lexical tokens in source order' }))
     expect(tokens.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
@@ -49,9 +49,9 @@ describe('separate token Analysis page', () => {
 
   it('retains rejection reasons, parser steps, grammar details and lexer rules behind disclosures', async () => {
     const { user } = renderAnalysis()
-    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence' }))
+    const statement = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
     expect(statement.getByRole('region', { name: 'Table-driven parser step trace' })).not.toBeVisible()
-    await user.click(screen.getByText('Parser trace for this sentence'))
+    await user.click(screen.getByText('Parser trace for this input'))
     expect(statement.getByText('REJECT', { exact: true })).toBeVisible()
     expect(statement.getByRole('region', { name: 'Table-driven parser step trace' })).toHaveTextContent('VERB VERB UNKNOWN UNKNOWN $')
     await user.click(screen.getByText('Transformations, FIRST/FOLLOW & LL(1) table'))
@@ -64,9 +64,9 @@ describe('separate token Analysis page', () => {
   it('does not invent a sentence, statistics or parser verdict before the first run', () => {
     renderAnalysis(null)
     expect(screen.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Analyze a sentence' })).toHaveAttribute('href', '#compiler')
+    expect(screen.getByRole('link', { name: 'Analyze a sentence or word' })).toHaveAttribute('href', '#compiler')
     expect(screen.queryByRole('heading', { name: 'Token statistics' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Analyzed sentence' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Analyzed sentence or word' })).not.toBeInTheDocument()
     expect(screen.queryByText('ACCEPT', { exact: true })).not.toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
   })
@@ -79,6 +79,6 @@ describe('separate token Analysis page', () => {
     expect(corpus.getByText('No token categories were observed.')).toBeVisible()
     expect(corpus.getByText(/No saved records/)).toBeVisible()
     expect(corpus.queryByText('Mbom')).not.toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Analyzed sentence' })).toHaveTextContent('1 tokens · 1 distinct forms')
+    expect(screen.getByRole('region', { name: 'Analyzed sentence or word' })).toHaveTextContent('1 tokens · 1 distinct forms')
   })
 })

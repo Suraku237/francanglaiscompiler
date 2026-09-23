@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from './fixtures'
 import { analyzerState, entry } from '../fixtures'
+import { openGrammarSettings } from '../browserGrammar'
 
 test('Franc Analyzer replaces the lab with one visible analysis action and no collection or report sections', async ({ page, api }, testInfo) => {
   await page.goto('/#assistant')
@@ -15,6 +16,8 @@ test('Franc Analyzer replaces the lab with one visible analysis action and no co
   await expect(page.getByRole('button', { name: 'Analyze', exact: true })).toHaveCount(1)
   await expect(page.getByRole('tab')).toHaveCount(0)
   await expect(page.getByRole('tabpanel')).toHaveCount(0)
+  await expect(page.getByText('Grammar settings', { exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
   await page.screenshot({ path: testInfo.outputPath('franc-analyzer.png') })
   await expect(page.getByRole('heading', { name: /Data collection|Report|Presentation/i })).toHaveCount(0)
   await expect(page.getByLabel(/Group member|Linguistic discussion|Collection method/)).toHaveCount(0)
@@ -50,6 +53,7 @@ test('grammar controls remain keyboard accessible without losing input or comput
   await page.goto('/')
   const raw = '  Synthetic\tinput, not fieldwork.  '
   await page.getByLabel('Statement to analyze').fill(raw)
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Analysis', exact: true }).click()
   const settings = page.getByText('Grammar settings', { exact: true })
   await settings.focus()
   await page.keyboard.press('Enter')
@@ -58,8 +62,10 @@ test('grammar controls remain keyboard accessible without losing input or comput
   await settings.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Context-free grammar')).not.toBeVisible()
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
   await expect(page.getByLabel('Statement to analyze')).toHaveValue(raw)
-  await settings.click()
+  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
+  await openGrammarSettings(page)
   await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
   expect(api.calls('/api/analyzer/analyze')).toHaveLength(0)
   expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
@@ -98,13 +104,16 @@ test('authenticated project selection remounts grammar, manual input and source 
   })
   await page.goto('/')
   await page.getByLabel('Statement to analyze').fill('Unsaved private text')
-  await page.getByText('Grammar settings', { exact: true }).click()
+  await openGrammarSettings(page)
   await page.getByLabel('Context-free grammar').fill('S -> NUMBER')
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByLabel('Active project').selectOption('isolated-project')
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue('')
-  await page.getByText('Grammar settings', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'No completed analysis' })).toBeVisible()
+  await openGrammarSettings(page)
   await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue('')
+  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
   await expect(page.getByLabel('Group member 1')).toHaveCount(0)
   expect(api.calls('/api/analyzer').at(-1)?.headers['x-mboa-project']).toBe('isolated-project')
   expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)

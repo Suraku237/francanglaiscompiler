@@ -3,6 +3,7 @@ import { api } from './api'
 import { Analysis } from './Analysis'
 import type { AnalyzerResult, AnalyzerState } from './analyzerTypes'
 import { ErrorNotice, Icon, Spinner } from './components'
+import { AnalyzedSource } from './CourseworkResults'
 import { MAX_TEXT } from './types'
 import type { IncomingText } from './types'
 import { useRequest } from './useRequest'
@@ -119,6 +120,12 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
   }
 
   const computeDisabled = loading || analyzing || save.pending || !grammar?.trim() || grammar.length > MAX_GRAMMAR || text.length > MAX_TEXT
+  const grammarStatus = dirty ? 'Using unsaved grammar' : 'Using saved grammar'
+  const grammarError = grammar !== null && !grammar.trim()
+    ? 'The grammar is empty. Enter rules in Grammar settings on Analysis before analyzing.'
+    : grammar !== null && grammar.length > MAX_GRAMMAR
+      ? 'The grammar exceeds 12,000 characters. Shorten it in Grammar settings on Analysis before saving or analyzing.'
+      : ''
 
   return <section className={`page coursework-page ${showAnalysis ? 'analysis-page' : 'franc-analyzer'}`} aria-labelledby="analyzer-title">
     <div className="page-intro compact-intro lab-intro">
@@ -127,44 +134,47 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
     <ErrorNotice message={loadError} onRetry={refresh} />
     {loading && <p className="lab-loading" role="status"><Spinner label="Loading analyzer" />Loading your saved grammar. Editor drafts are kept.</p>}
     {state && grammar !== null && <>
-      {showAnalysis ? <Analysis result={result} lexicalSpec={state.lexical_spec} analyzing={analyzing} onCancel={cancelAnalysis} onUseText={onUseText} /> : <>
-      <section className="lab-card analyzer-input" aria-label="Analyzer input">
-        <form onSubmit={(event) => { event.preventDefault(); analyze() }}>
-          {handoffNote && <p className="notice notice-subtle" role="status">{handoffNote}</p>}
-          <div className="field"><label htmlFor="analyzer-text">Statement to analyze</label><textarea ref={input} id="analyzer-text" rows={3} maxLength={MAX_TEXT} value={text} onChange={(event) => changeText(event.target.value)} placeholder="Type or paste a statement. Leave blank to test empty input (epsilon)." aria-describedby="analyzer-text-hint" /><span id="analyzer-text-hint" className="field-hint">{text.length.toLocaleString()} / 4,000 characters · not saved to Collection</span></div>
-          {text.length > MAX_TEXT && <ErrorNotice message="This source exceeds 4,000 characters. It was kept unchanged; select a shorter passage before analyzing." />}
-          <div className="lab-actions analyzer-actions">
-            <button type="submit" className="button button-primary" disabled={computeDisabled}>{analyzing ? <Spinner label="Running all analysis stages" /> : <Icon name="code" size={17} />}{analyzing ? 'Analyzing...' : 'Analyze'}</button>
-            {analyzing && <button type="button" className="text-button" onClick={cancelAnalysis}>Cancel analysis</button>}
-            <span className="field-hint">{dirty ? 'Using unsaved grammar' : 'Using saved grammar'}</span>
-          </div>
-          <p className="lab-copy analyzer-input-note">One run checks this input and your saved statements using the current grammar. It does not save or approve anything.</p>
-        </form>
+      <ErrorNotice message={grammarError} />
+      <ErrorNotice message={save.error} />
+      {notice && <p className="lab-save-notice" role="status">{notice}</p>}
+      <ErrorNotice message={analysisError} />
+      {showAnalysis ? <Analysis result={result} lexicalSpec={state.lexical_spec} analyzing={analyzing} onCancel={cancelAnalysis} onUseText={onUseText} grammarSettings={
         <details className="lab-disclosure">
           <summary>Grammar settings</summary>
           <div className="lab-disclosure-body">
             <p className="lab-copy">The default is a <strong>starter, not a grammar derived from your data</strong>. Edit the rules to match the structures you observed.</p>
             <div className="field"><label htmlFor="analyzer-grammar">Context-free grammar</label><textarea id="analyzer-grammar" className="lab-grammar-input" rows={7} maxLength={MAX_GRAMMAR} spellCheck={false} autoCapitalize="off" autoCorrect="off" value={grammar} onChange={(event) => changeGrammar(event.target.value)} aria-describedby="analyzer-grammar-hint" /><span id="analyzer-grammar-hint" className="field-hint">{grammar.length.toLocaleString()} / 12,000 characters · Save grammar to keep edits</span></div>
-            {grammar.length > MAX_GRAMMAR && <ErrorNotice message="The grammar exceeds 12,000 characters. Shorten it before saving or analyzing." />}
             <div className="lab-actions">
               <button type="button" className="button button-secondary" onClick={saveCurrentGrammar} disabled={!dirty || !grammar.trim() || grammar.length > MAX_GRAMMAR || loading || save.pending}>{save.pending ? <Spinner label="Saving grammar" /> : <Icon name="check" size={16} />}{save.pending ? 'Saving...' : 'Save grammar'}</button>
               <button type="button" className="text-button" onClick={refresh} disabled={loading || save.pending}><Icon name="refresh" size={16} />Refresh saved grammar</button>
+              <span className="field-hint">{grammarStatus}</span>
             </div>
             <p className="lab-copy">One rule per line: <code>Nonterminal -&gt; symbol symbol | epsilon</code>. The first rule is the start symbol. Terminals are token categories, not literal words.</p>
             <div className="lab-terminal-list">{terminals.map((terminal) => <code key={terminal}>{terminal}</code>)}</div>
           </div>
         </details>
+      } /> : <>
+      <section className="lab-card analyzer-input" aria-label="Analyzer input">
+        <form onSubmit={(event) => { event.preventDefault(); analyze() }}>
+          {handoffNote && <p className="notice notice-subtle" role="status">{handoffNote}</p>}
+          <div className="field"><label htmlFor="analyzer-text">Statement to analyze</label><textarea ref={input} id="analyzer-text" rows={3} maxLength={MAX_TEXT} value={text} onChange={(event) => changeText(event.target.value)} placeholder="Type or paste a sentence or word. Leave blank to test empty input (epsilon)." aria-describedby="analyzer-text-hint" /><span id="analyzer-text-hint" className="field-hint">{text.length.toLocaleString()} / 4,000 characters · not saved to Collection</span></div>
+          {text.length > MAX_TEXT && <ErrorNotice message="This source exceeds 4,000 characters. It was kept unchanged; select a shorter passage before analyzing." />}
+          <div className="lab-actions analyzer-actions">
+            <button type="submit" className="button button-primary" disabled={computeDisabled}>{analyzing ? <Spinner label="Running all analysis stages" /> : <Icon name="code" size={17} />}{analyzing ? 'Analyzing...' : 'Analyze'}</button>
+            {analyzing && <button type="button" className="text-button" onClick={cancelAnalysis}>Cancel analysis</button>}
+            <span className="field-hint">{grammarStatus}</span>
+          </div>
+          <p className="lab-copy analyzer-input-note">One run checks this input and your saved statements using the current grammar. It does not save or approve anything.</p>
+        </form>
       </section>
       {result && <section className="lab-card analyzer-verdict" aria-labelledby="analyzer-verdict-title">
         <h2 id="analyzer-verdict-title">Parser result</h2>
+        <div className="analyzer-source"><h3>Analyzed sentence or word</h3><AnalyzedSource text={result.text} /></div>
         <p role="status"><span className={`lab-status ${result.parse.accepted ? 'ready' : 'needs_input'}`}>{result.parse.accepted ? 'ACCEPT' : 'REJECT'}</span></p>
         <p className="lab-copy">This result describes the current grammar's coverage, not whether the speaker's language is correct.</p>
         <a className="button button-secondary" href="#analysis">View detailed analysis<Icon name="arrow" size={16} /></a>
       </section>}
       </>}
-      <ErrorNotice message={save.error} />
-      {notice && <p className="lab-save-notice" role="status">{notice}</p>}
-      <ErrorNotice message={analysisError} />
     </>}
   </section>
 }

@@ -65,6 +65,10 @@ export function GrammarResults({ grammar }: { grammar: GrammarAnalysis }) {
   </div>
 }
 
+export function AnalyzedSource({ text }: { text: string }) {
+  return <p className="analysis-source" aria-label="Analyzed source text">{text || '(empty input)'}</p>
+}
+
 export function TokenTable({ tokens }: { tokens: LexicalToken[] }) {
   if (!tokens.length) return <p className="lab-copy">No lexical tokens. The parser will see only $.</p>
   return <TableScroll label="Lexical tokens in source order"><table className="lab-table"><thead><tr><th scope="col">#</th><th scope="col">Observed text</th><th scope="col">Lexer category</th></tr></thead><tbody>

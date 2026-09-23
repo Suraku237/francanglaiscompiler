@@ -1,27 +1,30 @@
+import type { ReactNode } from 'react'
 import type { AnalyzerResult, AnalyzerState } from './analyzerTypes'
 import { Icon, Spinner } from './components'
-import { CorpusResults, GrammarResults, LexicalResults, ParseTrace, TableScroll, TokenStatistics, TokenTable } from './CourseworkResults'
+import { AnalyzedSource, CorpusResults, GrammarResults, LexicalResults, ParseTrace, TableScroll, TokenStatistics, TokenTable } from './CourseworkResults'
 
-export function Analysis({ result, lexicalSpec, analyzing, onCancel, onUseText }: {
+export function Analysis({ result, lexicalSpec, analyzing, grammarSettings, onCancel, onUseText }: {
   result: AnalyzerResult | null
   lexicalSpec: AnalyzerState['lexical_spec']
   analyzing: boolean
+  grammarSettings?: ReactNode
   onCancel: () => void
   onUseText: (text: string) => void
 }) {
   return <>
     <a className="text-button" href="#compiler">Back to Franc Analyzer<Icon name="arrow" size={16} /></a>
+    {grammarSettings}
     {analyzing && <div className="lab-actions"><p className="lab-loading" role="status"><Spinner label="Running analysis" />Analyzing the input and saved Collection...</p><button type="button" className="text-button" onClick={onCancel}>Cancel analysis</button></div>}
     {!result && !analyzing && <div className="lab-empty-panel">
       <Icon name="chart" size={28} /><h2>No completed analysis</h2>
-      <p>Enter a sentence and select Analyze in Franc Analyzer. Its token details and saved Collection statistics will appear here separately. Nothing is saved or computed just by opening this page.</p>
-      <a className="button button-primary" href="#compiler">Analyze a sentence<Icon name="arrow" size={16} /></a>
+      <p>Enter a sentence or word and select Analyze in Franc Analyzer. Its token details and saved Collection statistics will appear here separately. Nothing is saved or computed just by opening this page.</p>
+      <a className="button button-primary" href="#compiler">Analyze a sentence or word<Icon name="arrow" size={16} /></a>
     </div>}
     {result && <>
-      <p className="lab-copy">Results from your latest run in this tab. The sentence below is not added to Collection. Run Analyze again after changing your input, vocabulary or grammar.</p>
+      <p className="lab-copy">Results from your latest run in this tab. The input below is not added to Collection. Run Analyze again after changing your input, vocabulary or grammar.</p>
       <section className="lab-card" aria-labelledby="analysis-input-title">
-        <div className="lab-card-heading"><div><h2 id="analysis-input-title">Analyzed sentence</h2><p>Tokens appear in source order with the exact categories passed to the parser.</p></div></div>
-        <p className="analysis-source" aria-label="Analyzed source text">{result.text || '(empty input)'}</p>
+        <div className="lab-card-heading"><div><h2 id="analysis-input-title">Analyzed sentence or word</h2><p>Tokens appear in source order with the exact categories passed to the parser.</p></div></div>
+        <AnalyzedSource text={result.text} />
         <TokenTable tokens={result.lexical.tokens} />
         <dl className="lab-observations">
           <div><dt>Verb phrases</dt><dd>{result.lexical.verb_phrases.join(' / ') || 'None detected'}</dd></div>
@@ -30,7 +33,7 @@ export function Analysis({ result, lexicalSpec, analyzing, onCancel, onUseText }
         </dl>
         <TokenStatistics statistics={result.lexical.statistics} />
         <details className="lab-disclosure">
-          <summary>Parser trace for this sentence</summary>
+          <summary>Parser trace for this input</summary>
           <div className="lab-disclosure-body"><ParseTrace result={result.parse} /></div>
         </details>
       </section>
