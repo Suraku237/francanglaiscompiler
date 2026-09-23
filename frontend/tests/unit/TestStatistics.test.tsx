@@ -29,6 +29,10 @@ describe('all recorded test statistics', () => {
     expect(rows('Recorded topics counts')).toEqual(['Not recorded2', 'Taxi / Commuting1'])
     expect(rows('Declared input languages counts')).toEqual(['Not recorded2', 'francanglais1'])
     expect(screen.getByText(/not detected word origins/)).toBeVisible()
+    expect(screen.getByText(/All completed tests by every user/)).toBeVisible()
+    expect(screen.getAllByText(/Creator: Test user/)).toHaveLength(2)
+    expect(screen.getByText(/Creator: Second user/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Edit|Delete/ })).not.toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -68,6 +72,7 @@ describe('all recorded test statistics', () => {
     expect(screen.getByRole('group', { name: 'Acceptance rate' })).toHaveTextContent('Not available')
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
+    expect(screen.getByText(/No one has recorded a test in the shared workspace yet/)).toBeVisible()
   })
 
   it('shows an explicit empty unknown review and keeps final-page controls bounded', () => {

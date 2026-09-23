@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
 const origin = 'http://127.0.0.1:4187'
+const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const stagedAssets = process.env.MBOA_E2E_DIST_DIR
 
 export default defineConfig({
   testDir: join('tests', 'e2e'),
@@ -24,7 +26,7 @@ export default defineConfig({
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run preview -- --host 127.0.0.1 --port 4187 --strictPort',
+    command: `${npm} run preview -- --host 127.0.0.1 --port 4187 --strictPort${stagedAssets ? ` --outDir "${stagedAssets}"` : ''}`,
     cwd: fileURLToPath(new URL('.', import.meta.url)),
     url: origin,
     reuseExistingServer: false,

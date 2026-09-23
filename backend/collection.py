@@ -12,7 +12,8 @@ from filelock import Timeout
 from compiler.lexer.tokenizer import normalize_text
 from data_collector import dataset
 
-from .schemas import DatasetEntry, DatasetResponse, EntryCreate, EntryPatch
+from .ownership import record_ownership, require_owner
+from .schemas import DatasetEntry, DatasetEntryView, DatasetResponse, EntryCreate, EntryPatch, OwnedDatasetEntry
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -45,7 +46,7 @@ def list_entries(query: str) -> DatasetResponse:
         if not search or any(search in value.casefold() for value in entry.values())
     ]
     return DatasetResponse(
-        entries=[DatasetEntry.model_validate(entry) for entry in reversed(matches)],
+        entries=[entry_view(DatasetEntry.model_validate(entry)) for entry in reversed(matches)],
         total=len(entries),
         by_category=dict(Counter(entry["category"] or "(none)" for entry in entries)),
         by_type=dict(Counter(entry["entry_type"] or "(none)" for entry in entries)),
@@ -54,6 +55,11 @@ def list_entries(query: str) -> DatasetResponse:
             for status in ("approved", "unreviewed")
         },
     )
+
+
+def entry_view(entry: DatasetEntry) -> DatasetEntryView:
+    ownership = record_ownership("entry", entry.id)
+    return OwnedDatasetEntry(**entry.model_dump(), ownership=ownership) if ownership is not None else entry
 
 
 def _check_duplicate(
@@ -67,7 +73,7 @@ def _check_duplicate(
         raise CollectionError(409, "This text is already in the collection for the selected language.")
 
 
-def create_entry(request: EntryCreate, *, audio_filename: str = "") -> DatasetEntry:
+def create_entry(request: EntryCreate, *, audio_filename: str = "") -> DatasetEntryView:
     if request.category not in (*dataset.BUSINESS_CATEGORIES, *dataset.CATEGORIES):
         raise CollectionError(422, "Select one of the available collection categories.")
     with dataset.dataset_lock():
@@ -80,17 +86,18 @@ def create_entry(request: EntryCreate, *, audio_filename: str = "") -> DatasetEn
             timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         )
         dataset.append_entry(entry.model_dump())
-        return entry
+        return entry_view(entry)
 
 
 def edit_entry(
     entry_id: str, request: EntryPatch, *, audio_filename: str | None = None,
-) -> DatasetEntry:
+) -> DatasetEntryView:
     with dataset.dataset_lock():
         entries = dataset.load_all()
         entry = next((item for item in entries if item["id"] == entry_id), None)
         if entry is None:
             raise CollectionError(404, "This collection entry no longer exists.")
+        require_owner("entry", entry_id)
         if request.entry_type is not None and request.entry_type not in (*dataset.ENTRY_TYPES, entry["entry_type"]):
             raise CollectionError(422, "Select one of the available collection entry types.")
         if request.category is not None and request.category not in (
@@ -106,7 +113,7 @@ def edit_entry(
             changes["audio_filename"] = audio_filename
         dataset.apply_entry_update(entry, changes)
         dataset.save_all(entries)
-        return DatasetEntry.model_validate(entry)
+        return entry_view(DatasetEntry.model_validate(entry))
 
 
 def remove_entry(entry_id: str) -> None:
@@ -115,4 +122,5 @@ def remove_entry(entry_id: str) -> None:
         remaining = [entry for entry in entries if entry["id"] != entry_id]
         if len(remaining) == len(entries):
             raise CollectionError(404, "This collection entry no longer exists.")
+        require_owner("entry", entry_id)
         dataset.save_all(remaining)

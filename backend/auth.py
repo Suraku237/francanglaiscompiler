@@ -182,6 +182,10 @@ class AuthStore:
             email_verified=bool(row["verified"]), google_linked=bool(row["google_sub"]),
         )
 
+    def registered_user_count(self) -> int:
+        with self.connection() as db:
+            return db.execute("SELECT count(*) FROM users").fetchone()[0]
+
     def throttle(self, key: str, maximum: int, seconds: int) -> None:
         now = time.time()
         with self.connection() as db:
@@ -318,7 +322,7 @@ def install_auth(
         try:
             user = await run_in_threadpool(store.session, raw)
             if path not in anonymous_paths and user is None:
-                raise AuthError(401, "Sign in to access your private workspace.")
+                raise AuthError(401, "Sign in to access the shared workspace.")
             if request.method not in ("GET", "HEAD", "OPTIONS"):
                 if request.headers.get("origin") not in origins:
                     raise AuthError(403, "This request did not originate from the application.")
@@ -349,8 +353,8 @@ def install_auth(
             logger.error("Identity storage failed (%s)", type(exc).__name__)
             return JSONResponse({"detail": "Account storage is temporarily unavailable."}, 503)
         except (OSError, ValueError) as exc:
-            logger.error("Private account storage failed (%s)", type(exc).__name__)
-            return JSONResponse({"detail": "Private storage is temporarily unavailable."}, 503)
+            logger.error("Account or workspace storage failed (%s)", type(exc).__name__)
+            return JSONResponse({"detail": "Account or workspace storage is temporarily unavailable."}, 503)
 
     async def auth_limit(request: Request, email: str, action: str, maximum: int = 8):
         ip = request.client.host if request.client else "unknown"

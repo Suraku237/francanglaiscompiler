@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { EntryEditor } from '../../src/Collection'
-import { entry, metadata } from '../fixtures'
+import { entry, metadata, ownership } from '../fixtures'
 import { deferred, jsonResponse, requestBody } from '../helpers'
 
 function renderEditor(props: Partial<ComponentProps<typeof EntryEditor>> = {}) {
@@ -16,6 +16,55 @@ function renderEditor(props: Partial<ComponentProps<typeof EntryEditor>> = {}) {
 const approval = () => screen.getByRole('checkbox', { name: /I have reviewed the language/ })
 
 describe('collection entry review', () => {
+  it('lets a noncreator inspect exact data and play audio but never edit, approve or submit', async () => {
+    const original = entry({
+      text: '  Exact\tshared text\n', contributor: 'Original field contributor', audio_filename: 'shared.wav',
+      ownership: ownership({ owner_id: 'creator-id', owner_name: 'Creator Alice', can_edit: false }),
+    })
+    const { user, onClose, onSaved } = renderEditor({ entry: original })
+    expect(screen.getByRole('dialog', { name: 'View collection entry' })).toBeVisible()
+    expect(screen.getByText(/Creator: Creator Alice/)).toHaveTextContent('Read-only')
+    expect(screen.getByLabelText(/^Contributor/)).toHaveValue('Original field contributor')
+    for (const field of screen.getAllByRole('textbox')) expect(field).toHaveAttribute('readonly')
+    for (const field of screen.getAllByRole('combobox')) expect(field).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'Approved by the creator' })).toBeDisabled()
+    expect(screen.getByLabelText('Play recording: shared.wav')).toHaveAttribute('controls')
+    expect(screen.getByRole('link', { name: 'Download audio' })).toHaveAttribute('href', '/api/dataset/fixture-record-1/audio')
+    expect(screen.queryByLabelText('Attach an audio file')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Save|Record audio|Remove attachment|Delete/ })).not.toBeInTheDocument()
+    const field = screen.getByLabelText(/^Expression/)
+    fireEvent.change(field, { target: { value: 'Not the creator' } })
+    expect(field).toHaveValue(original.text)
+    fireEvent.submit(field.closest('form')!)
+    expect(fetch).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('strips server identity and ownership from a reused draft without changing contributor provenance', async () => {
+    const original = entry({ contributor: 'Original contributor', ownership: ownership({ can_edit: false }) })
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(entry({ id: 'new-record' })))
+    const { user } = renderEditor({ initialDraft: original })
+    await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
+    const body = requestBody(vi.mocked(fetch).mock.calls[0])
+    expect(body).toMatchObject({ text: original.text, contributor: 'Original contributor', review_status: 'unreviewed' })
+    for (const field of ['ownership', 'id', 'timestamp', 'audio_filename', 'owner_id', 'owner_name', 'can_edit']) expect(body).not.toHaveProperty(field)
+  })
+
+  it('surfaces a creator-only 403 without losing the edit draft or reporting success', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: 'Only the creator can edit this entry.' }, 403))
+    const { user, onSaved, onClose } = renderEditor({ entry: entry() })
+    await user.clear(screen.getByLabelText(/^English meaning/))
+    await user.type(screen.getByLabelText(/^English meaning/), 'Unsaved updated meaning')
+    await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only the creator can edit this entry.')
+    expect(screen.getByLabelText(/^English meaning/)).toHaveValue('Unsaved updated meaning')
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('rejects a whitespace-only expression without contacting the server', async () => {
     const { user } = renderEditor()
     await user.type(screen.getByRole('textbox', { name: /^Expression/ }), '   ')

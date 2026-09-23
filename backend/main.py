@@ -26,7 +26,7 @@ from .workspaces import install_workspace
 from .schemas import (
     AnalysisResult,
     AnalyzeRequest,
-    DatasetEntry,
+    DatasetEntryView,
     DatasetResponse,
     DictionaryResponse,
     EntryCreate,
@@ -72,7 +72,7 @@ def create_app(
 
     app = FastAPI(
         title="Mboa Compiler Lab",
-        description="Private manual fieldwork, lexical analysis, CFG transformations and LL(1) parsing.",
+        description="Shared manual fieldwork, lexical analysis, CFG transformations and LL(1) parsing.",
         version="1.0.0",
         lifespan=lifespan,
         docs_url=None if accounts.environment == "production" else "/docs",
@@ -118,12 +118,12 @@ def create_app(
     ) -> DictionaryResponse:
         return dictionary.list_dictionary(query, offset, limit)
 
-    @app.post("/api/dataset", status_code=201, response_model=DatasetEntry)
-    def add_entry(payload: EntryCreate) -> DatasetEntry:
+    @app.post("/api/dataset", status_code=201, response_model=DatasetEntryView)
+    def add_entry(payload: EntryCreate) -> DatasetEntryView:
         return storage_operation(lambda: collection.create_entry(payload))
 
-    @app.patch("/api/dataset/{entry_id}", response_model=DatasetEntry)
-    def patch_entry(entry_id: str, payload: EntryPatch) -> DatasetEntry:
+    @app.patch("/api/dataset/{entry_id}", response_model=DatasetEntryView)
+    def patch_entry(entry_id: str, payload: EntryPatch) -> DatasetEntryView:
         return storage_operation(lambda: collection.edit_entry(entry_id, payload))
 
     @app.delete("/api/dataset/{entry_id}", status_code=204)

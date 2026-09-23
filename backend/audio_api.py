@@ -16,7 +16,8 @@ from .collection import CollectionError, create_entry, edit_entry, storage_opera
 from .file_storage import atomic_write
 from .import_models import MAX_FILE_BYTES
 from .imports import MIME_TYPES, validate_media
-from .schemas import DatasetEntry, EntryCreate, EntryPatch
+from .ownership import require_owner
+from .schemas import DatasetEntryView, EntryCreate, EntryPatch
 from .uploads import multipart_form
 
 logger = logging.getLogger(__name__)
@@ -71,10 +72,12 @@ def _audio_extension(filename: str, data: bytes) -> str:
 def _store_audio_entry(
     fields: EntryCreate | EntryPatch, entry_id: str | None,
     filename: str = "", content: bytes | None = None,
-) -> DatasetEntry:
+) -> DatasetEntryView:
     path = None
     committed = False
     try:
+        if entry_id is not None:
+            require_owner("entry", entry_id)
         if content is not None:
             extension = _audio_extension(filename, content)
             dataset.check_audio_capacity(len(content))
@@ -102,15 +105,15 @@ def _store_audio_entry(
 def _save_with_audio(
     fields: EntryCreate | EntryPatch, entry_id: str | None,
     filename: str = "", content: bytes | None = None,
-) -> DatasetEntry:
-    def operation() -> DatasetEntry:
+) -> DatasetEntryView:
+    def operation() -> DatasetEntryView:
         with dataset.dataset_lock():
             return _store_audio_entry(fields, entry_id, filename, content)
     return storage_operation(operation)
 
 
-@router.post("/audio", response_model=DatasetEntry, status_code=201, openapi_extra=_upload_schema(edit=False))
-async def create_with_audio(request: Request) -> DatasetEntry:
+@router.post("/audio", response_model=DatasetEntryView, status_code=201, openapi_extra=_upload_schema(edit=False))
+async def create_with_audio(request: Request) -> DatasetEntryView:
     async with multipart_form(request, fields={"fields"}, max_field_bytes=65536) as form:
         file = form.get("file")
         raw_fields = form.get("fields")
@@ -124,8 +127,8 @@ async def create_with_audio(request: Request) -> DatasetEntry:
         return await run_in_threadpool(_save_with_audio, fields, None, file.filename or "", content)
 
 
-@router.patch("/{entry_id}/audio", response_model=DatasetEntry, openapi_extra=_upload_schema(edit=True))
-async def edit_with_audio(entry_id: str, request: Request) -> DatasetEntry:
+@router.patch("/{entry_id}/audio", response_model=DatasetEntryView, openapi_extra=_upload_schema(edit=True))
+async def edit_with_audio(entry_id: str, request: Request) -> DatasetEntryView:
     async with multipart_form(
         request, fields={"fields", "remove_audio"}, max_field_bytes=65536, file_required=False,
     ) as form:

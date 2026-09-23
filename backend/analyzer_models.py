@@ -7,6 +7,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, Json, StringC
 from compiler.lexer.lexicon import TERMINAL_CATEGORIES
 
 from .coursework_models import GrammarRequest, PracticeText
+from .ownership import Ownership
 from .schemas import DatasetLanguage
 from .token_statistics import token_statistics
 
@@ -190,6 +191,13 @@ class RecordedTest(SnapshotModel):
         return self
 
 
+class OwnedRecordedTest(RecordedTest):
+    ownership: Ownership
+
+
+RecordedTestView = OwnedRecordedTest | RecordedTest
+
+
 class StoredAnalyzerTest(SnapshotModel):
     id: CanonicalUUID
     project_id: str
@@ -216,6 +224,10 @@ class TestSummary(SnapshotModel):
     error: str | None
 
 
+class OwnedTestSummary(TestSummary):
+    ownership: Ownership
+
+
 class TestTotals(SnapshotModel):
     total: Count
     accepted: Count
@@ -239,6 +251,6 @@ class TestReport(SnapshotModel):
     unknown_review: list[UnknownReview]
     topic_counts: dict[str, PositiveCount]
     language_counts: dict[str, PositiveCount]
-    tests: list[TestSummary]
+    tests: list[OwnedTestSummary | TestSummary]
     offset: Count
     limit: Annotated[int, Field(ge=1, le=100)]

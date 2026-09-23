@@ -31,6 +31,7 @@ describe('raw recording, manual transcription and attachment review', () => {
     if (!(body instanceof FormData)) throw new Error('Expected multipart audio and fields')
     expect(body.get('file')).toBeInstanceOf(File)
     expect(JSON.parse(String(body.get('fields')))).toMatchObject({ text: 'Synthetic test expression', review_status: 'unreviewed' })
+    expect(JSON.parse(String(body.get('fields')))).not.toHaveProperty('ownership')
     expect(onSaved).toHaveBeenCalledOnce()
   })
 
@@ -40,9 +41,9 @@ describe('raw recording, manual transcription and attachment review', () => {
     render(<EntryEditor entry={entry()} metadata={metadata} onClose={vi.fn()} onSaved={vi.fn()} />)
     await user.upload(screen.getByLabelText('Attach an audio file'), new File(['test audio'], 'fixture.wav', { type: 'audio/wav' }))
     expect(screen.getByRole('checkbox', { name: /I have reviewed/ })).not.toBeChecked()
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Cannot save the local collection.' }, 500))
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Only the creator can replace this audio.' }, 403))
     await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot save')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only the creator can replace this audio.')
     expect(screen.getByText(/fixture.wav \(/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save unreviewed' })).toBeEnabled()
   })
@@ -53,13 +54,14 @@ describe('raw recording, manual transcription and attachment review', () => {
     render(<EntryEditor entry={entry({ audio_filename: 'existing.wav' })} metadata={metadata} onClose={vi.fn()} onSaved={vi.fn()} />)
     await user.click(screen.getByRole('button', { name: 'Remove attachment on save' }))
     expect(fetch).not.toHaveBeenCalled()
-    expect(screen.getByText(/original file is retained locally/)).toBeInTheDocument()
+    expect(screen.getByText(/original file is retained on the server/)).toBeInTheDocument()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(entry({ audio_filename: '', review_status: 'unreviewed' })))
     await user.click(screen.getByRole('button', { name: 'Save unreviewed' }))
     const body = vi.mocked(fetch).mock.calls[0]?.[1]?.body
     if (!(body instanceof FormData)) throw new Error('Expected explicit removal form')
     expect(body.get('remove_audio')).toBe('true')
     expect(body.get('file')).toBeNull()
+    expect(JSON.parse(String(body.get('fields')))).toEqual({ review_status: 'unreviewed' })
   })
 
   it('never fills the manual transcript from a recording or uploads an empty-text draft', async () => {

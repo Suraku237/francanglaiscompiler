@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Query
 
 from . import analyzer, analyzer_history, coursework_store
-from .analyzer_models import AnalyzerTestRequest, CanonicalUUID, RecordedTest, TestReport
+from .analyzer_models import (
+    AnalyzerTestRequest, CanonicalUUID, OwnedRecordedTest, RecordedTest, RecordedTestView, TestReport,
+)
 from .coursework_api import course_operation
 from .coursework_models import GrammarRequest, PracticeText
+from .ownership import record_ownership
 
 router = APIRouter(prefix="/api/analyzer", tags=["Franc Analyzer"])
 
@@ -18,11 +21,15 @@ def get_analyzer() -> dict:
 
 
 @router.put("/grammar")
-def save_grammar(payload: GrammarRequest) -> GrammarRequest:
-    def operation() -> GrammarRequest:
+def save_grammar(payload: GrammarRequest) -> dict:
+    def operation() -> dict:
         # Read and merge under the workspace lock, preserving the legacy profile.
         profile = coursework_store.load_project().model_copy(update={"grammar": payload.grammar})
-        return GrammarRequest(grammar=coursework_store.save_project(profile).grammar)
+        response: dict[str, object] = {"grammar": coursework_store.save_project(profile).grammar}
+        ownership = record_ownership("coursework", "default")
+        if ownership is not None:
+            response["grammar_ownership"] = ownership.model_dump()
+        return response
 
     return course_operation(operation)
 
@@ -33,8 +40,13 @@ def analyze(payload: AnalyzerRequest) -> dict:
 
 
 @router.post("/tests")
-def record_test(payload: AnalyzerTestRequest) -> RecordedTest:
-    return course_operation(lambda: analyzer_history.record_test(payload))
+def record_test(payload: AnalyzerTestRequest) -> RecordedTestView:
+    return course_operation(lambda: test_view(analyzer_history.record_test(payload)))
+
+
+def test_view(record: RecordedTest) -> RecordedTestView:
+    ownership = record_ownership("analyzer_test", record.id)
+    return OwnedRecordedTest(**record.model_dump(), ownership=ownership) if ownership is not None else record
 
 
 @router.get("/tests")
@@ -45,5 +57,5 @@ def test_report(
 
 
 @router.get("/tests/{test_id}")
-def get_test(test_id: CanonicalUUID) -> RecordedTest:
-    return course_operation(lambda: analyzer_history.get_test(test_id))
+def get_test(test_id: CanonicalUUID) -> RecordedTestView:
+    return course_operation(lambda: test_view(analyzer_history.get_test(test_id)))

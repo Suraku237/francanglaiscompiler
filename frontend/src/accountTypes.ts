@@ -23,6 +23,8 @@ export interface Project {
 export interface ProjectsResult {
   projects: Project[]
   default_project_id: string
+  shared: true
+  registered_users: number
 }
 
 export interface SavedTranslation {

@@ -14,6 +14,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
+from uuid import uuid4
 
 import httpx
 import jwt
@@ -26,6 +27,7 @@ from starlette.concurrency import run_in_threadpool
 from backend.auth import AuthSettings, AuthStore, COOKIE, OAUTH_COOKIE, AuthError, digest
 from backend.config import Settings
 from backend.main import create_app
+from backend.shared_workspace import SharedWorkspaceStore
 from backend.tests.import_fixtures import wav_bytes
 from backend.tests.support import block_outbound_http
 from backend.workspace_backups import BackupRestore, maintenance_cycle, maintain_backups, preview_backup, restore_backup, snapshot, validate_archive
@@ -101,6 +103,9 @@ class HostedCase(unittest.TestCase):
         response = client.post("/api/dataset", json={"text": text, "language": "francanglais", **values})
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
+
+    def shared_store(self, user):
+        return SharedWorkspaceStore(self.root, user["id"], owner_name=user["display_name"])
 
     def legacy_directory(self):
         directory = self.root / "legacy"
@@ -228,38 +233,58 @@ class AccountTests(HostedCase):
                 AuthSettings(google_client_id="configured", google_client_secret=SecretStr(""))
 
 
-class PrivateWorkspaceTests(HostedCase):
-    def test_distinct_accounts_never_read_or_mutate_each_others_data(self):
+class SharedWorkspaceTests(HostedCase):
+    def test_distinct_accounts_share_reads_but_only_creators_mutate_data(self):
         first = self.register()
-        entry = self.entry()
+        entry = self.entry(contributor="Original collector")
         saved = self.client.post("/api/workspace/history", json=HISTORY).json()
         other = self.other()
         second = self.register(other, "second@example.com")
         self.assertNotEqual(first["id"], second["id"])
-        self.assertEqual(other.get("/api/dataset").json()["total"], 0)
-        self.assertEqual(other.get("/api/workspace/history").json()["entries"], [])
+        ownership = {"owner_id": first["id"], "owner_name": first["display_name"], "can_edit": True}
+        self.assertEqual(entry["ownership"], ownership)
+        self.assertEqual(saved["ownership"], ownership)
+        shared = other.get("/api/dataset").json()
+        self.assertEqual(shared["total"], 1)
+        self.assertEqual(shared["entries"], [{**entry, "ownership": {**ownership, "can_edit": False}}])
+        self.assertEqual(shared["entries"][0]["contributor"], "Original collector")
+        self.assertEqual(other.get("/api/workspace/history").json()["entries"],
+                         [{**saved, "ownership": {**ownership, "can_edit": False}}])
+        self.assertEqual(other.get(f"/api/workspace/history/{saved['id']}").json()["content"], HISTORY["content"])
         for response in (
             other.patch(f"/api/dataset/{entry['id']}", json={"text": "Stolen"}),
             other.delete(f"/api/dataset/{entry['id']}"),
-            other.get(f"/api/workspace/history/{saved['id']}"),
+            other.patch(f"/api/workspace/history/{saved['id']}", json={"name": "Stolen"}),
+            other.delete(f"/api/workspace/history/{saved['id']}"),
         ):
-            self.assertEqual(response.status_code, 404, response.text)
-        self.assertEqual(self.client.get("/api/dataset").json()["total"], 1)
+            self.assertEqual(response.status_code, 403, response.text)
+        self.assertEqual(self.client.get("/api/dataset").json()["entries"], [entry])
+        self.assertEqual(self.client.get("/api/auth/session").json()["user"]["id"], first["id"])
+        self.assertEqual(other.get("/api/auth/session").json()["user"]["id"], second["id"])
 
-    def test_parallel_user_contexts_are_isolated(self):
-        self.register()
+    def test_parallel_writes_share_rows_without_leaking_actor_ownership(self):
+        first_user = self.register()
         other = self.other()
-        self.register(other, "second@example.com")
+        second_user = self.register(other, "second@example.com")
+
         def save(pair):
             client, number = pair
             return client.post("/api/dataset", json={"text": f"Phrase {number}"}).status_code
+
         with ThreadPoolExecutor(max_workers=4) as pool:
             results = list(pool.map(save, [(self.client if number % 2 else other, number) for number in range(12)]))
         self.assertEqual(results, [201] * 12)
         first = self.client.get("/api/dataset").json()["entries"]
         second = other.get("/api/dataset").json()["entries"]
-        self.assertEqual((len(first), len(second)), (6, 6))
-        self.assertFalse({row["id"] for row in first} & {row["id"] for row in second})
+        self.assertEqual((len(first), len(second)), (12, 12))
+        self.assertEqual({row["id"] for row in first}, {row["id"] for row in second})
+        for user, rows in ((first_user, first), (second_user, second)):
+            for row in rows:
+                owner = first_user if int(row["text"].split()[-1]) % 2 else second_user
+                self.assertEqual(row["ownership"], {
+                    "owner_id": owner["id"], "owner_name": owner["display_name"],
+                    "can_edit": owner["id"] == user["id"],
+                })
 
     def test_workspace_initialization_does_not_block_the_asgi_event_loop(self):
         self.register()
@@ -272,9 +297,9 @@ class PrivateWorkspaceTests(HostedCase):
 
         def initialize(*args, **kwargs):
             initializer_threads.append(threading.get_ident())
-            return WorkspaceStore(*args, **kwargs)
+            return SharedWorkspaceStore(*args, **kwargs)
 
-        with patch("backend.workspaces.WorkspaceStore", side_effect=initialize), \
+        with patch("backend.shared_workspace.SharedWorkspaceStore", side_effect=initialize), \
                 patch("backend.auth.run_in_threadpool", side_effect=observe_event_loop):
             response = self.client.get("/api/dataset")
         self.assertEqual(response.status_code, 200, response.text)
@@ -282,33 +307,52 @@ class PrivateWorkspaceTests(HostedCase):
         self.assertTrue(event_loop_threads)
         self.assertNotIn(initializer_threads[0], event_loop_threads)
 
-    def test_projects_are_per_request_and_private(self):
+    def test_legacy_project_selectors_share_one_immutable_project(self):
         self.register()
         initial = self.entry(text="General phrase")
-        project = self.client.post("/api/workspace/projects", json={"name": "Client A"}).json()
-        self.client.headers["X-Mboa-Project"] = project["id"]
-        self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
+        projects = self.client.get("/api/workspace/projects").json()
+        self.assertTrue(projects["shared"])
+        self.assertEqual(projects["registered_users"], 1)
+        self.assertEqual([(item["id"], item["name"]) for item in projects["projects"]],
+                         [("default", "Shared workspace")])
+        self.assertEqual(self.client.post("/api/workspace/projects", json={"name": "Client A"}).status_code, 409)
+        project = str(uuid4())
+        self.client.headers["X-Mboa-Project"] = project
+        self.assertEqual(self.client.get("/api/dataset").json()["entries"], [initial])
         self.assertEqual(self.client.get(f"/api/dataset/{initial['id']}/audio").status_code, 404)
-        self.entry(text="Project phrase")
+        added = self.entry(text="Another shared phrase")
         other = self.other()
         self.register(other, "second@example.com")
-        other.headers["X-Mboa-Project"] = project["id"]
-        self.assertEqual(other.get("/api/dataset").status_code, 404)
-        self.client.headers["X-Mboa-Project"] = "default"
-        self.assertEqual(self.client.get("/api/dataset").json()["entries"][0]["text"], "General phrase")
-        self.assertEqual(self.client.delete(f"/api/workspace/projects/{project['id']}").status_code, 409)
-        self.assertEqual(self.client.delete("/api/workspace/projects/default").status_code, 409)
+        for client in (self.client, other):
+            for selector in ("default", project, str(uuid4())):
+                with self.subTest(selector=selector):
+                    client.headers["X-Mboa-Project"] = selector
+                    for params in ({}, {"project": selector}):
+                        response = client.get("/api/dataset", params=params)
+                        self.assertEqual(response.status_code, 200, response.text)
+                        self.assertEqual({row["id"] for row in response.json()["entries"]},
+                                         {initial["id"], added["id"]})
+                    self.assertEqual(client.patch(f"/api/workspace/projects/{selector}",
+                                                  json={"name": "Renamed"}).status_code, 409)
+                    self.assertEqual(client.delete(f"/api/workspace/projects/{selector}").status_code, 409)
+            self.assertEqual(client.get("/api/workspace/projects").json()["registered_users"], 2)
+        for malformed in ("not-a-project", "../outside", "default!"):
+            self.client.headers["X-Mboa-Project"] = malformed
+            self.assertEqual(self.client.get("/api/dataset").status_code, 422)
+            self.client.headers["X-Mboa-Project"] = "default"
+            self.assertEqual(self.client.get("/api/dataset", params={"project": malformed}).status_code, 422)
 
-    def test_account_management_remains_available_after_selected_project_is_deleted(self):
-        self.register()
-        project = self.client.post("/api/workspace/projects", json={"name": "Temporary project"}).json()
-        self.client.headers["X-Mboa-Project"] = project["id"]
-        self.assertEqual(self.client.delete(f"/api/workspace/projects/{project['id']}").status_code, 204)
+    def test_account_management_remains_available_with_a_stale_project_selector(self):
+        user = self.register()
+        project = str(uuid4())
+        self.client.headers["X-Mboa-Project"] = project
+        self.assertEqual(self.client.delete(f"/api/workspace/projects/{project}").status_code, 409)
         projects = self.client.get("/api/workspace/projects")
         self.assertEqual(projects.status_code, 200, projects.text)
         self.assertEqual([item["id"] for item in projects.json()["projects"]], ["default"])
         self.assertEqual(self.client.get("/api/workspace/backups").status_code, 200)
-        self.assertEqual(self.client.get("/api/dataset").status_code, 404)
+        self.assertEqual(self.client.get("/api/dataset").status_code, 200)
+        self.assertEqual(self.client.get("/api/auth/session").json()["user"]["id"], user["id"])
 
     def test_saved_work_persists_and_is_explicit(self):
         user = self.register()
@@ -318,7 +362,7 @@ class PrivateWorkspaceTests(HostedCase):
         identifier = saved.json()["id"]
         self.assertEqual(self.client.get(f"/api/workspace/history/{identifier}").json()["content"], HISTORY["content"])
         self.assertEqual(self.client.patch(f"/api/workspace/history/{identifier}", json={"name": "Renamed"}).status_code, 200)
-        self.assertEqual(WorkspaceStore(self.root, user["id"]).histories()[0]["title"], "Renamed")
+        self.assertEqual(self.shared_store(user).histories()[0]["title"], "Renamed")
         self.assertEqual(self.client.delete(f"/api/workspace/history/{identifier}").status_code, 204)
         self.assert_no_outbound_http()
 
@@ -328,6 +372,15 @@ class PrivateWorkspaceTests(HostedCase):
         self.assertEqual(self.client.delete(f"/api/dataset/{entry['id']}").status_code, 204)
         state = self.client.get("/api/workspace/revisions").json()
         deleted = next(row for row in state["revisions"] if row["action"] == "delete")
+        other = self.other()
+        self.register(other, "second@example.com")
+        revisions = other.get("/api/workspace/revisions").json()
+        self.assertEqual({row["id"] for row in revisions["revisions"]},
+                         {row["id"] for row in state["revisions"]})
+        denied = other.post(f"/api/workspace/revisions/{deleted['id']}/restore",
+                            json={"expected_version": state["workspace_version"]})
+        self.assertEqual(denied.status_code, 403, denied.text)
+        self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         restored = self.client.post(
             f"/api/workspace/revisions/{deleted['id']}/restore",
             json={"expected_version": state["workspace_version"]},
@@ -357,7 +410,7 @@ class PrivateWorkspaceTests(HostedCase):
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 1)
         self.assertFalse(directory.exists())
 
-    def test_audio_upload_and_range_read_are_private(self):
+    def test_audio_upload_and_range_read_are_shared_but_mutations_require_the_creator(self):
         self.register()
         response = self.client.post("/api/dataset/audio", data={"fields": json.dumps({"text": "Voice note"})},
                                     files={"file": ("voice.wav", wav_bytes(), "audio/wav")})
@@ -365,10 +418,12 @@ class PrivateWorkspaceTests(HostedCase):
         identifier = response.json()["id"]
         other = self.other()
         self.register(other, "second@example.com")
-        self.assertEqual(other.get(f"/api/dataset/{identifier}/audio").status_code, 404)
-        audio = self.client.get(f"/api/dataset/{identifier}/audio", headers={"Range": "bytes=0-9"})
-        self.assertEqual(audio.status_code, 206)
-        self.assertEqual(audio.content, wav_bytes()[:10])
+        self.assertEqual(other.get(f"/api/dataset/{identifier}/audio").content, wav_bytes())
+        for client in (self.client, other):
+            audio = client.get(f"/api/dataset/{identifier}/audio", headers={"Range": "bytes=0-9"})
+            self.assertEqual(audio.status_code, 206)
+            self.assertEqual(audio.content, wav_bytes()[:10])
+        self.assertEqual(other.delete(f"/api/dataset/{identifier}").status_code, 403)
 
 
 class WorkspaceBackupTests(HostedCase):
@@ -393,17 +448,23 @@ class WorkspaceBackupTests(HostedCase):
         self.assertEqual(len(self.client.get("/api/workspace/history").json()["entries"]), 1)
         self.assertEqual(self.client.post("/api/workspace/backups/restore", json=payload).status_code, 400)
 
-    def test_backup_ids_and_preview_tokens_are_owner_scoped(self):
+    def test_backups_are_shared_but_deletion_and_preview_tokens_are_creator_scoped(self):
         self.register()
         saved = self.client.post("/api/workspace/backups").json()
         archive = self.client.get(f"/api/workspace/backups/{saved['id']}/download").content
         preview = self.client.post("/api/workspace/backups/preview", files={"file": ("backup.zip", archive)}).json()
         other = self.other()
         self.register(other, "second@example.com")
-        self.assertEqual(other.get(f"/api/workspace/backups/{saved['id']}/download").status_code, 404)
+        download = other.get(f"/api/workspace/backups/{saved['id']}/download")
+        self.assertEqual(download.status_code, 200, download.text)
+        self.assertEqual(download.content, archive)
+        catalog = other.get("/api/workspace/backups").json()
+        self.assertIn(saved["id"], [item["id"] for item in catalog["backups"]])
+        self.assertEqual(other.delete(f"/api/workspace/backups/{saved['id']}").status_code, 403)
         self.assertEqual(other.post("/api/workspace/backups/restore", json={
-            "token": preview["token"], "expected_version": 0, "confirmation": "REPLACE",
+            "token": preview["token"], "expected_version": preview["workspace_version"], "confirmation": "REPLACE",
         }).status_code, 400)
+        self.assertEqual(self.client.delete(f"/api/workspace/backups/{saved['id']}").status_code, 204)
 
     def test_corrupt_and_traversal_archives_do_not_change_live_data(self):
         self.register()
@@ -421,7 +482,7 @@ class WorkspaceBackupTests(HostedCase):
 
     def test_changes_after_preview_prevent_restoration(self):
         user = self.register()
-        store = WorkspaceStore(self.root, user["id"])
+        store = self.shared_store(user)
         backup = snapshot(store)
         data = (store.root / "backups" / f"{backup['id']}.zip").read_bytes()
         info = preview_backup(store, data)
@@ -433,7 +494,7 @@ class WorkspaceBackupTests(HostedCase):
 
     def test_restore_transaction_failure_preserves_live_entries(self):
         user = self.register()
-        store = WorkspaceStore(self.root, user["id"])
+        store = self.shared_store(user)
         self.entry()
         snapshot_data = snapshot(store)
         raw = (store.root / "backups" / f"{snapshot_data['id']}.zip").read_bytes()
@@ -460,7 +521,7 @@ class WorkspaceBackupTests(HostedCase):
     def test_tampered_manifest_and_duplicate_entries_are_rejected(self):
         user = self.register()
         self.entry()
-        store = WorkspaceStore(self.root, user["id"])
+        store = self.shared_store(user)
         saved = snapshot(store)
         raw = (store.root / "backups" / f"{saved['id']}.zip").read_bytes()
         with zipfile.ZipFile(io.BytesIO(raw)) as original:
@@ -481,7 +542,7 @@ class WorkspaceBackupTests(HostedCase):
                     validate_archive(output.getvalue())
         self.assertEqual(len(store.load_all()), 1)
 
-    def test_archive_size_boundary_is_inclusive(self):
+    def test_legacy_archive_size_boundary_is_inclusive(self):
         user = self.register()
         store = WorkspaceStore(self.root, user["id"])
         saved = snapshot(store)
@@ -499,7 +560,7 @@ class WorkspaceBackupTests(HostedCase):
         self.assertEqual(response.status_code, 201, response.text)
         entry = response.json()
         self.assertEqual(self.client.delete(f"/api/dataset/{entry['id']}").status_code, 204)
-        store = WorkspaceStore(self.root, user["id"])
+        store = self.shared_store(user)
         (store.audio_dir / entry["audio_filename"]).unlink()
         response = self.client.post("/api/workspace/backups")
         self.assertEqual(response.status_code, 409, response.text)

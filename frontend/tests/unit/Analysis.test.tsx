@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Analysis } from '../../src/Analysis'
 import type { RecordedTest } from '../../src/analyzerTypes'
-import { analyzerState, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
+import { analyzerState, ownership, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
 
 function renderAnalysis(result: RecordedTest | null = recordedTest()) {
   const actions = { onUseText: vi.fn(), onCancel: vi.fn(), onRefresh: vi.fn(), onPage: vi.fn(), onInspect: vi.fn(), onRetryInspect: vi.fn() }
@@ -34,8 +34,13 @@ describe('retained test Analysis page', () => {
 
   it('opens saved grammar and parser evidence without recomputing and hands off exact input only on request', async () => {
     const raw = '  Mbom\t\n'
-    const { user, onUseText } = renderAnalysis(recordedTest({ text: raw, grammar_source: 'S -> NOUN\nTail -> epsilon' }))
+    const { user, onUseText } = renderAnalysis(recordedTest({
+      text: raw, grammar_source: 'S -> NOUN\nTail -> epsilon',
+      ownership: ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: false }),
+    }))
     const selected = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
+    expect(selected.getByText(/Creator: Alice/)).toHaveTextContent('Saved tests are immutable.')
+    expect(selected.queryByRole('button', { name: /Delete|Edit/ })).not.toBeInTheDocument()
     await user.click(selected.getByText('Parser trace for this input'))
     expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()
     await user.click(selected.getByText('Saved grammar, transformations & FIRST/FOLLOW'))

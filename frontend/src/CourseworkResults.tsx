@@ -96,7 +96,7 @@ function CountTable({ rows, label }: { rows: TokenCount[]; label: string }) {
 export function LexicalResults({ lexical }: { lexical: LexicalReport }) {
   return <div className="lab-results">
     <div className="lab-result-heading"><h3>Saved-statement token analysis</h3><span className="lab-status review">{lexical.total_tokens.toLocaleString()} tokens · rule-based labels</span></div>
-    <p className="lab-copy">Only saved collection entries in the selected project are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
+    <p className="lab-copy">Only saved entries in the shared collection are analyzed. Category labels and code-mixing candidates need linguistic review; they are not proof of a speaker’s intent.</p>
     <details className="lab-disclosure" open>
       <summary>Statement token tables, verbs, slang & code mixing · {lexical.statements.length} records</summary>
       <div className="lab-disclosure-body">

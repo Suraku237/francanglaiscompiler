@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { FrancAnalyzer } from '../../src/FrancAnalyzer'
-import { analyzerState, lexicalStatistics, manualParse, recordedTest, retainedTestReport, testReport } from '../fixtures'
+import { analyzerState, lexicalStatistics, manualParse, ownership, recordedTest, retainedTestReport, testReport } from '../fixtures'
 import { deferred, jsonResponse, requestBody } from '../helpers'
 
 const onUseText = vi.fn()
@@ -18,8 +18,8 @@ async function replaceText(user: ReturnType<typeof userEvent.setup>, field: HTML
   await user.paste(value)
 }
 
-async function renderAnalyzer(grammar = 'S -> NOUN') {
-  const fixtures = { state: analyzerState(grammar), report: testReport() }
+async function renderAnalyzer(grammar = 'S -> NOUN', grammarOwnership = ownership()) {
+  const fixtures = { state: analyzerState(grammar, grammarOwnership), report: testReport() }
   vi.mocked(fetch).mockImplementation(async (url) => {
     if (url === '/api/analyzer') return jsonResponse(fixtures.state)
     if (String(url).startsWith('/api/analyzer/tests?')) return jsonResponse(fixtures.report)
@@ -47,7 +47,7 @@ describe('Franc Analyzer with retained tests', () => {
     expect(screen.queryByText('Grammar settings')).not.toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(analyzeButton()).toBeEnabled()
-    expect(screen.getByText(/Analyze saves this test and its results privately/)).toBeVisible()
+    expect(screen.getByText(/Analyze saves this test and its results in the shared workspace/)).toBeVisible()
     await openSettings()
     expect(grammarInput()).toBeVisible()
     expect(screen.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
@@ -99,6 +99,62 @@ describe('Franc Analyzer with retained tests', () => {
     expect(grammarInput()).toHaveValue('S -> NOUN\nTail -> epsilon')
   })
 
+  it('allows a noncreator to edit, refresh and test a local grammar draft but never save shared settings', async () => {
+    const otherOwner = ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: false })
+    const { user, fixtures, openSettings, showAnalyzer } = await renderAnalyzer('S -> NOUN', otherOwner)
+    await replaceText(user, input(), '  local draft\t')
+    await openSettings()
+    expect(screen.getByText(/Shared grammar creator: Alice/)).toHaveTextContent('Read-only shared settings')
+    expect(grammarInput()).not.toHaveAttribute('readonly')
+    await replaceText(user, grammarInput(), 'S -> UNKNOWN UNKNOWN')
+    expect(saveButton()).toBeDisabled()
+    await user.click(saveButton())
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+    fixtures.state = analyzerState('S -> VERB', otherOwner)
+    await user.click(screen.getByRole('button', { name: 'Refresh saved grammar' }))
+    await screen.findByText(/Refreshing saved grammar/)
+    expect(grammarInput()).toHaveValue('S -> UNKNOWN UNKNOWN')
+    showAnalyzer()
+    const saved = recordedTest({ text: '  local draft\t', grammar_source: 'S -> UNKNOWN UNKNOWN' })
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(saved))
+    await user.click(analyzeButton())
+    await screen.findByRole('region', { name: 'Parser result' })
+    expect(requestBody(testRequests()[0])).toEqual({ request_id: expect.any(String), text: saved.text, grammar: saved.grammar_source })
+    expect(vi.mocked(fetch).mock.calls.some(([url, init]) => init?.method === 'PUT' || (url === '/api/dataset' && init?.method === 'POST'))).toBe(false)
+    await openSettings()
+    expect(grammarInput()).toHaveValue(saved.grammar_source)
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it('claims unowned grammar only on an explicit save and accepts ownership from the response', async () => {
+    const { user, openSettings } = await renderAnalyzer('S -> NOUN', ownership({ owner_id: null, owner_name: 'Unclaimed grammar' }))
+    await openSettings()
+    expect(screen.getByText(/first person to save it becomes its creator/)).toBeVisible()
+    expect(saveButton()).toBeEnabled()
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ grammar: 'S -> NOUN', grammar_ownership: ownership() }))
+    await user.click(saveButton())
+    expect(await screen.findByText(/Shared grammar creator: Test user/)).toHaveTextContent('You can save changes for everyone.')
+    expect(saveButton()).toBeDisabled()
+    expect(requestBody(vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'PUT'))).toEqual({ grammar: 'S -> NOUN' })
+  })
+
+  it('preserves a local draft on a save 403 and refreshes ownership before any further shared save', async () => {
+    const { user, fixtures, openSettings } = await renderAnalyzer()
+    await openSettings()
+    await replaceText(user, grammarInput(), 'S -> NUMBER')
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Only the grammar creator can save changes.' }, 403))
+    await user.click(saveButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only the grammar creator can save changes.')
+    expect(grammarInput()).toHaveValue('S -> NUMBER')
+    fixtures.state = analyzerState('S -> VERB', ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: false }))
+    await user.click(screen.getByRole('button', { name: 'Refresh saved grammar' }))
+    await screen.findByText(/Shared grammar creator: Alice/)
+    expect(grammarInput()).toHaveValue('S -> NUMBER')
+    expect(saveButton()).toBeDisabled()
+    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1)
+  })
+
   it('reuses an idempotency key on uncertain retry but counts a second successful click as a new test', async () => {
     const { user } = await renderAnalyzer()
     await replaceText(user, input(), 'veux')
@@ -107,6 +163,7 @@ describe('Franc Analyzer with retained tests', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The change may have completed.')
     expect(screen.getByRole('alert')).toHaveTextContent('refresh saved tests')
     const first = requestBody(testRequests()[0])
+    expect(first).not.toMatchObject({ request_id: recordedTest().id })
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest({ text: 'veux' })))
     await user.click(analyzeButton())
     await screen.findByRole('region', { name: 'Parser result' })
@@ -142,7 +199,7 @@ describe('Franc Analyzer with retained tests', () => {
     await replaceText(user, grammarInput(), 'S -> NUMBER')
     showAnalyzer()
     expect(analyzeButton()).toBeDisabled()
-    await act(async () => pending.resolve(jsonResponse({ grammar: 'S -> VERB' })))
+    await act(async () => pending.resolve(jsonResponse({ grammar: 'S -> VERB', grammar_ownership: ownership() })))
     expect(analyzeButton()).toBeEnabled()
     await openSettings()
     expect(grammarInput()).toHaveValue('S -> NUMBER')
@@ -154,7 +211,7 @@ describe('Franc Analyzer with retained tests', () => {
     const { user, openSettings } = await renderAnalyzer()
     await openSettings()
     await replaceText(user, grammarInput(), ' S -> VERB ')
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ grammar: 'S -> VERB' }))
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ grammar: 'S -> VERB', grammar_ownership: ownership() }))
     await user.click(saveButton())
     expect(await screen.findByText('Using saved grammar')).toBeVisible()
     expect(grammarInput()).toHaveValue('S -> VERB')
@@ -275,7 +332,7 @@ describe('Franc Analyzer with retained tests', () => {
     expect(testRequests()).toHaveLength(1)
   })
 
-  it('reloads retained totals after leaving the workspace without reusing private transient details', async () => {
+  it('reloads retained totals after leaving the workspace without reusing transient details', async () => {
     const { user, fixtures, rerender, showAnalysis } = await renderAnalyzer()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest()))
     await user.click(analyzeButton())

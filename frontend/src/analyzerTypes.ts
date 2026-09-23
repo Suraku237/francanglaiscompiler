@@ -1,8 +1,9 @@
-import type { Analysis } from './types'
+import type { Analysis, Ownership } from './types'
 import type { CorpusTest, CourseworkState, GrammarAnalysis, LexicalReport, LexicalStatistics, ParseResult, TokenCount } from './courseworkTypes'
 
 export interface AnalyzerState {
   grammar: string
+  grammar_ownership: Ownership
   lexical_spec: CourseworkState['lexical_spec']
   stats: { total: number; sentences: number }
 }
@@ -24,6 +25,7 @@ export interface AnalyzerResult {
 
 export interface RecordedTest extends Omit<AnalyzerResult, 'corpus'> {
   id: string
+  ownership: Ownership
   created_at: string
   grammar_source: string
   metadata: {
@@ -35,6 +37,7 @@ export interface RecordedTest extends Omit<AnalyzerResult, 'corpus'> {
 
 export interface RecordedTestSummary {
   id: string
+  ownership: Ownership
   created_at: string
   text: string
   accepted: boolean

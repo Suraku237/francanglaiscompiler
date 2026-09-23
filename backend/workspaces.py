@@ -99,7 +99,8 @@ class WorkspaceStore:
     def __init__(self, data_dir: Path, user_id: str, project: str = "default"):
         valid_id(user_id)
         valid_id(project, default=True)
-        self.root = data_dir / "workspaces" / user_id
+        self.user_id = user_id
+        self.root = self.storage_root(data_dir, user_id)
         private_directory(self.root)
         self.audio_dir = self.root / "audio"
         private_directory(self.audio_dir)
@@ -140,6 +141,18 @@ class WorkspaceStore:
             db.execute("INSERT OR IGNORE INTO projects VALUES ('default','General',?)", (now(),))
             if db.execute("SELECT id FROM projects WHERE id=?", (project,)).fetchone() is None:
                 raise CollectionError(404, "This project does not exist in your workspace.")
+
+    def storage_root(self, data_dir: Path, user_id: str) -> Path:
+        return data_dir / "workspaces" / user_id
+
+    def authorize_write(
+        self, db: sqlite3.Connection, kind: str, identifier: str, *, new: bool = False,
+    ) -> None:
+        # Private stores are account-scoped; shared stores override this record-level guard.
+        pass
+
+    def authorize_import(self, document: dict) -> None:
+        pass
 
     def lock(self) -> FileLock:
         return self._lock
@@ -190,6 +203,7 @@ class WorkspaceStore:
             if count + len(changes) > MAX_REVISIONS:
                 raise CollectionError(409, "The revision limit has been reached. Contact the operator before further changes.")
             for entry_id, before, after in changes:
+                self.authorize_write(db, "entry", entry_id, new=before is None)
                 if after:
                     self.validate_entry(after)
                     collision = db.execute("SELECT project_id FROM entries WHERE id=?", (entry_id,)).fetchone()
@@ -242,6 +256,8 @@ class WorkspaceStore:
 
     def save_coursework(self, profile: ProjectProfile) -> None:
         with self.lock(), self.connection() as db:
+            exists = db.execute("SELECT 1 FROM coursework WHERE project_id=?", (self.project,)).fetchone()
+            self.authorize_write(db, "coursework", self.project, new=exists is None)
             db.execute(
                 "INSERT INTO coursework VALUES (?,?) ON CONFLICT(project_id) DO UPDATE SET data=excluded.data",
                 (self.project, profile.model_dump_json()),
@@ -257,10 +273,20 @@ class WorkspaceStore:
 
     def save_analyzer_test(self, record: RecordedTest) -> None:
         with self.lock(), self.connection() as db:
+            self.authorize_write(db, "analyzer_test", record.id, new=True)
             db.execute(
                 "INSERT INTO analyzer_tests VALUES (?,?,?)", (record.id, self.project, record.model_dump_json()),
             )
             self.bump(db)
+
+    def load_analyzer_request(self, request_id: str) -> RecordedTest | None:
+        return self.load_analyzer_test(request_id)
+
+    def analyzer_test_identifier(self, request_id: str) -> str:
+        return request_id
+
+    def save_analyzer_request(self, request_id: str, record: RecordedTest) -> None:
+        self.save_analyzer_test(record)
 
     def iter_analyzer_tests(self) -> Iterator[RecordedTest]:
         with self.connection() as db:
@@ -288,6 +314,7 @@ class WorkspaceStore:
         coursework_store.validate_stored_screenshot(content)
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            self.authorize_write(db, "screenshot", image_id, new=True)
             if db.execute(
                 "SELECT count(*) FROM screenshots WHERE project_id=?", (self.project,),
             ).fetchone()[0] >= coursework_store.MAX_SCREENSHOTS:
@@ -302,6 +329,7 @@ class WorkspaceStore:
 
     def delete_coursework_screenshot(self, image_id: str) -> None:
         with self.lock(), self.connection() as db:
+            self.authorize_write(db, "screenshot", image_id)
             if db.execute(
                 "DELETE FROM screenshots WHERE id=? AND project_id=?", (image_id, self.project),
             ).rowcount != 1:
@@ -364,6 +392,7 @@ class WorkspaceStore:
         entry_id = str(uuid4())
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            self.authorize_write(db, "history", entry_id, new=True)
             if db.execute("SELECT count(*) FROM history").fetchone()[0] >= MAX_HISTORY:
                 raise CollectionError(409, "The saved-work limit is 500 items. Export or remove older items.")
             db.execute(
@@ -375,6 +404,7 @@ class WorkspaceStore:
 
     def change_history(self, entry_id: str, title: str | None = None) -> None:
         with self.lock(), self.connection() as db:
+            self.authorize_write(db, "history", entry_id)
             if title is None:
                 cursor = db.execute("DELETE FROM history WHERE id=? AND project_id=?", (entry_id, self.project))
             else:
@@ -407,6 +437,8 @@ class WorkspaceStore:
             if row is None:
                 raise CollectionError(404, "Revision not found.")
             entry = json.loads(row["after_data"] or row["before_data"])
+            with self.connection() as db:
+                self.authorize_write(db, "entry", entry["id"])
             filename = entry["audio_filename"]
             if filename and not (self.audio_dir / media_name(filename)).is_file():
                 raise CollectionError(409, "The recording required by this revision is missing.")
@@ -426,9 +458,12 @@ class WorkspaceStore:
             return document
 
     @staticmethod
-    def validate_document(document: object) -> dict:
+    def validate_document(document: object, *, combined: bool = False) -> dict:
         if not isinstance(document, dict):
             raise CollectionError(422, "Unsupported backup structure.")
+        if document.get("format") == 4:
+            from .shared_workspace import SharedWorkspaceStore
+            return SharedWorkspaceStore.validate_document(document)
         base_fields = {"format", "version", "projects", "entries", "history", "revisions"}
         if document.get("format") == 1 and set(document) == base_fields:
             document = dict(document)
@@ -445,7 +480,7 @@ class WorkspaceStore:
             "coursework": 20, "screenshots": 20 * coursework_store.MAX_SCREENSHOTS,
         }
         for table, limit in limits.items():
-            if not isinstance(document[table], list) or len(document[table]) > limit:
+            if not isinstance(document[table], list) or (not combined and len(document[table]) > limit):
                 raise CollectionError(422, "Backup record limits exceeded.")
         if not isinstance(document["analyzer_tests"], list):
             raise CollectionError(422, "Unsupported analyzer test records.")
@@ -517,7 +552,7 @@ class WorkspaceStore:
                     raise ValueError("Invalid screenshot content")
                 coursework_store.validate_stored_screenshot(base64.b64decode(row["content"], validate=True))
                 count = screenshot_counts.get(row["project_id"], 0) + 1
-                if count > coursework_store.MAX_SCREENSHOTS:
+                if not combined and count > coursework_store.MAX_SCREENSHOTS:
                     raise ValueError("Too many project screenshots")
                 screenshot_counts[row["project_id"]] = count
             test_identifiers = set()
@@ -535,8 +570,11 @@ class WorkspaceStore:
 
     def import_document(self, document: dict, expected_version: int):
         document = self.validate_document(document)
+        if document["format"] != 3:
+            raise CollectionError(422, "Shared backups must be restored into the shared workspace.")
         with self.lock(), self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            self.authorize_import(document)
             version = int(db.execute("SELECT value FROM meta WHERE key='version'").fetchone()[0])
             if version != expected_version:
                 raise CollectionError(409, "Your workspace changed after preview. Preview the backup again.")
@@ -555,16 +593,22 @@ class WorkspaceStore:
 def current_workspace() -> WorkspaceStore:
     workspace = _workspace.get()
     if workspace is None:
-        raise CollectionError(401, "A private workspace requires a signed-in account.")
+        raise CollectionError(401, "The shared workspace requires a signed-in account.")
     return workspace
 
 
 def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, Request], AbstractAsyncContextManager[WorkspaceStore]]:
-    router = APIRouter(prefix="/api/workspace", tags=["Private workspace"])
+    from .ownership import use_ownership
+    from .shared_workspace import SharedWorkspaceStore
+
+    router = APIRouter(prefix="/api/workspace", tags=["Shared workspace"])
 
     @router.get("/projects")
-    def projects():
-        return storage_operation(lambda: {"projects": current_workspace().projects(), "default_project_id": "default"})
+    def projects(request: Request):
+        return storage_operation(lambda: {
+            "projects": current_workspace().projects(), "default_project_id": "default", "shared": True,
+            "registered_users": request.app.state.auth_store.registered_user_count(),
+        })
 
     @router.post("/projects", status_code=201)
     def create_project(payload: ProjectInput):
@@ -613,14 +657,13 @@ def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, R
 
     @asynccontextmanager
     async def workspace_context(user: UserIdentity, request: Request) -> AsyncIterator[WorkspaceStore]:
-        account_scoped = request.url.path.startswith(("/api/workspace/projects", "/api/workspace/backups"))
-        project = "default" if account_scoped else (
-            request.headers.get("x-mboa-project") or request.query_params.get("project") or "default"
-        )
-        workspace = await run_in_threadpool(WorkspaceStore, data_dir, user.id, project)
+        # Old bookmarks/clients can name a former project, but no header partitions shared data.
+        project = request.headers.get("x-mboa-project") or request.query_params.get("project") or "default"
+        valid_id(project, default=True)
+        workspace = await run_in_threadpool(SharedWorkspaceStore, data_dir, user.id, user.display_name)
         token = _workspace.set(workspace)
         try:
-            with dataset.use_storage(workspace), coursework_store.use_storage(workspace):
+            with dataset.use_storage(workspace), coursework_store.use_storage(workspace), use_ownership(workspace):
                 yield workspace
         finally:
             _workspace.reset(token)

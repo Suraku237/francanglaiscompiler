@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures'
-import { analyzerState, lexicalStatistics, manualParse, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
+import { analyzerState, lexicalStatistics, manualParse, ownership, recordedTest, retainedTestReport, testReport, tokenAnalysisResult } from '../fixtures'
 import { openGrammarSettings } from '../browserGrammar'
 import type { RecordedTest } from '../../src/analyzerTypes'
 
@@ -115,6 +115,7 @@ test('complete frequency lists and long words stay readable without page overflo
     topic_counts: { 'Not recorded': total }, language_counts: { 'Not recorded': total },
     tests: frequencies.slice(0, 25).map((row, index) => ({
       id: `large-vocabulary-test-${index}`, created_at: '2026-09-23T12:00:00Z',
+      ownership: ownership(),
       text: row.token, accepted: false, error: 'No matching grammar rule.', token_count: 1,
     })),
   })
@@ -137,7 +138,7 @@ test('grammar saving remains explicit and preserves recorded statistics without 
   api.on('PUT', '/api/analyzer/grammar', async (route, request) => {
     expect(request.body).toEqual({ grammar: 'S -> VERB' })
     api.analyzer = analyzerState('S -> VERB')
-    await route.fulfill({ json: { grammar: 'S -> VERB' } })
+    await route.fulfill({ json: { grammar: 'S -> VERB', grammar_ownership: api.analyzer.grammar_ownership } })
   })
   await page.goto('/')
   await openGrammarSettings(page)
@@ -182,7 +183,7 @@ test('empty input is a real saved epsilon test rather than a fabricated empty da
   api.on('POST', '/api/analyzer/tests', async (route) => {
     api.testReport = testReport({
       summary: { total: 1, accepted: 1, rejected: 0, acceptance_rate: 100 },
-      tests: [{ id: saved.id, created_at: saved.created_at, text: '', accepted: true, error: null, token_count: 0 }],
+      tests: [{ id: saved.id, ownership: saved.ownership, created_at: saved.created_at, text: '', accepted: true, error: null, token_count: 0 }],
       topic_counts: { 'Not recorded': 1 }, language_counts: { 'Not recorded': 1 },
     })
     await route.fulfill({ json: saved })

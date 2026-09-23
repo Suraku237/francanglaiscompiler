@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import App from './App'
-import { api, configureSession, isCancelled, messageOf, selectProject } from './api'
+import { api, configureSession, isCancelled, messageOf } from './api'
 import { ErrorNotice, Spinner } from './components'
 import type { ProjectsResult, Session } from './accountTypes'
 import { useRequest } from './useRequest'
@@ -32,7 +32,7 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
   }, [])
   const mode = ['register', 'forgot-password', 'reset-password', 'verify-email', 'resend-verification'].includes(route) ? route : 'signin'
   const titles: Record<string, string> = {
-    signin: 'Sign in to Mboa', register: 'Create your private workspace', 'forgot-password': 'Reset your password',
+    signin: 'Sign in to Mboa', register: 'Join the shared workspace', 'forgot-password': 'Reset your password',
     'reset-password': 'Choose a new password', 'verify-email': 'Verify your email', 'resend-verification': 'Send a verification link',
   }
   const errorCode = new URLSearchParams(window.location.hash.split('?')[1]).get('error')
@@ -58,7 +58,7 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
   return <main className="auth-screen">
     <section className="auth-card">
       <a href="#signin" className="auth-brand">Mboa</a>
-      <p className="eyebrow">YOUR PRIVATE COMPILER WORKSPACE</p>
+      <p className="eyebrow">ONE SHARED COMPILER WORKSPACE</p>
       <h1>{titles[mode]}</h1>
       <p>Collect real statements, build a grammar and trace the compiler’s decisions.</p>
       {errorCode && <ErrorNotice message={errorCode === 'google-link-required'
@@ -78,15 +78,14 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
         {mode === 'signin' && <><a href="#register">Create an account</a><a href="#forgot-password">Forgot password?</a><a href="#resend-verification">Resend verification</a></>}
       </nav>
       {session.development_mail && <p className="notice notice-subtle">Local test mode: account emails are written to the server's private mail outbox. Ask the operator for your verification link. This mode is not used when hosted.</p>}
-      <p className="helper-text">Your collection, grammar and evidence are stored privately on this server. Rule-based computation needs no model provider. Record or share personal information only with permission.</p>
+      <p className="helper-text">All signed-in users can view the shared collection, recordings, grammar and retained tests on this server. Only a record’s creator can edit or delete it; recorded tests are immutable. Your email, password and session remain personal. Record or share personal information only with permission.</p>
     </section>
   </main>
 }
 
 export default function AuthGate() {
   const [session, setSession] = useState<Session | null>(null)
-  const [projects, setProjects] = useState<ProjectsResult['projects']>([])
-  const [project, setProject] = useState('default')
+  const [registeredUsers, setRegisteredUsers] = useState<number | null>(null)
   const [generation, setGeneration] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -98,8 +97,7 @@ export default function AuthGate() {
     activeRequest.current?.abort()
     configureSession(next.csrf_token)
     setSession(next)
-    setProjects([])
-    setProject('default')
+    setRegisteredUsers(null)
     setGeneration((value) => value + 1)
     setLoading(false)
     setError('')
@@ -111,7 +109,7 @@ export default function AuthGate() {
     activeRequest.current = controller
     configureSession(null)
     setSession(null)
-    setProjects([])
+    setRegisteredUsers(null)
     setLoading(true)
     setError('')
     try {
@@ -126,7 +124,7 @@ export default function AuthGate() {
     void load()
     const expired = () => { setNotice('Your session ended. Sign in again to continue.'); void load() }
     const changed = (event: StorageEvent) => {
-      if (event.key === 'mboa-session-change') { setNotice('The account changed in another tab. Private drafts were cleared.'); void load() }
+      if (event.key === 'mboa-session-change') { setNotice('The account changed in another tab. Unsaved drafts were cleared; shared records and tests remain.'); void load() }
     }
     const locationChanged = () => setRoute(authRoute())
     const unavailable = () => setNotice('Cross-tab notifications are unavailable in this browser. Close other Mboa tabs before changing accounts.')
@@ -148,22 +146,24 @@ export default function AuthGate() {
     let controller: AbortController | null = null
     const refresh = () => {
       controller?.abort()
-      controller = new AbortController()
-      void api<ProjectsResult>('/workspace/projects', { signal: controller.signal })
-        .then((value) => setProjects(value.projects))
+      const request = new AbortController()
+      controller = request
+      void api<ProjectsResult>('/workspace/projects', { signal: request.signal })
+        .then((value) => { if (!request.signal.aborted) setRegisteredUsers(value.registered_users) })
         .catch((failure: unknown) => { if (!isCancelled(failure)) setError(messageOf(failure)) })
     }
     const restored = () => {
-      selectProject('default'); setProject('default'); setGeneration((value) => value + 1)
-      setNotice('Workspace restored. Review the restored information before using it.')
+      configureSession(session.csrf_token)
+      setGeneration((value) => value + 1)
+      setNotice('Shared workspace restored. Review the restored information before using it.')
       refresh()
     }
     refresh()
-    window.addEventListener('mboa:projects-updated', refresh)
+    window.addEventListener('focus', refresh)
     window.addEventListener('mboa:workspace-restored', restored)
     return () => {
       controller?.abort()
-      window.removeEventListener('mboa:projects-updated', refresh)
+      window.removeEventListener('focus', refresh)
       window.removeEventListener('mboa:workspace-restored', restored)
     }
   }, [session?.user?.id, session?.csrf_token])
@@ -181,13 +181,9 @@ export default function AuthGate() {
   return <>
     {notice && <p className="account-notice" role="status">{notice}</p>}
     {error && <div className="account-notice"><ErrorNotice message={error} onRetry={() => void load()} /></div>}
-    <App key={`${session.user.id}:${project}:${generation}`} account={session.user}
-      projects={projects} selectedProject={project} onSelectProject={(id) => {
-        if (id !== project && window.confirm('Switch projects? Unsaved drafts and recordings in this tab will be discarded.')) {
-          selectProject(id); setProject(id); setGeneration((value) => value + 1)
-        }
-      }} onSignOut={() => {
-        if (!window.confirm('Sign out? Unsaved drafts and recordings in this tab will be discarded.')) return
+    <App key={`${session.user.id}:${generation}`} account={session.user}
+      registeredUsers={registeredUsers} onSignOut={() => {
+        if (!window.confirm('Sign out? Unsaved drafts and recordings in this tab will be discarded. Shared records and all users’ saved tests remain on the server.')) return
         void api('/auth/logout', { method: 'POST' }).then(() => {
           configureSession(null)
           announceSession()

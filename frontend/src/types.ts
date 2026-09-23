@@ -7,7 +7,13 @@ export type Page = 'compiler' | 'analysis' | 'dictionary' | 'examples' | 'collec
 export interface IncomingText {
   id: number
   text: string
-  kind?: 'dictionary' | 'examples'
+  kind?: 'dictionary' | 'examples' | 'collection'
+}
+
+export interface Ownership {
+  owner_id: string | null
+  owner_name: string
+  can_edit: boolean
 }
 
 export const languageLabels: Record<TranslationLanguage | DatasetLanguage, string> = {
@@ -75,6 +81,7 @@ export interface Analysis {
 
 export interface DatasetEntry {
   id: string
+  ownership: Ownership
   text: string
   entry_type: string
   language: DatasetLanguage

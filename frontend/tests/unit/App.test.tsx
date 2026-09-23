@@ -1,10 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../src/App'
 import AuthGate from '../../src/AuthGate'
 import { configureSession } from '../../src/api'
-import { analyzerState, health, recordedTest, retainedTestReport, testReport } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata, ownership, recordedTest, retainedTestReport, sharedWorkspace, testReport } from '../fixtures'
 import { jsonResponse } from '../helpers'
 
 beforeEach(() => {
@@ -57,28 +57,27 @@ describe('compiler-only navigation and account scope', () => {
     expect(vi.mocked(fetch).mock.calls.map(([url]) => url).sort()).toEqual(['/api/analyzer', '/api/analyzer/tests?offset=0&limit=25', '/api/health'])
   })
 
-  it('requires authentication before loading the analyzer and remounts all drafts on project selection', async () => {
-    const session = {
+  it('resets account-specific drafts and permissions while preserving shared records, test totals and grammar', async () => {
+    const firstSession = {
       user: { id: 'fixture-user', email: 'fixture@example.com', display_name: 'Fixture', email_verified: true, google_linked: false },
       csrf_token: 'fixture-csrf', google_enabled: true, email_enabled: true, development_mail: false,
     }
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-    vi.mocked(fetch).mockImplementation(async (url, init) => {
+    const secondSession = { ...firstSession, csrf_token: 'second-csrf', user: { ...firstSession.user, id: 'second-user', email: 'second@example.com', display_name: 'Second' } }
+    let session = firstSession
+    const firstEntry = entry({ text: '  Shared\tstatement\n', ownership: ownership({ owner_id: firstSession.user.id, owner_name: 'Fixture' }) })
+    const secondEntry = entry({ id: 'second-entry', text: 'Second shared statement', ownership: ownership({ owner_id: secondSession.user.id, owner_name: 'Second', can_edit: false }) })
+    const savedTest = recordedTest({ ownership: firstEntry.ownership, text: firstEntry.text })
+    vi.mocked(fetch).mockImplementation(async (url) => {
       if (url === '/api/auth/session') return jsonResponse(session)
-      if (url === '/api/workspace/projects') return jsonResponse({
-        projects: [{ id: 'default', name: 'General', created_at: '' }, { id: 'other', name: 'Other project', created_at: '' }],
-        default_project_id: 'default',
-      })
+      if (url === '/api/workspace/projects') return jsonResponse(sharedWorkspace())
       if (url === '/api/health') return jsonResponse(health())
-      if (url === '/api/analyzer') {
-        const selected = new Headers(init?.headers).get('X-Mboa-Project')
-        return jsonResponse(analyzerState(selected === 'other' ? 'S -> VERB' : 'S -> NOUN'))
-      }
-      if (url === '/api/analyzer/tests') return jsonResponse(recordedTest({ text: 'Private unsaved text' }))
-      if (String(url).startsWith('/api/analyzer/tests?')) {
-        const selected = new Headers(init?.headers).get('X-Mboa-Project')
-        return jsonResponse(selected === 'other' ? testReport() : retainedTestReport())
-      }
+      if (url === '/api/metadata') return jsonResponse(metadata)
+      if (url === '/api/dataset') return jsonResponse(dataset([firstEntry, secondEntry].map((item) => ({
+        ...item, ownership: { ...item.ownership, can_edit: item.ownership.owner_id === session.user.id },
+      }))))
+      if (url === '/api/analyzer') return jsonResponse(analyzerState('S -> NOUN', { ...firstEntry.ownership, can_edit: session.user.id === firstSession.user.id }))
+      if (url === `/api/analyzer/tests/${savedTest.id}`) return jsonResponse({ ...savedTest, ownership: { ...savedTest.ownership, can_edit: session.user.id === firstSession.user.id } })
+      if (String(url).startsWith('/api/analyzer/tests?')) return jsonResponse(retainedTestReport())
       throw new Error(`Unexpected request ${String(url)}`)
     })
     const user = userEvent.setup()
@@ -86,29 +85,52 @@ describe('compiler-only navigation and account scope', () => {
     expect(screen.queryByLabelText('Statement to analyze')).not.toBeInTheDocument()
     await screen.findByLabelText('Statement to analyze')
     expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/auth/session')
-    await user.click(screen.getByLabelText('Statement to analyze'))
-    await user.paste('Private unsaved text')
+    expect(await screen.findByLabelText('Registered users')).toHaveTextContent('2 registered users')
+    expect(screen.queryByLabelText('Active project')).not.toBeInTheDocument()
     const navigation = within(screen.getByRole('navigation', { name: 'Main navigation' }))
+    await user.click(navigation.getByRole('link', { name: 'Collection' }))
+    const firstCard = () => screen.getByRole('heading', { name: /^Shared\s+statement$/ }).closest('article')!
+    await screen.findByRole('heading', { name: 'Second shared statement', exact: true })
+    expect(within(firstCard()).getByRole('button', { name: /^Edit expression/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'View expression: Second shared statement' })).toBeEnabled()
+    await user.click(within(firstCard()).getByRole('button', { name: 'Use as analyzer input' }))
+    expect(await screen.findByLabelText('Statement to analyze')).toHaveValue(firstEntry.text)
     await user.click(navigation.getByRole('link', { name: 'Analysis' }))
+    expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
+    await user.click(screen.getByRole('button', { name: 'Inspect test 1' }))
+    expect(await screen.findByLabelText('Analyzed source text')).toHaveTextContent('Shared statement')
     await user.click(screen.getByText('Grammar settings'))
     await user.clear(screen.getByLabelText('Context-free grammar'))
     await user.paste('S -> NUMBER')
-    await user.click(navigation.getByRole('link', { name: 'Franc Analyzer' }))
-    await user.click(screen.getByRole('button', { name: 'Analyze' }))
-    await user.click(await screen.findByRole('link', { name: 'View detailed analysis' }))
-    expect(await screen.findByLabelText('Analyzed source text')).toHaveTextContent('Private unsaved text')
-    await user.selectOptions(screen.getByLabelText('Active project'), 'other')
-    expect(await screen.findByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeEnabled()
+    session = secondSession
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'mboa-session-change' })))
+    expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
     expect(screen.queryByLabelText('Analyzed source text')).not.toBeInTheDocument()
     await user.click(screen.getByText('Grammar settings'))
-    await waitFor(() => expect(screen.getByLabelText('Context-free grammar')).toHaveValue('S -> VERB'))
+    await waitFor(() => expect(screen.getByLabelText('Context-free grammar')).toHaveValue('S -> NOUN'))
+    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeDisabled()
+    expect(screen.getByText(/Shared grammar creator: Fixture/)).toBeVisible()
+    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Collection' }))
+    await screen.findByRole('button', { name: 'Edit expression: Second shared statement' })
+    expect(within(firstCard()).queryByRole('button', { name: /^Edit expression|^Delete expression/ })).not.toBeInTheDocument()
+    expect(within(firstCard()).getByRole('button', { name: /^View expression/ })).toBeEnabled()
+    expect(screen.getByLabelText('Counts across the shared workspace')).toHaveTextContent('2Total entries')
     await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Franc Analyzer' }))
     expect(screen.queryByLabelText('Context-free grammar')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Statement to analyze')).toHaveValue('')
     expect(screen.queryByLabelText('Group member 1')).not.toBeInTheDocument()
-    const scope = vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/analyzer').at(-1)
-    expect(new Headers(scope?.[1]?.headers).get('X-Mboa-Project')).toBe('other')
-    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'POST').map(([url]) => url)).toEqual(['/api/analyzer/tests'])
+    session = firstSession
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'mboa-session-change' })))
+    await screen.findByLabelText('Statement to analyze')
+    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Analysis' }))
+    expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
+    await user.click(screen.getByText('Grammar settings'))
+    await user.clear(screen.getByLabelText('Context-free grammar'))
+    await user.paste('S -> VERB')
+    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeEnabled()
+    expect(vi.mocked(fetch).mock.calls.every(([, init]) => !new Headers(init?.headers).has('X-Mboa-Project'))).toBe(true)
+    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0)
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
   })
 
@@ -125,6 +147,10 @@ describe('compiler-only navigation and account scope', () => {
     expect(dialog).toHaveTextContent('Existing backups and legacy records remain on the server')
     expect(dialog).toHaveTextContent('Analyze records each completed test')
     expect(dialog).toHaveTextContent('remain after refresh or sign-out')
+    expect(dialog).toHaveTextContent('Only the creator can edit or delete')
+    expect(dialog).toHaveTextContent('every user’s retained tests')
+    expect(dialog).toHaveTextContent('credentials are not shared')
+    expect(dialog).not.toHaveTextContent('private account and selected project')
     expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument()
     expect(dialog).not.toHaveTextContent(/Gemini|API key|AI allowance|provider retention/i)

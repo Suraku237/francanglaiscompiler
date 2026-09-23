@@ -92,7 +92,9 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
     setText(incomingText.text)
     setHandoffNote(incomingText.kind === 'examples'
       ? 'Synthetic example copied unchanged. It is not fieldwork and has not been added to Collection.'
-      : 'Reference text copied unchanged. Select Analyze to record a test; nothing has been added to Collection.')
+      : incomingText.kind === 'collection'
+        ? 'Collection text copied unchanged. Select Analyze to record a shared test; the original entry and its ownership are unchanged.'
+        : 'Reference text copied unchanged. Select Analyze to record a shared test; nothing has been added to Collection.')
     input.current?.focus({ preventScroll: true })
     input.current?.scrollIntoView({ block: 'nearest' })
   }, [active, showAnalysis, state, incomingText, cancelAnalysis, clearAnalysisError])
@@ -105,7 +107,7 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
   }, [dirty, text, save.pending, analyzing])
 
   function invalidate() {
-    if (analyzing) setNotice('The earlier request may still finish and save its test. Refresh saved tests on Analysis to check.')
+    if (analyzing) setNotice('The earlier request may still finish and save its test for all signed-in users. Refresh saved tests on Analysis to check.')
     cancelAnalysis()
     clearAnalysisError()
     setResult(null)
@@ -133,16 +135,16 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
   }
 
   function saveCurrentGrammar() {
-    if (grammar === null || !grammar.trim() || grammar.length > MAX_GRAMMAR || loading || save.pending) return
+    if (!state?.grammar_ownership.can_edit || grammar === null || !grammar.trim() || grammar.length > MAX_GRAMMAR || loading || save.pending) return
     const snapshot = grammar
     setNotice('')
-    void save.run((signal) => api<{ grammar: string }>('/analyzer/grammar', {
+    void save.run((signal) => api<Pick<AnalyzerState, 'grammar' | 'grammar_ownership'>>('/analyzer/grammar', {
       method: 'PUT', body: { grammar: snapshot }, signal,
     }), (response) => {
       savedGrammar.current = response.grammar
-      setState((previous) => previous ? { ...previous, grammar: response.grammar } : previous)
+      setState((previous) => previous ? { ...previous, ...response } : previous)
       setGrammar((previous) => previous === snapshot ? response.grammar : previous)
-      setNotice('Grammar saved privately. Any later edits remain unsaved.')
+      setNotice('Grammar saved to the shared workspace. Any later edits remain local and unsaved.')
     })
   }
 
@@ -169,7 +171,7 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
 
   function stopWaiting() {
     cancelAnalysis()
-    setNotice('Stopped waiting. The server may still finish and save this test. Refresh saved tests on Analysis to check before retrying.')
+    setNotice('Stopped waiting. The server may still finish and save this test for all signed-in users. Refresh saved tests on Analysis to check before retrying.')
   }
 
   function refreshTests() {
@@ -194,10 +196,10 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
 
   return <section className={`page coursework-page ${showAnalysis ? 'analysis-page' : 'franc-analyzer'}`} aria-labelledby="analyzer-title">
     <div className="page-intro compact-intro lab-intro">
-      <div><h1 id="analyzer-title">{showAnalysis ? 'Analysis' : 'Franc Analyzer'}</h1><p>{showAnalysis ? 'Statistics and original results from all your saved tests.' : 'Split into tokens, classify using your vocabulary, then test the grammar.'}</p></div>
+      <div><h1 id="analyzer-title">{showAnalysis ? 'Analysis' : 'Franc Analyzer'}</h1><p>{showAnalysis ? 'Statistics and original results from every user’s saved tests.' : 'Split into tokens, classify using the shared vocabulary, then test the grammar.'}</p></div>
     </div>
     <ErrorNotice message={loadError} onRetry={refresh} />
-    {loading && <p className="lab-loading" role="status"><Spinner label="Loading analyzer" />Loading your saved grammar. Editor drafts are kept.</p>}
+    {loading && <p className="lab-loading" role="status"><Spinner label="Loading analyzer" />Loading the shared saved grammar. Editor drafts are kept.</p>}
     {state && grammar !== null && <>
       <ErrorNotice message={grammarError} />
       <ErrorNotice message={save.error} />
@@ -208,10 +210,13 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
           <summary>Grammar settings</summary>
           <div className="lab-disclosure-body">
             <p className="lab-copy">The default is a <strong>starter, not a grammar derived from your data</strong>. Edit the rules to match the structures you observed.</p>
-            <p className="lab-copy">These settings apply to future tests. Saved tests keep their original grammar and results.</p>
-            <div className="field"><label htmlFor="analyzer-grammar">Context-free grammar</label><textarea id="analyzer-grammar" className="lab-grammar-input" rows={7} maxLength={MAX_GRAMMAR} spellCheck={false} autoCapitalize="off" autoCorrect="off" value={grammar} onChange={(event) => changeGrammar(event.target.value)} aria-describedby="analyzer-grammar-hint" /><span id="analyzer-grammar-hint" className="field-hint">{grammar.length.toLocaleString()} / 12,000 characters · Save grammar to keep edits</span></div>
+            <p className="lab-copy">Everyone can edit a local grammar draft and use it in Analyze without changing the shared grammar. Only its creator can save shared changes. Saved tests keep their original grammar and results.</p>
+            <p id="grammar-ownership" className="lab-copy">{state.grammar_ownership.owner_id === null
+              ? 'The shared grammar is unclaimed. The first person to save it becomes its creator.'
+              : <>Shared grammar creator: {state.grammar_ownership.owner_name}. {state.grammar_ownership.can_edit ? 'You can save changes for everyone.' : 'Read-only shared settings; you can still edit and test a local draft.'}</>}</p>
+            <div className="field"><label htmlFor="analyzer-grammar">Context-free grammar</label><textarea id="analyzer-grammar" className="lab-grammar-input" rows={7} maxLength={MAX_GRAMMAR} spellCheck={false} autoCapitalize="off" autoCorrect="off" value={grammar} onChange={(event) => changeGrammar(event.target.value)} aria-describedby="analyzer-grammar-hint grammar-ownership" /><span id="analyzer-grammar-hint" className="field-hint">{grammar.length.toLocaleString()} / 12,000 characters · Local draft until the creator explicitly saves</span></div>
             <div className="lab-actions">
-              <button type="button" className="button button-secondary" onClick={saveCurrentGrammar} disabled={!dirty || !grammar.trim() || grammar.length > MAX_GRAMMAR || loading || save.pending}>{save.pending ? <Spinner label="Saving grammar" /> : <Icon name="check" size={16} />}{save.pending ? 'Saving...' : 'Save grammar'}</button>
+              <button type="button" className="button button-secondary" onClick={saveCurrentGrammar} aria-describedby="grammar-ownership" disabled={!state.grammar_ownership.can_edit || (!dirty && state.grammar_ownership.owner_id !== null) || !grammar.trim() || grammar.length > MAX_GRAMMAR || loading || save.pending}>{save.pending ? <Spinner label="Saving grammar" /> : <Icon name="check" size={16} />}{save.pending ? 'Saving...' : 'Save grammar'}</button>
               <button type="button" className="text-button" onClick={refresh} disabled={loading || save.pending}><Icon name="refresh" size={16} />Refresh saved grammar</button>
               <span className="field-hint">{grammarStatus}</span>
             </div>
@@ -230,7 +235,7 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
             {analyzing && <button type="button" className="text-button" onClick={stopWaiting}>Stop waiting</button>}
             <span className="field-hint">{grammarStatus}</span>
           </div>
-          <p className="lab-copy analyzer-input-note">Analyze saves this test and its results privately in your project, even when rejected. Repeated completed tests count separately. Nothing is added to Collection and grammar edits are only saved with Save grammar.</p>
+          <p className="lab-copy analyzer-input-note">Analyze saves this test and its results in the shared workspace for all signed-in users, even when rejected. Repeated completed tests count separately. Nothing is added to Collection and local grammar edits are only shared with Save grammar, by the grammar’s creator.</p>
         </form>
       </section>
       {result && <section className="lab-card analyzer-verdict" aria-labelledby="analyzer-verdict-title">
@@ -238,7 +243,7 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
         <div className="analyzer-source"><h3>Analyzed sentence or word</h3><AnalyzedSource text={result.text} /></div>
         <div className="analyzer-classifications"><h3>Word classifications</h3><TokenTable tokens={result.lexical.tokens} /></div>
         <p role="status"><span className={`lab-status ${result.parse.accepted ? 'ready' : 'needs_input'}`}>{result.parse.accepted ? 'ACCEPT' : 'REJECT'}</span></p>
-        <p className="lab-copy">Test saved. Its counts are included in Analysis.</p>
+        <p className="lab-copy">Test saved. Creator: {result.ownership.owner_name}. Its counts are included in everyone’s Analysis. Saved tests are immutable.</p>
         <p className="lab-copy">This result describes the current grammar's coverage, not whether the speaker's language is correct.</p>
         <a className="button button-secondary" href="#analysis" onClick={() => { cancelInspection(); clearInspectError(); setInspectionId(null); setSelectedTest(result) }}>View detailed analysis<Icon name="arrow" size={16} /></a>
       </section>}

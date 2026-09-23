@@ -1,20 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError, configureSession, errorDetail, nativeApiUrl, selectProject } from '../../src/api'
+import { api, ApiError, configureSession, errorDetail, nativeApiUrl } from '../../src/api'
 import { deferred, jsonResponse, rejectOnAbort } from '../helpers'
 
 afterEach(() => { vi.useRealTimers(); configureSession(null) })
 
-describe('private session and project transport', () => {
-  it('sends session CSRF on mutations and project identity on API and native audio requests', async () => {
+describe('personal sessions and shared workspace transport', () => {
+  it('sends only session CSRF on mutations and never partitions API or audio requests by project', async () => {
     configureSession('test-csrf')
-    selectProject('test-project')
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ id: 'entry' }))
-    await api('/dataset', { method: 'POST', body: { text: 'Private phrase' } })
+    vi.mocked(fetch).mockImplementation(async () => jsonResponse({ id: 'entry' }))
+    await api('/dataset', { method: 'POST', body: { text: 'Shared phrase' } })
     expect(vi.mocked(fetch).mock.calls[0]?.[1]?.headers).toEqual({
-      'Content-Type': 'application/json', 'X-CSRF-Token': 'test-csrf', 'X-Mboa-Project': 'test-project',
+      'Content-Type': 'application/json', 'X-CSRF-Token': 'test-csrf',
     })
-    expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio?project=test-project')
-    configureSession(null)
+    expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio')
+    configureSession('second-csrf')
+    await api('/dataset', { method: 'POST', body: { text: 'Another shared phrase' } })
+    expect(vi.mocked(fetch).mock.calls[1]?.[1]?.headers).toEqual({
+      'Content-Type': 'application/json', 'X-CSRF-Token': 'second-csrf',
+    })
     expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio')
   })
 
@@ -28,17 +31,16 @@ describe('private session and project transport', () => {
     window.removeEventListener('mboa:session-expired', expired)
   })
 
-  it.each(['account', 'project'])('discards a response body that finishes after the %s changes', async (scope) => {
+  it('discards old permission flags when a response body finishes after the account changes', async () => {
     configureSession('original-session')
     const body = deferred<unknown>()
     const response = jsonResponse({})
     vi.spyOn(response, 'json').mockImplementation(() => body.promise)
     vi.mocked(fetch).mockResolvedValue(response)
-    const pending = api('/workspace/history')
+    const pending = api('/dataset')
     await vi.waitFor(() => expect(response.json).toHaveBeenCalledOnce())
-    if (scope === 'account') configureSession('replacement-session')
-    else selectProject('replacement-project')
-    body.resolve({ entries: [{ title: 'Previous private data' }] })
+    configureSession('replacement-session')
+    body.resolve({ entries: [{ text: 'Shared data with obsolete edit permission', ownership: { can_edit: true } }] })
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
   })
 })

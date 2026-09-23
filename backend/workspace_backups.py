@@ -23,6 +23,7 @@ from .auth import private_directory
 from .collection import CollectionError, storage_operation
 from .file_storage import atomic_write
 from .uploads import multipart_form
+from .shared_workspace import SYSTEM_OWNER_ID, SharedWorkspaceStore
 from .workspaces import WorkspaceInput, WorkspaceStore, current_workspace, media_name, now
 
 logger = logging.getLogger(__name__)
@@ -167,6 +168,8 @@ def snapshot(store: WorkspaceStore, *, kind: str = "manual") -> dict:
             raise CollectionError(409, "Backup storage is full. Download and delete older backups first.")
         identifier = uuid4().hex
         entry = {"id": identifier, "created_at": now(), "size": len(data), "sha256": checksum(data), "kind": kind}
+        if isinstance(store, SharedWorkspaceStore):
+            entry.update(owner_id=store.user_id, owner_name=store.owner_name)
         path = directory / f"{identifier}.zip"
         atomic_write(path, data)
         try:
@@ -184,6 +187,9 @@ def delete_backup(store: WorkspaceStore, identifier: str):
         row = db.execute("SELECT value FROM meta WHERE key=?", ("backup:item:" + identifier,)).fetchone()
         if not row:
             raise CollectionError(404, "Backup not found.")
+        if isinstance(store, SharedWorkspaceStore) and not store.system:
+            if json.loads(row[0]).get("owner_id") != store.user_id:
+                raise CollectionError(403, "Only the creator can delete this shared backup.")
         path = backup_directory(store) / f"{identifier}.zip"
         if path.is_symlink():
             raise CollectionError(409, "The backup storage path is invalid.")
@@ -193,6 +199,7 @@ def delete_backup(store: WorkspaceStore, identifier: str):
 
 def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
     document, _ = validate_archive(content)
+    document = store.validate_document(document)
     with store.lock():
         directory = backup_directory(store) / "previews"
         private_directory(directory)
@@ -213,6 +220,14 @@ def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
                     "Older format-1 backups contain no coursework profiles or screenshots.",
                     "Older format-1 and format-2 backups contain no recorded analyzer tests.",
                 ]}
+        if isinstance(store, SharedWorkspaceStore):
+            info["owner_id"] = store.user_id
+            info["warnings"] = [
+                "All signed-in users share this workspace. A restore is allowed only if it changes your own records "
+                "and leaves every other creator's records unchanged. A safety backup is created first.",
+                "Original private workspaces remain on the server as migration archives. Their older backups "
+                "cannot replace the combined workspace.",
+            ]
         set_metadata(store, "backup:preview:" + token, info)
         return info
 
@@ -223,12 +238,15 @@ def restore_backup(store: WorkspaceStore, payload: BackupRestore) -> dict:
         info = get_metadata(store, key, None)
         if not info or info["expires_at"] <= time.time():
             raise CollectionError(400, "This backup preview expired or was already used. Preview it again.")
+        if isinstance(store, SharedWorkspaceStore) and not store.system and info.get("owner_id") != store.user_id:
+            raise CollectionError(403, "Only the creator can use this backup preview.")
         if payload.expected_version != info["workspace_version"] or store.version != payload.expected_version:
             raise CollectionError(409, "The workspace changed after preview. Preview the backup again.")
         path = backup_directory(store) / "previews" / f"{payload.token}.zip"
         if path.is_symlink() or not path.is_file():
             raise CollectionError(400, "The backup preview is unavailable.")
         document, audio = validate_archive(path.read_bytes())
+        store.authorize_import(document)
         safety = snapshot(store, kind="pre-restore")
         created = []
         remap = {}
@@ -264,20 +282,26 @@ def restore_backup(store: WorkspaceStore, payload: BackupRestore) -> dict:
 
 def maintenance_cycle(data_dir: Path) -> int:
     root = data_dir / "workspaces"
-    if not root.exists():
+    shared = (data_dir / "shared-workspace" / "workspace.sqlite3").is_file()
+    if not root.exists() and not shared:
         return 0
     completed = 0
-    for directory in root.iterdir():
-        if not directory.is_dir() or directory.is_symlink():
-            continue
-        try:
-            if str(UUID(directory.name)) != directory.name:
+    owners = []
+    if shared:
+        owners.append(SYSTEM_OWNER_ID)
+    else:
+        for directory in root.iterdir():
+            if not directory.is_dir() or directory.is_symlink():
                 continue
-        except ValueError:
-            continue
+            try:
+                if str(UUID(directory.name)) == directory.name:
+                    owners.append(directory.name)
+            except ValueError:
+                continue
+    for owner in owners:
         store = None
         try:
-            store = WorkspaceStore(data_dir, directory.name)
+            store = SharedWorkspaceStore(data_dir, owner, "System", system=True) if shared else WorkspaceStore(data_dir, owner)
             with store.lock():
                 settings = BackupSettings.model_validate(get_metadata(store, "backup:settings", {}))
                 state = get_metadata(store, "backup:state", {})
@@ -317,7 +341,7 @@ async def maintain_backups(data_dir: Path, stop: asyncio.Event):
 
 
 def install_backups(app: FastAPI):
-    router = APIRouter(prefix="/api/workspace/backups", tags=["Private backups"])
+    router = APIRouter(prefix="/api/workspace/backups", tags=["Workspace backups"])
 
     @router.get("")
     def list_backups():
@@ -334,7 +358,9 @@ def install_backups(app: FastAPI):
 
     @router.patch("/settings")
     def settings(payload: BackupSettings):
-        storage_operation(lambda: set_metadata(current_workspace(), "backup:settings", payload.model_dump()))
+        store = current_workspace()
+        storage_operation(lambda: store.save_backup_settings(payload.model_dump()) if isinstance(store, SharedWorkspaceStore)
+                          else set_metadata(store, "backup:settings", payload.model_dump()))
         return payload
 
     @router.post("/preview")

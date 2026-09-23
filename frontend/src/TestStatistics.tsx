@@ -39,7 +39,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
   ]
   return <section className="test-dashboard" aria-labelledby="test-dashboard-title">
     <header className="test-dashboard-heading">
-      <div><span className="test-eyebrow">Private project / retained tests</span><h2 id="test-dashboard-title">Test statistics</h2><p className="lab-copy">All completed tests in this project, including repeated inputs. Results remain after refresh and sign-in. Untested Collection entries are not included.</p></div>
+      <div><span className="test-eyebrow">Shared workspace / retained tests</span><h2 id="test-dashboard-title">Test statistics</h2><p className="lab-copy">All completed tests by every user, including repeated inputs. Results remain after refresh, sign-out and account switches. Untested Collection entries are not included.</p></div>
       <button type="button" className="button button-secondary" onClick={onRefresh} disabled={busy}><Icon name="refresh" size={16} />Refresh saved tests</button>
     </header>
     <dl className="test-metrics">{metrics.map((metric) => <div key={metric.label} className={`test-metric ${metric.tone}`} role="group" aria-label={metric.label}>
@@ -54,7 +54,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
     <p className="lab-copy">Acceptance measures each test against the grammar and vocabulary used at that time, not the correctness of a speaker's language. Changing grammar settings does not rewrite past results.</p>
     {!summary.total ? <div className="lab-empty-panel">
       <Icon name="chart" size={28} /><h3>No saved tests yet</h3>
-      <p>Analyze a sentence or word to record your first test. Earlier runs made before test storage was introduced cannot be recovered.</p>
+      <p>No one has recorded a test in the shared workspace yet. Analyze a sentence or word to add the first one for everyone to view. Earlier runs made before test storage was introduced cannot be recovered.</p>
       <a className="button button-primary" href="#compiler">Analyze a sentence or word<Icon name="arrow" size={16} /></a>
     </div> : <>
       <section className="test-review-panel" aria-labelledby="unknown-review-title">
@@ -89,6 +89,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
         <ol className="test-record-list">{report.tests.map((test, index) => <li key={test.id} className={test.id === selectedId ? 'is-selected' : ''}>
           <div className="test-record-topline"><span className={`lab-status ${test.accepted ? 'ready' : 'needs_input'}`}>{test.accepted ? 'ACCEPT' : 'REJECT'}</span><span>{test.token_count.toLocaleString()} tokens</span><time dateTime={test.created_at}>{new Date(test.created_at).toLocaleString()}</time></div>
           <p className="test-record-source">{test.text || '(empty input)'}</p>
+          <p className="lab-copy">Creator: {test.ownership.owner_name} · Immutable saved test</p>
           <button type="button" className="text-button" aria-label={`Inspect test ${summary.total - report.offset - index}`} onClick={() => onInspect(test.id)} disabled={busy}>Inspect test<Icon name="arrow" size={16} /></button>
         </li>)}</ol>
         <nav className="test-pagination" aria-label="Saved tests pages">

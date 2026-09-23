@@ -4,13 +4,14 @@ from datetime import datetime, timezone
 from data_collector import dataset
 
 from . import analyzer, coursework_store
-from .analyzer_models import AnalyzerTestRequest, RecordedTest, TestReport, TestSummary
+from .analyzer_models import AnalyzerTestRequest, OwnedTestSummary, RecordedTest, TestReport, TestSummary
 from .collection import CollectionError
+from .ownership import record_ownership
 from .token_statistics import normalize_token
 
 
 def record_test(request: AnalyzerTestRequest) -> RecordedTest:
-    previous = coursework_store.load_analyzer_test(request.request_id)
+    previous = coursework_store.load_analyzer_request(request.request_id)
     if previous is not None:
         if previous.text != request.text or previous.grammar_source != request.grammar:
             raise CollectionError(409, "This analyzer request identifier was already used for different input.")
@@ -22,7 +23,7 @@ def record_test(request: AnalyzerTestRequest) -> RecordedTest:
     result = analyzer.analyze_manual(request.text, grammar, learned)
     matches = [entry for entry in entries if entry["text"] == request.text]
     record = RecordedTest.model_validate({
-        "id": request.request_id,
+        "id": coursework_store.analyzer_test_identifier(request.request_id),
         "created_at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
         "grammar_source": request.grammar,
         **result,
@@ -32,7 +33,7 @@ def record_test(request: AnalyzerTestRequest) -> RecordedTest:
             "matching_entries": len(matches),
         },
     })
-    coursework_store.save_analyzer_test(record)
+    coursework_store.save_analyzer_request(request.request_id, record)
     return record
 
 
@@ -60,15 +61,19 @@ def test_report(offset: int, limit: int) -> TestReport:
     variants: dict[str, Counter[str]] = defaultdict(Counter)
     topics: Counter[str] = Counter()
     languages: Counter[str] = Counter()
-    summaries: list[TestSummary] = []
+    summaries: list[OwnedTestSummary | TestSummary] = []
     total = accepted = 0
     # Only one complete snapshot is held at a time; the response contains a page of summaries.
     for record in coursework_store.iter_analyzer_tests():
         if offset <= total < offset + limit:
-            summaries.append(TestSummary(
+            summary = TestSummary(
                 id=record.id, created_at=record.created_at, text=record.text,
                 accepted=record.parse.accepted, token_count=len(record.lexical.tokens), error=record.parse.error,
-            ))
+            )
+            ownership = record_ownership("analyzer_test", record.id)
+            summaries.append(
+                OwnedTestSummary(**summary.model_dump(), ownership=ownership) if ownership is not None else summary
+            )
         total += 1
         accepted += record.parse.accepted
         topics.update(record.metadata.topics or ["Not recorded"])

@@ -42,7 +42,7 @@ test('collection review validates text, invalidates approval and submits only ch
   await expect(editor).toBeVisible()
   saveResponse.resolve()
   await expect(editor).not.toBeVisible()
-  await expect(page.getByText('Saved privately. This entry is awaiting review.')).toBeVisible()
+  await expect(page.getByText('Saved to the shared workspace. This entry is awaiting review.')).toBeVisible()
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Fixture expression', exact: true }) }).getByText('Unreviewed', { exact: true })).toBeVisible()
 })
 
@@ -56,10 +56,10 @@ test('delete confirmation never mutates on dismissal and reports server errors w
   await expect(remove).toBeFocused()
   expect(api.calls('/api/dataset/fixture-record-1', 'DELETE')).toHaveLength(0)
 
-  api.reply('DELETE', '/api/dataset/fixture-record-1', { detail: 'Fixture record is currently locked.' }, 409)
+  api.reply('DELETE', '/api/dataset/fixture-record-1', { detail: 'Only the creator can delete this entry.' }, 403)
   await remove.click()
   await dialog.getByRole('button', { name: 'Yes, remove it' }).click()
-  await expect(dialog.getByRole('alert')).toHaveText('Fixture record is currently locked.')
+  await expect(dialog.getByRole('alert')).toHaveText('Only the creator can delete this entry.')
   await expect(dialog.getByRole('button', { name: 'Yes, remove it' })).toBeEnabled()
   await page.keyboard.press('Escape')
   await expect(remove).toBeVisible()
@@ -97,5 +97,5 @@ test('debounced search ignores stale results and client filters leave global cou
   await page.getByLabel('Filter by review status').selectOption('approved')
   await expect(page.getByRole('heading', { name: 'Fixture expression', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Second fixture', exact: true })).not.toBeVisible()
-  await expect(page.getByLabel('Counts across the entire project')).toContainText('2Total entries')
+  await expect(page.getByLabel('Counts across the shared workspace')).toContainText('2Total entries')
 })

@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test'
 import type { Route } from '@playwright/test'
-import { analyzerState, dataset, entry, health, metadata, testReport } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata, sharedWorkspace, testReport } from '../fixtures'
 
 export interface RecordedRequest {
   method: string
@@ -53,9 +53,7 @@ export class MockApi {
         user: { id: 'test-user', email: 'test@example.com', display_name: 'Test user', email_verified: true, google_linked: false },
         csrf_token: 'test-csrf', google_enabled: false, email_enabled: true, development_mail: false,
       } })
-      if (recorded.path === '/api/workspace/projects') return route.fulfill({ json: {
-        projects: [{ id: 'default', name: 'General', created_at: '2026-01-01T00:00:00Z' }], default_project_id: 'default',
-      } })
+      if (recorded.path === '/api/workspace/projects') return route.fulfill({ json: sharedWorkspace() })
       if (recorded.path === '/api/health') return route.fulfill({ json: this.health })
       if (recorded.path === '/api/metadata') return route.fulfill({ json: metadata })
       if (recorded.path === '/api/analyzer') return route.fulfill({ json: this.analyzer })

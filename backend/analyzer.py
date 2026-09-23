@@ -3,19 +3,25 @@ from collections.abc import Mapping
 from compiler.lexer import tokenizer
 from compiler.lexer.learned import build_lexicon
 from compiler.parser.service import analyze_grammar, parse_analysis
+from data_collector import dataset
 
 from . import coursework, coursework_store
+from .ownership import record_ownership
 from .schemas import AnalysisResult, TokenResult
 
 
 def analyzer_state() -> dict:
-    entries = coursework.read_corpus()
+    entries = dataset.load_all()
     stats = coursework.corpus_stats(entries)
-    return {
+    response = {
         "grammar": coursework_store.load_project().grammar,
         "lexical_spec": coursework.lexical_spec(),
         "stats": {"total": stats["total"], "sentences": stats["sentences"]},
     }
+    ownership = record_ownership("coursework", "default")
+    if ownership is not None:
+        response["grammar_ownership"] = ownership.model_dump()
+    return response
 
 
 def analyze(text: str, grammar_text: str) -> dict:

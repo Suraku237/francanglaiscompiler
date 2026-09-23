@@ -12,7 +12,7 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
     <div className="page-intro compact-intro">
       <div><div className="eyebrow">REFERENCE LIBRARY</div><h1 id="dictionary-title">Dictionary</h1><p>Look up Francanglais words, variants and English meanings with traceable references.</p></div>
     </div>
-    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not collected fieldwork.</strong> Source meanings remain separate from your private corpus. No French translations were supplied. The origin describes etymology, not a translation. Check regional context and uncertainty; dictionary entries never increase your research counts.</p></div>
+    <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not collected fieldwork.</strong> These read-only references are the same for all users; source meanings remain separate from the shared collection. No French translations were supplied. The origin describes etymology, not a translation. Check regional context and uncertainty; dictionary entries never increase research counts.</p></div>
     <div className="collection-tools">
       <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="dictionary-query">Search reference dictionary</label><input id="dictionary-query" type="search" maxLength={200} value={query} placeholder="Try tchop, motard, pasho, or an English meaning" onChange={(event) => { setQuery(event.target.value); setOffset(0) }} /></div>
       <button type="button" className="icon-button" aria-label="Refresh reference dictionary" disabled={pending} onClick={refresh}><Icon name="refresh" size={19} /></button>

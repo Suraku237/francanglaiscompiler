@@ -12,7 +12,8 @@
 .topbar { height: auto; min-height: 72px; padding-block: 12px; flex-wrap: wrap; }
 .topbar-actions { margin-left: auto; }
 .account-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.account-controls select { max-width: 180px; padding: 7px; border: 1px solid #ccd7dd; border-radius: 7px; background: white; }
+.shared-workspace-summary { display: grid; gap: 3px; font-size: 12px; font-weight: 600; }
+.shared-workspace-summary span { color: var(--muted); font-size: 11px; font-weight: 400; }
 .account-controls .account-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 .workspace-settings, .saved-work { display: grid; gap: 24px; }
 .workspace-section { background: #fff; border: 1px solid #dce4e9; border-radius: 12px; padding: 24px; display: grid; gap: 16px; min-width: 0; }

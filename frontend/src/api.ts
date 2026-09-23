@@ -6,22 +6,15 @@ export class ApiError extends Error {
 }
 
 let csrfToken = ''
-let projectId = 'default'
 let accountVersion = 0
 
 export function configureSession(token: string | null): void {
   csrfToken = token ?? ''
-  projectId = 'default'
-  accountVersion++
-}
-
-export function selectProject(id: string): void {
-  projectId = id
   accountVersion++
 }
 
 export function nativeApiUrl(path: string): string {
-  return `/api${path}${projectId === 'default' ? '' : `?project=${encodeURIComponent(projectId)}`}`
+  return `/api${path}`
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,7 +57,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' || path === '/analyzer/tests' ||
       path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
   const recovery = path === '/analyzer/tests'
-    ? 'Open Analysis and refresh saved tests to check. Retrying an unchanged test in this tab will not record it twice.'
+    ? 'Open Analysis and refresh saved tests to check the shared workspace. Retrying an unchanged test in this tab under the same account will not record it twice.'
     : path.startsWith('/analyzer')
     ? 'Refresh saved grammar before trying again; your editor draft will be kept.'
     : path.startsWith('/coursework')
@@ -86,7 +79,6 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     const headers: Record<string, string> = {}
     if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
     if (csrfToken && options.method && options.method !== 'GET') headers['X-CSRF-Token'] = csrfToken
-    if (projectId !== 'default' && !path.startsWith('/auth/')) headers['X-Mboa-Project'] = projectId
     const response = await fetch(`/api${path}`, {
       method: options.method ?? 'GET',
       headers: Object.keys(headers).length ? headers : undefined,
@@ -95,13 +87,13 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       cache: 'no-store',
       credentials: 'same-origin',
     })
-    if (version !== accountVersion) throw new DOMException('Workspace changed', 'AbortError')
+    if (version !== accountVersion) throw new DOMException('Account changed', 'AbortError')
     if (response.status === 401 && (!path.startsWith('/auth/') || path === '/auth/profile' || path === '/auth/logout')) {
       window.dispatchEvent(new Event('mboa:session-expired'))
     }
     if (response.status === 204 && response.ok) return undefined as T
     const body: unknown = await response.json().catch(() => null)
-    if (version !== accountVersion) throw new DOMException('Workspace changed', 'AbortError')
+    if (version !== accountVersion) throw new DOMException('Account changed', 'AbortError')
     if (!response.ok) {
       throw new ApiError(
         errorDetail(body) ??

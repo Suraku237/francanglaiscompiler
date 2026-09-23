@@ -2,7 +2,8 @@ import type { CourseworkAnalysis, CourseworkState, LexicalStatistics, ManualPars
 import type { AnalyzerResult, AnalyzerState, RecordedTest, TestReport } from '../src/analyzerTypes'
 import type { ImportPreview } from '../src/importTypes'
 import { defaultMetadata } from '../src/types'
-import type { Dataset, DatasetEntry, Health, Metadata } from '../src/types'
+import type { Dataset, DatasetEntry, Health, Metadata, Ownership } from '../src/types'
+import type { ProjectsResult } from '../src/accountTypes'
 
 // All records are synthetic test data. They never come from, or write to, the research CSV.
 export const metadata: Metadata = {
@@ -16,9 +17,21 @@ export function health(): Health {
   return { status: 'ok', mode: 'compiler' }
 }
 
+export function ownership(overrides: Partial<Ownership> = {}): Ownership {
+  return { owner_id: 'test-user', owner_name: 'Test user', can_edit: true, ...overrides }
+}
+
+export function sharedWorkspace(registeredUsers = 2): ProjectsResult {
+  return {
+    projects: [{ id: 'default', name: 'Shared workspace', created_at: '2026-01-01T00:00:00Z' }],
+    default_project_id: 'default', shared: true, registered_users: registeredUsers,
+  }
+}
+
 export function entry(overrides: Partial<DatasetEntry> = {}): DatasetEntry {
   return {
     id: 'fixture-record-1',
+    ownership: ownership(),
     text: 'Fixture expression',
     entry_type: 'Sentence',
     language: 'francanglais',
@@ -159,8 +172,8 @@ export function manualParse(): ManualParse {
   }
 }
 
-export function analyzerState(grammar = 'S -> NOUN'): AnalyzerState {
-  return { grammar, lexical_spec: courseworkState().lexical_spec, stats: { total: 0, sentences: 0 } }
+export function analyzerState(grammar = 'S -> NOUN', grammarOwnership = ownership()): AnalyzerState {
+  return { grammar, grammar_ownership: grammarOwnership, lexical_spec: courseworkState().lexical_spec, stats: { total: 0, sentences: 0 } }
 }
 
 export function lexicalStatistics(overrides: Partial<LexicalStatistics> = {}): LexicalStatistics {
@@ -239,6 +252,7 @@ export function recordedTest(overrides: Partial<RecordedTest> = {}): RecordedTes
   const result = analyzerResult()
   return {
     id: '4fbc8606-4d79-44f9-9d87-87c0e386ebc0',
+    ownership: ownership(),
     created_at: '2026-09-23T12:00:00Z',
     grammar_source: 'S -> NOUN',
     metadata: { topics: [], languages: [], matching_entries: 0 },
@@ -271,9 +285,9 @@ export function retainedTestReport(): TestReport {
     topic_counts: { 'Not recorded': 2, 'Taxi / Commuting': 1 },
     language_counts: { 'Not recorded': 2, francanglais: 1 },
     tests: [
-      { id: '01270d9d-aa38-452d-9f51-546514425bca', created_at: '2026-09-23T12:02:00Z', text: 'veux', accepted: true, token_count: 1, error: null },
-      { id: '2518c8e9-fd48-4452-bce3-6a7a039b2190', created_at: '2026-09-23T12:01:00Z', text: '  taxi taxi\n', accepted: true, token_count: 2, error: null },
-      { id: recordedTest().id, created_at: '2026-09-23T12:00:00Z', text: '  veux VEUX + +\t', accepted: false, token_count: 4, error: 'No rule for S with lookahead VERB.' },
+      { id: '01270d9d-aa38-452d-9f51-546514425bca', ownership: ownership(), created_at: '2026-09-23T12:02:00Z', text: 'veux', accepted: true, token_count: 1, error: null },
+      { id: '2518c8e9-fd48-4452-bce3-6a7a039b2190', ownership: ownership({ owner_id: 'second-user', owner_name: 'Second user', can_edit: false }), created_at: '2026-09-23T12:01:00Z', text: '  taxi taxi\n', accepted: true, token_count: 2, error: null },
+      { id: recordedTest().id, ownership: ownership(), created_at: '2026-09-23T12:00:00Z', text: '  veux VEUX + +\t', accepted: false, token_count: 4, error: 'No rule for S with lookahead VERB.' },
     ],
   })
 }

@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from compiler.lexer.lexicon import TERMINAL_CATEGORIES
 
+from .ownership import Ownership
+
 TranslationLanguage = Literal["fr", "en", "francanglais", "pidgin"]
 DatasetLanguage = Literal["francanglais", "pidgin", "mixed", "unspecified"]
 ReviewStatus = Literal["unreviewed", "approved"]
@@ -154,8 +156,15 @@ class DatasetEntry(BaseModel):
     lexical_category: str = ""
 
 
+class OwnedDatasetEntry(DatasetEntry):
+    ownership: Ownership
+
+
+DatasetEntryView = OwnedDatasetEntry | DatasetEntry
+
+
 class DatasetResponse(BaseModel):
-    entries: list[DatasetEntry]
+    entries: list[DatasetEntryView]
     total: int
     by_category: dict[str, int]
     by_type: dict[str, int]

@@ -39,6 +39,9 @@ class CourseworkStorage(Protocol):
     def load_analyzer_test(self, test_id: str) -> RecordedTest | None: ...
     def save_analyzer_test(self, record: RecordedTest) -> None: ...
     def iter_analyzer_tests(self) -> Iterator[RecordedTest]: ...
+    def load_analyzer_request(self, request_id: str) -> RecordedTest | None: ...
+    def analyzer_test_identifier(self, request_id: str) -> str: ...
+    def save_analyzer_request(self, request_id: str, record: RecordedTest) -> None: ...
 
 
 _storage: ContextVar[CourseworkStorage | None] = ContextVar("coursework_storage", default=None)
@@ -113,6 +116,24 @@ def save_analyzer_test(record: RecordedTest) -> None:
         return
     with _analyzer_database() as db:
         db.execute("INSERT INTO analyzer_tests VALUES (?,?)", (record.id, record.model_dump_json()))
+
+
+def load_analyzer_request(request_id: str) -> RecordedTest | None:
+    storage = _storage.get()
+    return storage.load_analyzer_request(request_id) if storage is not None else load_analyzer_test(request_id)
+
+
+def analyzer_test_identifier(request_id: str) -> str:
+    storage = _storage.get()
+    return storage.analyzer_test_identifier(request_id) if storage is not None else request_id
+
+
+def save_analyzer_request(request_id: str, record: RecordedTest) -> None:
+    storage = _storage.get()
+    if storage is not None:
+        storage.save_analyzer_request(request_id, record)
+    else:
+        save_analyzer_test(record)
 
 
 def iter_analyzer_tests() -> Iterator[RecordedTest]:
