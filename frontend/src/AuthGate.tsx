@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import App from './App'
+import { Brand } from './Brand'
 import { api, configureSession, isCancelled, messageOf } from './api'
 import { ErrorNotice, Spinner } from './components'
 import type { ProjectsResult, Session } from './accountTypes'
@@ -32,10 +33,11 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
   }, [])
   const mode = ['register', 'forgot-password', 'reset-password', 'verify-email', 'resend-verification'].includes(route) ? route : 'signin'
   const titles: Record<string, string> = {
-    signin: 'Sign in to Mboa', register: 'Join the shared workspace', 'forgot-password': 'Reset your password',
+    signin: 'Sign in to Camfranglais', register: 'Join the shared workspace', 'forgot-password': 'Reset your password',
     'reset-password': 'Choose a new password', 'verify-email': 'Verify your email', 'resend-verification': 'Send a verification link',
   }
   const errorCode = new URLSearchParams(window.location.hash.split('?')[1]).get('error')
+  useEffect(() => { document.title = `${titles[mode]} — Camfranglais` }, [mode])
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setNotice('')
@@ -57,7 +59,7 @@ function AuthForm({ session, onSignedIn }: { session: Session; onSignedIn: (next
   }
   return <main className="auth-screen">
     <section className="auth-card">
-      <a href="#signin" className="auth-brand">Mboa</a>
+      <Brand account />
       <p className="eyebrow">ONE SHARED COMPILER WORKSPACE</p>
       <h1>{titles[mode]}</h1>
       <p>Collect real statements, build a grammar and trace the compiler’s decisions.</p>
@@ -127,7 +129,7 @@ export default function AuthGate() {
       if (event.key === 'mboa-session-change') { setNotice('The account changed in another tab. Unsaved drafts were cleared; shared records and tests remain.'); void load() }
     }
     const locationChanged = () => setRoute(authRoute())
-    const unavailable = () => setNotice('Cross-tab notifications are unavailable in this browser. Close other Mboa tabs before changing accounts.')
+    const unavailable = () => setNotice('Cross-tab notifications are unavailable in this browser. Close other Camfranglais tabs before changing accounts.')
     window.addEventListener('mboa:session-expired', expired)
     window.addEventListener('mboa:cross-tab-unavailable', unavailable)
     window.addEventListener('storage', changed)
@@ -169,7 +171,7 @@ export default function AuthGate() {
   }, [session?.user?.id, session?.csrf_token])
 
   if (loading) return <main className="auth-screen"><Spinner label="Checking your account" /></main>
-  if (!session) return <main className="auth-screen"><section className="auth-card"><h1>Mboa is unavailable</h1><ErrorNotice message={error} onRetry={() => void load()} /></section></main>
+  if (!session) return <main className="auth-screen"><section className="auth-card"><Brand account /><h1>Camfranglais is unavailable</h1><ErrorNotice message={error} onRetry={() => void load()} /></section></main>
   if (!session.user || ['verify-email', 'reset-password'].includes(route)) {
     return <>{notice && <p className="account-notice" role="status">{notice}</p>}<AuthForm session={session} onSignedIn={(next) => {
       accept(next)

@@ -4,12 +4,13 @@ import { Analysis } from './Analysis'
 import type { AnalyzerState, RecordedTest, TestReport } from './analyzerTypes'
 import { ErrorNotice, Icon, Spinner } from './components'
 import { AnalyzedSource, TokenTable } from './CourseworkResults'
-import { MAX_TEXT } from './types'
+import { defaultMetadata, MAX_TEXT } from './types'
 import type { IncomingText } from './types'
 import { useRequest } from './useRequest'
+import { VocabularyVerdict } from './VocabularyVerdict'
 import './coursework.css'
 
-const terminals = ['NOUN', 'VERB', 'SLANG', 'PIDGIN_MARKER', 'FRENCH_FUNCTION_WORD', 'ENGLISH_FUNCTION_WORD', 'ENGLISH_VERB_LIKE', 'FRENCH_VERB_LIKE', 'UNKNOWN', 'NUMBER', 'PUNCTUATION']
+const terminals = defaultMetadata.lexical_categories
 const MAX_GRAMMAR = 12000
 
 export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUseText }: {
@@ -239,12 +240,11 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
         </form>
       </section>
       {result && <section className="lab-card analyzer-verdict" aria-labelledby="analyzer-verdict-title">
-        <h2 id="analyzer-verdict-title">Parser result</h2>
+        <h2 id="analyzer-verdict-title">Vocabulary result</h2>
         <div className="analyzer-source"><h3>Analyzed sentence or word</h3><AnalyzedSource text={result.text} /></div>
         <div className="analyzer-classifications"><h3>Word classifications</h3><TokenTable tokens={result.lexical.tokens} /></div>
-        <p role="status"><span className={`lab-status ${result.parse.accepted ? 'ready' : 'needs_input'}`}>{result.parse.accepted ? 'ACCEPT' : 'REJECT'}</span></p>
+        <VocabularyVerdict result={result.approval} empty={result.lexical.tokens.length === 0} />
         <p className="lab-copy">Test saved. Creator: {result.ownership.owner_name}. Its counts are included in everyone’s Analysis. Saved tests are immutable.</p>
-        <p className="lab-copy">This result describes the current grammar's coverage, not whether the speaker's language is correct.</p>
         <a className="button button-secondary" href="#analysis" onClick={() => { cancelInspection(); clearInspectError(); setInspectionId(null); setSelectedTest(result) }}>View detailed analysis<Icon name="arrow" size={16} /></a>
       </section>}
       </>}

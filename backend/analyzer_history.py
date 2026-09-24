@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from data_collector import dataset
 
 from . import analyzer, coursework_store
-from .analyzer_models import AnalyzerTestRequest, OwnedTestSummary, RecordedTest, TestReport, TestSummary
+from .analyzer_models import (
+    AnalyzerTestRequest, OwnedTestSummary, RecordedTest, TestReport, TestSummary, TestTotals, VocabularyApproval,
+)
 from .collection import CollectionError
 from .ownership import record_ownership
 from .token_statistics import normalize_token
@@ -50,6 +52,13 @@ def _frequencies(counts: Counter[str]) -> list[dict]:
     )]
 
 
+def _totals(total: int, accepted: int) -> TestTotals:
+    return TestTotals(
+        total=total, accepted=accepted, rejected=total - accepted,
+        acceptance_rate=accepted * 100.0 / total if total else None,
+    )
+
+
 def test_report(offset: int, limit: int) -> TestReport:
     raw: Counter[str] = Counter()
     folded: Counter[str] = Counter()
@@ -62,20 +71,27 @@ def test_report(offset: int, limit: int) -> TestReport:
     topics: Counter[str] = Counter()
     languages: Counter[str] = Counter()
     summaries: list[OwnedTestSummary | TestSummary] = []
-    total = accepted = 0
+    total = accepted = grammar_accepted = 0
     # Only one complete snapshot is held at a time; the response contains a page of summaries.
     for record in coursework_store.iter_analyzer_tests():
+        approval = VocabularyApproval.from_statistics(record.lexical.statistics)
         if offset <= total < offset + limit:
             summary = TestSummary(
                 id=record.id, created_at=record.created_at, text=record.text,
-                accepted=record.parse.accepted, token_count=len(record.lexical.tokens), error=record.parse.error,
+                accepted=approval.accepted, token_count=len(record.lexical.tokens),
+                error=None if approval.accepted else (
+                    f"{approval.unknown_count} UNKNOWN {'token' if approval.unknown_count == 1 else 'tokens'}."
+                ),
+                unknown_count=approval.unknown_count,
+                grammar_accepted=record.parse.accepted, grammar_error=record.parse.error,
             )
             ownership = record_ownership("analyzer_test", record.id)
             summaries.append(
                 OwnedTestSummary(**summary.model_dump(), ownership=ownership) if ownership is not None else summary
             )
         total += 1
-        accepted += record.parse.accepted
+        accepted += approval.accepted
+        grammar_accepted += record.parse.accepted
         topics.update(record.metadata.topics or ["Not recorded"])
         languages.update(record.metadata.languages or ["Not recorded"])
         seen_unknown = set()
@@ -94,10 +110,8 @@ def test_report(offset: int, limit: int) -> TestReport:
                 seen_unknown.add(key)
         unknown_tests.update(seen_unknown)
     return TestReport.model_validate({
-        "summary": {
-            "total": total, "accepted": accepted, "rejected": total - accepted,
-            "acceptance_rate": accepted * 100.0 / total if total else None,
-        },
+        "summary": _totals(total, accepted),
+        "grammar_summary": _totals(total, grammar_accepted),
         "statistics": {
             "frequencies": _frequencies(folded),
             "category_counts": dict(sorted(categories.items())),

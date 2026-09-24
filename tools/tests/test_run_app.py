@@ -73,7 +73,7 @@ class LauncherTests(unittest.TestCase):
             ), patch("uvicorn.run", autospec=True) as run, redirect_stderr(io.StringIO()) as output:
                 self.assertEqual(main(args), 1)
                 run.assert_not_called()
-                self.assertIn("Mboa could not start", output.getvalue())
+                self.assertIn("Camfranglais could not start", output.getvalue())
 
     def test_invalid_ports_are_rejected(self):
         for value in ("0", "65536", "not-a-port"):

@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { FrancAnalyzer } from '../../src/FrancAnalyzer'
-import { analyzerState, lexicalStatistics, manualParse, ownership, recordedTest, retainedTestReport, testReport } from '../fixtures'
+import { analyzerState, lexicalStatistics, manualParse, ownership, recordedTest, retainedTestReport, testReport, vocabularyApproval } from '../fixtures'
 import { deferred, jsonResponse, requestBody } from '../helpers'
 
 const onUseText = vi.fn()
@@ -55,18 +55,20 @@ describe('Franc Analyzer with retained tests', () => {
   })
 
   it.each([
-    { text: 'veux', tokens: [{ text: 'veux', category: 'VERB' }], accepted: true },
-    { text: '  je Veux\t+.\n', tokens: [{ text: 'je', category: 'FRENCH_FUNCTION_WORD' }, { text: 'Veux', category: 'VERB' }, { text: '+', category: 'UNKNOWN' }, { text: '.', category: 'PUNCTUATION' }], accepted: false },
-    { text: '', tokens: [], accepted: true },
-  ])('shows exact saved source, classification order and verdict for $text', async ({ text, tokens, accepted }) => {
+    { text: 'veux', tokens: [{ text: 'veux', category: 'VERB' }], accepted: true, grammarAccepted: true },
+    { text: 'wanda', tokens: [{ text: 'wanda', category: 'SLANG' }], accepted: true, grammarAccepted: false },
+    { text: '  je Veux\t+.\n', tokens: [{ text: 'je', category: 'FRENCH_FUNCTION_WORD' }, { text: 'Veux', category: 'VERB' }, { text: '+', category: 'UNKNOWN' }, { text: '.', category: 'PUNCTUATION' }], accepted: false, grammarAccepted: true },
+    { text: '', tokens: [], accepted: true, grammarAccepted: true },
+  ])('shows exact saved source, classification order and verdict for $text', async ({ text, tokens, accepted, grammarAccepted }) => {
     const { user, fixtures, showAnalysis } = await renderAnalyzer()
     if (text) await replaceText(user, input(), text)
     const response = recordedTest({ text })
     response.lexical.tokens = tokens
-    response.parse.accepted = accepted
+    response.approval = vocabularyApproval(tokens.filter((token) => token.category === 'UNKNOWN').length)
+    response.parse.accepted = grammarAccepted
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(response))
     await user.click(analyzeButton())
-    const verdict = within(await screen.findByRole('region', { name: 'Parser result' }))
+    const verdict = within(await screen.findByRole('region', { name: 'Vocabulary result' }))
     expect(verdict.getByLabelText('Analyzed source text').textContent).toBe(text || '(empty input)')
     expect(verdict.getByText(accepted ? 'ACCEPT' : 'REJECT', { exact: true })).toBeVisible()
     if (tokens.length) {
@@ -91,7 +93,7 @@ describe('Franc Analyzer with retained tests', () => {
     showAnalyzer()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest()))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     expect(requestBody(testRequests()[0])).toMatchObject({ text: '  Mbom\t\n', grammar: 'S -> NOUN\nTail -> epsilon' })
     expect(vi.mocked(fetch).mock.calls.some(([url, init]) => url === '/api/dataset' && init?.method === 'POST')).toBe(false)
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
@@ -118,7 +120,7 @@ describe('Franc Analyzer with retained tests', () => {
     const saved = recordedTest({ text: '  local draft\t', grammar_source: 'S -> UNKNOWN UNKNOWN' })
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(saved))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     expect(requestBody(testRequests()[0])).toEqual({ request_id: expect.any(String), text: saved.text, grammar: saved.grammar_source })
     expect(vi.mocked(fetch).mock.calls.some(([url, init]) => init?.method === 'PUT' || (url === '/api/dataset' && init?.method === 'POST'))).toBe(false)
     await openSettings()
@@ -166,11 +168,11 @@ describe('Franc Analyzer with retained tests', () => {
     expect(first).not.toMatchObject({ request_id: recordedTest().id })
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest({ text: 'veux' })))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     expect(requestBody(testRequests()[1])).toEqual(first)
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest({ text: 'veux' })))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     expect(requestBody(testRequests()[2])).not.toEqual(first)
   })
 
@@ -184,7 +186,7 @@ describe('Franc Analyzer with retained tests', () => {
     await replaceText(user, input(), 'taxi')
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest({ text: 'taxi' })))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     expect(requestBody(testRequests()[1])).not.toEqual(first)
   })
 
@@ -290,11 +292,11 @@ describe('Franc Analyzer with retained tests', () => {
     const { user } = await renderAnalyzer()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest()))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'Cannot save recorded test.' }, 500))
     await user.click(analyzeButton())
     expect(await screen.findByRole('alert')).toHaveTextContent('Cannot save recorded test.')
-    expect(screen.queryByRole('region', { name: 'Parser result' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Vocabulary result' })).not.toBeInTheDocument()
   })
 
   it.each(['stop', 'text', 'grammar', 'navigate'])('ignores late response after %s without claiming saved tests were deleted', async (action) => {
@@ -314,7 +316,7 @@ describe('Franc Analyzer with retained tests', () => {
     if (action === 'navigate') rerender(<FrancAnalyzer active={false} onUseText={onUseText} />)
     expect(testRequests()[0]?.[1]?.signal?.aborted).toBe(true)
     await act(async () => pending.resolve(jsonResponse(recordedTest())))
-    expect(screen.queryByRole('region', { name: 'Parser result' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Vocabulary result' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Analyzed source text')).not.toBeInTheDocument()
   })
 
@@ -336,7 +338,7 @@ describe('Franc Analyzer with retained tests', () => {
     const { user, fixtures, rerender, showAnalysis } = await renderAnalyzer()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(recordedTest()))
     await user.click(analyzeButton())
-    await screen.findByRole('region', { name: 'Parser result' })
+    await screen.findByRole('region', { name: 'Vocabulary result' })
     rerender(<FrancAnalyzer active={false} onUseText={onUseText} />)
     fixtures.report = retainedTestReport()
     await showAnalysis()

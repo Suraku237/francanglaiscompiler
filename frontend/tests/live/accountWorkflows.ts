@@ -38,7 +38,7 @@ export async function signUp(page: Page): Promise<string> {
   await expect(page.getByRole('status')).toContainText('verification link')
   await page.goto(await emailLink(email, 'verify-email'))
   await page.getByRole('button', { name: 'Verify email', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Sign in to Mboa' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in to Camfranglais' })).toBeVisible()
   await signIn(page, email)
   return email
 }

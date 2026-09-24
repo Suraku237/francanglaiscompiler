@@ -16,11 +16,18 @@ export interface AnalyzerResult {
   }
   grammar: GrammarAnalysis
   parse: ParseResult
+  approval: VocabularyApproval
   corpus: {
     lexical: LexicalReport
     tests: CorpusTest[]
     summary: { accepted: number; rejected: number; total: number }
   }
+}
+
+export interface VocabularyApproval {
+  basis: 'no_unknown_tokens'
+  accepted: boolean
+  unknown_count: number
 }
 
 export interface RecordedTest extends Omit<AnalyzerResult, 'corpus'> {
@@ -43,15 +50,22 @@ export interface RecordedTestSummary {
   accepted: boolean
   token_count: number
   error: string | null
+  unknown_count: number
+  grammar_accepted: boolean
+  grammar_error: string | null
+}
+
+export interface TestTotals {
+  total: number
+  accepted: number
+  rejected: number
+  acceptance_rate: number | null
 }
 
 export interface TestReport {
-  summary: {
-    total: number
-    accepted: number
-    rejected: number
-    acceptance_rate: number | null
-  }
+  approval_basis: 'no_unknown_tokens'
+  summary: TestTotals
+  grammar_summary: TestTotals
   statistics: LexicalStatistics & {
     raw_frequencies: TokenCount[]
     normalized_frequencies: TokenCount[]

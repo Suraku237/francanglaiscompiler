@@ -23,7 +23,7 @@ class BusinessWorkspaceTests(ApiTestCase):
         )
         schema = self.client.get("/openapi.json").json()
         self.assertFalse(any(path.startswith(("/api/coursework", "/api/examples", "/api/analyzer")) for path in schema["paths"]))
-        self.assertEqual(schema["info"]["title"], "Mboa Compiler Lab")
+        self.assertEqual(schema["info"]["title"], "Camfranglais Compiler")
         self.assertEqual(Path(dataset.DATASET_PATH).read_bytes(), before)
         self.assert_no_outbound_http()
 

@@ -49,7 +49,9 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
         self.collected()
         report = self.report()
         self.assertEqual(report, {
+            "approval_basis": "no_unknown_tokens",
             "summary": {"total": 0, "accepted": 0, "rejected": 0, "acceptance_rate": None},
+            "grammar_summary": {"total": 0, "accepted": 0, "rejected": 0, "acceptance_rate": None},
             "statistics": {
                 "frequencies": [], "category_counts": {}, "variations": [], "unknown_tokens": [],
                 "total_tokens": 0, "raw_frequencies": [], "normalized_frequencies": [],
@@ -77,7 +79,7 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
         lex.assert_called_once_with(text, {})
         parse.assert_called_once()
         self.assertEqual(set(record), {
-            "id", "created_at", "grammar_source", "text", "lexical", "grammar", "parse", "metadata",
+            "id", "created_at", "grammar_source", "text", "lexical", "grammar", "parse", "metadata", "approval",
         })
         self.assertEqual(record["text"], text)
         self.assertEqual(record["grammar_source"], grammar)
@@ -148,9 +150,12 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
         }).status_code, 200)
         report = self.report()
         self.assertEqual(report["summary"]["total"], 3)
-        self.assertEqual(report["summary"]["accepted"], 2)
-        self.assertEqual(report["summary"]["rejected"], 1)
-        self.assertAlmostEqual(report["summary"]["acceptance_rate"], 200 / 3)
+        self.assertEqual(report["summary"]["accepted"], 3)
+        self.assertEqual(report["summary"]["rejected"], 0)
+        self.assertEqual(report["summary"]["acceptance_rate"], 100)
+        self.assertEqual(report["grammar_summary"]["accepted"], 2)
+        self.assertEqual(report["grammar_summary"]["rejected"], 1)
+        self.assertAlmostEqual(report["grammar_summary"]["acceptance_rate"], 200 / 3)
         self.assertEqual(report["statistics"]["total_tokens"], 3)
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
 
@@ -219,10 +224,11 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
             self.assertEqual(report["statistics"]["raw_frequencies"], [{"token": "taxi", "count": 31}])
             self.assertTrue(all(set(item) == {
                 "id", "created_at", "text", "accepted", "token_count", "error",
+                "unknown_count", "grammar_accepted", "grammar_error",
             } for item in report["tests"]))
 
     def test_history_has_no_500_item_cap_and_manual_input_has_no_legacy_collection_cap(self):
-        saved = RecordedTest.model_validate(self.record())
+        saved = RecordedTest.model_validate({key: value for key, value in self.record().items() if key != "approval"})
         with dataset.dataset_lock():
             for _ in range(500):
                 coursework_store.save_analyzer_test(saved.model_copy(update={"id": str(uuid4())}))
@@ -251,7 +257,8 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
                 self.assertEqual(saved["parse"]["accepted"], accepted)
                 self.assertEqual(self.client.get(f"/api/analyzer/tests/{saved['id']}").json(), saved)
         report = self.report()
-        self.assertEqual(report["summary"], {"total": 5, "accepted": 1, "rejected": 4, "acceptance_rate": 20.0})
+        self.assertEqual(report["summary"], {"total": 5, "accepted": 4, "rejected": 1, "acceptance_rate": 80.0})
+        self.assertEqual(report["grammar_summary"], {"total": 5, "accepted": 1, "rejected": 4, "acceptance_rate": 20.0})
         self.assertEqual(report["statistics"]["total_tokens"], 259)
 
     def test_invalid_requests_query_bounds_and_identifiers_never_create_tests(self):
@@ -319,6 +326,7 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
 
     def test_corrupted_snapshot_is_not_returned_as_unchecked_json(self):
         saved = self.record()
+        saved.pop("approval")
         saved["lexical"]["statistics"]["total_tokens"] = 100
         path = self.directory / "coursework" / "analyzer-tests.sqlite3"
         with closing(sqlite3.connect(path)) as db, db:
@@ -454,7 +462,7 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         store = SharedWorkspaceStore(self.root, user["id"])
         content = self.backup()
         document, _ = validate_archive(content)
-        self.assertEqual(document["format"], 4)
+        self.assertEqual(document["format"], 5)
         self.assertEqual(len(document["analyzer_tests"]), 2)
         self.assertEqual({row["project_id"] for row in document["analyzer_tests"]}, {"default"})
         preview = self.preview(content)
@@ -482,7 +490,7 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         store = SharedWorkspaceStore(self.root, user["id"])
         for version in (1, 2):
             original = store.export_document()
-            for key in ("ownership", "test_requests", "legacy_profiles"):
+            for key in ("ownership", "test_requests", "legacy_profiles", "readings"):
                 original.pop(key)
             original.pop("analyzer_tests")
             original["format"] = version

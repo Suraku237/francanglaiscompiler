@@ -296,7 +296,7 @@ export function Collection({ active, onUseText }: { active: boolean; onUseText?:
     {notice && <div className="notice notice-success" role="status"><Icon name="check" size={18} /><span>{notice}</span><button className="icon-button" type="button" aria-label="Dismiss notification" onClick={() => setNotice('')}><Icon name="close" size={16} /></button></div>}
     <div className="collection-list-heading"><h2>Collected records <span>{loading ? 'Updating…' : error ? 'Unavailable' : `${entries.length.toLocaleString()} ${entries.length === 1 ? 'entry' : 'entries'}`}</span></h2><div className="submit-actions">{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>Clear filters <Icon name="close" size={14} /></button>}<button type="button" className="button button-secondary" disabled={loading || Boolean(error) || !entries.length} onClick={() => {
       const data = { exported_at: new Date().toISOString(), entries }
-      if (download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), 'mboa-collection.json')) {
+      if (download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), 'camfranglais-collection.json')) {
         setNotice(`Export started for ${entries.length} entries. Audio filenames are included, not the audio files themselves.`)
       }
     }}>Export results (JSON)<Icon name="arrow" size={15} /></button></div></div>

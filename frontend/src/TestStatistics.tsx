@@ -29,7 +29,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
   onPage: (offset: number) => void
   onInspect: (id: string) => void
 }) {
-  const { summary, statistics } = report
+  const { summary, grammar_summary: grammarSummary, statistics } = report
   const unknownCount = report.unknown_review.reduce((total, row) => total + row.count, 0)
   const metrics = [
     { label: 'Tests recorded', value: summary.total.toLocaleString(), tone: '' },
@@ -45,13 +45,22 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
     <dl className="test-metrics">{metrics.map((metric) => <div key={metric.label} className={`test-metric ${metric.tone}`} role="group" aria-label={metric.label}>
       <dt>{metric.label}</dt><dd>{metric.value}</dd>
     </div>)}</dl>
+    <p className="lab-copy">These are vocabulary results: a test is rejected only when its saved categories include UNKNOWN. Recognized slang, ambiguous known words and other recognized categories pass. Empty input also has no UNKNOWN tokens. Original tokens and parser results are never rewritten.</p>
+    <section aria-label="Grammar check statistics">
+      <h3>Separate CFG grammar checks</h3>
+      <dl className="test-token-totals">
+        <div role="group" aria-label="Grammar accepted"><dt>Matched grammar</dt><dd>{grammarSummary.accepted.toLocaleString()}</dd></div>
+        <div role="group" aria-label="Grammar rejected"><dt>Did not match grammar</dt><dd>{grammarSummary.rejected.toLocaleString()}</dd></div>
+        <div role="group" aria-label="Grammar acceptance rate"><dt>Grammar match rate</dt><dd>{grammarSummary.acceptance_rate === null ? 'Not available' : `${grammarSummary.acceptance_rate.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}</dd></div>
+      </dl>
+    </section>
     <dl className="test-token-totals">
       <div><dt>Total tokens</dt><dd>{statistics.total_tokens.toLocaleString()}</dd></div>
       <div><dt>Raw spellings</dt><dd>{statistics.raw_frequencies.length.toLocaleString()}</dd></div>
       <div><dt>Normalized forms</dt><dd>{statistics.normalized_frequencies.length.toLocaleString()}</dd></div>
       <div><dt>Unknown occurrences</dt><dd>{unknownCount.toLocaleString()}</dd></div>
     </dl>
-    <p className="lab-copy">Acceptance measures each test against the grammar and vocabulary used at that time, not the correctness of a speaker's language. Changing grammar settings does not rewrite past results.</p>
+    <p className="lab-copy">Grammar checks measure each test against the rules used at that time, not the correctness of a speaker's language. They do not decide vocabulary approval. Changing grammar settings does not rewrite past results.</p>
     {!summary.total ? <div className="lab-empty-panel">
       <Icon name="chart" size={28} /><h3>No saved tests yet</h3>
       <p>No one has recorded a test in the shared workspace yet. Analyze a sentence or word to add the first one for everyone to view. Earlier runs made before test storage was introduced cannot be recovered.</p>
@@ -89,6 +98,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
         <ol className="test-record-list">{report.tests.map((test, index) => <li key={test.id} className={test.id === selectedId ? 'is-selected' : ''}>
           <div className="test-record-topline"><span className={`lab-status ${test.accepted ? 'ready' : 'needs_input'}`}>{test.accepted ? 'ACCEPT' : 'REJECT'}</span><span>{test.token_count.toLocaleString()} tokens</span><time dateTime={test.created_at}>{new Date(test.created_at).toLocaleString()}</time></div>
           <p className="test-record-source">{test.text || '(empty input)'}</p>
+          <p className="lab-copy">{test.error ?? 'No UNKNOWN tokens.'} Grammar check: {test.grammar_accepted ? 'matched the saved rules' : 'did not match the saved rules'}.</p>
           <p className="lab-copy">Creator: {test.ownership.owner_name} · Immutable saved test</p>
           <button type="button" className="text-button" aria-label={`Inspect test ${summary.total - report.offset - index}`} onClick={() => onInspect(test.id)} disabled={busy}>Inspect test<Icon name="arrow" size={16} /></button>
         </li>)}</ol>

@@ -666,7 +666,7 @@ class CourseworkBackupTests(CompilerHostedCase):
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             self.assertEqual(json.loads(archive.read("manifest.json"))["format"], 1)
             self.assertEqual(json.loads(archive.read("workspace.json")), expected)
-        self.assertEqual(expected["format"], 4)
+        self.assertEqual(expected["format"], 5)
         self.assertEqual(len(expected["coursework"]), 1)
         self.assertEqual(len(expected["screenshots"]), 2)
         changed = self.save_profile(grammar="S -> NOUN", discussion="After backup.")
@@ -746,7 +746,7 @@ class CourseworkBackupTests(CompilerHostedCase):
         store = WorkspaceStore(self.root, user["id"])
         before = store.export_document()
         legacy = {key: value for key, value in store.export_document().items()
-                  if key not in ("coursework", "screenshots", "analyzer_tests", "ownership", "test_requests", "legacy_profiles")}
+                  if key not in ("coursework", "screenshots", "analyzer_tests", "ownership", "test_requests", "legacy_profiles", "readings")}
         legacy["format"] = 1
         original = copy.deepcopy(legacy)
         normalized = LegacyWorkspaceStore.validate_document(legacy)
@@ -764,7 +764,7 @@ class CourseworkBackupTests(CompilerHostedCase):
         self.assertEqual(store.export_document(), before)
         self.assertEqual(self.client.get(image["url"]).status_code, 200)
         self.assertEqual(self.client.get("/api/dataset").json()["entries"], [entry])
-        self.assertEqual(store.export_document()["format"], 4)
+        self.assertEqual(store.export_document()["format"], 5)
 
     def test_invalid_new_backup_records_are_rejected_without_mutating_live_data(self):
         user = self.register()

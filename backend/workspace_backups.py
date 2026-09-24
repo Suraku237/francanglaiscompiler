@@ -71,6 +71,7 @@ def backup_directory(store: WorkspaceStore) -> Path:
 def referenced_media(document: dict) -> set[str]:
     names = set()
     records = [row["data"] for row in document["entries"]]
+    records.extend(row["data"] for row in document.get("readings", []))
     records += [
         row[key] for row in document["revisions"] for key in ("before_data", "after_data") if row[key]
     ]
@@ -210,10 +211,13 @@ def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
             raise CollectionError(409, "Up to three backup previews can be pending. Restore one or wait for expiry.")
         token = uuid4().hex
         atomic_write(directory / f"{token}.zip", content)
+        counts = {key: len(document[key]) for key in (
+            "projects", "entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests",
+        )}
+        if isinstance(store, SharedWorkspaceStore):
+            counts["readings"] = len(document["readings"])
         info = {"token": token, "expires_at": time.time() + 3600, "workspace_version": store.version,
-                "counts": {key: len(document[key]) for key in (
-                    "projects", "entries", "history", "revisions", "coursework", "screenshots", "analyzer_tests",
-                )},
+                "counts": counts,
                 "warnings": [
                     "Restoring replaces all projects, collected entries, saved work, revisions, coursework profiles, "
                     "screenshots and recorded analyzer tests in your account. A safety backup is created first.",
@@ -227,6 +231,8 @@ def preview_backup(store: WorkspaceStore, content: bytes) -> dict:
                 "and leaves every other creator's records unchanged. A safety backup is created first.",
                 "Original private workspaces remain on the server as migration archives. Their older backups "
                 "cannot replace the combined workspace.",
+                "Older format-4 shared backups contain no recorded read-aloud. They cannot remove another "
+                "creator's recordings; your own recordings may be removed if you restore such a backup.",
             ]
         set_metadata(store, "backup:preview:" + token, info)
         return info
@@ -386,7 +392,7 @@ def install_backups(app: FastAPI):
             path = backup_directory(store) / f"{entry['id']}.zip"
             if not path.is_file() or path.is_symlink() or checksum(path.read_bytes()) != entry["sha256"]:
                 raise CollectionError(409, "This backup is missing or damaged.")
-            return FileResponse(path, media_type="application/zip", filename=f"mboa-backup-{identifier}.zip")
+            return FileResponse(path, media_type="application/zip", filename=f"camfranglais-backup-{identifier}.zip")
         return storage_operation(response)
 
     @router.delete("/{identifier}", status_code=204)

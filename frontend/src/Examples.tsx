@@ -45,6 +45,6 @@ export function Examples({ active, onUseText, speech }: {
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening an example fills Franc Analyzer only. Nothing is computed or saved until you explicitly act. Supplied meanings and optional French-voice read-aloud are unverified references, not evidence of speaker usage.</p>
+    <p className="helper-text">Opening an example fills Franc Analyzer only. Nothing is computed or saved until you explicitly act. Read-aloud uses a saved voice recording or lets you record your reading. Supplied meanings and these pronunciation recordings are not collected fieldwork.</p>
   </section>
 }

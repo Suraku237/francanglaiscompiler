@@ -20,6 +20,7 @@ from .collection import storage_operation
 from .config import Settings
 from .coursework_api import router as coursework_router
 from .import_api import router as import_router
+from .readings_api import router as readings_router
 from .web import install_web
 from .workspace_backups import install_backups, maintain_backups
 from .workspaces import install_workspace
@@ -71,7 +72,7 @@ def create_app(
                 await maintenance
 
     app = FastAPI(
-        title="Mboa Compiler Lab",
+        title="Camfranglais Compiler",
         description="Shared manual fieldwork, lexical analysis, CFG transformations and LL(1) parsing.",
         version="1.0.0",
         lifespan=lifespan,
@@ -142,6 +143,7 @@ def create_app(
         origins.extend(config.cors_origins)
         origins.extend(["http://127.0.0.1:4188", "http://localhost:4188"])
     if require_auth:
+        app.include_router(readings_router)
         workspace = install_workspace(app, accounts.data_dir)
         install_backups(app)
         install_auth(

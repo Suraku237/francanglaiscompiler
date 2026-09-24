@@ -9,12 +9,13 @@ from .analyzer_models import RecordedTest, StoredAnalyzerTest
 from .collection import CollectionError
 from .coursework_models import ProjectProfile
 from .ownership import Ownership
+from .readings_models import StoredReading
 from .shared_migration import CONTENT_TABLES, migrate_workspaces
 from .workspaces import WorkspaceStore, valid_id
 
 SYSTEM_OWNER_ID = "00000000-0000-0000-0000-000000000000"
-SHARED_TABLES = ("ownership", "test_requests", "legacy_profiles")
-CONTENT_KINDS = {"entry", "history", "coursework", "screenshot", "analyzer_test"}
+SHARED_TABLES = ("ownership", "test_requests", "legacy_profiles", "readings")
+CONTENT_KINDS = {"entry", "history", "coursework", "screenshot", "analyzer_test", "reading"}
 
 
 class SharedWorkspaceStore(WorkspaceStore):
@@ -38,6 +39,9 @@ class SharedWorkspaceStore(WorkspaceStore):
                 );
                 CREATE TABLE IF NOT EXISTS migration_sources (
                     owner_id TEXT PRIMARY KEY,source_version INTEGER NOT NULL,projects TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS readings (
+                    id TEXT PRIMARY KEY,key TEXT NOT NULL UNIQUE,data TEXT NOT NULL
                 );
             """)
             if db.execute("SELECT 1 FROM meta WHERE key='shared:initialized'").fetchone() is None:
@@ -140,17 +144,21 @@ class SharedWorkspaceStore(WorkspaceStore):
     def export_document(self) -> dict:
         with self.lock(), self.connection() as db:
             document = super().export_document()
-            document["format"] = 4
+            document["format"] = 5
             for table in SHARED_TABLES:
-                query = " WHERE kind IN ('entry','history','coursework','screenshot','analyzer_test')" if table == "ownership" else ""
+                query = " WHERE kind IN ('entry','history','coursework','screenshot','analyzer_test','reading')" if table == "ownership" else ""
                 document[table] = [dict(row) for row in db.execute(f"SELECT * FROM {table}{query} ORDER BY rowid")]
             return document
 
     @staticmethod
     def validate_document(document: object, *, combined: bool = False) -> dict:
         base_fields = {"format", "version", "projects", *CONTENT_TABLES}
-        if not isinstance(document, dict) or document.get("format") != 4:
-            raise CollectionError(422, "Shared-workspace restoration requires a format-4 backup with creator information.")
+        if not isinstance(document, dict) or document.get("format") not in (4, 5):
+            raise CollectionError(422, "Shared restoration requires a format-4 or format-5 backup with creator information.")
+        if document["format"] == 4:
+            if set(document) != base_fields | (set(SHARED_TABLES) - {"readings"}):
+                raise CollectionError(422, "Unsupported legacy shared backup structure.")
+            document = {**document, "format": 5, "readings": []}
         if set(document) != base_fields | set(SHARED_TABLES):
             raise CollectionError(422, "Unsupported shared backup structure.")
         # Merged snapshots can exceed the former per-account record limits.
@@ -186,6 +194,16 @@ class SharedWorkspaceStore(WorkspaceStore):
             ):
                 if any(row["project_id"] != "default" or (kind, row[column]) not in owners for row in document[table]):
                     raise ValueError("A shared record has no creator")
+            if not isinstance(document["readings"], list):
+                raise ValueError("Invalid recorded readings")
+            reading_ids, reading_keys = set(), set()
+            for row in document["readings"]:
+                reading = StoredReading.model_validate(row)
+                if (reading.id in reading_ids or reading.key in reading_keys or
+                        ("reading", reading.id) not in owners):
+                    raise ValueError("Duplicate reading or missing creator")
+                reading_ids.add(reading.id)
+                reading_keys.add(reading.key)
             requests = set()
             tests = {row["id"] for row in document["analyzer_tests"]}
             for row in document["test_requests"]:
@@ -236,6 +254,7 @@ class SharedWorkspaceStore(WorkspaceStore):
             ("entries", "entry", "id", "id"), ("revisions", "entry", "id", "entry_id"),
             ("history", "history", "id", "id"), ("coursework", "coursework", "project_id", "project_id"),
             ("screenshots", "screenshot", "id", "id"), ("analyzer_tests", "analyzer_test", "id", "id"),
+            ("readings", "reading", "id", "id"),
         ):
             before = {row[identity]: row for row in current[table]}
             after = {row[identity]: row for row in document[table]}
@@ -259,7 +278,7 @@ class SharedWorkspaceStore(WorkspaceStore):
             if self.version != expected_version:
                 raise CollectionError(409, "The shared workspace changed after preview. Preview the backup again.")
             self.authorize_import(document)
-            for table in CONTENT_TABLES:
+            for table in (*CONTENT_TABLES, "readings"):
                 db.execute(f"DELETE FROM {table}")
                 for row in document[table]:
                     columns = list(row)

@@ -6,6 +6,7 @@ from compiler.parser.service import analyze_grammar, parse_analysis
 from data_collector import dataset
 
 from . import coursework, coursework_store
+from .analyzer_models import LexicalStatistics, VocabularyApproval
 from .ownership import record_ownership
 from .schemas import AnalysisResult, TokenResult
 
@@ -28,8 +29,12 @@ def analyze(text: str, grammar_text: str) -> dict:
     entries = coursework.read_corpus()
     grammar = analyze_grammar(grammar_text)
     learned = build_lexicon(entries)
+    manual = analyze_manual(text, grammar, learned)
     return {
-        **analyze_manual(text, grammar, learned),
+        **manual,
+        "approval": VocabularyApproval.from_statistics(
+            LexicalStatistics.model_validate(manual["lexical"]["statistics"]),
+        ).model_dump(),
         "corpus": coursework.parse_corpus(
             grammar, coursework.lexical_report(entries, learned_lexicon=learned),
         ),

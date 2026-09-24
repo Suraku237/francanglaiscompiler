@@ -112,8 +112,8 @@ export function ReadButton({ speech, id, text, language, compact = false, disabl
 }) {
   const active = speech.activeId === id
   return <button type="button" className={compact ? 'icon-button' : 'action-button'} disabled={!speech.supported || disabled}
-    title={!speech.supported ? 'Read-aloud is not supported in this browser' : active ? 'Stop reading' : 'Read aloud with a browser voice'}
-    aria-label={active ? 'Stop reading' : 'Read aloud with a browser voice'}
+    title={!speech.supported ? 'Audio playback is not supported in this browser' : active ? 'Stop reading' : 'Read aloud with a recorded voice'}
+    aria-label={active ? 'Stop reading' : 'Read aloud with a recorded voice'}
     onClick={() => active ? speech.stop() : speech.speak(id, text, language)}>
     <Icon name={active ? 'stop' : 'volume'} size={18} />{!compact && (active ? 'Stop reading' : 'Read aloud')}
   </button>

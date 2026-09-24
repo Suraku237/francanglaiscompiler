@@ -30,7 +30,7 @@ describe('compiler-only navigation and account scope', () => {
     render(<App />)
     await screen.findByLabelText('Statement to analyze')
     expect(window.location.hash).toBe('#compiler')
-    expect(document.title).toBe('Franc Analyzer — Mboa Compiler')
+    expect(document.title).toBe('Franc Analyzer — Camfranglais Compiler')
     expect(screen.getByRole('heading', { level: 1, name: 'Franc Analyzer' })).toBeVisible()
     const links = within(screen.getByRole('navigation', { name: 'Main navigation' })).getAllByRole('link')
     expect(links.map((link) => link.textContent)).toEqual([
@@ -48,7 +48,7 @@ describe('compiler-only navigation and account scope', () => {
     window.history.replaceState(null, '', '/#analysis')
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
-    expect(document.title).toBe('Analysis — Mboa Compiler')
+    expect(document.title).toBe('Analysis — Camfranglais Compiler')
     expect(screen.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible()
     expect(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Analysis' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Grammar settings')).toBeVisible()

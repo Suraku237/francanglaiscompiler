@@ -313,7 +313,8 @@ class SharedMigrationTests(HostedCase):
         for summary in report["tests"]:
             record = other.get(f"/api/analyzer/tests/{summary['id']}").json()
             original = next(snapshot for snapshot in snapshots if snapshot["text"] == record["text"])
-            self.assertEqual({key: value for key, value in record.items() if key not in ("id", "ownership")},
+            self.assertEqual(record["approval"], {"basis": "no_unknown_tokens", "accepted": True, "unknown_count": 0})
+            self.assertEqual({key: value for key, value in record.items() if key not in ("id", "ownership", "approval")},
                              {key: value for key, value in original.items() if key != "id"})
         shared = SharedWorkspaceStore(self.root, first["id"])
         self.assertEqual(len(shared.export_document()["legacy_profiles"]), 2)

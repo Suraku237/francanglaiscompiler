@@ -111,7 +111,7 @@ test('all accounts share Collection, classified CSV vocabulary and retained test
   await page.screenshot({ path: testInfo.outputPath('shared-analysis.png'), fullPage: true })
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Sign in to Mboa' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in to Camfranglais' })).toBeVisible()
   expect((await page.request.get('/api/analyzer/tests')).status()).toBe(401)
   await signIn(page, email)
   expect((await (await page.request.get('/api/analyzer/tests')).json()).summary.total).toBe(final.summary.total)

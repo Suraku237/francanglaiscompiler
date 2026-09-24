@@ -41,6 +41,6 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening an entry fills Franc Analyzer without running a computation or saving a corpus entry. Existing compiler classifications take priority; the CSV fills vocabulary gaps. Conflicting supplied categories are not guessed. Optional local-voice read-aloud is only a pronunciation approximation.</p>
+    <p className="helper-text">Opening an entry fills Franc Analyzer without running a computation or saving a corpus entry. Existing compiler classifications take priority; the CSV fills vocabulary gaps. Conflicting supplied categories are not guessed. Read-aloud plays a saved voice recording; record your own reading if none exists.</p>
   </section>
 }

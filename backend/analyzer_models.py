@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, Json, StringConstraints, field_validator, model_validator
@@ -73,6 +73,23 @@ class LexicalStatistics(SnapshotModel):
     variations: list[Variation]
     unknown_tokens: list[Frequency]
     total_tokens: Count
+
+
+class VocabularyApproval(SnapshotModel):
+    basis: Literal["no_unknown_tokens"] = "no_unknown_tokens"
+    accepted: bool
+    unknown_count: Count
+
+    @classmethod
+    def from_statistics(cls, statistics: LexicalStatistics) -> Self:
+        count = sum(item.count for item in statistics.unknown_tokens)
+        return cls(accepted=count == 0, unknown_count=count)
+
+    @model_validator(mode="after")
+    def consistent_outcome(self) -> Self:
+        if self.accepted != (self.unknown_count == 0):
+            raise ValueError("Vocabulary approval must reject exactly the tests containing UNKNOWN tokens.")
+        return self
 
 
 class LexicalSnapshot(SnapshotModel):
@@ -191,11 +208,21 @@ class RecordedTest(SnapshotModel):
         return self
 
 
-class OwnedRecordedTest(RecordedTest):
+class RecordedTestResult(RecordedTest):
+    approval: VocabularyApproval
+
+    @model_validator(mode="after")
+    def consistent_approval(self) -> Self:
+        if self.approval != VocabularyApproval.from_statistics(self.lexical.statistics):
+            raise ValueError("Vocabulary approval disagrees with the saved token categories.")
+        return self
+
+
+class OwnedRecordedTest(RecordedTestResult):
     ownership: Ownership
 
 
-RecordedTestView = OwnedRecordedTest | RecordedTest
+RecordedTestView = OwnedRecordedTest | RecordedTestResult
 
 
 class StoredAnalyzerTest(SnapshotModel):
@@ -222,6 +249,9 @@ class TestSummary(SnapshotModel):
     accepted: bool
     token_count: Count
     error: str | None
+    unknown_count: Count
+    grammar_accepted: bool
+    grammar_error: str | None
 
 
 class OwnedTestSummary(TestSummary):
@@ -246,7 +276,9 @@ class UnknownReview(Frequency):
 
 
 class TestReport(SnapshotModel):
+    approval_basis: Literal["no_unknown_tokens"] = "no_unknown_tokens"
     summary: TestTotals
+    grammar_summary: TestTotals
     statistics: AggregateStatistics
     unknown_review: list[UnknownReview]
     topic_counts: dict[str, PositiveCount]

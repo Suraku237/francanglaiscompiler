@@ -10,15 +10,25 @@ export function isAudioFile(file: File): boolean {
   return /\.(wav|mp3|m4a|ogg|flac|webm)$/i.test(file.name)
 }
 
-export function AudioPlayer({ src, filename, active = true, disabled = false }: {
+export function AudioPlayer({ src, filename, active = true, disabled = false, autoPlay = false }: {
   src: string
   filename: string
   active?: boolean
   disabled?: boolean
+  autoPlay?: boolean
 }) {
   const player = useRef<HTMLAudioElement>(null)
   const [error, setError] = useState('')
-  useEffect(() => { setError('') }, [src])
+  useEffect(() => { setError('') }, [filename, src])
+  useEffect(() => {
+    const current = player.current
+    if (!current || !autoPlay || !active || disabled) return
+    let cancelled = false
+    void current.play().catch(() => {
+      if (!cancelled) setError('Automatic playback could not start. Use the play control to listen to the saved recording.')
+    })
+    return () => { cancelled = true }
+  }, [active, autoPlay, disabled, filename, src])
   useEffect(() => {
     if ((!active || disabled) && player.current && !player.current.paused) player.current.pause()
   }, [active, disabled])
@@ -33,7 +43,7 @@ export function AudioPlayer({ src, filename, active = true, disabled = false }: 
       window.removeEventListener(AUDIO_FOCUS_EVENT, onFocus)
       if (current && !current.paused) current.pause()
     }
-  }, [])
+  }, [filename, src])
   return <div className="audio-player">
     <audio key={`${src}:${filename}`} ref={player} src={src} controls={!disabled} tabIndex={disabled ? -1 : 0} preload="none" aria-label={`Play recording: ${filename}`} onPlay={() => {
       if (!player.current) return

@@ -4,6 +4,7 @@ import type { AnalyzerState, RecordedTest, TestReport } from './analyzerTypes'
 import { ErrorNotice, Icon, Spinner } from './components'
 import { AnalyzedSource, GrammarResults, ParseTrace, TableScroll, TokenStatistics, TokenTable } from './CourseworkResults'
 import { TestStatistics } from './TestStatistics'
+import { VocabularyVerdict } from './VocabularyVerdict'
 
 export function Analysis({ result, report, lexicalSpec, analyzing, loading, loadError, inspecting, inspectError, grammarSettings, onCancel, onRefresh, onPage, onInspect, onRetryInspect, onUseText }: {
   result: RecordedTest | null
@@ -45,7 +46,8 @@ export function Analysis({ result, report, lexicalSpec, analyzing, loading, load
       <div className="lab-card-heading"><div><span className="test-eyebrow">Selected saved test</span><h2 id="analysis-input-title">Analyzed sentence or word</h2><p>Recorded {new Date(result.created_at).toLocaleString()}. These are the original results, not a new analysis using today's settings.</p></div></div>
       <p className="lab-copy">Creator: {result.ownership.owner_name} · Shared with all signed-in users. Saved tests are immutable.</p>
       <AnalyzedSource text={result.text} />
-      <div className="lab-actions"><span className={`lab-status ${result.parse.accepted ? 'ready' : 'needs_input'}`}>{result.parse.accepted ? 'ACCEPT' : 'REJECT'}</span><button type="button" className="text-button" onClick={() => onUseText(result.text)}>Use as analyzer input<Icon name="arrow" size={16} /></button></div>
+      <VocabularyVerdict result={result.approval} empty={result.lexical.tokens.length === 0} />
+      <div className="lab-actions"><button type="button" className="text-button" onClick={() => onUseText(result.text)}>Use as analyzer input<Icon name="arrow" size={16} /></button></div>
       <details className="lab-disclosure">
         <summary>Token details for this test</summary>
         <div className="lab-disclosure-body">
@@ -58,7 +60,7 @@ export function Analysis({ result, report, lexicalSpec, analyzing, loading, load
           <TokenStatistics statistics={result.lexical.statistics} />
         </div>
       </details>
-      <details className="lab-disclosure"><summary>Parser trace for this input</summary><div className="lab-disclosure-body"><ParseTrace result={result.parse} /></div></details>
+      <details className="lab-disclosure"><summary>Parser trace for this input</summary><div className="lab-disclosure-body"><h3>Separate CFG grammar check</h3><p className="lab-copy">This checks word order against the saved grammar. A grammar rejection does not change vocabulary approval.</p><ParseTrace result={result.parse} /></div></details>
       <details className="lab-disclosure">
         <summary>Saved grammar, transformations &amp; FIRST/FOLLOW</summary>
         <div className="lab-disclosure-body"><h3>Grammar used for this test</h3><pre className="lab-regex">{result.grammar_source}</pre><GrammarResults grammar={result.grammar} /></div>

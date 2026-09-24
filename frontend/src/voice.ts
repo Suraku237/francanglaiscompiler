@@ -1,76 +1,43 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { AUDIO_FOCUS_EVENT, claimAudioFocus, hasAudioFocus } from './audioFocus'
-import type { Language, TranslationLanguage } from './types'
+import { useCallback, useState } from 'react'
+import { MAX_TEXT } from './types'
+import type { Language, Ownership } from './types'
 
-export function browserVoiceLanguage(language: TranslationLanguage): Language {
-  return language === 'fr' || language === 'francanglais' ? 'fr' : 'en'
+export interface ReadingSelection { id: string; text: string; language: Language }
+export interface RecordedReading {
+  id: string
+  text: string
+  language: Language
+  audio_filename: string
+  audio_url: string
+  created_at: string
+  updated_at: string
+  ownership: Ownership
 }
 
 export function useReadAloud() {
-  const supported = Boolean(window.speechSynthesis && window.SpeechSynthesisUtterance)
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const supported = typeof window.HTMLAudioElement !== 'undefined'
+  const [selection, setSelection] = useState<ReadingSelection | null>(null)
   const [error, setError] = useState('')
-  const utterance = useRef<SpeechSynthesisUtterance | null>(null)
 
   const stop = useCallback(() => {
-    utterance.current = null
-    window.speechSynthesis?.cancel()
-    setActiveId(null)
+    setSelection(null)
     setError('')
   }, [])
-
-  useEffect(() => stop, [stop])
-
-  useEffect(() => {
-    const onFocus = (event: Event) => { if (!hasAudioFocus(event, utterance.current)) stop() }
-    window.addEventListener(AUDIO_FOCUS_EVENT, onFocus)
-    return () => window.removeEventListener(AUDIO_FOCUS_EVENT, onFocus)
-  }, [stop])
 
   const speak = useCallback((id: string, text: string, language: Language) => {
     stop()
     if (!supported) {
-      setError('Read-aloud is not supported in this browser.')
+      setError('Audio playback is not supported in this browser.')
       return
     }
-    const current = new SpeechSynthesisUtterance(text)
-    current.lang = language === 'fr' ? 'fr-FR' : 'en-US'
-    current.rate = 0.95
-    const voices = window.speechSynthesis.getVoices().filter((voice) => voice.localService)
-    const voice = voices.find((item) => item.lang === current.lang) ??
-      voices.find((item) => item.lang.toLowerCase().startsWith(language))
-    if (!voice) {
-      setError('Install a local French or English browser voice for read-aloud, then retry. Remote voices are not used.')
+    if (!text.trim() || text.length > MAX_TEXT) {
+      setError('A recorded reading needs non-empty text of at most 4,000 characters.')
       return
     }
-    current.voice = voice
-    utterance.current = current
-    current.onend = () => {
-      if (utterance.current === current) {
-        utterance.current = null
-        setActiveId(null)
-      }
-    }
-    current.onerror = (event) => {
-      if (utterance.current !== current) return
-      utterance.current = null
-      setActiveId(null)
-      if (event.error !== 'canceled' && event.error !== 'interrupted') {
-        setError('Your browser could not read this text aloud. Check that a local French or English voice is installed.')
-      }
-    }
-    try {
-      claimAudioFocus(current)
-      setActiveId(id)
-      window.speechSynthesis.speak(current)
-    } catch {
-      utterance.current = null
-      setActiveId(null)
-      setError('Read-aloud could not start. Please try again.')
-    }
+    setSelection({ id, text, language })
   }, [stop, supported])
 
-  return { supported, activeId, error, speak, stop }
+  return { supported, activeId: selection?.id ?? null, selection, error, speak, stop }
 }
 
 export type ReadAloud = ReturnType<typeof useReadAloud>

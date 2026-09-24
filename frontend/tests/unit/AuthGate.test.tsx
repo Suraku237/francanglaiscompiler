@@ -28,7 +28,7 @@ describe('authenticated shared workspace gate', () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(guest))
     render(<AuthGate />)
     expect(screen.queryByText(/Shared workspace signed in as/)).not.toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Sign in to Mboa' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Sign in to Camfranglais' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Continue with Google' })).toHaveAttribute('href', '/api/auth/google/start')
     expect(vi.mocked(fetch).mock.calls.every(([url]) => url === '/api/auth/session')).toBe(true)
     expect(screen.getByText(/All signed-in users can view the shared collection/)).toHaveTextContent('Your email, password and session remain personal.')
@@ -71,7 +71,7 @@ describe('authenticated shared workspace gate', () => {
     await screen.findByText(/Shared workspace signed in as first@example.com/)
     current = guest
     act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'mboa-session-change', newValue: 'changed' })))
-    await screen.findByRole('heading', { name: 'Sign in to Mboa' })
+    await screen.findByRole('heading', { name: 'Sign in to Camfranglais' })
     expect(screen.queryByText(/Shared workspace signed in as first@example.com/)).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Unsaved drafts were cleared; shared records and tests remain.')
   })

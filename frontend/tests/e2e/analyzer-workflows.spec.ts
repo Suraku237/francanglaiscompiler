@@ -16,7 +16,7 @@ test('Franc Analyzer classifies every word directly while Analysis retains all-t
   await page.getByLabel('Context-free grammar').fill('S -> VERB')
   await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  const verdict = page.getByRole('region', { name: 'Parser result' })
+  const verdict = page.getByRole('region', { name: 'Vocabulary result' })
   await expect(verdict.getByText('REJECT', { exact: true })).toBeVisible()
   expect(await verdict.getByLabel('Analyzed source text').textContent()).toBe(saved.text)
   await expect(verdict.getByRole('region', { name: 'Lexical tokens in source order' }).getByRole('row')).toHaveText([
@@ -27,7 +27,7 @@ test('Franc Analyzer classifies every word directly while Analysis retains all-t
   await verdict.scrollIntoViewIfNeeded()
   await page.screenshot({ path: testInfo.outputPath('direct-word-classifications.png') })
   await page.getByRole('link', { name: 'View detailed analysis' }).click()
-  await expect(page).toHaveTitle('Analysis — Mboa Compiler')
+  await expect(page).toHaveTitle('Analysis — Camfranglais Compiler')
   const stats = page.getByRole('region', { name: 'Test statistics' })
   await expect(stats.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
   await expect(stats.getByRole('group', { name: 'Accepted', exact: true })).toContainText('2')
@@ -67,7 +67,7 @@ test('saved tests survive reload and can be inspected or handed off without anot
   await expect(page).toHaveURL(/#compiler$/)
   await expect(page.getByLabel('Statement to analyze')).toHaveValue(saved.text)
   await expect(page.getByLabel('Statement to analyze')).toBeFocused()
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Vocabulary result' })).toHaveCount(0)
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
   expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
 })
@@ -103,7 +103,8 @@ test('complete frequency lists and long words stay readable without page overflo
   const frequencies = [{ token: 'je', count: 1 }, ...unknown]
   const total = frequencies.length
   api.testReport = testReport({
-    summary: { total, accepted: 0, rejected: total, acceptance_rate: 0 },
+    summary: { total, accepted: 1, rejected: total - 1, acceptance_rate: 100 / total },
+    grammar_summary: { total, accepted: 0, rejected: total, acceptance_rate: 0 },
     statistics: {
       ...lexicalStatistics({
         total_tokens: total, frequencies, unknown_tokens: unknown,
@@ -116,7 +117,8 @@ test('complete frequency lists and long words stay readable without page overflo
     tests: frequencies.slice(0, 25).map((row, index) => ({
       id: `large-vocabulary-test-${index}`, created_at: '2026-09-23T12:00:00Z',
       ownership: ownership(),
-      text: row.token, accepted: false, error: 'No matching grammar rule.', token_count: 1,
+      text: row.token, accepted: index === 0, error: index === 0 ? null : '1 UNKNOWN token.', token_count: 1,
+      unknown_count: index === 0 ? 0 : 1, grammar_accepted: false, grammar_error: 'No matching grammar rule.',
     })),
   })
   await page.goto('/#analysis')
@@ -161,7 +163,7 @@ test('failed recording and failed statistics reads remain explicit without succe
   await page.getByLabel('Statement to analyze').fill('Mbom')
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Cannot save recorded test.')
-  await expect(page.getByRole('region', { name: 'Parser result' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Vocabulary result' })).toHaveCount(0)
   api.reply('GET', '/api/analyzer/tests', { detail: 'Cannot read saved statistics.' }, 503)
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Analysis', exact: true }).click()
   const error = page.getByRole('alert').filter({ hasText: 'Cannot read saved statistics.' })
@@ -183,7 +185,7 @@ test('empty input is a real saved epsilon test rather than a fabricated empty da
   api.on('POST', '/api/analyzer/tests', async (route) => {
     api.testReport = testReport({
       summary: { total: 1, accepted: 1, rejected: 0, acceptance_rate: 100 },
-      tests: [{ id: saved.id, ownership: saved.ownership, created_at: saved.created_at, text: '', accepted: true, error: null, token_count: 0 }],
+      tests: [{ id: saved.id, ownership: saved.ownership, created_at: saved.created_at, text: '', accepted: true, error: null, token_count: 0, unknown_count: 0, grammar_accepted: true, grammar_error: null }],
       topic_counts: { 'Not recorded': 1 }, language_counts: { 'Not recorded': 1 },
     })
     await route.fulfill({ json: saved })

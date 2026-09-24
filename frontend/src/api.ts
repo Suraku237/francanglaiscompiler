@@ -54,10 +54,12 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const version = accountVersion
   const controller = new AbortController()
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
-    ((path === '/dataset' || path === '/dataset/audio' || path === '/coursework/screenshots' || path === '/analyzer/tests' ||
+    ((path === '/dataset' || path === '/dataset/audio' || path === '/readings/audio' || path === '/coursework/screenshots' || path === '/analyzer/tests' ||
       path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
   const recovery = path === '/analyzer/tests'
     ? 'Open Analysis and refresh saved tests to check the shared workspace. Retrying an unchanged test in this tab under the same account will not record it twice.'
+    : path.startsWith('/readings')
+    ? 'Refresh the recorded reading to check whether it was saved before retrying. Your local audio draft is kept.'
     : path.startsWith('/analyzer')
     ? 'Refresh saved grammar before trying again; your editor draft will be kept.'
     : path.startsWith('/coursework')
@@ -119,7 +121,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     if (error instanceof TypeError) {
       throw new Error(isMutation
         ? `The connection was interrupted. The change may have completed. ${recovery}`
-        : 'Cannot reach the server. Check your connection, then try again. For local testing, make sure Mboa is running.')
+        : 'Cannot reach the server. Check your connection, then try again. For local testing, make sure Camfranglais is running.')
     }
     throw error
   } finally {

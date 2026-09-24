@@ -1,4 +1,4 @@
-"""Start Mboa's website and API together on one origin."""
+"""Start Camfranglais's website and API together on one origin."""
 
 import argparse
 import ipaddress
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
             app_dir=str(ROOT), proxy_headers=production,
         )
     except (LaunchError, OSError) as exc:
-        print(f"Mboa could not start: {exc}", file=sys.stderr)
+        print(f"Camfranglais could not start: {exc}", file=sys.stderr)
         return 1
     return 0
 

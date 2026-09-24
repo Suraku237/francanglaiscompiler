@@ -79,7 +79,7 @@ class AnalyzerTests(ApiTestCase):
         prepared = manual_parse.call_args.args[0]
         self.assertTrue(all(call.args[0] is prepared for call in corpus_parse.call_args_list))
         self.assertEqual(manual_parse.call_args.args[1], body["lexical"]["tokens"])
-        self.assertEqual(set(body), {"text", "lexical", "grammar", "parse", "corpus"})
+        self.assertEqual(set(body), {"text", "lexical", "grammar", "parse", "corpus", "approval"})
         self.assertEqual(body["text"], text)
         self.assertEqual({key: body["lexical"][key] for key in expected_lexical}, expected_lexical)
         self.assertEqual(body["lexical"]["verb_phrases"], ["DON\tREFUSE", "JE   WANDA"])

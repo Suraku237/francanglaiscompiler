@@ -2,7 +2,8 @@ from fastapi import APIRouter, Query
 
 from . import analyzer, analyzer_history, coursework_store
 from .analyzer_models import (
-    AnalyzerTestRequest, CanonicalUUID, OwnedRecordedTest, RecordedTest, RecordedTestView, TestReport,
+    AnalyzerTestRequest, CanonicalUUID, OwnedRecordedTest, RecordedTest, RecordedTestResult,
+    RecordedTestView, TestReport, VocabularyApproval,
 )
 from .coursework_api import course_operation
 from .coursework_models import GrammarRequest, PracticeText
@@ -46,7 +47,8 @@ def record_test(payload: AnalyzerTestRequest) -> RecordedTestView:
 
 def test_view(record: RecordedTest) -> RecordedTestView:
     ownership = record_ownership("analyzer_test", record.id)
-    return OwnedRecordedTest(**record.model_dump(), ownership=ownership) if ownership is not None else record
+    result = {**record.model_dump(), "approval": VocabularyApproval.from_statistics(record.lexical.statistics)}
+    return OwnedRecordedTest(**result, ownership=ownership) if ownership is not None else RecordedTestResult(**result)
 
 
 @router.get("/tests")

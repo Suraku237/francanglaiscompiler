@@ -461,7 +461,7 @@ class WorkspaceStore:
     def validate_document(document: object, *, combined: bool = False) -> dict:
         if not isinstance(document, dict):
             raise CollectionError(422, "Unsupported backup structure.")
-        if document.get("format") == 4:
+        if document.get("format") in (4, 5):
             from .shared_workspace import SharedWorkspaceStore
             return SharedWorkspaceStore.validate_document(document)
         base_fields = {"format", "version", "projects", "entries", "history", "revisions"}

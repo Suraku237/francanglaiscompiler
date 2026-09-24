@@ -1,5 +1,5 @@
 import type { CourseworkAnalysis, CourseworkState, LexicalStatistics, ManualParse, Project } from '../src/courseworkTypes'
-import type { AnalyzerResult, AnalyzerState, RecordedTest, TestReport } from '../src/analyzerTypes'
+import type { AnalyzerResult, AnalyzerState, RecordedTest, TestReport, VocabularyApproval } from '../src/analyzerTypes'
 import type { ImportPreview } from '../src/importTypes'
 import { defaultMetadata } from '../src/types'
 import type { Dataset, DatasetEntry, Health, Metadata, Ownership } from '../src/types'
@@ -180,10 +180,15 @@ export function lexicalStatistics(overrides: Partial<LexicalStatistics> = {}): L
   return { frequencies: [], category_counts: {}, variations: [], unknown_tokens: [], total_tokens: 0, ...overrides }
 }
 
+export function vocabularyApproval(unknownCount = 0): VocabularyApproval {
+  return { basis: 'no_unknown_tokens', accepted: unknownCount === 0, unknown_count: unknownCount }
+}
+
 export function analyzerResult(overrides: Partial<AnalyzerResult> = {}): AnalyzerResult {
   const corpus = courseworkAnalysis()
   return {
     text: 'Mbom',
+    approval: overrides.approval ?? vocabularyApproval(overrides.lexical?.tokens.filter((token) => token.category === 'UNKNOWN').length ?? 0),
     lexical: {
       tokens: [{ text: 'Mbom', category: 'NOUN' }], code_mixed_spans: [], verb_phrases: [], slang_expressions: [],
       statistics: lexicalStatistics({ frequencies: [{ token: 'mbom', count: 1 }], category_counts: { NOUN: 1 }, total_tokens: 1 }),
@@ -255,6 +260,7 @@ export function recordedTest(overrides: Partial<RecordedTest> = {}): RecordedTes
     ownership: ownership(),
     created_at: '2026-09-23T12:00:00Z',
     grammar_source: 'S -> NOUN',
+    approval: overrides.approval ?? vocabularyApproval(overrides.lexical?.tokens.filter((token) => token.category === 'UNKNOWN').length ?? 0),
     metadata: { topics: [], languages: [], matching_entries: 0 },
     text: result.text, lexical: result.lexical, grammar: result.grammar, parse: result.parse,
     ...overrides,
@@ -263,7 +269,9 @@ export function recordedTest(overrides: Partial<RecordedTest> = {}): RecordedTes
 
 export function testReport(overrides: Partial<TestReport> = {}): TestReport {
   return {
+    approval_basis: 'no_unknown_tokens',
     summary: { total: 0, accepted: 0, rejected: 0, acceptance_rate: null },
+    grammar_summary: overrides.grammar_summary ?? overrides.summary ?? { total: 0, accepted: 0, rejected: 0, acceptance_rate: null },
     statistics: { ...lexicalStatistics(), raw_frequencies: [], normalized_frequencies: [] },
     unknown_review: [], topic_counts: {}, language_counts: {}, tests: [], offset: 0, limit: 25,
     ...overrides,
@@ -274,6 +282,7 @@ export function retainedTestReport(): TestReport {
   const frequencies = [{ token: 'veux', count: 3 }, { token: '+', count: 2 }, { token: 'taxi', count: 2 }]
   return testReport({
     summary: { total: 3, accepted: 2, rejected: 1, acceptance_rate: 200 / 3 },
+    grammar_summary: { total: 3, accepted: 1, rejected: 2, acceptance_rate: 100 / 3 },
     statistics: {
       frequencies, normalized_frequencies: frequencies,
       raw_frequencies: [{ token: 'veux', count: 2 }, { token: '+', count: 2 }, { token: 'taxi', count: 2 }, { token: 'VEUX', count: 1 }],
@@ -285,9 +294,9 @@ export function retainedTestReport(): TestReport {
     topic_counts: { 'Not recorded': 2, 'Taxi / Commuting': 1 },
     language_counts: { 'Not recorded': 2, francanglais: 1 },
     tests: [
-      { id: '01270d9d-aa38-452d-9f51-546514425bca', ownership: ownership(), created_at: '2026-09-23T12:02:00Z', text: 'veux', accepted: true, token_count: 1, error: null },
-      { id: '2518c8e9-fd48-4452-bce3-6a7a039b2190', ownership: ownership({ owner_id: 'second-user', owner_name: 'Second user', can_edit: false }), created_at: '2026-09-23T12:01:00Z', text: '  taxi taxi\n', accepted: true, token_count: 2, error: null },
-      { id: recordedTest().id, ownership: ownership(), created_at: '2026-09-23T12:00:00Z', text: '  veux VEUX + +\t', accepted: false, token_count: 4, error: 'No rule for S with lookahead VERB.' },
+      { id: '01270d9d-aa38-452d-9f51-546514425bca', ownership: ownership(), created_at: '2026-09-23T12:02:00Z', text: 'veux', accepted: true, token_count: 1, error: null, unknown_count: 0, grammar_accepted: true, grammar_error: null },
+      { id: '2518c8e9-fd48-4452-bce3-6a7a039b2190', ownership: ownership({ owner_id: 'second-user', owner_name: 'Second user', can_edit: false }), created_at: '2026-09-23T12:01:00Z', text: '  taxi taxi\n', accepted: true, token_count: 2, error: null, unknown_count: 0, grammar_accepted: false, grammar_error: 'Unexpected trailing token NOUN.' },
+      { id: recordedTest().id, ownership: ownership(), created_at: '2026-09-23T12:00:00Z', text: '  veux VEUX + +\t', accepted: false, token_count: 4, error: '2 UNKNOWN tokens.', unknown_count: 2, grammar_accepted: false, grammar_error: 'No rule for S with lookahead VERB.' },
     ],
   })
 }

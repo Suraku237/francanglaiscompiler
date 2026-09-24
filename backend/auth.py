@@ -250,7 +250,7 @@ class AuthStore:
 
 def deliver_email(settings: AuthSettings, address: str, subject: str, text: str) -> None:
     message = EmailMessage()
-    message["From"] = settings.mail_from or "Mboa <no-reply@localhost>"
+    message["From"] = settings.mail_from or "Camfranglais <no-reply@localhost>"
     message["To"] = address
     message["Subject"] = subject
     message.set_content(text)
@@ -366,8 +366,8 @@ def install_auth(
         route = "verify-email" if purpose == "verify" else "reset-password"
         link = f"{settings.public_url}/#{route}?token={raw}"
         await run_in_threadpool(
-            send_mail, address, "Verify your Mboa email" if purpose == "verify" else "Reset your Mboa password",
-            f"Open Mboa to {'verify your email' if purpose == 'verify' else 'reset your password'}:\n\n"
+            send_mail, address, "Verify your Camfranglais email" if purpose == "verify" else "Reset your Camfranglais password",
+            f"Open Camfranglais to {'verify your email' if purpose == 'verify' else 'reset your password'}:\n\n"
             f"{link}\n\nThis single-use link expires in one hour. Ignore it if you did not request it.",
         )
 
@@ -559,9 +559,9 @@ def install_auth(
             if stage == "token_exchange" and provider_error in {"invalid_client", "unauthorized_client"}:
                 detail = "Google rejected the configured OAuth client. The operator must check the client ID and client secret."
             elif stage == "token_exchange" and provider_error == "invalid_grant":
-                detail = "Google rejected or expired this authorization code. Start a new Google sign-in from Mboa; do not refresh this callback page."
+                detail = "Google rejected or expired this authorization code. Start a new Google sign-in from Camfranglais; do not refresh this callback page."
             elif stage == "token_exchange" and provider_error == "redirect_uri_mismatch":
-                detail = "Google rejected the callback URL. The operator must register the exact Mboa callback URL for this OAuth client."
+                detail = "Google rejected the callback URL. The operator must register the exact Camfranglais callback URL for this OAuth client."
             elif exc.response.status_code == 429 or exc.response.status_code >= 500:
                 detail = "Google is temporarily unavailable. Please try signing in again later."
             raise AuthError(502, detail) from exc

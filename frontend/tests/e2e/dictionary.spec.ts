@@ -23,7 +23,7 @@ test('dictionary hands a raw form to the compiler without populating or certifyi
     parse: { accepted: false, consumed: 0, error: 'No rule for S with lookahead VERB.', trace: [] },
   }))
   await page.goto('/#dictionary')
-  await expect(page).toHaveTitle('Dictionary — Mboa Compiler')
+  await expect(page).toHaveTitle('Dictionary — Camfranglais Compiler')
   await expect(page.getByRole('heading', { name: 'tchop', exact: true })).toBeVisible()
   await expect(page.getByText(/No French translations were supplied/)).toBeVisible()
   await page.getByRole('searchbox', { name: 'Search reference dictionary' }).fill('tchop')
@@ -34,7 +34,7 @@ test('dictionary hands a raw form to the compiler without populating or certifyi
   await expect(page.getByLabel('Statement to analyze')).toBeFocused()
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Parser result' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Vocabulary result' })).toBeVisible()
   await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
   expect(await page.getByLabel('Analyzed source text').textContent()).toBe('  Tchop\t ')
   await expect(page.getByRole('region', { name: 'Lexical tokens in source order' })).toContainText('Tchop')
