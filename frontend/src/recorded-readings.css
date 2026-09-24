@@ -1,4 +1,6 @@
 .reading-modal { width: min(100% - 24px, 650px); }
+.reading-modal .modal-heading { position: sticky; top: 0; z-index: 1; background: #fff; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+.reading-body { padding: 0 clamp(18px, 4vw, 27px) 10px; }
 .reading-modal .reading-source { padding: 16px; margin: 16px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--cream); white-space: pre-wrap; overflow-wrap: anywhere; font: 600 17px/1.6 var(--sans); }
 .reading-modal section { margin-top: 22px; }
 .reading-modal h3 { font-size: 16px; margin-bottom: 10px; }

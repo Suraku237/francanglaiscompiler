@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 $python = Join-Path $PSScriptRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    throw "Create .venv with Python 3.11+ and install requirements.txt before starting Mboa."
+    throw "Create .venv with Python 3.11+ and install requirements.txt before starting Camfranglais."
 }
 
 $arguments = @("-m", "tools.run_app", "--host", $HostAddress, "--port", "$Port")

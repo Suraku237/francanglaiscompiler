@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url'
 import type { DatasetEntry } from '../../src/types'
 import { installSyntheticMicrophone } from '../browserAudio'
 
-const silence = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'fixtures', 'imports', 'silence.wav')
+export const silence = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'fixtures', 'imports', 'silence.wav')
 
-async function playMuted(player: Locator) {
+export async function playMuted(player: Locator) {
   await player.evaluate(async (element) => {
     if (!(element instanceof HTMLAudioElement)) throw new Error('Expected the actual audio player.')
     element.muted = true
@@ -21,14 +21,14 @@ async function playMuted(player: Locator) {
   })).toBeGreaterThan(0)
 }
 
-async function tracksReleased(page: Page) {
+export async function tracksReleased(page: Page) {
   await expect.poll(() => page.evaluate(() => {
     const tracks = window.syntheticAudioTracks
     return Boolean(tracks?.length && tracks.every((track) => track.readyState === 'ended'))
   })).toBe(true)
 }
 
-async function downloadedBytes(page: Page, link: Locator): Promise<Buffer> {
+export async function downloadedBytes(page: Page, link: Locator): Promise<Buffer> {
   const pending = page.waitForEvent('download')
   await link.click()
   const download = await pending

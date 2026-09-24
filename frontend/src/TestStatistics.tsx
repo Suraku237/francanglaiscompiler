@@ -49,9 +49,9 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
     <section aria-label="Grammar check statistics">
       <h3>Separate CFG grammar checks</h3>
       <dl className="test-token-totals">
-        <div role="group" aria-label="Grammar accepted"><dt>Matched grammar</dt><dd>{grammarSummary.accepted.toLocaleString()}</dd></div>
-        <div role="group" aria-label="Grammar rejected"><dt>Did not match grammar</dt><dd>{grammarSummary.rejected.toLocaleString()}</dd></div>
-        <div role="group" aria-label="Grammar acceptance rate"><dt>Grammar match rate</dt><dd>{grammarSummary.acceptance_rate === null ? 'Not available' : `${grammarSummary.acceptance_rate.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}</dd></div>
+        <div role="group" aria-label="Grammar matches"><dt>Matched grammar</dt><dd>{grammarSummary.accepted.toLocaleString()}</dd></div>
+        <div role="group" aria-label="Grammar mismatches"><dt>Did not match grammar</dt><dd>{grammarSummary.rejected.toLocaleString()}</dd></div>
+        <div role="group" aria-label="Grammar match rate"><dt>Grammar match rate</dt><dd>{grammarSummary.acceptance_rate === null ? 'Not available' : `${grammarSummary.acceptance_rate.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}</dd></div>
       </dl>
     </section>
     <dl className="test-token-totals">

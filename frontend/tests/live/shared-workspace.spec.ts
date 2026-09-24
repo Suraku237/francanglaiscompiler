@@ -1,5 +1,4 @@
 import { expect, test } from './fixtures'
-import { randomUUID } from 'node:crypto'
 import type { Dataset, DatasetEntry } from '../../src/types'
 import type { RecordedTest, TestReport } from '../../src/analyzerTypes'
 import { openGrammarSettings } from '../browserGrammar'
@@ -10,7 +9,7 @@ test('all accounts share Collection, classified CSV vocabulary and retained test
   const email = await signUp(page)
   const baseline: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
   const grammarBefore = await (await page.request.get('/api/analyzer')).json()
-  const raw = `  mola shiba sec ${randomUUID().replace(/[^a-f]/g, '')}\t`
+  const raw = '  mola shiba sec zqxyl\t'
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
   await expect(page.getByLabel('Active project')).toHaveCount(0)
   await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
@@ -35,7 +34,9 @@ test('all accounts share Collection, classified CSV vocabulary and retained test
   const recordedResponse = await recording
   const saved: RecordedTest = await recordedResponse.json()
   expect(saved.lexical.tokens.map((token) => token.category)).toEqual(['NOUN', 'VERB', 'ADJECTIVE', 'UNKNOWN'])
-  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
+  expect(saved.approval).toEqual({ basis: 'no_unknown_tokens', accepted: false, unknown_count: 1 })
+  expect(saved.parse.accepted).toBe(true)
+  await expect(page.getByText('REJECT', { exact: true })).toBeVisible()
   expect(await page.getByLabel('Analyzed source text').textContent()).toBe(raw)
   const session = await (await page.request.get('/api/auth/session')).json()
   const headers = { Origin: 'http://127.0.0.1:4190', 'X-CSRF-Token': session.csrf_token }
