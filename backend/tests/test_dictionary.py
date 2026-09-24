@@ -10,17 +10,17 @@ from data_collector import dataset
 
 
 class DictionaryLoadingTests(unittest.TestCase):
-    def test_both_supplied_files_load_without_losing_senses_or_provenance(self):
+    def test_csv_and_distinct_legacy_senses_load_without_losing_provenance(self):
         entries = dictionary.load_dictionary()
         self.assertEqual(Counter(entry.source_document for entry in entries), {
-            "camfranglais.md": 143, "extra_lexicon.md": 36,
+            "full_lexicon_classified.csv": 878, "camfranglais.md": 59, "extra_lexicon.md": 1,
         })
-        self.assertEqual(len({entry.id for entry in entries}), 179)
-        self.assertTrue(all(entry.language == "francanglais" for entry in entries))
+        self.assertEqual(len({entry.id for entry in entries}), 938)
+        self.assertEqual(Counter(entry.language for entry in entries), {"francanglais": 260, "fr": 316, "en": 362})
         self.assertTrue(all(entry.source_line > 0 and entry.topic and entry.origin for entry in entries))
         self.assertEqual(len([entry for entry in entries if entry.text.casefold() == "wanda"]), 2)
         self.assertEqual(len([entry for entry in entries if entry.text == "nyoxer"]), 2)
-        self.assertEqual(next(entry.english_gloss for entry in entries if entry.text == "tchop"), "to eat")
+        self.assertEqual(next(entry.english_gloss for entry in entries if "tchop" in entry.aliases), "to eat")
         self.assertEqual(next(entry.english_gloss for entry in entries if entry.text == "motard"),
                          "a motorcycle taxi rider")
 
@@ -33,11 +33,11 @@ class DictionaryLoadingTests(unittest.TestCase):
     def test_search_covers_headwords_english_meanings_and_pagination(self):
         first = dictionary.list_dictionary("", 0, 25)
         second = dictionary.list_dictionary("", 25, 25)
-        self.assertEqual((first.total, first.matched, len(first.entries)), (179, 179, 25))
+        self.assertEqual((first.total, first.matched, len(first.entries)), (938, 938, 25))
         self.assertTrue({entry.id for entry in first.entries}.isdisjoint(entry.id for entry in second.entries))
         self.assertEqual(dictionary.list_dictionary("  TCHOP  ", 0, 25).entries[0].english_gloss, "to eat")
         self.assertEqual(dictionary.list_dictionary("motorcycle rider", 0, 25).entries[0].text, "motard")
-        self.assertEqual(dictionary.list_dictionary("pasho", 0, 25).entries[0].text, "pater / pasho")
+        self.assertEqual(dictionary.list_dictionary("pasho", 0, 25).entries[0].text, "pater / pasho / pere")
         self.assertEqual(dictionary.list_dictionary("nonexistent-fixture", 0, 25).matched, 0)
 
     def test_malformed_sources_fail_instead_of_silently_discarding_rows(self):
@@ -67,8 +67,9 @@ class DictionaryApiTests(ApiTestCase):
             response = self.client.get("/api/dictionary", params={"query": "pasho", "limit": 1})
         self.assertEqual(response.status_code, 200, response.text)
         result = response.json()
-        self.assertEqual((result["total"], result["matched"], len(result["entries"])), (179, 1, 1))
-        self.assertEqual(result["entries"][0]["text"], "pater / pasho")
+        self.assertEqual((result["total"], result["matched"], len(result["entries"])), (938, 2, 1))
+        self.assertEqual(result["entries"][0]["text"], "pater / pasho / pere")
+        self.assertEqual(result["entries"][0]["part_of_speech"], "noun")
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         for params in ({"limit": 0}, {"limit": 101}, {"offset": -1}, {"query": "x" * 201}):
             self.assertEqual(self.client.get("/api/dictionary", params=params).status_code, 422)

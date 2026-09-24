@@ -90,7 +90,7 @@ describe('compiler-only navigation and account scope', () => {
     const navigation = within(screen.getByRole('navigation', { name: 'Main navigation' }))
     await user.click(navigation.getByRole('link', { name: 'Collection' }))
     const firstCard = () => screen.getByRole('heading', { name: /^Shared\s+statement$/ }).closest('article')!
-    await screen.findByRole('heading', { name: 'Second shared statement', exact: true })
+    await screen.findByRole('heading', { name: /^Second shared statement$/ })
     expect(within(firstCard()).getByRole('button', { name: /^Edit expression/ })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'View expression: Second shared statement' })).toBeEnabled()
     await user.click(within(firstCard()).getByRole('button', { name: 'Use as analyzer input' }))

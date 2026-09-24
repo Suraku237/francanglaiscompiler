@@ -68,7 +68,7 @@ class LexerCoverageTests(unittest.TestCase):
         result = analyze_sentence("N\u2019ÉKO n'eko 12 ! other", learned)
         self.assertEqual(
             [token.category for token in result["tokens"]],
-            ["SLANG", "UNKNOWN", "NUMBER", "PUNCTUATION", "FRENCH_VERB_LIKE"],
+            ["SLANG", "UNKNOWN", "NUMBER", "PUNCTUATION", "ADJECTIVE"],
         )
 
     def test_decomposed_accents_match_without_rewriting_raw_tokens(self):
@@ -188,7 +188,7 @@ class PhraseAnnotationTests(unittest.TestCase):
         result = analyze_sentence("DROP\tME")
         self.assertEqual(set(result), {"tokens", "code_mixed_spans", "verb_phrases"})
         self.assertEqual(result["verb_phrases"], ["DROP\tME"])
-        self.assertEqual(result["tokens"], [Token("DROP", "VERB"), Token("ME", "UNKNOWN")])
+        self.assertEqual(result["tokens"], [Token("DROP", "VERB"), Token("ME", "AMBIGUOUS")])
         self.assertEqual(Token._fields, ("text", "category"))
 
 

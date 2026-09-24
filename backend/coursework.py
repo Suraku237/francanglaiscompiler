@@ -3,6 +3,7 @@ from collections.abc import Mapping
 
 from compiler.lexer import lexicon, tokenizer
 from compiler.lexer.learned import build_lexicon
+from compiler.lexer.reference import CSV_PATH, load_classified_lexicon, reference_verb_phrases
 from compiler.parser.service import analyze_grammar, parse_analysis
 from data_collector import dataset
 
@@ -34,16 +35,20 @@ def lexical_spec() -> dict:
             {"category": "ENGLISH_VERB_LIKE", "pattern": r"(?:ing|ed)$"},
             {"category": "FRENCH_VERB_LIKE", "pattern": r"(?=.{4,}$).*(?:er|ir|re)$"},
         ],
-        "verb_phrases": lexicon.VERB_PHRASES,
+        "verb_phrases": [*lexicon.VERB_PHRASES, *reference_verb_phrases()],
         "slang_phrases": lexicon.SLANG_PHRASES,
         "classification_order": [
             "NUMBER", "PUNCTUATION", "SLANG", "PIDGIN_MARKER", "NOUN", "VERB",
             "FRENCH_FUNCTION_WORD", "ENGLISH_FUNCTION_WORD",
+            "CSV_REFERENCE",
             "ENGLISH_VERB_LIKE", "FRENCH_VERB_LIKE", "UNKNOWN",
         ],
         "limitations": [
             "After structural regex rules, approved language-labeled Word annotations override static lists; conflicting labels are ignored.",
-            "Nouns, verbs and slang use small word lists, not a complete multilingual dictionary.",
+            f"Existing explicit word classifications take priority over the {len(load_classified_lexicon())} rows in {CSV_PATH.name}.",
+            "CSV aliases fill vocabulary gaps before morphological guesses; raw spelling and supplied meanings remain unchanged.",
+            "AMBIGUOUS means the supplied reference gives a new word multiple categories; context is not guessed.",
+            "Multiword references do not assign their meaning or category to each component word. Supplied verb phrases are annotated separately.",
             "Morphological labels ending in _LIKE are guesses, not confirmed parts of speech.",
             "Code-mixed spans are inferred transitions, not proof of a speaker's language.",
             "Variation groups compare spelling/case/accents only, not semantic equivalence.",

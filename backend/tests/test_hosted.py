@@ -248,8 +248,9 @@ class SharedWorkspaceTests(HostedCase):
         self.assertEqual(shared["total"], 1)
         self.assertEqual(shared["entries"], [{**entry, "ownership": {**ownership, "can_edit": False}}])
         self.assertEqual(shared["entries"][0]["contributor"], "Original collector")
+        summary = {key: saved[key] for key in ("id", "kind", "title", "created_at", "updated_at")}
         self.assertEqual(other.get("/api/workspace/history").json()["entries"],
-                         [{**saved, "ownership": {**ownership, "can_edit": False}}])
+                         [{**summary, "ownership": {**ownership, "can_edit": False}}])
         self.assertEqual(other.get(f"/api/workspace/history/{saved['id']}").json()["content"], HISTORY["content"])
         for response in (
             other.patch(f"/api/dataset/{entry['id']}", json={"text": "Stolen"}),
@@ -295,11 +296,13 @@ class SharedWorkspaceTests(HostedCase):
             event_loop_threads.append(threading.get_ident())
             return await run_in_threadpool(function, *args, **kwargs)
 
-        def initialize(*args, **kwargs):
-            initializer_threads.append(threading.get_ident())
-            return SharedWorkspaceStore(*args, **kwargs)
+        original_initialize = SharedWorkspaceStore.__init__
 
-        with patch("backend.shared_workspace.SharedWorkspaceStore", side_effect=initialize), \
+        def initialize(store, *args, **kwargs):
+            initializer_threads.append(threading.get_ident())
+            original_initialize(store, *args, **kwargs)
+
+        with patch.object(SharedWorkspaceStore, "__init__", new=initialize), \
                 patch("backend.auth.run_in_threadpool", side_effect=observe_event_loop):
             response = self.client.get("/api/dataset")
         self.assertEqual(response.status_code, 200, response.text)
@@ -463,7 +466,7 @@ class WorkspaceBackupTests(HostedCase):
         self.assertEqual(other.delete(f"/api/workspace/backups/{saved['id']}").status_code, 403)
         self.assertEqual(other.post("/api/workspace/backups/restore", json={
             "token": preview["token"], "expected_version": preview["workspace_version"], "confirmation": "REPLACE",
-        }).status_code, 400)
+        }).status_code, 403)
         self.assertEqual(self.client.delete(f"/api/workspace/backups/{saved['id']}").status_code, 204)
 
     def test_corrupt_and_traversal_archives_do_not_change_live_data(self):

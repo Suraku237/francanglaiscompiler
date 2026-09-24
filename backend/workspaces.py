@@ -658,8 +658,9 @@ def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, R
     @asynccontextmanager
     async def workspace_context(user: UserIdentity, request: Request) -> AsyncIterator[WorkspaceStore]:
         # Old bookmarks/clients can name a former project, but no header partitions shared data.
-        project = request.headers.get("x-mboa-project") or request.query_params.get("project") or "default"
-        valid_id(project, default=True)
+        for project in (request.headers.get("x-mboa-project"), request.query_params.get("project")):
+            if project:
+                valid_id(project, default=True)
         workspace = await run_in_threadpool(SharedWorkspaceStore, data_dir, user.id, user.display_name)
         token = _workspace.set(workspace)
         try:

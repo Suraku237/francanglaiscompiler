@@ -29,7 +29,8 @@ export interface DictionaryEntry {
   id: string
   text: string
   aliases: string[]
-  language: 'francanglais'
+  language: 'francanglais' | 'fr' | 'en'
+  part_of_speech?: string
   english_gloss: string
   origin: string
   topic: string
@@ -143,7 +144,7 @@ export const defaultMetadata: Metadata = {
   ],
   entry_types: ['Word', 'Phrase', 'Sentence'],
   dataset_languages: ['francanglais', 'pidgin', 'mixed', 'unspecified'],
-  lexical_categories: ['NUMBER', 'PUNCTUATION', 'SLANG', 'PIDGIN_MARKER', 'NOUN', 'VERB', 'FRENCH_FUNCTION_WORD', 'ENGLISH_FUNCTION_WORD', 'ENGLISH_VERB_LIKE', 'FRENCH_VERB_LIKE', 'UNKNOWN'],
+  lexical_categories: ['NUMBER', 'PUNCTUATION', 'SLANG', 'PIDGIN_MARKER', 'NOUN', 'VERB', 'FRENCH_FUNCTION_WORD', 'ENGLISH_FUNCTION_WORD', 'ADJECTIVE', 'ADVERB', 'INTERJECTION', 'PRONOUN', 'PREPOSITION', 'CONJUNCTION', 'DETERMINER', 'PARTICLE', 'AMBIGUOUS', 'ENGLISH_VERB_LIKE', 'FRENCH_VERB_LIKE', 'UNKNOWN'],
 }
 
 export const MAX_TEXT = 4000

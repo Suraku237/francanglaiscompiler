@@ -12,6 +12,7 @@ from pptx import Presentation
 from pptx.shapes.autoshape import Shape
 from pptx.util import Inches, Pt
 
+from compiler.lexer.reference import CSV_PATH
 from data_collector import dataset
 
 from .coursework import BRIEF, analyze_coursework, corpus_stats, lexical_spec, read_corpus
@@ -312,7 +313,7 @@ if __name__ == "__main__":
         for path in (ROOT / "frontend" / "src").glob("*"):
             if path.suffix in (".ts", ".tsx", ".css"):
                 archive.write(path, "source/" + path.relative_to(ROOT).as_posix())
-        for path in DICTIONARY_PATHS:
+        for path in (*DICTIONARY_PATHS, CSV_PATH):
             archive.write(path, "source/dictionary/" + path.name)
         archive.write(EXAMPLES_PATH, "source/examples/" + EXAMPLES_PATH.name)
         for relative in (

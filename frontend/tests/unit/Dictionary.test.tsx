@@ -15,6 +15,21 @@ const response = (overrides: Partial<DictionaryResult> = {}): DictionaryResult =
 })
 
 describe('separate reference dictionary', () => {
+  it('displays supplied CSV classifications and provenance without saving fieldwork', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(response({
+      entries: [{ ...record, text: 'sec', aliases: ['sec'], part_of_speech: 'adjective',
+        source_document: 'full_lexicon_classified.csv', source_line: 51 }],
+      total: 938, sources: ['full_lexicon_classified.csv'],
+    })))
+    render(<Dictionary active onUseText={vi.fn()} />)
+    await screen.findByRole('heading', { name: 'sec' })
+    expect(screen.getByText('Part of speech (supplied)')).toBeInTheDocument()
+    expect(screen.getByText('adjective')).toBeInTheDocument()
+    expect(screen.getByText('full_lexicon_classified.csv:51')).toBeInTheDocument()
+    expect(screen.getByText(/Existing compiler classifications take priority/)).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('loads only when active and shows provenance without calling it collected fieldwork', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(response()))
     const props = { active: false, onUseText: vi.fn() }

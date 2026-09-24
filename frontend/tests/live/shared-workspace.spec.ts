@@ -1,0 +1,120 @@
+import { expect, test } from './fixtures'
+import { randomUUID } from 'node:crypto'
+import type { Dataset, DatasetEntry } from '../../src/types'
+import type { RecordedTest, TestReport } from '../../src/analyzerTypes'
+import { openGrammarSettings } from '../browserGrammar'
+import { signIn, signUp } from './accountWorkflows'
+
+test('all accounts share Collection, classified CSV vocabulary and retained tests with creator-only edits', async ({ page, browser }, testInfo) => {
+  await page.context().route(/^https?:\/\/(?!127\.0\.0\.1:4190\/).*/, (route) => route.abort('blockedbyclient'))
+  const email = await signUp(page)
+  const baseline: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
+  const grammarBefore = await (await page.request.get('/api/analyzer')).json()
+  const raw = `  mola shiba sec ${randomUUID().replace(/[^a-f]/g, '')}\t`
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' })
+  await expect(page.getByLabel('Active project')).toHaveCount(0)
+  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  const editor = page.getByRole('dialog', { name: 'Add collection entry' })
+  await editor.getByRole('textbox', { name: /^Expression/ }).fill(raw)
+  await editor.getByRole('textbox', { name: /^French meaning/ }).fill('Exemple de test manuel')
+  const created = page.waitForResponse((response) => response.url().endsWith('/api/dataset') && response.request().method() === 'POST')
+  await editor.getByRole('button', { name: 'Save unreviewed', exact: true }).click()
+  const entry: DatasetEntry = await (await created).json()
+  expect(entry.text).toBe(raw)
+  expect(entry.ownership.can_edit).toBe(true)
+  await expect(editor).not.toBeVisible()
+  await openGrammarSettings(page)
+  await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
+  await expect(page.getByText(/Grammar saved to the shared workspace/)).toBeVisible()
+  await page.getByLabel('Context-free grammar').fill('S -> NOUN VERB ADJECTIVE UNKNOWN')
+  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+  await page.getByLabel('Statement to analyze').fill(raw)
+  const recording = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/tests') && response.request().method() === 'POST')
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  const recordedResponse = await recording
+  const saved: RecordedTest = await recordedResponse.json()
+  expect(saved.lexical.tokens.map((token) => token.category)).toEqual(['NOUN', 'VERB', 'ADJECTIVE', 'UNKNOWN'])
+  await expect(page.getByText('ACCEPT', { exact: true })).toBeVisible()
+  expect(await page.getByLabel('Analyzed source text').textContent()).toBe(raw)
+  const session = await (await page.request.get('/api/auth/session')).json()
+  const headers = { Origin: 'http://127.0.0.1:4190', 'X-CSRF-Token': session.csrf_token }
+  const retried = await page.request.post('/api/analyzer/tests', { headers, data: recordedResponse.request().postDataJSON() })
+  expect(await retried.json()).toEqual(saved)
+  expect((await (await page.request.get('/api/analyzer/tests')).json()).summary.total).toBe(baseline.summary.total + 1)
+  expect((await (await page.request.get('/api/analyzer')).json()).grammar).toBe(grammarBefore.grammar)
+
+  const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4190', viewport: page.viewportSize() ?? undefined })
+  try {
+    await otherContext.route(/^https?:\/\/(?!127\.0\.0\.1:4190\/).*/, (route) => route.abort('blockedbyclient'))
+    const other = await otherContext.newPage()
+    await signUp(other)
+    const users = await (await other.request.get('/api/workspace/projects')).json()
+    await expect(other.getByLabel('Registered users')).toContainText(`${users.registered_users} registered users`)
+    await other.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
+    const card = other.getByRole('article').filter({ has: other.getByRole('heading', { name: raw.trim(), exact: true }) })
+    await expect(card).toBeVisible()
+    await expect(card.getByRole('button', { name: /^Edit expression/ })).toHaveCount(0)
+    await card.getByRole('button', { name: /^View expression/ }).click()
+    const view = other.getByRole('dialog', { name: 'View collection entry' })
+    await expect(view.getByRole('textbox', { name: /^Expression/ })).toHaveValue(raw)
+    await expect(view.getByRole('textbox', { name: /^Expression/ })).toHaveAttribute('readonly', '')
+    await expect(view.getByRole('button', { name: /Save unreviewed|Save approved/ })).toHaveCount(0)
+    await view.getByRole('button', { name: 'Done', exact: true }).click()
+    const otherSession = await (await other.request.get('/api/auth/session')).json()
+    const otherHeaders = { Origin: 'http://127.0.0.1:4190', 'X-CSRF-Token': otherSession.csrf_token }
+    expect((await other.request.patch(`/api/dataset/${entry.id}`, { headers: otherHeaders, data: { notes: 'Forbidden edit' } })).status()).toBe(403)
+    expect((await other.request.delete(`/api/dataset/${entry.id}`, { headers: otherHeaders })).status()).toBe(403)
+    const inspected: RecordedTest = await (await other.request.get(`/api/analyzer/tests/${saved.id}`)).json()
+    expect(inspected.text).toBe(raw)
+    expect(inspected.ownership.can_edit).toBe(false)
+    await openGrammarSettings(other)
+    await expect(other.getByRole('button', { name: 'Save grammar', exact: true })).toBeDisabled()
+    expect((await other.request.put('/api/analyzer/grammar', {
+      headers: otherHeaders, data: { grammar: 'S -> AMBIGUOUS' },
+    })).status()).toBe(403)
+    await expect(other.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText(String(baseline.summary.total + 1))
+    await other.getByLabel('Context-free grammar').fill('S -> AMBIGUOUS')
+    await other.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
+    await other.getByLabel('Statement to analyze').fill('mbindi')
+    await other.getByRole('button', { name: 'Analyze', exact: true }).click()
+    await expect(other.getByText('ACCEPT', { exact: true })).toBeVisible()
+    await expect(other.getByRole('region', { name: 'Lexical tokens in source order' })).toContainText('AMBIGUOUS')
+    const contribution = await other.request.post('/api/dataset', {
+      headers: otherHeaders, data: { text: 'mbindi', entry_type: 'Word' },
+    })
+    expect(contribution.status()).toBe(201)
+    const contributed: DatasetEntry = await contribution.json()
+    expect(contributed.ownership.can_edit).toBe(true)
+    expect((await page.request.patch(`/api/dataset/${contributed.id}`, {
+      headers, data: { notes: 'Forbidden edit' },
+    })).status()).toBe(403)
+    expect((await page.request.delete(`/api/dataset/${contributed.id}`, { headers })).status()).toBe(403)
+    await other.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Dictionary', exact: true }).click()
+    await other.getByRole('searchbox', { name: 'Search reference dictionary' }).fill('shiba')
+    const dictionaryCard = other.getByRole('article').filter({ has: other.getByRole('heading', { name: 'shiba', exact: true }) })
+    await expect(dictionaryCard.getByText('verb', { exact: true })).toBeVisible()
+    await expect(dictionaryCard.getByText(/full_lexicon_classified.csv:/)).toBeVisible()
+    expect((await (await other.request.get('/api/dictionary')).json()).total).toBe(938)
+    expect(await other.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await other.screenshot({ path: testInfo.outputPath('shared-dictionary.png'), fullPage: true })
+  } finally {
+    await otherContext.close()
+  }
+
+  await page.reload()
+  await navigation.getByRole('link', { name: 'Analysis', exact: true }).click()
+  const final: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
+  expect(final.summary.total).toBe(baseline.summary.total + 2)
+  expect(final.statistics.total_tokens).toBe(baseline.statistics.total_tokens + 5)
+  await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText(String(final.summary.total))
+  await page.screenshot({ path: testInfo.outputPath('shared-analysis.png'), fullPage: true })
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in to Mboa' })).toBeVisible()
+  expect((await page.request.get('/api/analyzer/tests')).status()).toBe(401)
+  await signIn(page, email)
+  expect((await (await page.request.get('/api/analyzer/tests')).json()).summary.total).toBe(final.summary.total)
+  const retained: Dataset = await (await page.request.get('/api/dataset')).json()
+  expect(retained.entries.find((row) => row.id === entry.id)).toEqual(entry)
+})

@@ -88,6 +88,15 @@ class SharedWorkspaceStore(WorkspaceStore):
     def delete_project(self, project_id: str) -> None:
         raise CollectionError(409, "The shared workspace cannot be deleted.")
 
+    def histories(self, query: str = "") -> list[dict]:
+        return [
+            {**row, "ownership": self.ownership("history", row["id"]).model_dump()}
+            for row in super().histories(query)
+        ]
+
+    def history(self, entry_id: str) -> dict:
+        return {**super().history(entry_id), "ownership": self.ownership("history", entry_id).model_dump()}
+
     def save_backup_settings(self, settings: dict) -> None:
         with self.lock(), self.connection() as db:
             self.authorize_write(db, "backup_settings", "default", new=True)

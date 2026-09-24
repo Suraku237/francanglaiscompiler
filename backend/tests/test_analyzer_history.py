@@ -16,6 +16,7 @@ from backend.analyzer_models import RecordedTest
 from backend.collection import CollectionError
 from backend.config import Settings
 from backend.main import create_app
+from backend.shared_workspace import SharedWorkspaceStore
 from backend.tests.test_api import ApiTestCase
 from backend.tests.test_compiler_workspace import CompilerHostedCase
 from backend.workspace_backups import validate_archive
@@ -81,7 +82,7 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
         self.assertEqual(record["text"], text)
         self.assertEqual(record["grammar_source"], grammar)
         self.assertEqual(record["metadata"], {"topics": [], "languages": [], "matching_entries": 0})
-        self.assertEqual(record["lexical"]["verb_phrases"], ["DON\tREFUSE"])
+        self.assertEqual(record["lexical"]["verb_phrases"], ["DON\tREFUSE", "JE   WANDA"])
         self.assertEqual(record["lexical"]["slang_expressions"], ["JE   WANDA"])
         self.assertIsNotNone(datetime.fromisoformat(record["created_at"]).tzinfo)
         self.assertEqual(self.client.get(f"/api/analyzer/tests/{record['id']}").json(), record)
@@ -162,7 +163,7 @@ class AnalyzerHistoryTests(AnalyzerHistoryCase, ApiTestCase):
         stats = report["statistics"]
         self.assertEqual(stats["total_tokens"], 36)
         self.assertEqual(stats["category_counts"], {
-            "UNKNOWN": 30, "NUMBER": 2, "PUNCTUATION": 2, "ENGLISH_FUNCTION_WORD": 2,
+            "UNKNOWN": 26, "NOUN": 4, "NUMBER": 2, "PUNCTUATION": 2, "ENGLISH_FUNCTION_WORD": 2,
         })
         self.assertEqual({item["token"]: item["count"] for item in stats["frequencies"]}, {
             "école": 4, "ecole": 2, "zzzq": 4, "+": 2, "12": 2, ".": 2, "strasse": 4,
@@ -337,50 +338,54 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         for path in ("/api/analyzer/tests", f"/api/analyzer/tests/{identifier}"):
             self.assertEqual(self.client.get(path).status_code, 401)
         user = self.register()
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         version = store.version
         for headers in ({"X-CSRF-Token": ""}, {"Origin": "https://attacker.example"}):
             response = self.client.post("/api/analyzer/tests", headers=headers, json=payload)
             self.assertEqual(response.status_code, 403, response.text)
         self.assertEqual(store.version, version)
         self.assertEqual(self.report()["summary"]["total"], 0)
-        self.record(request_id=identifier)
-        for path in ("/api/analyzer/tests", f"/api/analyzer/tests/{identifier}"):
+        saved = self.record(request_id=identifier)
+        for path in ("/api/analyzer/tests", f"/api/analyzer/tests/{saved['id']}"):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, response.text)
             self.assertIn("no-store", response.headers["cache-control"])
             self.assertEqual(response.headers["x-content-type-options"], "nosniff")
         self.assertFalse(self.legacy_coursework.exists())
 
-    def test_project_account_and_idempotency_keys_are_isolated(self):
+    def test_all_accounts_share_tests_but_idempotency_keys_remain_actor_scoped(self):
         owner = self.register()
         identifier = str(uuid4())
         first = self.record(request_id=identifier)
-        project = self.project()
+        project = str(uuid4())
         self.client.headers["X-Mboa-Project"] = project
-        self.assertEqual(self.report()["summary"]["total"], 0)
-        self.assertEqual(self.client.get(f"/api/analyzer/tests/{identifier}").status_code, 404)
-        second = self.record("waka", "S -> VERB", request_id=identifier)
-        self.assertNotEqual(second, first)
-        self.assertEqual(self.client.get(f"/api/analyzer/tests/{identifier}").json(), second)
-        self.client.headers.pop("X-Mboa-Project")
-        self.assertEqual(self.client.get(f"/api/analyzer/tests/{identifier}").json(), first)
-        self.assertEqual(self.client.get(f"/api/analyzer/tests/{identifier}", params={"project": project}).json(), second)
         self.assertEqual(self.report()["summary"]["total"], 1)
-        before = WorkspaceStore(self.root, owner["id"]).export_document()
+        self.assertEqual(self.client.get(f"/api/analyzer/tests/{first['id']}").json(), first)
+        self.assertEqual(self.record(request_id=identifier), first)
+        conflict = self.client.post("/api/analyzer/tests", json={
+            "request_id": identifier, "text": "waka", "grammar": "S -> VERB",
+        })
+        self.assertEqual(conflict.status_code, 409)
+        self.client.headers.pop("X-Mboa-Project")
+        self.assertEqual(self.client.get(f"/api/analyzer/tests/{first['id']}", params={"project": project}).json(), first)
+        store = SharedWorkspaceStore(self.root, owner["id"])
+        before = store.export_document()["analyzer_tests"]
         other = self.other()
         self.register(other, "second@example.com")
-        self.assertEqual(self.report(client=other)["summary"]["total"], 0)
-        self.assertEqual(other.get(f"/api/analyzer/tests/{identifier}").status_code, 404)
-        self.assertEqual(other.get("/api/analyzer/tests", params={"project": project}).status_code, 404)
-        self.record("zandolo", "S -> UNKNOWN", request_id=identifier, client=other)
-        self.assertEqual(WorkspaceStore(self.root, owner["id"]).export_document(), before)
+        self.assertEqual(self.report(client=other)["summary"]["total"], 1)
+        visible = other.get(f"/api/analyzer/tests/{first['id']}").json()
+        self.assertEqual(visible, {**first, "ownership": {**first["ownership"], "can_edit": False}})
+        self.assertEqual(other.get("/api/analyzer/tests", params={"project": project}).status_code, 200)
+        second = self.record("zandolo", "S -> UNKNOWN", request_id=identifier, client=other)
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertEqual(self.report()["summary"]["total"], 2)
+        self.assertEqual([row for row in store.export_document()["analyzer_tests"] if row["id"] == first["id"]], before)
 
     def test_version_concurrent_retries_reopen_and_project_deletion_guard(self):
         user = self.register()
-        project = self.project()
+        project = str(uuid4())
         self.client.headers["X-Mboa-Project"] = project
-        store = WorkspaceStore(self.root, user["id"], project)
+        store = SharedWorkspaceStore(self.root, user["id"])
         version = store.version
         identifier = str(uuid4())
         payload = {"request_id": identifier, "text": "  taxi \r\n", "grammar": "S -> NOUN"}
@@ -401,12 +406,12 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
         self.login(reopened)
         reopened.headers["X-Mboa-Project"] = project
-        self.assertEqual(reopened.get(f"/api/analyzer/tests/{identifier}").json(), saved)
+        self.assertEqual(reopened.get(f"/api/analyzer/tests/{saved['id']}").json(), saved)
         self.assertEqual(self.report(client=reopened)["statistics"]["total_tokens"], 1)
 
     def test_sqlite_insert_and_version_are_one_atomic_commit(self):
         user = self.register()
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         before = store.export_document()
         identifier = str(uuid4())
         with patch.object(WorkspaceStore, "bump", side_effect=sqlite3.OperationalError("PRIVATE write failure")), \
@@ -426,11 +431,11 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         user = self.register()
         self.entry(text="Stored collection")
         self.save_profile(grammar="S -> NOUN", discussion="Keep this.")
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         before = store.export_document()
         with store.connection() as db:
             db.execute("DROP TABLE analyzer_tests")
-        reopened = WorkspaceStore(self.root, user["id"])
+        reopened = SharedWorkspaceStore(self.root, user["id"])
         self.assertEqual(reopened.export_document(), before)
         self.record()
         after = reopened.export_document()
@@ -438,18 +443,20 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
             self.assertEqual(after[key], before[key])
         self.assertEqual(len(after["analyzer_tests"]), 1)
 
-    def test_backups_roundtrip_every_project_test_and_mutation_invalidates_preview(self):
+    def test_backups_roundtrip_shared_tests_and_mutation_invalidates_preview(self):
         user = self.register()
-        first = self.record("  taxi \r\n")
-        project = self.project()
+        first_request = str(uuid4())
+        second_request = str(uuid4())
+        first = self.record("  taxi \r\n", request_id=first_request)
+        project = str(uuid4())
         self.client.headers["X-Mboa-Project"] = project
-        second = self.record("waka", "S -> VERB", request_id=first["id"])
-        store = WorkspaceStore(self.root, user["id"])
+        second = self.record("waka", "S -> VERB", request_id=second_request)
+        store = SharedWorkspaceStore(self.root, user["id"])
         content = self.backup()
         document, _ = validate_archive(content)
-        self.assertEqual(document["format"], 3)
+        self.assertEqual(document["format"], 4)
         self.assertEqual(len(document["analyzer_tests"]), 2)
-        self.assertEqual({row["project_id"] for row in document["analyzer_tests"]}, {"default", project})
+        self.assertEqual({row["project_id"] for row in document["analyzer_tests"]}, {"default"})
         preview = self.preview(content)
         self.assertEqual(preview["counts"]["analyzer_tests"], 2)
         self.record("zandolo")
@@ -461,20 +468,22 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
             restored = self.restore(preview)
         self.assertEqual(restored.status_code, 200, restored.text)
         self.assertEqual(store.export_document()["analyzer_tests"], document["analyzer_tests"])
-        for scope, saved in (("default", first), (project, second)):
+        for scope, saved, request_id in (("default", first, first_request), (project, second, second_request)):
             self.client.headers["X-Mboa-Project"] = scope
             self.assertEqual(self.client.get(f"/api/analyzer/tests/{saved['id']}").json(), saved)
-            self.assertEqual(self.record(saved["text"], saved["grammar_source"], request_id=saved["id"]), saved)
-            self.assertEqual(self.report()["summary"]["total"], 1)
+            self.assertEqual(self.record(saved["text"], saved["grammar_source"], request_id=request_id), saved)
+            self.assertEqual(self.report()["summary"]["total"], 2)
         safety = self.client.get(f"/api/workspace/backups/{restored.json()['pre_restore_backup_id']}/download")
         self.assertEqual(validate_archive(safety.content)[0]["analyzer_tests"], current["analyzer_tests"])
 
-    def test_format1_and_format2_backups_migrate_without_inventing_tests(self):
+    def test_legacy_backups_validate_offline_but_cannot_replace_shared_records(self):
         user = self.register()
         entry = self.entry(text="Legacy collection")
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         for version in (1, 2):
             original = store.export_document()
+            for key in ("ownership", "test_requests", "legacy_profiles"):
+                original.pop(key)
             original.pop("analyzer_tests")
             original["format"] = version
             if version == 1:
@@ -485,16 +494,17 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
             self.assertEqual(original, before)
             self.assertEqual(normalized["format"], 3)
             self.assertEqual(normalized["analyzer_tests"], [])
-            preview = self.preview(self.archive_document(original))
-            self.assertEqual(preview["counts"]["analyzer_tests"], 0)
-            self.assertEqual(self.restore(preview).status_code, 200)
+            preview = self.client.post("/api/workspace/backups/preview", files={
+                "file": ("legacy.zip", self.archive_document(original)),
+            })
+            self.assertEqual(preview.status_code, 422)
             self.assertEqual(self.report()["summary"]["total"], 0)
             self.assertEqual(self.client.get("/api/dataset").json()["entries"], [entry])
 
     def test_invalid_backup_snapshots_are_rejected_before_any_live_mutation(self):
         user = self.register()
         self.record()
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         original = store.export_document()
         mutations = (
             lambda record: record.update(id=str(uuid4())),
@@ -545,7 +555,7 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         self.record()
         content = self.backup()
         self.record("waka")
-        store = WorkspaceStore(self.root, user["id"])
+        store = SharedWorkspaceStore(self.root, user["id"])
         before = store.export_document()
         preview = self.preview(content)
         with store.connection() as db:

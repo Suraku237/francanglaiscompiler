@@ -10,7 +10,7 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
 
   return <section className="page dictionary-page" aria-labelledby="dictionary-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow">REFERENCE LIBRARY</div><h1 id="dictionary-title">Dictionary</h1><p>Look up Francanglais words, variants and English meanings with traceable references.</p></div>
+      <div><div className="eyebrow">REFERENCE LIBRARY</div><h1 id="dictionary-title">Dictionary</h1><p>Look up Francanglais, French and English vocabulary, supplied classifications and meanings.</p></div>
     </div>
     <div className="notice notice-subtle"><Icon name="info" size={20} /><p><strong>Reference material, not collected fieldwork.</strong> These read-only references are the same for all users; source meanings remain separate from the shared collection. No French translations were supplied. The origin describes etymology, not a translation. Check regional context and uncertainty; dictionary entries never increase research counts.</p></div>
     <div className="collection-tools">
@@ -26,12 +26,13 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
           <div className="dictionary-heading"><h2>{entry.text}</h2><CopyButton text={entry.text} compact /></div>
           <dl>
             <div><dt>English meaning</dt><dd lang="en">{entry.english_gloss}</dd></div>
+            {entry.part_of_speech && <div><dt>Part of speech (supplied)</dt><dd>{entry.part_of_speech}</dd></div>}
             {entry.aliases.length > 1 && <div><dt>Lookup forms</dt><dd>{entry.aliases.join(' / ')}</dd></div>}
             <div><dt>Topic</dt><dd>{entry.topic}</dd></div>
             <div><dt>Origin (as supplied)</dt><dd>{entry.origin}</dd></div>
             <div><dt>Source</dt><dd><code>{entry.source_document}:{entry.source_line}</code></dd></div>
           </dl>
-          <div className="import-actions"><button type="button" className="button button-secondary" onClick={() => onUseText(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in Franc Analyzer`}>Open in Franc Analyzer<Icon name="arrow" size={16} /></button>{speech && <ReadButton speech={speech} id={`dictionary:${entry.id}`} text={entry.text} language="fr" />}</div>
+          <div className="import-actions"><button type="button" className="button button-secondary" onClick={() => onUseText(entry.aliases[0] ?? entry.text)} aria-label={`Open ${entry.text} in Franc Analyzer`}>Open in Franc Analyzer<Icon name="arrow" size={16} /></button>{speech && <ReadButton speech={speech} id={`dictionary:${entry.id}`} text={entry.text} language={entry.language === 'en' ? 'en' : 'fr'} />}</div>
         </article>)}</div> : <div className="collection-empty"><Icon name="search" size={32} /><h2>No dictionary entries found.</h2><p>Try another spelling or an English meaning. A missing reference does not mean the word is invalid.</p></div>}
         <nav className="dictionary-pagination" aria-label="Dictionary pages">
           <button type="button" className="button button-secondary" disabled={offset === 0 || pending} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous entries</button>
@@ -40,6 +41,6 @@ export function Dictionary({ active, onUseText, speech }: { active: boolean; onU
         </nav>
       </>}
     </div>
-    <p className="helper-text">Opening an entry fills Franc Analyzer without running a computation or saving a corpus entry. Conflicting meanings remain visible. Optional local French-voice read-aloud is only a pronunciation approximation.</p>
+    <p className="helper-text">Opening an entry fills Franc Analyzer without running a computation or saving a corpus entry. Existing compiler classifications take priority; the CSV fills vocabulary gaps. Conflicting supplied categories are not guessed. Optional local-voice read-aloud is only a pronunciation approximation.</p>
   </section>
 }

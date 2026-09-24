@@ -1,4 +1,4 @@
-"""Optional reviewed word annotations; the base lexer never reads storage."""
+"""Reviewed Collection annotations, separate from the bundled reference lexicon."""
 
 from collections import defaultdict
 from collections.abc import Iterable

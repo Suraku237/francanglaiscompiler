@@ -1,48 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import type { Page } from '@playwright/test'
-import { readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { Dataset } from '../../src/types'
 import type { RecordedTest, TestReport } from '../../src/analyzerTypes'
 import type { CourseworkState } from '../../src/courseworkTypes'
 import { checkAudioErrorsAndManualDrafts, recordPrivateAudio } from './audioWorkflows'
 import { openGrammarSettings } from '../browserGrammar'
-
-const password = 'Live-browser-test-passphrase-2026!'
-
-async function emailLink(email: string, kind: string): Promise<string> {
-  const directory = process.env.MBOA_LIVE_DATA_DIR
-  if (!directory) throw new Error('Missing isolated browser fixture directory.')
-  const files = await readdir(join(directory, 'mail'))
-  for (const name of files.reverse()) {
-    const raw = await readFile(join(directory, 'mail', name), 'utf8')
-    const text = raw.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
-    if (text.includes(`To: ${email}`)) {
-      const match = text.match(new RegExp(`http://127\\.0\\.0\\.1:4190/#${kind}\\?token=[A-Za-z0-9_-]+`))
-      if (match) return match[0]
-    }
-  }
-  throw new Error('The test verification email was not delivered to the isolated outbox.')
-}
-
-async function signUp(page: Page): Promise<string> {
-  const email = `test-${randomUUID()}@example.com`
-  await page.goto('/#register')
-  await page.getByLabel('Your name', { exact: true }).fill('Synthetic compiler user')
-  await page.getByLabel('Email address').fill(email)
-  await page.getByLabel(/^Password/).fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('verification link')
-  await page.goto(await emailLink(email, 'verify-email'))
-  await page.getByRole('button', { name: 'Verify email', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Sign in to Mboa' })).toBeVisible()
-  await page.getByLabel('Email address').fill(email)
-  await page.getByLabel(/^Password/).fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
-  return email
-}
+import { emailLink, password, signUp } from './accountWorkflows'
 
 async function addEntry(page: Page, text: string) {
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
@@ -81,12 +45,12 @@ test.beforeEach(async ({ context }) => {
   })
 })
 
-test('real registration, compiler workflows, private data, sessions and reload persistence', async ({ page, browser }) => {
+test('real registration, shared compiler data, private sessions and reload persistence', async ({ page, browser }) => {
   const email = await signUp(page)
   await exerciseCompiler(page)
-  const privateTests: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
-  const privateTest = privateTests.tests[0]
-  if (!privateTest) throw new Error('Expected a retained private compiler test.')
+  const sharedTests: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
+  const sharedTest = sharedTests.tests[0]
+  if (!sharedTest) throw new Error('Expected a retained shared compiler test.')
   await addEntry(page, 'Synthetic customer greeting')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Synthetic customer greeting', exact: true })).toBeVisible()
@@ -96,13 +60,15 @@ test('real registration, compiler workflows, private data, sessions and reload p
     const other = await otherContext.newPage()
     await signUp(other)
     await other.goto('/#collection')
-    await expect(other.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
-    await expect(other.getByRole('heading', { name: 'Synthetic customer greeting', exact: true })).toHaveCount(0)
-    expect((await other.request.get(privateAudio)).status()).toBe(404)
+    await expect(other.getByRole('heading', { name: 'Synthetic customer greeting', exact: true })).toBeVisible()
+    await expect(other.getByRole('button', { name: /^Edit expression:/ })).toHaveCount(0)
+    expect((await other.request.get(privateAudio)).status()).toBe(200)
     const otherTests = await other.request.get('/api/analyzer/tests')
     expect(otherTests.ok()).toBe(true)
-    expect((await otherTests.json()).summary.total).toBe(0)
-    expect((await other.request.get(`/api/analyzer/tests/${privateTest.id}`)).status()).toBe(404)
+    expect((await otherTests.json()).summary.total).toBe(sharedTests.summary.total)
+    const inspected: RecordedTest = await (await other.request.get(`/api/analyzer/tests/${sharedTest.id}`)).json()
+    expect(inspected.id).toBe(sharedTest.id)
+    expect(inspected.ownership.can_edit).toBe(false)
   } finally {
     await otherContext.close()
   }
@@ -131,7 +97,7 @@ test('real registration, compiler workflows, private data, sessions and reload p
   expect(await page.getByLabel('Analyzed source text').textContent()).toBe('  123\t')
 })
 
-test('grammar-only saving preserves legacy project notes, history and project isolation without report tools', async ({ page }) => {
+test('grammar-only saving preserves legacy notes and shared history without report tools or separate projects', async ({ page }) => {
   await signUp(page)
   const submitted = processingRequests(page)
   const navigation = page.getByRole('navigation', { name: 'Main navigation' })
@@ -160,7 +126,7 @@ test('grammar-only saving preserves legacy project notes, history and project is
   const historyBefore = await (await page.request.get('/api/workspace/history')).json()
   expect(historyBefore.entries).toHaveLength(1)
   const otherProject = await page.request.post('/api/workspace/projects', { headers, data: { name: 'Synthetic second project' } })
-  expect(otherProject.status(), await otherProject.text()).toBe(201)
+  expect(otherProject.status(), await otherProject.text()).toBe(409)
   for (const retired of ['history', 'settings', 'imports']) {
     await page.goto(`/#${retired}`)
     await expect(page).toHaveURL(/#compiler$/)
@@ -169,7 +135,7 @@ test('grammar-only saving preserves legacy project notes, history and project is
   await openGrammarSettings(page)
   await page.getByLabel('Context-free grammar').fill('S -> VERB')
   await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
-  await expect(page.getByText(/Grammar saved privately/)).toBeVisible()
+  await expect(page.getByText(/Grammar saved to the shared workspace/)).toBeVisible()
   const retainedProfile: CourseworkState = await (await page.request.get('/api/coursework')).json()
   expect(retainedProfile.project).toEqual({ ...legacyProfile, grammar: 'S -> VERB' })
   await expect(page.getByRole('button', { name: /Download coursework|Upload screenshot|Save project/ })).toHaveCount(0)
@@ -185,26 +151,16 @@ test('grammar-only saving preserves legacy project notes, history and project is
   await expect(page.getByRole('heading', { name: 'Synthetic persistent term', exact: true })).toBeVisible()
   await openGrammarSettings(page)
   await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
-  await expect(page.getByLabel('Active project')).toContainText('Synthetic second project')
-  page.once('dialog', (dialog) => dialog.accept())
-  const [otherProjectId] = await page.getByLabel('Active project').selectOption({ label: 'Synthetic second project' })
-  if (!otherProjectId) throw new Error('Expected the isolated second project selection.')
-  await navigation.getByRole('link', { name: 'Collection', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'No collected statements yet' })).toBeVisible()
-  await navigation.getByRole('link', { name: 'Franc Analyzer', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Franc Analyzer', exact: true })).toBeVisible()
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue('')
-  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
-  await openGrammarSettings(page)
-  await expect(page.getByLabel('Context-free grammar')).not.toHaveValue('S -> VERB')
-  await expect(page.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
-  const inaccessibleTest = await page.request.get(`/api/analyzer/tests/${recorded.id}`, { headers: { 'X-Mboa-Project': otherProjectId } })
-  expect(inaccessibleTest.status()).toBe(404)
+  await expect(page.getByLabel('Active project')).toHaveCount(0)
+  const legacyProjectHeader = { 'X-Mboa-Project': randomUUID() }
+  const sharedRecord = await page.request.get(`/api/analyzer/tests/${recorded.id}`, { headers: legacyProjectHeader })
+  expect(sharedRecord.status()).toBe(200)
+  expect(await sharedRecord.json()).toEqual(recorded)
+  const sharedState = await page.request.get('/api/analyzer', { headers: legacyProjectHeader })
+  expect((await sharedState.json()).grammar).toBe('S -> VERB')
   const retainedHistory = await page.request.get('/api/workspace/history', { headers: { 'X-Mboa-Project': 'default' } })
   expect(retainedHistory.status()).toBe(200)
   expect((await retainedHistory.json()).entries).toEqual(historyBefore.entries)
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByLabel('Active project').selectOption('default')
   await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('1')
   await page.getByRole('button', { name: 'Inspect test 1', exact: true }).click()
   await expect(page.getByLabel('Analyzed source text')).toHaveText('Veux')
@@ -302,7 +258,7 @@ async function exerciseCompiler(page: Page) {
   await expect(page.getByText('No lexical tokens. The parser will see only $.')).toBeVisible()
   await openGrammarSettings(page)
   await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
-  await expect(page.getByText(/Grammar saved privately/)).toBeVisible()
+  await expect(page.getByText(/Grammar saved to the shared workspace/)).toBeVisible()
   await page.reload()
   await openGrammarSettings(page)
   await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> epsilon')

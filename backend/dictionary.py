@@ -1,10 +1,12 @@
 """Read-only reference vocabulary; never a source of collected fieldwork."""
 
+import csv
 import logging
 import re
 from pathlib import Path
 
-from compiler.lexer.tokenizer import normalize_text
+from compiler.lexer.reference import CSV_PATH, load_classified_lexicon
+from compiler.lexer.vocabulary import headword_aliases, normalize_text
 
 from .collection import CollectionError
 from .schemas import DictionaryEntry, DictionaryResponse
@@ -16,23 +18,6 @@ DICTIONARY_PATHS = (
     DICTIONARY_DIR / "extra_lexicon.md",
 )
 HEADER = ["Camfranglais", "English meaning", "Origin"]
-
-
-def headword_aliases(headword: str) -> list[str]:
-    variants: list[str] = []
-    for alternative in re.split(r"\s+/\s+", headword):
-        variants.append(alternative)
-        # The supplied "Na wa (oh)" explicitly includes optional wording.
-        optional = re.fullmatch(r"(.+?)\s+\(([^()]+)\)", alternative)
-        if optional:
-            variants.extend((optional[1], f"{optional[1]} {optional[2]}"))
-    variants.extend(word.rstrip("!?") for word in tuple(variants))
-    unique: dict[str, str] = {}
-    for variant in variants:
-        if not variant.strip():
-            raise ValueError("A dictionary headword contains an empty alternative.")
-        unique.setdefault(normalize_text(variant), variant)
-    return list(unique.values())
 
 
 def parse_dictionary(text: str, source_document: str) -> list[DictionaryEntry]:
@@ -84,15 +69,29 @@ def parse_dictionary(text: str, source_document: str) -> list[DictionaryEntry]:
 
 def load_dictionary() -> list[DictionaryEntry]:
     try:
-        return [
+        supplied = [
+            DictionaryEntry(
+                id=f"dictionary:{CSV_PATH.name}:{entry.source_line}", text=entry.word,
+                aliases=list(entry.aliases), language=entry.language, part_of_speech=entry.part_of_speech,
+                english_gloss=entry.english_meaning, origin=entry.origin, topic=entry.section,
+                source_document=CSV_PATH.name, source_line=entry.source_line,
+            )
+            for entry in load_classified_lexicon()
+        ]
+        existing = [
             entry
             for path in DICTIONARY_PATHS
             for entry in parse_dictionary(path.read_text(encoding="utf-8-sig"), path.name)
         ]
-    except (OSError, ValueError) as exc:
+        def sense(entry: DictionaryEntry) -> tuple[str, str, str]:
+            return normalize_text(entry.text), entry.english_gloss.strip().casefold(), entry.origin.strip().casefold()
+
+        supplied_senses = {sense(entry) for entry in supplied}
+        return [*supplied, *(entry for entry in existing if sense(entry) not in supplied_senses)]
+    except (OSError, ValueError, csv.Error) as exc:
         logger.error("Reference dictionary loading failed (%s)", type(exc).__name__)
         raise CollectionError(
-            503, "Cannot read the reference dictionary. Check its Markdown files and permissions, then retry."
+            503, "Cannot read the reference dictionary. Check its CSV/Markdown files and permissions, then retry."
         ) from exc
 
 
@@ -103,7 +102,7 @@ def list_dictionary(query: str, offset: int, limit: int) -> DictionaryResponse:
         entry for entry in entries
         if all(word in normalize_text(" ".join((
             entry.text, *entry.aliases, entry.english_gloss, entry.origin,
-            entry.topic, entry.source_document,
+            entry.topic, entry.part_of_speech, entry.source_document,
         ))) for word in words)
     ]
     return DictionaryResponse(

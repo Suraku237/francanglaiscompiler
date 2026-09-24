@@ -3,6 +3,7 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 from unittest.mock import patch
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from filelock import Timeout
@@ -14,7 +15,7 @@ from backend.tests.test_api import ApiTestCase
 from backend.tests.test_compiler_workspace import CompilerHostedCase
 from backend.tests.test_hosted import HISTORY
 from backend.workspace_backups import validate_archive
-from backend.workspaces import WorkspaceStore
+from backend.shared_workspace import SharedWorkspaceStore as WorkspaceStore
 from compiler.lexer import tokenizer
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
@@ -81,7 +82,7 @@ class AnalyzerTests(ApiTestCase):
         self.assertEqual(set(body), {"text", "lexical", "grammar", "parse", "corpus"})
         self.assertEqual(body["text"], text)
         self.assertEqual({key: body["lexical"][key] for key in expected_lexical}, expected_lexical)
-        self.assertEqual(body["lexical"]["verb_phrases"], ["DON\tREFUSE"])
+        self.assertEqual(body["lexical"]["verb_phrases"], ["DON\tREFUSE", "JE   WANDA"])
         self.assertEqual(body["lexical"]["slang_expressions"], ["JE   WANDA"])
         self.assertEqual(body["lexical"]["statistics"]["total_tokens"], len(body["lexical"]["tokens"]))
         self.assertEqual(set(body["corpus"]), {"lexical", "tests", "summary"})
@@ -283,12 +284,9 @@ class AnalyzerTests(ApiTestCase):
         for entries, detail in cases:
             with self.subTest(detail=detail), patch.object(dataset, "load_all", return_value=entries), \
                     patch.object(analyzer, "analyze_grammar", side_effect=AssertionError("Reject before preparation")):
-                for response in (
-                    self.client.get("/api/analyzer"),
-                    self.client.post("/api/analyzer/analyze", json={"text": "", "grammar": "S -> epsilon"}),
-                ):
-                    self.assertEqual(response.status_code, 422, response.text)
-                    self.assertIn(detail, response.json()["detail"])
+                response = self.client.post("/api/analyzer/analyze", json={"text": "", "grammar": "S -> epsilon"})
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertIn(detail, response.json()["detail"])
 
     def test_lexer_failure_is_not_disguised_as_empty_success(self):
         with patch.object(tokenizer, "analyze_sentence", side_effect=ValueError("Synthetic lexer failure")):
@@ -326,7 +324,7 @@ class HostedAnalyzerTests(CompilerHostedCase):
         self.assertEqual(self.client.get("/api/coursework/export").status_code, 404)
         self.assertEqual(store.export_document(), before)
 
-    def test_grammar_corpus_and_annotations_are_isolated_by_owner_and_project(self):
+    def test_grammar_corpus_and_annotations_are_shared_with_creator_only_saves(self):
         first_user = self.register()
         first = self.entry(text="zandolo", entry_type="Word", lexical_category="NOUN", review_status="approved")
         self.assertEqual(self.client.put("/api/analyzer/grammar", json={"grammar": "S -> NOUN"}).status_code, 200)
@@ -334,38 +332,30 @@ class HostedAnalyzerTests(CompilerHostedCase):
         first_body = self.client.post("/api/analyzer/analyze", json=request).json()
         self.assertTrue(first_body["parse"]["accepted"])
         self.assertEqual([row["id"] for row in first_body["corpus"]["tests"]], [first["id"]])
-        second_project = self.project()
+        second_project = str(uuid4())
         self.client.headers["X-Mboa-Project"] = second_project
-        empty = self.client.get("/api/analyzer").json()
-        self.assertEqual(empty["stats"], {"total": 0, "sentences": 0})
-        self.assertEqual(empty["grammar"], DEFAULT_GRAMMAR.strip())
-        unlearned = self.client.post("/api/analyzer/analyze", json=request).json()
-        self.assertEqual(unlearned["lexical"]["tokens"], [{"text": "zandolo", "category": "UNKNOWN"}])
-        self.assertFalse(unlearned["parse"]["accepted"])
-        second = self.entry(text="zandolo", entry_type="Word", lexical_category="VERB", review_status="approved")
-        self.assertEqual(self.client.put("/api/analyzer/grammar", json={"grammar": "S -> VERB"}).status_code, 200)
-        self.client.headers.pop("X-Mboa-Project")
-        self.assertEqual(self.client.get("/api/analyzer").json()["grammar"], "S -> NOUN")
+        shared = self.client.get("/api/analyzer").json()
+        self.assertEqual(shared["stats"], {"total": 1, "sentences": 0})
+        self.assertEqual(shared["grammar"], "S -> NOUN")
         selected = self.client.get("/api/analyzer", params={"project": second_project}).json()
-        self.assertEqual(selected["grammar"], "S -> VERB")
+        self.assertEqual(selected["grammar"], "S -> NOUN")
         selected_body = self.client.post("/api/analyzer/analyze", params={"project": second_project},
-                                         json={"text": "zandolo", "grammar": "S -> VERB"}).json()
+                                         json=request).json()
         self.assertTrue(selected_body["parse"]["accepted"])
-        self.assertEqual([row["id"] for row in selected_body["corpus"]["tests"]], [second["id"]])
+        self.assertEqual([row["id"] for row in selected_body["corpus"]["tests"]], [first["id"]])
         first_before = WorkspaceStore(self.root, first_user["id"]).export_document()
         other = self.other()
         self.register(other, "second@example.com")
-        self.assertEqual(other.get("/api/analyzer").json()["stats"], {"total": 0, "sentences": 0})
+        self.assertEqual(other.get("/api/analyzer").json()["stats"], {"total": 1, "sentences": 0})
         other_body = other.post("/api/analyzer/analyze", json=request).json()
-        self.assertEqual(other_body["lexical"]["tokens"], [{"text": "zandolo", "category": "UNKNOWN"}])
-        self.assertEqual(other_body["corpus"]["tests"], [])
+        self.assertEqual(other_body["lexical"]["tokens"], [{"text": "zandolo", "category": "NOUN"}])
+        self.assertEqual([row["id"] for row in other_body["corpus"]["tests"]], [first["id"]])
         for response in (
             other.get("/api/analyzer", params={"project": second_project}),
-            other.put("/api/analyzer/grammar", params={"project": second_project}, json={"grammar": "S -> UNKNOWN"}),
             other.post("/api/analyzer/analyze", params={"project": second_project}, json=request),
         ):
-            self.assertEqual(response.status_code, 404, response.text)
-        self.assertEqual(other.put("/api/analyzer/grammar", json={"grammar": "S -> UNKNOWN"}).status_code, 200)
+            self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(other.put("/api/analyzer/grammar", json={"grammar": "S -> UNKNOWN"}).status_code, 403)
         self.assertEqual(WorkspaceStore(self.root, first_user["id"]).export_document(), first_before)
 
     def test_grammar_only_save_preserves_legacy_profile_history_screenshots_and_backups(self):
@@ -387,7 +377,8 @@ class HostedAnalyzerTests(CompilerHostedCase):
         backups_before = self.client.get("/api/workspace/backups").json()
         response = self.client.put("/api/analyzer/grammar", json={"grammar": " \tS -> NOUN\r\n "})
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json(), {"grammar": "S -> NOUN"})
+        self.assertEqual(response.json()["grammar"], "S -> NOUN")
+        self.assertEqual(response.json()["grammar_ownership"]["owner_id"], user["id"])
         after = store.export_document()
         self.assertEqual(after["version"], before["version"] + 1)
         for key in ("projects", "entries", "history", "revisions", "screenshots"):

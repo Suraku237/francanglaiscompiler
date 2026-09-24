@@ -9,11 +9,13 @@ lexicon word-lists to tag each token's type.
 """
 
 import re
-import unicodedata
 from collections import namedtuple
 from collections.abc import Mapping
+from functools import lru_cache
 
 from . import lexicon
+from .reference import reference_categories, reference_verb_phrases
+from .vocabulary import normalize_text, normalize_word as _normalize_word
 
 Token = namedtuple("Token", ["text", "category"])
 
@@ -25,7 +27,6 @@ TOKEN_SPLIT_RE = re.compile(
     rf"{_LETTERS}(?:['\u2018\u2019\u02bc-]{_LETTERS})*"
     r"|\d+(?:[.,]\d+)?|[.,!?;:\"()]|\S"
 )
-_APOSTROPHES = str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
 _TOKEN_REGEX_RULES = tuple(
     (category, re.compile(pattern)) for category, pattern in lexicon.TOKEN_REGEX_RULES
 )
@@ -50,17 +51,6 @@ def tokenize(text: str):
     """Splits raw text into a list of raw string tokens (no classification yet)."""
     # The final non-whitespace alternative preserves unsupported input for UNKNOWN.
     return TOKEN_SPLIT_RE.findall(text)
-
-
-def _normalize_word(text: str) -> str:
-    if text.isascii():
-        return text.lower()
-    return unicodedata.normalize("NFC", text.casefold()).translate(_APOSTROPHES)
-
-
-def normalize_text(text: str) -> str:
-    """Normalize matching only, preserving accents and the original stored text."""
-    return " ".join(_normalize_word(text).split())
 
 
 def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None) -> str:
@@ -88,6 +78,12 @@ def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None)
     if lower in lexicon.ENGLISH_FUNCTION_WORDS:
         return "ENGLISH_FUNCTION_WORD"
 
+    supplied = reference_categories().get(lower, ())
+    if len(supplied) == 1:
+        return supplied[0]
+    if len(supplied) > 1:
+        return "AMBIGUOUS"
+
     # Heuristic fallback based on surface morphology, for words not in
     # any lexicon yet — flags a *guess*, not a confirmed classification.
     if lower.endswith(("ing", "ed")):
@@ -105,12 +101,17 @@ def _find_phrases(text: str, patterns: tuple[tuple[re.Pattern[str], re.Pattern[s
             # Unicode IGNORECASE is broader than casefold (e.g. dotless i).
             if normalized_pattern.fullmatch(normalize_text(match.group(0))):
                 found.append((match.start(), match.group(0)))
-    return [phrase for _, phrase in sorted(found, key=lambda item: item[0])]
+    return [phrase for _, phrase in sorted(dict.fromkeys(found), key=lambda item: item[0])]
+
+
+@lru_cache(maxsize=1)
+def _all_verb_phrases() -> tuple[tuple[re.Pattern[str], re.Pattern[str]], ...]:
+    return (*_VERB_PHRASES, *_compile_phrases(list(reference_verb_phrases())))
 
 
 def find_verb_phrases(text: str) -> list[str]:
     """Return raw, source-ordered phrase annotations, never collapsed tokens."""
-    return _find_phrases(text, _VERB_PHRASES)
+    return _find_phrases(text, _all_verb_phrases())
 
 
 def find_slang_phrases(text: str) -> list[str]:

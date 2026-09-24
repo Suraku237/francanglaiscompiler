@@ -24,7 +24,8 @@ class DictionaryEntry(BaseModel):
     id: str
     text: ShortText
     aliases: list[ShortText]
-    language: Literal["francanglais"] = "francanglais"
+    language: Literal["francanglais", "fr", "en"] = "francanglais"
+    part_of_speech: ShortText = ""
     english_gloss: Text
     origin: ShortText
     topic: ShortText

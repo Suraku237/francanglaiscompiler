@@ -25,7 +25,8 @@ from backend.main import create_app
 from backend.tests.test_hosted import HostedCase
 from backend.web import JSON_REQUEST_LIMIT, SCREENSHOT_REQUEST_LIMIT
 from backend.workspace_backups import validate_archive
-from backend.workspaces import WorkspaceStore
+from backend.shared_workspace import SharedWorkspaceStore as WorkspaceStore
+from backend.workspaces import WorkspaceStore as LegacyWorkspaceStore
 from compiler.parser.service import DEFAULT_GRAMMAR
 from data_collector import dataset
 from data_collector.tests.support import synthetic_entry
@@ -69,8 +70,8 @@ class CompilerHostedCase(HostedCase):
 
     def project(self, name="Separate fieldwork"):
         response = self.client.post("/api/workspace/projects", json={"name": name})
-        self.assertEqual(response.status_code, 201, response.text)
-        return response.json()["id"]
+        self.assertEqual(response.status_code, 409, response.text)
+        return str(uuid4())
 
     def backup(self):
         response = self.client.post("/api/workspace/backups")
@@ -102,7 +103,7 @@ class CompilerHostedCase(HostedCase):
     def export(self, client=None):
         client = client or self.client
         user = client.get("/api/auth/session").json()["user"]
-        store = WorkspaceStore(self.root, user["id"], client.headers.get("X-Mboa-Project", "default"))
+        store = WorkspaceStore(self.root, user["id"], user["display_name"])
         with dataset.use_storage(store), coursework_store.use_storage(store), dataset.dataset_lock():
             content = coursework_export.export_bundle()
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
@@ -164,7 +165,7 @@ class HostedCourseworkTests(CompilerHostedCase):
         references = self.client.get("/api/examples", params={"limit": 100}).json()
         self.assertEqual(references["total"], 26)
         self.assertTrue(all(entry["constructed"] for entry in references["entries"]))
-        self.assertEqual(self.client.get("/api/dictionary").json()["total"], 179)
+        self.assertEqual(self.client.get("/api/dictionary").json()["total"], 938)
         self.assertEqual(self.client.get("/api/dataset").json()["total"], 0)
         self.assertEqual(store.export_document()["coursework"], [])
         self.assertEqual(store.version, version)
@@ -190,7 +191,7 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertEqual(self.client.get(saved["url"]).status_code, 200)
         self.assertEqual(self.client.get("/api/coursework").json()["project"], self.profile())
 
-    def test_profile_and_grammar_are_per_account_and_survive_application_restart(self):
+    def test_shared_profile_and_grammar_keep_creator_and_survive_application_restart(self):
         first = self.register()
         saved = self.save_profile(
             group_members=["Amina", "Benoit", "Chantal"], grammar="S -> NOUN",
@@ -199,10 +200,9 @@ class HostedCourseworkTests(CompilerHostedCase):
         other = self.other()
         second = self.register(other, "second@example.com")
         self.assertNotEqual(first["id"], second["id"])
-        self.assertEqual(other.get("/api/coursework").json()["project"], self.profile())
-        second_profile = self.save_profile(other, grammar="S -> VERB", discussion="Second account only.")
+        self.assertEqual(other.get("/api/coursework").json()["project"], saved)
+        self.assertEqual(other.put("/api/coursework/project", json=self.profile(grammar="S -> VERB")).status_code, 403)
         self.assertEqual(self.client.get("/api/coursework").json()["project"], saved)
-        self.assertEqual(other.get("/api/coursework").json()["project"], second_profile)
         app = create_app(Settings(), auth_settings=self.settings,
                          mailer=lambda address, _subject, text: self.mail.append((address, text)))
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
@@ -211,58 +211,52 @@ class HostedCourseworkTests(CompilerHostedCase):
         stored = WorkspaceStore(self.root, first["id"]).load_coursework()
         self.assertEqual(stored, ProjectProfile(**saved))
 
-    def test_profiles_corpora_screenshots_and_exports_are_isolated_by_project_and_account(self):
+    def test_profiles_corpora_screenshots_and_offline_exports_share_one_snapshot(self):
         self.register()
-        first_profile = self.save_profile(grammar="S -> NOUN", discussion="FIRST_PRIVATE_DISCUSSION")
+        first_profile = self.save_profile(grammar="S -> NOUN", discussion="Shared retained discussion")
         first_entry = self.entry(text="taxi")
         first_image = self.screenshot("FIRST_PRIVATE_CAPTURE")
         first_png = self.client.get(first_image["url"]).content
         self.assertEqual(parse_qs(urlsplit(first_image["url"]).query), {"project": ["default"]})
         second_project = self.project()
         self.client.headers["X-Mboa-Project"] = second_project
-        self.assertEqual(self.client.get("/api/coursework").json()["project"], self.profile())
-        second_profile = self.save_profile(grammar="S -> VERB", discussion="SECOND_PRIVATE_DISCUSSION")
+        self.assertEqual(self.client.get("/api/coursework").json()["project"], first_profile)
         second_entry = self.entry(text="waka")
         second_image = self.screenshot("SECOND_PRIVATE_CAPTURE", content=self.image_bytes(color="blue"))
         second_png = self.client.get(second_image["url"]).content
-        self.assertEqual(parse_qs(urlsplit(second_image["url"]).query), {"project": [second_project]})
-        for project_id, profile, entry, image, png, hidden in (
-            ("default", first_profile, first_entry, first_image, first_png, "SECOND_PRIVATE_DISCUSSION"),
-            (second_project, second_profile, second_entry, second_image, second_png, "FIRST_PRIVATE_DISCUSSION"),
-        ):
+        self.assertEqual(parse_qs(urlsplit(second_image["url"]).query), {"project": ["default"]})
+        for project_id in ("default", second_project):
             with self.subTest(project=project_id):
                 self.client.headers["X-Mboa-Project"] = project_id
                 state = self.client.get("/api/coursework").json()
-                self.assertEqual(state["project"], profile)
-                self.assertEqual(state["stats"]["total"], 1)
-                self.assertEqual(state["screenshots"], [image])
-                analysis = self.client.post("/api/coursework/analyze", json={"grammar": profile["grammar"]}).json()
-                self.assertEqual([row["id"] for row in analysis["tests"]], [entry["id"]])
+                self.assertEqual(state["project"], first_profile)
+                self.assertEqual(state["stats"]["total"], 2)
+                self.assertEqual(state["screenshots"], [first_image, second_image])
+                analysis = self.client.post("/api/coursework/analyze", json={"grammar": first_profile["grammar"]}).json()
+                self.assertEqual([row["id"] for row in analysis["tests"]], [first_entry["id"], second_entry["id"]])
                 exported = self.export()
-                self.assertEqual(json.loads(exported["artifacts/project.json"]), profile)
+                self.assertEqual(json.loads(exported["artifacts/project.json"]), first_profile)
                 rows = list(csv.DictReader(io.StringIO(exported["artifacts/dataset.csv"].decode("utf-8-sig"))))
-                self.assertEqual([row["id"] for row in rows], [entry["id"]])
+                self.assertEqual([row["id"] for row in rows], [first_entry["id"], second_entry["id"]])
                 self.assertEqual(exported["source/data_collector/dataset.csv"], exported["artifacts/dataset.csv"])
-                self.assertEqual(exported["screenshots/analyzer-1.png"], png)
-                self.assertNotIn("screenshots/analyzer-2.png", exported)
-                self.assertNotIn(hidden, exported["report.html"].decode("utf-8"))
+                self.assertEqual(exported["screenshots/analyzer-1.png"], first_png)
+                self.assertEqual(exported["screenshots/analyzer-2.png"], second_png)
         self.client.headers["X-Mboa-Project"] = second_project
-        self.assertEqual(self.client.get(f"/api/coursework/screenshots/{first_image['id']}").status_code, 404)
-        self.assertEqual(self.client.delete(f"/api/coursework/screenshots/{first_image['id']}").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/coursework/screenshots/{first_image['id']}").status_code, 200)
         self.client.headers.pop("X-Mboa-Project")
         self.assertEqual(self.client.get(second_image["url"]).content, second_png)
         other = self.other()
         self.register(other, "second@example.com")
         for image in (first_image, second_image):
-            self.assertEqual(other.get(image["url"]).status_code, 404)
-            self.assertEqual(other.delete(image["url"]).status_code, 404)
-        isolated = self.export(other)
-        self.assertEqual(json.loads(isolated["artifacts/project.json"]), self.profile())
-        self.assertEqual(list(csv.DictReader(io.StringIO(isolated["artifacts/dataset.csv"].decode("utf-8-sig")))), [])
-        self.assertFalse(any(name.startswith("screenshots/") for name in isolated))
+            self.assertEqual(other.get(image["url"]).status_code, 200)
+            self.assertEqual(other.delete(image["url"]).status_code, 403)
+        shared = self.export(other)
+        self.assertEqual(json.loads(shared["artifacts/project.json"]), first_profile)
+        self.assertEqual(shared["artifacts/dataset.csv"], exported["artifacts/dataset.csv"])
+        self.assertEqual(shared["screenshots/analyzer-1.png"], first_png)
         self.assert_no_outbound_http()
 
-    def test_learned_lexer_and_parser_never_share_annotations_between_projects_or_accounts(self):
+    def test_shared_reviewed_annotations_feed_every_accounts_lexer_and_parser(self):
         self.register()
         entry = self.entry(text="zandolo", entry_type="Word", lexical_category="NOUN", review_status="approved")
         request = {"grammar": "S -> NOUN", "text": "zandolo"}
@@ -271,12 +265,11 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertTrue(parsed["parse"]["accepted"])
         second_project = self.project()
         self.client.headers["X-Mboa-Project"] = second_project
-        unlearned = self.client.post("/api/coursework/parse", json=request).json()
-        self.assertEqual(unlearned["tokens"], [{"text": "zandolo", "category": "UNKNOWN"}])
-        self.assertFalse(unlearned["parse"]["accepted"])
-        second = self.entry(text="zandolo", entry_type="Word", lexical_category="VERB", review_status="approved")
-        analysis = self.client.post("/api/coursework/analyze", json={"grammar": "S -> VERB"}).json()
-        self.assertEqual([row["id"] for row in analysis["tests"]], [second["id"]])
+        learned = self.client.post("/api/coursework/parse", json=request).json()
+        self.assertEqual(learned["tokens"], [{"text": "zandolo", "category": "NOUN"}])
+        self.assertTrue(learned["parse"]["accepted"])
+        analysis = self.client.post("/api/coursework/analyze", json={"grammar": "S -> NOUN"}).json()
+        self.assertEqual([row["id"] for row in analysis["tests"]], [entry["id"]])
         self.assertEqual(analysis["summary"]["accepted"], 1)
         self.client.headers["X-Mboa-Project"] = "default"
         analysis = self.client.post("/api/coursework/analyze", json={"grammar": "S -> NOUN"}).json()
@@ -284,7 +277,8 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertEqual(analysis["summary"]["accepted"], 1)
         other = self.other()
         self.register(other, "second@example.com")
-        self.assertFalse(other.post("/api/coursework/parse", json=request).json()["parse"]["accepted"])
+        self.assertTrue(other.post("/api/coursework/parse", json=request).json()["parse"]["accepted"])
+        self.assertEqual(other.patch(f"/api/dataset/{entry['id']}", json={"lexical_category": "VERB"}).status_code, 403)
 
     def test_raw_words_and_provenance_survive_collection_analysis_export_and_backup(self):
         self.register()
@@ -316,9 +310,9 @@ class HostedCourseworkTests(CompilerHostedCase):
         exported = self.export()
         for name in ("artifacts/dataset.csv", "source/data_collector/dataset.csv"):
             row = next(csv.DictReader(io.StringIO(exported[name].decode("utf-8-sig"), newline="")))
-            self.assertEqual(row, entry)
+            self.assertEqual(row, {key: value for key, value in entry.items() if key != "ownership"})
         document, _ = validate_archive(self.backup())
-        self.assertEqual(json.loads(document["entries"][0]["data"]), entry)
+        self.assertEqual(json.loads(document["entries"][0]["data"]), {key: value for key, value in entry.items() if key != "ownership"})
         self.assertEqual(self.client.get("/api/dataset").json()["entries"], [entry])
         self.assert_no_outbound_http()
 
@@ -451,11 +445,11 @@ class HostedCourseworkTests(CompilerHostedCase):
         image = self.screenshot()
         self.assertEqual(self.client.delete(f"/api/workspace/projects/{image_project}").status_code, 409)
         self.assertEqual(self.client.delete(image["url"]).status_code, 204)
-        self.assertEqual(self.client.delete(f"/api/workspace/projects/{image_project}").status_code, 204)
+        self.assertEqual(self.client.delete(f"/api/workspace/projects/{image_project}").status_code, 409)
         empty_project = self.project("Read-only defaults")
         self.client.headers["X-Mboa-Project"] = empty_project
         self.assertEqual(self.client.get("/api/coursework").status_code, 200)
-        self.assertEqual(self.client.delete(f"/api/workspace/projects/{empty_project}").status_code, 204)
+        self.assertEqual(self.client.delete(f"/api/workspace/projects/{empty_project}").status_code, 409)
 
 
 class HostedScreenshotTests(CompilerHostedCase):
@@ -611,9 +605,9 @@ class HostedScreenshotTests(CompilerHostedCase):
         self.assertEqual(response.status_code, 413, response.text)
         self.assertIn("resolution", response.json()["detail"].lower())
         self.assertEqual(store.export_document()["screenshots"], [])
-        self.assertEqual(store.version, 0)
+        self.assertEqual(store.version, 1)
 
-    def test_screenshot_count_limit_is_per_project_and_delete_releases_capacity(self):
+    def test_screenshot_count_limit_is_shared_and_creator_deletion_releases_capacity(self):
         self.register()
         images = [self.screenshot(f"Capture {index}") for index in range(coursework_store.MAX_SCREENSHOTS)]
         response = self.client.post("/api/coursework/screenshots", json={
@@ -622,8 +616,11 @@ class HostedScreenshotTests(CompilerHostedCase):
         self.assertEqual(response.status_code, 422, response.text)
         second = self.project()
         self.client.headers["X-Mboa-Project"] = second
-        separate = self.screenshot("Separate project capacity")
-        self.assertEqual(self.client.get("/api/coursework").json()["screenshots"], [separate])
+        response = self.client.post("/api/coursework/screenshots", json={
+            "name": "Still full", "data_url": self.image_url(self.image_bytes()),
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(self.client.get("/api/coursework").json()["screenshots"], images)
         self.client.headers["X-Mboa-Project"] = "default"
         self.assertEqual(self.client.delete(images[0]["url"]).status_code, 204)
         self.screenshot("Replacement capture")
@@ -653,9 +650,9 @@ class HostedScreenshotTests(CompilerHostedCase):
 
 
 class CourseworkBackupTests(CompilerHostedCase):
-    def test_account_backup_roundtrips_every_projects_coursework_and_screenshots(self):
+    def test_shared_backup_roundtrips_coursework_and_screenshots_without_new_projects(self):
         user = self.register()
-        default_profile = self.save_profile(grammar="S -> NOUN", discussion="Original default profile.")
+        self.save_profile(grammar="S -> NOUN", discussion="Original default profile.")
         self.entry(text="taxi")
         default_image = self.screenshot("Default capture")
         second_project = self.project()
@@ -669,8 +666,8 @@ class CourseworkBackupTests(CompilerHostedCase):
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             self.assertEqual(json.loads(archive.read("manifest.json"))["format"], 1)
             self.assertEqual(json.loads(archive.read("workspace.json")), expected)
-        self.assertEqual(expected["format"], 3)
-        self.assertEqual(len(expected["coursework"]), 2)
+        self.assertEqual(expected["format"], 4)
+        self.assertEqual(len(expected["coursework"]), 1)
         self.assertEqual(len(expected["screenshots"]), 2)
         changed = self.save_profile(grammar="S -> NOUN", discussion="After backup.")
         self.assertEqual(self.client.delete(second_image["url"]).status_code, 204)
@@ -678,11 +675,11 @@ class CourseworkBackupTests(CompilerHostedCase):
         self.project("After backup project")
         other = self.other()
         self.register(other, "second@example.com")
-        other_profile = self.save_profile(other, discussion="Other account is untouched.")
+        self.assertEqual(other.put("/api/coursework/project", json=self.profile(discussion="Denied")).status_code, 403)
         preview = self.preview(content)
-        self.assertEqual(preview["counts"]["coursework"], 2)
+        self.assertEqual(preview["counts"]["coursework"], 1)
         self.assertEqual(preview["counts"]["screenshots"], 2)
-        self.assertEqual(preview["counts"]["projects"], 2)
+        self.assertEqual(preview["counts"]["projects"], 1)
         response = self.restore(preview)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["counts"], preview["counts"])
@@ -691,13 +688,13 @@ class CourseworkBackupTests(CompilerHostedCase):
         for key in ("projects", "entries", "history", "revisions", "coursework", "screenshots"):
             self.assertEqual(actual[key], expected[key], key)
         for project_id, profile, image in (
-            ("default", default_profile, default_image), (second_project, second_profile, second_image),
+            ("default", second_profile, default_image), (second_project, second_profile, second_image),
         ):
             self.client.headers["X-Mboa-Project"] = project_id
             self.assertEqual(self.client.get("/api/coursework").json()["project"], profile)
             self.assertEqual(self.client.get(image["url"]).status_code, 200)
         self.assertEqual(self.client.get(new_image["url"]).status_code, 404)
-        self.assertEqual(other.get("/api/coursework").json()["project"], other_profile)
+        self.assertEqual(other.get("/api/coursework").json()["project"], second_profile)
         safety = self.client.get(f"/api/workspace/backups/{response.json()['pre_restore_backup_id']}/download")
         safety_document, _ = validate_archive(safety.content)
         self.assertIn(new_image["id"], [row["id"] for row in safety_document["screenshots"]])
@@ -741,17 +738,18 @@ class CourseworkBackupTests(CompilerHostedCase):
         response = self.restore(preview)
         self.assertEqual(response.status_code, 200, response.text)
 
-    def test_format1_normalization_and_restore_keep_legacy_data_without_inventing_coursework(self):
+    def test_format1_normalization_remains_available_without_replacing_shared_data(self):
         user = self.register()
         entry = self.entry(text="Legacy format entry")
         self.save_profile(grammar="S -> NOUN", discussion="Existing new-format profile.")
         image = self.screenshot()
         store = WorkspaceStore(self.root, user["id"])
+        before = store.export_document()
         legacy = {key: value for key, value in store.export_document().items()
-                  if key not in ("coursework", "screenshots", "analyzer_tests")}
+                  if key not in ("coursework", "screenshots", "analyzer_tests", "ownership", "test_requests", "legacy_profiles")}
         legacy["format"] = 1
         original = copy.deepcopy(legacy)
-        normalized = WorkspaceStore.validate_document(legacy)
+        normalized = LegacyWorkspaceStore.validate_document(legacy)
         self.assertEqual(legacy, original)
         self.assertEqual(normalized["format"], 3)
         self.assertEqual(normalized["analyzer_tests"], [])
@@ -759,17 +757,14 @@ class CourseworkBackupTests(CompilerHostedCase):
         self.assertEqual(normalized["screenshots"], [])
         for key in ("projects", "entries", "history", "revisions"):
             self.assertEqual(normalized[key], legacy[key])
-        preview = self.preview(self.archive_document(legacy))
-        self.assertEqual(preview["counts"]["coursework"], 0)
-        self.assertEqual(preview["counts"]["screenshots"], 0)
-        response = self.restore(preview)
-        self.assertEqual(response.status_code, 200, response.text)
-        state = self.client.get("/api/coursework").json()
-        self.assertEqual(state["project"], self.profile())
-        self.assertEqual(state["screenshots"], [])
-        self.assertEqual(self.client.get(image["url"]).status_code, 404)
+        response = self.client.post("/api/workspace/backups/preview", files={
+            "file": ("legacy.zip", self.archive_document(legacy)),
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(store.export_document(), before)
+        self.assertEqual(self.client.get(image["url"]).status_code, 200)
         self.assertEqual(self.client.get("/api/dataset").json()["entries"], [entry])
-        self.assertEqual(store.export_document()["format"], 3)
+        self.assertEqual(store.export_document()["format"], 4)
 
     def test_invalid_new_backup_records_are_rejected_without_mutating_live_data(self):
         user = self.register()

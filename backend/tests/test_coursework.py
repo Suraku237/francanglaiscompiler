@@ -185,7 +185,8 @@ class CourseworkTests(ApiTestCase):
             self.assertIn("source/dictionary/extra_lexicon.md", names)
             self.assertIn("source/examples/camfranglais_statements.csv", names)
             self.assertIn(b"Constructed example", archive.read("source/examples/camfranglais_statements.csv"))
-            self.assertIn(b"**tchop** | to eat", archive.read("source/dictionary/camfranglais.md"))
+            self.assertIn(b"**tchop / chop** | to eat", archive.read("source/dictionary/camfranglais.md"))
+            self.assertIn(b"word,part_of_speech,english_meaning,origin,section", archive.read("source/dictionary/full_lexicon_classified.csv"))
             self.assertIn(b"**motard** | a motorcycle taxi rider", archive.read("source/dictionary/extra_lexicon.md"))
             report = archive.read("report.html").decode()
             self.assertEqual(report.count("<section class='report-page'>"), 25)
@@ -208,7 +209,7 @@ class CourseworkTests(ApiTestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_legacy_export_helper_with_empty_data_is_explicit_draft(self):
-        self.assertEqual(self.client.get("/api/dictionary").json()["total"], 179)
+        self.assertEqual(self.client.get("/api/dictionary").json()["total"], 938)
         self.assertEqual(self.client.get("/api/examples").json()["total"], 26)
         self.assertEqual(self.client.get("/api/coursework").json()["stats"]["total"], 0)
         with ZipFile(io.BytesIO(self.legacy_export())) as archive:
