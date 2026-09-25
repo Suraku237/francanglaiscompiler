@@ -95,6 +95,30 @@ def reference_categories() -> Mapping[str, tuple[str, ...]]:
 
 
 @lru_cache(maxsize=1)
+def reference_languages() -> Mapping[str, frozenset[str]]:
+    origins = {
+        "English": {"EN"}, "French": {"FR"}, "French usage": {"FR"},
+        "Pidgin": {"PID"}, "Pidgin, reinterpreted": {"PID"},
+        "English / French": {"EN", "FR"}, "Pidgin / Eng.": {"PID", "EN"},
+        "Pidgin / Fr.": {"PID", "FR"},
+    }
+    candidates: dict[str, set[str]] = defaultdict(set)
+    for entry in load_classified_lexicon():
+        languages = set(origins.get(entry.origin, ()))
+        if entry.language == "fr":
+            languages.add("FR")
+        elif entry.language == "en":
+            languages.add("EN")
+        if not languages:
+            continue
+        for alias in entry.aliases:
+            word = normalize_text(alias)
+            if " " not in word:
+                candidates[word].update(languages)
+    return MappingProxyType({word: frozenset(languages) for word, languages in candidates.items()})
+
+
+@lru_cache(maxsize=1)
 def reference_verb_phrases() -> tuple[str, ...]:
     phrases = {
         normalize_text(alias)

@@ -14,6 +14,7 @@ class ClassifiedLexiconTests(unittest.TestCase):
     def tearDown(self):
         reference.load_classified_lexicon.cache_clear()
         reference.reference_categories.cache_clear()
+        reference.reference_languages.cache_clear()
         reference.reference_verb_phrases.cache_clear()
         tokenizer._all_verb_phrases.cache_clear()
 

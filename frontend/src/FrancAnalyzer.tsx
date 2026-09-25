@@ -210,7 +210,7 @@ export function FrancAnalyzer({ active, incomingText, showAnalysis = false, onUs
         <details className="lab-disclosure">
           <summary>Grammar settings</summary>
           <div className="lab-disclosure-body">
-            <p className="lab-copy">The default is a <strong>starter, not a grammar derived from your data</strong>. Edit the rules to match the structures you observed.</p>
+            <p className="lab-copy">Use rules derived from your collected statements. The illustrative starter is not fieldwork evidence; the saved rules below are the grammar shared by your group.</p>
             <p className="lab-copy">Everyone can edit a local grammar draft and use it in Analyze without changing the shared grammar. Only its creator can save shared changes. Saved tests keep their original grammar and results.</p>
             <p id="grammar-ownership" className="lab-copy">{state.grammar_ownership.owner_id === null
               ? 'The shared grammar is unclaimed. The first person to save it becomes its creator.'

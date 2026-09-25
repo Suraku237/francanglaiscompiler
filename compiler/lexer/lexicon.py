@@ -71,6 +71,29 @@ SLANG_WORDS = {
     "yo", "eh", "voila", "voilà", "chai", "haba", "sha",
 }
 
+# Observed French forms supplement the reference without rewriting transcriptions.
+FRENCH_FORMS = {
+    "VERB": {"ai", "est", "suis", "ont", "j'ai", "n'ai", "n'est"},
+    "FRENCH_FUNCTION_WORD": {"ca", "ça"},
+    "NOUN": {"francais", "français", "pied"},
+}
+
+# Language evidence is independent of part of speech; shared forms remain ambiguous.
+LANGUAGE_WORDS = {
+    "FR": FRENCH_FUNCTION_WORDS | {
+        "a", "attendre", "payer", "acheter", "vendre", "chercher", "courir", "veux",
+        "bloquer", "augmenter", "refuser", "refuse", "tomber",
+        "quartier", "moto", "marche", "marché", "electricite", "électricité",
+        "reseau", "réseau", "essence", "carburant", "pluie", "gendarme", "argent",
+        "prof", "salle", "boutique", "générateur", "taxi", "internet", "campus", "station",
+    } | {word for forms in FRENCH_FORMS.values() for word in forms},
+    "EN": ENGLISH_FUNCTION_WORDS | {
+        "drop", "go", "come", "spoil", "block", "refuse", "flood", "money",
+        "checkpoint", "junction", "generator", "go-slow", "taxi", "internet", "campus", "station",
+    },
+    "PID": PIDGIN_MARKERS | {"tchop"},
+}
+
 # --- Multi-word verb phrases / idioms (matched against the whole sentence,
 #     since they don't classify sensibly one token at a time) ---
 

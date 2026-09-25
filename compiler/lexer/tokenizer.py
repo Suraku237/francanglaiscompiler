@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from . import lexicon
+from .languages import word_languages
 from .reference import reference_categories, reference_verb_phrases
 from .vocabulary import normalize_text, normalize_word as _normalize_word
 
@@ -84,6 +85,10 @@ def classify_token(token: str, learned_lexicon: Mapping[str, str] | None = None)
     if len(supplied) > 1:
         return "AMBIGUOUS"
 
+    for category, words in lexicon.FRENCH_FORMS.items():
+        if lower in words:
+            return category
+
     # Heuristic fallback based on surface morphology, for words not in
     # any lexicon yet — flags a *guess*, not a confirmed classification.
     if lower.endswith(("ing", "ed")):
@@ -119,37 +124,34 @@ def find_slang_phrases(text: str) -> list[str]:
     return _find_phrases(text, _SLANG_PHRASES)
 
 
-# Which single-token categories count as "French" vs "English" vs "Pidgin"
-# for the purpose of spotting code-mixed spans within a sentence.
-LANGUAGE_MAP = {
-    "FRENCH_FUNCTION_WORD": "FR",
-    "FRENCH_VERB_LIKE": "FR",
-    "ENGLISH_FUNCTION_WORD": "EN",
-    "ENGLISH_VERB_LIKE": "EN",
-    "PIDGIN_MARKER": "PID",
-}
-
-
 def analyze_sentence(text: str, learned_lexicon: Mapping[str, str] | None = None):
     """
-    Tokenizes + classifies a sentence, and flags code-mixed spans
-    (adjacent tokens whose inferred language differs) and any known
-    verb-phrase idioms.
+    Tokenizes and classifies raw words, then flags incompatible language evidence.
+
+    Ambiguous words narrow a run's candidate languages without arbitrarily
+    choosing one. Unknown words carry no language evidence. Sentence-ending
+    punctuation ends a run; emitted endpoints retain their exact source spelling.
     """
     raw_tokens = tokenize(text)
     tokens = [Token(t, classify_token(t, learned_lexicon)) for t in raw_tokens]
 
     code_mixed_spans = []
-    prev_lang = None
-    prev_token = None
+    possible_languages: frozenset[str] = frozenset()
+    anchor: str | None = None
     for tok in tokens:
-        lang = LANGUAGE_MAP.get(tok.category)
-        if lang is None:
-            continue  # skip content/unknown words; don't lose the running language
-        if prev_lang is not None and lang != prev_lang:
-            code_mixed_spans.append(f"{prev_token} ... {tok.text}")
-        prev_lang = lang
-        prev_token = tok.text
+        if tok.category == "PUNCTUATION" and tok.text in {".", "!", "?"}:
+            possible_languages = frozenset()
+            anchor = None
+            continue
+        languages = word_languages(tok.text, tok.category)
+        if not languages:
+            continue
+        overlap = possible_languages & languages
+        if anchor is not None and not overlap:
+            code_mixed_spans.append(f"{anchor} ... {tok.text}")
+        if not overlap or languages <= possible_languages:
+            anchor = tok.text
+        possible_languages = overlap or languages
 
     return {
         "tokens": tokens,

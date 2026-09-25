@@ -57,6 +57,7 @@ export function Analysis({ result, report, lexicalSpec, analyzing, loading, load
             <div><dt>Slang expressions</dt><dd>{result.lexical.slang_expressions.join(' / ') || 'None detected'}</dd></div>
             <div><dt>Code-mixed spans</dt><dd>{result.lexical.code_mixed_spans.join(' / ') || 'None detected'}</dd></div>
           </dl>
+          <p className="lab-copy">Code-mixed spans are language-transition candidates, not confirmed speaker languages. Shared words can be ambiguous, and UNKNOWN tokens are not assigned a language.</p>
           <TokenStatistics statistics={result.lexical.statistics} />
         </div>
       </details>
