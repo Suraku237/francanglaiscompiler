@@ -203,7 +203,7 @@ class HostedCourseworkTests(CompilerHostedCase):
         self.assertEqual(other.get("/api/coursework").json()["project"], saved)
         self.assertEqual(other.put("/api/coursework/project", json=self.profile(grammar="S -> VERB")).status_code, 403)
         self.assertEqual(self.client.get("/api/coursework").json()["project"], saved)
-        app = create_app(Settings(), auth_settings=self.settings,
+        app = create_app(Settings(), require_auth=True, auth_settings=self.settings,
                          mailer=lambda address, _subject, text: self.mail.append((address, text)))
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
         self.login(reopened)

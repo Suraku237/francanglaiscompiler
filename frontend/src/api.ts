@@ -6,11 +6,11 @@ export class ApiError extends Error {
 }
 
 let csrfToken = ''
-let accountVersion = 0
+let sessionVersion = 0
 
 export function configureSession(token: string | null): void {
   csrfToken = token ?? ''
-  accountVersion++
+  sessionVersion++
 }
 
 export function nativeApiUrl(path: string): string {
@@ -51,22 +51,13 @@ interface RequestOptions {
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const version = accountVersion
+  const version = sessionVersion
   const controller = new AbortController()
   const isMutation = options.method === 'PATCH' || options.method === 'DELETE' || options.method === 'PUT' ||
-    ((path === '/dataset' || path === '/dataset/audio' || path === '/readings/audio' || path === '/coursework/screenshots' || path === '/analyzer/tests' ||
-      path.startsWith('/workspace/') || path.startsWith('/auth/')) && options.method === 'POST')
+    (path === '/analyzer/tests' && options.method === 'POST')
   const recovery = path === '/analyzer/tests'
-    ? 'Open Analysis and refresh saved tests to check the shared workspace. Retrying an unchanged test in this tab under the same account will not record it twice.'
-    : path.startsWith('/readings')
-    ? 'Refresh the recorded reading to check whether it was saved before retrying. Your local audio draft is kept.'
-    : path.startsWith('/analyzer')
-    ? 'Refresh saved grammar before trying again; your editor draft will be kept.'
-    : path.startsWith('/coursework')
-      ? 'Refresh the saved coursework evidence before trying again; your editor draft will be kept.'
-    : path.startsWith('/workspace/') || path.startsWith('/auth/')
-      ? 'Refresh the saved state before trying again; do not repeat a restore blindly.'
-      : 'Close this dialog and refresh the collection before trying again.'
+    ? 'Open Analysis and refresh saved tests to check the public workspace. Retrying an unchanged test in this tab will not record it twice.'
+    : 'Refresh the saved state before trying again.'
   let timedOut = false
   const cancel = () => controller.abort()
   if (options.signal?.aborted) controller.abort()
@@ -89,13 +80,10 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       cache: 'no-store',
       credentials: 'same-origin',
     })
-    if (version !== accountVersion) throw new DOMException('Account changed', 'AbortError')
-    if (response.status === 401 && (!path.startsWith('/auth/') || path === '/auth/profile' || path === '/auth/logout')) {
-      window.dispatchEvent(new Event('mboa:session-expired'))
-    }
+    if (version !== sessionVersion) throw new DOMException('Browser session changed', 'AbortError')
     if (response.status === 204 && response.ok) return undefined as T
     const body: unknown = await response.json().catch(() => null)
-    if (version !== accountVersion) throw new DOMException('Account changed', 'AbortError')
+    if (version !== sessionVersion) throw new DOMException('Browser session changed', 'AbortError')
     if (!response.ok) {
       throw new ApiError(
         errorDetail(body) ??

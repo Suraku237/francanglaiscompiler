@@ -12,7 +12,8 @@ test('hash navigation, browser history and the skip link keep the active page an
   await expect(page).toHaveURL(/#collection$/)
   await expect(page).toHaveTitle('Collection — Camfranglais Compiler')
   await expect(page.getByRole('main')).toBeFocused()
-  await expect(page.getByRole('button', { name: 'Add entry', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Collection', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add entry', exact: true })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Statement to analyze' })).not.toBeVisible()
 
   await page.goBack()

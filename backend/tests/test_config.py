@@ -9,7 +9,7 @@ from dotenv import dotenv_values
 
 from backend import config
 from backend.auth import AuthSettings, AuthStore
-from backend.config import Settings
+from backend.config import ServerSettings, Settings
 from backend.main import create_app
 
 
@@ -75,27 +75,46 @@ class CompilerSettingsTests(unittest.TestCase):
         self.assertFalse(hasattr(AuthStore, "charge_ai"))
         self.assertTrue(callable(AuthStore.throttle))
 
-    def test_application_defaults_enable_authenticated_coursework_without_ai_transport(self) -> None:
+    def test_application_defaults_enable_public_read_only_access_without_ai_transport(self) -> None:
         parameters = inspect.signature(create_app).parameters
         self.assertTrue(parameters["include_academic"].default)
-        self.assertTrue(parameters["require_auth"].default)
+        self.assertIsNone(parameters["require_auth"].default)
         self.assertNotIn("transport", parameters)
         self.assertIn("auth_transport", parameters)
 
-    def test_production_forbids_unauthenticated_mode_but_permits_authenticated_coursework(self) -> None:
+    def test_production_forbids_unrestricted_maintenance_mode_but_preserves_explicit_legacy_mode(self) -> None:
         with patch.dict(AuthSettings.model_config, env_file=None):
             accounts = AuthSettings(
                 environment="production", data_dir=self.root_env.parent / "accounts",
                 public_url="https://compiler.example", mail_mode="smtp",
                 smtp_host="smtp.example", mail_from="compiler@example.com",
             )
-        with self.assertRaisesRegex(ValueError, "Authentication cannot be disabled"):
+        with self.assertRaisesRegex(ValueError, "maintenance API"):
             create_app(self.load(), require_auth=False, auth_settings=accounts)
         with patch("backend.main.install_web") as install_web:
-            app = create_app(self.load(), auth_settings=accounts, mailer=lambda *_args: None)
+            app = create_app(self.load(), require_auth=True, auth_settings=accounts, mailer=lambda *_args: None)
         self.assertTrue(install_web.call_args.kwargs["production"])
         self.assertIsNotNone(app.state.auth_store)
         self.assertIn("/api/coursework", app.openapi()["paths"])
+        self.assertIsNone(app.openapi_url)
+
+    def test_production_public_access_needs_no_email_or_google_configuration(self) -> None:
+        with patch.dict(ServerSettings.model_config, env_file=None), patch.dict(
+            os.environ, MBOA_MAIL_MODE="smtp", MBOA_SMTP_PORT="obsolete-invalid-setting",
+            MBOA_GOOGLE_CLIENT_ID="unused-half-configured-client",
+        ):
+            server = ServerSettings(
+                environment="production", data_dir=self.root_env.parent / "public",
+                public_url="https://compiler.example",
+            )
+        app = create_app(self.load(), server_settings=server)
+        paths = app.openapi()["paths"]
+        self.assertIn("/api/public/session", paths)
+        self.assertFalse(any(path.startswith(("/api/auth/", "/api/workspace/", "/api/coursework")) for path in paths))
+        self.assertNotIn("/api/analyzer/grammar", paths)
+        self.assertEqual(set(paths["/api/dataset"]), {"get"})
+        self.assertFalse(hasattr(app.state, "auth_store"))
+        self.assertFalse(server.data_dir.exists())
         self.assertIsNone(app.openapi_url)
 
 

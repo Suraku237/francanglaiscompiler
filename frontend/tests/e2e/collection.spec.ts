@@ -1,69 +1,45 @@
 import { test, expect } from './fixtures'
-import { dataset, entry } from '../fixtures'
+import { dataset, entry, ownership } from '../fixtures'
 import { deferred } from '../helpers'
 
-test('collection review validates text, invalidates approval and submits only changed fields', async ({ page, api }) => {
+test('collection details preserve raw data, remain read-only and restore keyboard focus on dismissal', async ({ page, api }) => {
+  const original = entry({ text: '  Fixture\texpression\n', ownership: ownership({ can_edit: true, owner_name: 'Obsolete name' }) })
+  api.entries = [original]
   await page.goto('/#collection')
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
-  const addDialog = page.getByRole('dialog', { name: 'Add collection entry' })
-  const expression = addDialog.getByRole('textbox', { name: /^Expression/ })
+  await expect(page.getByRole('button', { name: /Add entry|Edit expression|Delete expression|Approve/i })).toHaveCount(0)
+  const trigger = page.getByRole('button', { name: /^View expression:\s+Fixture\s+expression\s*$/ })
+  await trigger.click()
+  const viewer = page.getByRole('dialog', { name: 'View collection entry', exact: true })
+  const expression = viewer.getByRole('textbox', { name: 'Expression', exact: true })
   await expect(expression).toBeFocused()
-  await expression.fill('   ')
-  await addDialog.getByRole('button', { name: 'Save unreviewed' }).click()
-  await expect(addDialog.getByRole('alert')).toContainText('It cannot contain only spaces.')
-  expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
+  await expect(expression).toHaveValue(original.text)
+  await expect(expression).not.toBeEditable()
+  await page.keyboard.type('Cannot change this record')
+  await expect(expression).toHaveValue(original.text)
+  await expect(viewer.getByRole('textbox', { name: 'English meaning', exact: true })).toHaveValue(original.english_gloss)
+  await expect(viewer.getByRole('button', { name: /save|record|upload|remove|delete/i })).toHaveCount(0)
+  await expect(viewer.getByRole('checkbox')).toHaveCount(0)
+  await expect(viewer.getByText(/creator:|Obsolete name/i)).toHaveCount(0)
   await page.keyboard.press('Escape')
-  await expect(addDialog).not.toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add entry', exact: true })).toBeFocused()
-
-  const editTrigger = page.getByRole('button', { name: 'Edit expression: Fixture expression' })
-  await editTrigger.click()
-  const editor = page.getByRole('dialog', { name: 'Review collection entry' })
-  const approval = editor.getByRole('checkbox', { name: /I have reviewed the language/ })
-  await expect(approval).toBeChecked()
-  await editor.getByRole('textbox', { name: /^English meaning/ }).fill('Reviewed fixture meaning')
-  await expect(approval).not.toBeChecked()
-
-  const saved = entry({ english_gloss: 'Reviewed fixture meaning', review_status: 'unreviewed' })
-  const saveResponse = deferred<void>()
-  api.on('PATCH', '/api/dataset/fixture-record-1', async (route) => {
-    await saveResponse.promise
-    api.entries = [saved]
-    await route.fulfill({ json: saved })
-  })
-  await editor.getByRole('button', { name: 'Save unreviewed' }).click()
-  await expect.poll(() => api.calls('/api/dataset/fixture-record-1', 'PATCH').length).toBe(1)
-  expect(api.calls('/api/dataset/fixture-record-1', 'PATCH')[0]?.body).toEqual({
-    english_gloss: 'Reviewed fixture meaning', review_status: 'unreviewed',
-  })
-  await expect(editor.getByRole('button', { name: 'Close dialog' })).toBeDisabled()
-  await expect(editor.getByRole('textbox', { name: /^Expression/ })).toBeDisabled()
-  await page.keyboard.press('Escape')
-  await expect(editor).toBeVisible()
-  saveResponse.resolve()
-  await expect(editor).not.toBeVisible()
-  await expect(page.getByText('Saved to the shared workspace. This entry is awaiting review.')).toBeVisible()
-  await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Fixture expression', exact: true }) }).getByText('Unreviewed', { exact: true })).toBeVisible()
+  await expect(viewer).not.toBeVisible()
+  await expect(trigger).toBeFocused()
+  expect(api.requests.filter((request) => request.method !== 'GET')).toEqual([])
+  expect(api.entries).toEqual([original])
 })
 
-test('delete confirmation never mutates on dismissal and reports server errors without hiding the record', async ({ page, api }) => {
+test('empty and failed collections stay honest without offering write controls', async ({ page, api }) => {
+  api.entries = []
+  api.reply('GET', '/api/dataset', { detail: 'Collection storage is unavailable.' }, 503)
   await page.goto('/#collection')
-  const remove = page.getByRole('button', { name: 'Delete expression: Fixture expression' })
-  await remove.click()
-  const dialog = page.getByRole('dialog', { name: 'Remove this expression?' })
-  await dialog.getByRole('button', { name: 'Keep expression' }).click()
-  await expect(dialog).not.toBeVisible()
-  await expect(remove).toBeFocused()
-  expect(api.calls('/api/dataset/fixture-record-1', 'DELETE')).toHaveLength(0)
-
-  api.reply('DELETE', '/api/dataset/fixture-record-1', { detail: 'Only the creator can delete this entry.' }, 403)
-  await remove.click()
-  await dialog.getByRole('button', { name: 'Yes, remove it' }).click()
-  await expect(dialog.getByRole('alert')).toHaveText('Only the creator can delete this entry.')
-  await expect(dialog.getByRole('button', { name: 'Yes, remove it' })).toBeEnabled()
-  await page.keyboard.press('Escape')
-  await expect(remove).toBeVisible()
-  expect(api.calls('/api/dataset/fixture-record-1', 'DELETE')).toHaveLength(1)
+  await expect(page.getByRole('heading', { name: 'Collection unavailable', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'No collected statements yet', exact: true })).toHaveCount(0)
+  api.reply('GET', '/api/dataset', dataset([]))
+  await page.getByRole('button', { name: 'Try again', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'No collected statements yet', exact: true })).toBeVisible()
+  await expect(page.getByText(/The public collection is empty and read-only/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /add.*entry|record audio|upload/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Export results (JSON)', exact: true })).toBeDisabled()
+  expect(api.requests.filter((request) => request.method !== 'GET')).toEqual([])
 })
 
 test('debounced search ignores stale results and client filters leave global counts intact', async ({ page, api }) => {
@@ -97,5 +73,5 @@ test('debounced search ignores stale results and client filters leave global cou
   await page.getByLabel('Filter by review status').selectOption('approved')
   await expect(page.getByRole('heading', { name: 'Fixture expression', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Second fixture', exact: true })).not.toBeVisible()
-  await expect(page.getByLabel('Counts across the shared workspace')).toContainText('2Total entries')
+  await expect(page.getByLabel('Counts across the public workspace')).toContainText('2Total entries')
 })

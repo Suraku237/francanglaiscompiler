@@ -1,45 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
 import { api, isCancelled, messageOf, nativeApiUrl } from './api'
-import { AudioPlayer, AudioRecorder } from './AudioRecorder'
+import { AudioPlayer } from './AudioRecorder'
 import { ErrorNotice, Icon, Modal, Spinner } from './components'
-import { defaultMetadata, languageLabels, MAX_TEXT } from './types'
-import type { Dataset, DatasetEntry, DatasetLanguage, EditableEntry, Metadata, ReviewStatus } from './types'
-import { useRequest } from './useRequest'
+import { defaultMetadata, languageLabels } from './types'
+import type { Dataset, DatasetEntry, DatasetLanguage, Metadata, ReviewStatus } from './types'
 import { useDownload } from './useDownload'
-
-const emptyEntry: EditableEntry = {
-  text: '',
-  entry_type: 'Sentence',
-  language: 'unspecified',
-  review_status: 'unreviewed',
-  lexical_category: '',
-  french_gloss: '',
-  english_gloss: '',
-  category: 'Other',
-  source_location: '',
-  notes: '',
-  contributor: '',
-}
 
 function uniqueOptions(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
-}
-
-function editableFields(entry: EditableEntry): EditableEntry {
-  return {
-    text: entry.text,
-    entry_type: entry.entry_type,
-    language: entry.language ?? 'unspecified',
-    review_status: entry.review_status ?? 'unreviewed',
-    lexical_category: entry.lexical_category ?? '',
-    french_gloss: entry.french_gloss,
-    english_gloss: entry.english_gloss,
-    category: entry.category,
-    source_location: entry.source_location,
-    notes: entry.notes,
-    contributor: entry.contributor,
-  }
 }
 
 function displayDate(value: string): string {
@@ -50,142 +18,44 @@ function displayDate(value: string): string {
     : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)
 }
 
-export function EntryEditor({ entry = null, metadata, initialDraft, onClose, onSaved }: {
-  entry?: DatasetEntry | null
-  metadata: Metadata
-  initialDraft?: Partial<EditableEntry>
-  onClose: () => void
-  onSaved: (entry: DatasetEntry) => void
-}) {
+export function EntryViewer({ entry, onClose }: { entry: DatasetEntry; onClose: () => void }) {
   const expressionInput = useRef<HTMLTextAreaElement>(null)
-  const readOnly = Boolean(entry && !entry.ownership.can_edit)
-  const [draft, setDraft] = useState<EditableEntry>(() => editableFields(entry ?? { ...emptyEntry, ...initialDraft, review_status: 'unreviewed' }))
-  const [validationError, setValidationError] = useState('')
-  const [audioFile, setAudioFile] = useState<File | null>(null)
-  const [removeAudio, setRemoveAudio] = useState(false)
-  const [recording, setRecording] = useState(false)
-  const { pending, error, run, clearError } = useRequest()
-  const categories = uniqueOptions([...metadata.categories, draft.category])
-  const entryTypes = uniqueOptions([...metadata.entry_types, draft.entry_type])
-  const datasetLanguages = uniqueOptions([...(metadata.dataset_languages ?? defaultMetadata.dataset_languages), draft.language])
-
-  function update<K extends keyof EditableEntry>(field: K, value: EditableEntry[K]) {
-    if (readOnly) return
-    clearError()
-    setValidationError('')
-    setDraft((previous) => ({
-      ...previous,
-      [field]: value,
-      ...(field !== 'review_status' ? { review_status: 'unreviewed' as const } : {}),
-      ...(field === 'entry_type' && value !== 'Word' ? { lexical_category: '' } : {}),
-    }))
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (pending || readOnly) return
-    if (recording) {
-      setValidationError('Stop recording before saving the expression.')
-      return
-    }
-    if (!draft.text.trim()) {
-      setValidationError('Please add an expression. It cannot contain only spaces.')
-      return
-    }
-    const values = editableFields(draft)
-    const original = entry ? editableFields(entry) : null
-    const changes = original
-      ? Object.fromEntries(Object.entries(values).filter(([field, value]) => original[field as keyof EditableEntry] !== value))
-      : values
-    if (entry && !Object.keys(changes).length && !audioFile && !removeAudio) {
-      onClose()
-      return
-    }
-    const body = { ...changes, review_status: values.review_status }
-    const withAudio = Boolean(audioFile || removeAudio)
-    const multipart = new FormData()
-    if (withAudio) {
-      multipart.append('fields', JSON.stringify(body))
-      if (audioFile) multipart.append('file', audioFile)
-      if (removeAudio) multipart.append('remove_audio', 'true')
-    }
-    const path = entry
-      ? `/dataset/${encodeURIComponent(entry.id)}${withAudio ? '/audio' : ''}`
-      : `/dataset${withAudio ? '/audio' : ''}`
-    void run(
-      (signal) => api<DatasetEntry>(path, {
-        method: entry ? 'PATCH' : 'POST', body: withAudio ? multipart : body, signal,
-      }),
-      onSaved,
-    )
-  }
-
-  return <Modal title={readOnly ? 'View collection entry' : entry ? 'Review collection entry' : 'Add collection entry'} onClose={onClose} busy={pending} className="entry-modal" initialFocus={expressionInput}>
-    <p className="modal-description">{readOnly ? 'Read the original transcript, annotations and provenance, or listen to its recording. Only the creator can edit, approve, delete or change attachments.' : entry ? 'Review the manual transcript and annotations. Unchanged provenance and existing attachments are preserved.' : 'Type a manually transcribed statement or annotate an observed word. Keep the original wording and spacing; leave unknown facts unknown.'} <span>{readOnly ? 'Approval is the creator’s review, not verified fieldwork.' : 'Source text is required. Saving or approval does not certify genuine fieldwork.'}</span></p>
-    {entry && <p className="helper-text entry-ownership">Creator: {entry.ownership.owner_name} · {readOnly ? 'Read-only' : 'You can edit this entry'}. Contributor provenance below is separate from ownership.</p>}
-    <form onSubmit={submit}>
-      <div className="form-fields">
-        <div className="field">
-          <label htmlFor="entry-text">Expression <span className="required-mark">*</span></label>
-          <textarea ref={expressionInput} id="entry-text" rows={3} maxLength={MAX_TEXT} required value={draft.text} disabled={pending} readOnly={readOnly} onChange={(event) => update('text', event.target.value)} placeholder="Manually transcribe the original statement or word…" aria-describedby="entry-text-limit" />
-          <span id="entry-text-limit" className="field-hint">{draft.text.length.toLocaleString()} / 4,000 characters · manual transcription, never filled from audio</span>
-        </div>
-        <div className="field-grid">
-          <div className="field"><label htmlFor="entry-language">Language</label><select id="entry-language" value={draft.language} disabled={pending || readOnly} onChange={(event) => update('language', event.target.value as DatasetLanguage)}>{datasetLanguages.map((language) => <option key={language} value={language}>{languageLabels[language as DatasetLanguage] ?? language}</option>)}</select><span className="field-hint">Choose Mixed or Unspecified when appropriate; neither is treated as Francanglais or Pidgin.</span></div>
-          <div className="field"><label htmlFor="entry-type">Entry type</label><select id="entry-type" value={draft.entry_type} disabled={pending || readOnly} onChange={(event) => update('entry_type', event.target.value)}>{!draft.entry_type && <option value="">Not recorded (legacy)</option>}{entryTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select></div>
-        </div>
-        <div className="field-grid">
-          <div className="field"><label htmlFor="entry-category">Category</label><select id="entry-category" value={draft.category} disabled={pending || readOnly} onChange={(event) => update('category', event.target.value)}>{!draft.category && <option value="">Not recorded (legacy)</option>}{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select><span className="field-hint">Suggested assignment topic. Legacy categories remain readable.</span></div>
-          {draft.entry_type === 'Word' && <div className="field"><label htmlFor="entry-lexical-category">Lexical category <span>optional</span></label><select id="entry-lexical-category" value={draft.lexical_category} disabled={pending || readOnly} onChange={(event) => update('lexical_category', event.target.value)}><option value="">Not annotated</option>{uniqueOptions([...metadata.lexical_categories, draft.lexical_category]).map((value) => <option key={value} value={value}>{value}</option>)}</select><span className="field-hint">A manual annotation, not an automatic linguistic judgment. Sentence tokens are computed in Franc Analyzer.</span></div>}
-        </div>
-        <div className="field-grid">
-          <div className="field"><label htmlFor="entry-french">French meaning <span>optional</span></label><textarea id="entry-french" rows={3} maxLength={MAX_TEXT} value={draft.french_gloss} lang="fr" disabled={pending} readOnly={readOnly} onChange={(event) => update('french_gloss', event.target.value)} placeholder="Le sens en français…" /></div>
-          <div className="field"><label htmlFor="entry-english">English meaning <span>optional</span></label><textarea id="entry-english" rows={3} maxLength={MAX_TEXT} value={draft.english_gloss} lang="en" disabled={pending} readOnly={readOnly} onChange={(event) => update('english_gloss', event.target.value)} placeholder="The meaning in English…" /></div>
-        </div>
-        <div className="field-grid">
-          <div className="field"><label htmlFor="entry-location">Source location <span>optional</span></label><input id="entry-location" maxLength={200} value={draft.source_location} disabled={pending} readOnly={readOnly} onChange={(event) => update('source_location', event.target.value)} placeholder="Observed setting or original transcript reference" /></div>
-          <div className="field"><label htmlFor="entry-contributor">Contributor <span>optional</span></label><input id="entry-contributor" maxLength={200} value={draft.contributor} disabled={pending} readOnly={readOnly} onChange={(event) => update('contributor', event.target.value)} placeholder="Name or alias" /></div>
-        </div>
-        <div className="field"><label htmlFor="entry-notes">Context & notes <span>optional</span></label><textarea id="entry-notes" rows={3} maxLength={2000} value={draft.notes} disabled={pending} readOnly={readOnly} onChange={(event) => update('notes', event.target.value)} placeholder="Date and context, transcription uncertainty, spelling variation, permission or source restrictions…" /></div>
-        {!readOnly && <AudioRecorder disabled={pending} file={audioFile} onBusyChange={setRecording} onFile={(file) => {
-          setAudioFile(file)
-          setRemoveAudio(false)
-          update('review_status', 'unreviewed')
-        }} />}
-        {!readOnly && <p className="helper-text">Raw audio stays a browser draft until you save. Listen and transcribe by hand; there is no speech recognition or automatic transcription. Saving makes it available to all signed-in users in the shared workspace. Only record people who have given permission.</p>}
-        {entry?.audio_filename && !audioFile && <div>
-          {removeAudio ? <p className="helper-text">The attachment will be removed from this entry when you save. The original file is retained on the server.</p> : <>
-            <p className="helper-text">Current attachment: {entry.audio_filename}</p>
-            <AudioPlayer src={nativeApiUrl(`/dataset/${encodeURIComponent(entry.id)}/audio`)} filename={entry.audio_filename} disabled={pending || recording} />
-          </>}
-          {!readOnly && <button type="button" className="text-button" disabled={pending || recording} onClick={() => {
-            setRemoveAudio((previous) => !previous)
-            update('review_status', 'unreviewed')
-          }}>{removeAudio ? 'Keep the existing attachment' : 'Remove attachment on save'}</button>}
-        </div>}
-        <div className="entry-review">
-          <label className="checkbox-label"><input type="checkbox" checked={draft.review_status === 'approved'} disabled={pending || readOnly} onChange={(event) => update('review_status', event.target.checked ? 'approved' : 'unreviewed')} /><span>{readOnly ? 'Approved by the creator' : 'I have reviewed the language, expression, annotations and provenance. Mark this entry approved.'}</span></label>
-          <p>{readOnly ? 'Only the creator can change this review status.' : 'Edits clear approval until you review the new version. Approval is your review decision, not independent certification.'} Saved sentence records may be used in corpus tests regardless of review status.</p>
-          <p>Record only what you can support; never label synthetic or reference text as collected research.</p>
-        </div>
-        {entry && <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>}
-        <ErrorNotice message={validationError || error} />
+  return <Modal title="View collection entry" onClose={onClose} className="entry-modal" initialFocus={expressionInput}>
+    <p className="modal-description">Read the original transcript, annotations and provenance, or listen to its recording. Collection is read-only. Approval is a recorded review, not verified fieldwork.</p>
+    <div className="form-fields">
+      <div className="field">
+        <label htmlFor="entry-text">Expression</label>
+        <textarea ref={expressionInput} id="entry-text" rows={3} value={entry.text} readOnly aria-describedby="entry-text-hint" />
+        <span id="entry-text-hint" className="field-hint">Original manual transcript · Read-only</span>
       </div>
-      <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />Shared on this server · Creator-only edits.</span><div className="submit-actions"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>{readOnly ? 'Done' : 'Cancel'}</button>{!readOnly && <button type="submit" className="button button-primary" disabled={pending || recording}>{pending ? <Spinner label="Saving expression" /> : <Icon name="check" size={17} />}{pending ? 'Saving…' : draft.review_status === 'approved' ? 'Save approved entry' : 'Save unreviewed'}</button>}</div></div>
-    </form>
-  </Modal>
-}
-
-function DeleteConfirmation({ entry, onClose, onDeleted }: { entry: DatasetEntry; onClose: () => void; onDeleted: () => void }) {
-  const { pending, error, run } = useRequest()
-  return <Modal title="Remove this expression?" onClose={onClose} busy={pending} className="delete-modal">
-    <div className="delete-preview"><Icon name="trash" size={23} /><p>{entry.text}</p></div>
-    <p className="modal-description">This removes your record from the shared workspace for everyone. Recordings, revisions and existing backups are retained on the server; contact the operator if recovery is needed.</p>
-    <ErrorNotice message={error} />
-    <div className="modal-footer"><button type="button" className="button button-secondary" onClick={onClose} disabled={pending}>Keep expression</button><button type="button" className="button button-danger" disabled={pending || !entry.ownership.can_edit} onClick={() => entry.ownership.can_edit && void run(
-      (signal) => api<void>(`/dataset/${encodeURIComponent(entry.id)}`, { method: 'DELETE', signal }),
-      onDeleted,
-    )}>{pending ? <Spinner label="Deleting expression" /> : <Icon name="trash" size={16} />}{pending ? 'Removing…' : 'Yes, remove it'}</button></div>
+      <div className="field-grid">
+        <div className="field"><label htmlFor="entry-language">Language</label><input id="entry-language" value={languageLabels[entry.language ?? 'unspecified'] ?? entry.language} readOnly /></div>
+        <div className="field"><label htmlFor="entry-type">Entry type</label><input id="entry-type" value={entry.entry_type || 'Not recorded (legacy)'} readOnly /></div>
+      </div>
+      <div className="field-grid">
+        <div className="field"><label htmlFor="entry-category">Category</label><input id="entry-category" value={entry.category || 'Not recorded (legacy)'} readOnly /></div>
+        {entry.entry_type === 'Word' && <div className="field"><label htmlFor="entry-lexical-category">Lexical category</label><input id="entry-lexical-category" value={entry.lexical_category || 'Not recorded'} readOnly /></div>}
+      </div>
+      <div className="field-grid">
+        <div className="field"><label htmlFor="entry-french">French meaning</label><textarea id="entry-french" rows={3} value={entry.french_gloss} lang="fr" readOnly placeholder="Not recorded" /></div>
+        <div className="field"><label htmlFor="entry-english">English meaning</label><textarea id="entry-english" rows={3} value={entry.english_gloss} lang="en" readOnly placeholder="Not recorded" /></div>
+      </div>
+      <div className="field-grid">
+        <div className="field"><label htmlFor="entry-location">Source location</label><input id="entry-location" value={entry.source_location} readOnly placeholder="Not recorded" /></div>
+        <div className="field"><label htmlFor="entry-contributor">Contributor</label><input id="entry-contributor" value={entry.contributor} readOnly placeholder="Not recorded" /></div>
+      </div>
+      <div className="field"><label htmlFor="entry-notes">Context & notes</label><textarea id="entry-notes" rows={3} value={entry.notes} readOnly placeholder="Not recorded" /></div>
+      {entry.audio_filename ? <div>
+        <p className="helper-text">Current attachment: {entry.audio_filename}</p>
+        <AudioPlayer src={nativeApiUrl(`/dataset/${encodeURIComponent(entry.id)}/audio`)} filename={entry.audio_filename} />
+      </div> : <p className="helper-text">No recording is available for this entry. Recordings are read-only; recording and uploads are unavailable.</p>}
+      <div className="entry-review">
+        <p>Review status: {entry.review_status === 'approved' ? 'Approved' : 'Unreviewed'} · Read-only.</p>
+        <p>Saved sentence records may be used in corpus tests regardless of review status. Approval does not certify fieldwork.</p>
+      </div>
+      <details className="record-details"><summary>Original record details <Icon name="chevron" size={15} /></summary><dl><div><dt>Record ID</dt><dd>{entry.id}</dd></div><div><dt>Added</dt><dd>{displayDate(entry.timestamp)}</dd></div><div><dt>Audio filename</dt><dd>{entry.audio_filename || 'No audio attached'}</dd></div></dl></details>
+    </div>
+    <div className="modal-footer"><span className="helper-text"><Icon name="shield" size={15} />Public reference data · Read-only.</span><button type="button" className="button button-secondary" onClick={onClose}>Done</button></div>
   </Modal>
 }
 
@@ -201,15 +71,13 @@ export function Collection({ active, onUseText }: { active: boolean; onUseText?:
   const [error, setError] = useState('')
   const [metadataError, setMetadataError] = useState('')
   const [revision, setRevision] = useState(0)
-  const [editor, setEditor] = useState<{ entry: DatasetEntry | null } | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<DatasetEntry | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<DatasetEntry | null>(null)
   const [notice, setNotice] = useState('')
   const { download, error: downloadError } = useDownload()
 
   useEffect(() => {
     if (!active) {
-      setEditor(null)
-      setDeleteTarget(null)
+      setSelectedEntry(null)
       return
     }
     const controller = new AbortController()
@@ -271,22 +139,20 @@ export function Collection({ active, onUseText }: { active: boolean; onUseText?:
 
   return <section className="page collection-page" aria-labelledby="collection-title">
     <div className="page-intro compact-intro">
-      <div><div className="eyebrow">MANUAL FIELDWORK & ANNOTATION</div><h1 id="collection-title">Collection</h1><p>Transcribe genuine statements, annotate words and suggested topics, and keep provenance with raw recordings.</p></div>
-      <button type="button" className="button button-primary" onClick={() => setEditor({ entry: null })}><Icon name="plus" size={18} />Add entry</button>
+      <div><div className="eyebrow">READ-ONLY REFERENCE COLLECTION</div><h1 id="collection-title">Collection</h1><p>Browse saved statements, annotations and provenance, and listen to existing recordings. Entries cannot be added, edited or removed here.</p></div>
     </div>
-    <div className="collection-stats" aria-label="Counts across the shared workspace">
+    <div className="collection-stats" aria-label="Counts across the public workspace">
       <div><span className="stat-icon"><Icon name="collection" size={23} /></span><div><strong>{dataset ? dataset.total.toLocaleString() : '—'}</strong><span>Total entries</span></div></div>
       <div><span className="stat-icon"><Icon name="check" size={23} /></span><div><strong>{dataset?.by_review_status?.approved ?? '—'}</strong><span>Approved</span></div></div>
       <div><span className="stat-icon"><Icon name="edit" size={23} /></span><div><strong>{dataset?.by_review_status?.unreviewed ?? '—'}</strong><span>Awaiting review</span></div></div>
     </div>
-    <div className="collection-summary"><span className="helper-text">Counts cover everyone’s shared collection, not just the search results.</span>{dataset && <div className="type-counts">{Object.entries(dataset.by_type).map(([type, count]) => <span key={type}>{type || 'Unspecified'} <strong>{count}</strong></span>)}</div>}</div>
-    <p className="helper-text">Use Add entry to save each manually transcribed statement and its meaning, then <a href="#compiler">open Franc Analyzer</a> to analyze it. Dictionary and synthetic references are not evidence of your own fieldwork.</p>
-
+    <div className="collection-summary"><span className="helper-text">Counts cover the whole collection, not just the search results.</span>{dataset && <div className="type-counts">{Object.entries(dataset.by_type).map(([type, count]) => <span key={type}>{type || 'Unspecified'} <strong>{count}</strong></span>)}</div>}</div>
+    <p className="helper-text">Use a record as analyzer input without changing Collection. Dictionary and synthetic references are not fieldwork evidence.</p>
     <div className="collection-tools">
       <div className="search-field"><Icon name="search" size={20} /><label className="sr-only" htmlFor="collection-query">Search collection</label><input id="collection-query" type="search" maxLength={200} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search statements, words, meanings or context" /></div>
       <div className="collection-filters">
         <label className="sr-only" htmlFor="language-filter">Filter by dataset language</label><select id="language-filter" value={language} onChange={(event) => setLanguage(event.target.value as DatasetLanguage | '')}><option value="">All languages</option>{datasetLanguages.map((value) => <option key={value} value={value}>{languageLabels[value as DatasetLanguage] ?? value}</option>)}</select>
-        <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · reviewed by creator</option><option value="unreviewed">Unreviewed</option></select>
+        <label className="sr-only" htmlFor="review-filter">Filter by review status</label><select id="review-filter" value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as ReviewStatus | '')}><option value="">All review statuses</option><option value="approved">Approved · recorded review</option><option value="unreviewed">Unreviewed</option></select>
         <label className="sr-only" htmlFor="category-filter">Filter by category</label><select id="category-filter" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name} value={name}>{name}</option>)}</select>
         <label className="sr-only" htmlFor="type-filter">Filter by entry type</label><select id="type-filter" value={entryType} onChange={(event) => setEntryType(event.target.value)}><option value="">All types</option>{entryTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select>
         <button type="button" className="icon-button refresh-collection" onClick={() => setRevision((value) => value + 1)} disabled={loading} aria-label="Refresh collection" title="Refresh collection"><Icon name="refresh" size={19} /></button>
@@ -302,20 +168,19 @@ export function Collection({ active, onUseText }: { active: boolean; onUseText?:
     }}>Export results (JSON)<Icon name="arrow" size={15} /></button></div></div>
     <p className="helper-text">Exports include the displayed entries and their context/contributor details. Share only with authorized recipients.</p>
     <ErrorNotice message={downloadError} />
-
     <div className="collection-results" aria-busy={loading}>
-      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading collection" /><p>Loading shared collected records…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
+      {loading ? <div className="collection-loading" role="status"><Spinner label="Loading collection" /><p>Loading collected records…</p><div className="entry-skeletons" aria-hidden="true"><div /><div /><div /></div></div> :
         error ? <div className="collection-error"><Icon name="collection" size={34} /><h3>Collection unavailable</h3><p>Check the connection and retry. No records were changed.</p><ErrorNotice message={error} onRetry={() => setRevision((value) => value + 1)} /></div> :
-          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No matching records' : 'No collected statements yet'}</h3><p>{hasFilters ? 'Adjust your search or filters to see other entries.' : 'The shared collection is empty. Add a manually transcribed statement with its meaning and available source context for all signed-in users to view. No sample data is inserted for you.'}</p><button type="button" className="button button-secondary" onClick={hasFilters ? resetFilters : () => setEditor({ entry: null })}>{hasFilters ? 'Clear all filters' : 'Add the first entry'}<Icon name={hasFilters ? 'refresh' : 'plus'} size={16} /></button></div> :
+          !entries.length ? <div className="collection-empty"><span className="empty-collection-icon"><Icon name={hasFilters ? 'search' : 'collection'} size={35} /></span><h3>{hasFilters ? 'No matching records' : 'No collected statements yet'}</h3><p>{hasFilters ? 'Adjust your search or filters to see other entries.' : 'The public collection is empty and read-only. No sample data is inserted for you. You can still analyze text without adding Collection entries.'}</p>{hasFilters && <button type="button" className="button button-secondary" onClick={resetFilters}>Clear all filters<Icon name="refresh" size={16} /></button>}</div> :
             <div className="entry-grid">{entries.map((entry) => <article className="entry-card" key={entry.id}>
-              <div className="entry-topline"><div className="entry-badges"><span className="entry-type">{entry.entry_type || 'Unspecified'}</span><span className="entry-category">{entry.category || 'No category'}</span></div><div className="entry-actions"><button type="button" className="icon-button" aria-label={`${entry.ownership.can_edit ? 'Edit' : 'View'} expression: ${entry.text.slice(0, 80)}`} title={entry.ownership.can_edit ? 'Edit expression' : 'View expression'} onClick={() => setEditor({ entry })}><Icon name={entry.ownership.can_edit ? 'edit' : 'info'} size={17} /></button>{entry.ownership.can_edit && <button type="button" className="icon-button delete-button" aria-label={`Delete expression: ${entry.text.slice(0, 80)}`} title="Delete expression" onClick={() => setDeleteTarget(entry)}><Icon name="trash" size={17} /></button>}</div></div>
+              <div className="entry-topline"><div className="entry-badges"><span className="entry-type">{entry.entry_type || 'Unspecified'}</span><span className="entry-category">{entry.category || 'No category'}</span></div><div className="entry-actions"><button type="button" className="icon-button" aria-label={`View expression: ${entry.text.slice(0, 80)}`} title="View expression" onClick={() => setSelectedEntry(entry)}><Icon name="info" size={17} /></button></div></div>
               <div className="entry-trust-line"><span className="entry-language">{languageLabels[entry.language ?? 'unspecified'] ?? entry.language}</span><span className={`review-badge ${entry.review_status === 'approved' ? 'review-approved' : 'review-unreviewed'}`}>{entry.review_status === 'approved' ? 'Approved' : 'Unreviewed'}</span></div>
               <h3>{entry.text}</h3>
-              <p className="helper-text entry-ownership">Creator: {entry.ownership.owner_name} · {entry.ownership.can_edit ? 'You can edit' : 'Read-only · Only the creator can edit or delete'}</p>
+              <p className="helper-text">Public reference record · Read-only</p>
               <div className="entry-glosses">
                 {entry.french_gloss && <p lang="fr"><span aria-label="French meaning">FR</span>{entry.french_gloss}</p>}
                 {entry.english_gloss && <p lang="en"><span aria-label="English meaning">EN</span>{entry.english_gloss}</p>}
-                {!entry.french_gloss && !entry.english_gloss && <p className="no-gloss">A meaning waiting to be shared.</p>}
+                {!entry.french_gloss && !entry.english_gloss && <p className="no-gloss">No meaning recorded.</p>}
               </div>
               {entry.audio_filename && <AudioPlayer src={nativeApiUrl(`/dataset/${encodeURIComponent(entry.id)}/audio`)} filename={entry.audio_filename} active={active} />}
               <details className="entry-context"><summary>Context & record details<Icon name="chevron" size={14} /></summary>{entry.notes && <p>{entry.notes}</p>}{entry.contributor && <p><strong>Contributor:</strong> {entry.contributor}</p>}{entry.audio_filename && <p><strong>Audio file:</strong> {entry.audio_filename}</p>}<p className="record-id"><strong>ID:</strong> {entry.id}</p></details>
@@ -323,17 +188,7 @@ export function Collection({ active, onUseText }: { active: boolean; onUseText?:
               <div className="entry-footer"><span><Icon name="location" size={14} />{entry.source_location || 'Location not recorded'}</span><time title={entry.timestamp}>{displayDate(entry.timestamp)}</time></div>
             </article>)}</div>}
     </div>
-    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Statements, word annotations and raw recordings are shared with all signed-in users. Only the creator can edit, approve or delete an entry and change its attachments. No automatic transcription or generated data is added. Exports include provenance; share them only with permission.</span></p>
-
-    {active && editor && <EntryEditor entry={editor.entry} metadata={metadata} onClose={() => setEditor(null)} onSaved={(saved) => {
-      setNotice(saved.review_status === 'approved' ? 'Saved to the shared workspace with your review marked approved.' : 'Saved to the shared workspace. This entry is awaiting review.')
-      setEditor(null)
-      setRevision((value) => value + 1)
-    }} />}
-    {active && deleteTarget && <DeleteConfirmation entry={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={() => {
-      setNotice('Expression removed from the shared workspace. Its revision remains available for recovery.')
-      setDeleteTarget(null)
-      setRevision((value) => value + 1)
-    }} />}
+    <p className="privacy-caption"><Icon name="shield" size={15} /><span>Statements, annotations and recordings are public and read-only. No automatic transcription or generated data is added. Exports include provenance; share them only with permission.</span></p>
+    {active && selectedEntry && <EntryViewer entry={selectedEntry} onClose={() => setSelectedEntry(null)} />}
   </section>
 }

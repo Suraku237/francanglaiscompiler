@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { RecordedTest, TestReport } from '../../src/analyzerTypes'
 import { openGrammarSettings } from '../browserGrammar'
-import { signUp } from './accountWorkflows'
 import { expect, test } from './fixtures'
+import { publicHeaders, readOnlyOwnership } from './publicWorkflows'
 
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 const python = process.platform === 'win32' ? join(root, '.venv', 'Scripts', 'python.exe') : 'python'
@@ -20,25 +20,25 @@ const fixture: {
   'print(json.dumps({"grammar": GRAMMAR, "cases": [asdict(case) for case in CORPUS_CASES]}))',
 ].join('\n')], { cwd: root, encoding: 'utf8', timeout: 30000 }))
 
-test('the collected-sentence CFG records all twelve exact inputs with visible transformations and honest rejections', async ({ page, context }, testInfo) => {
+test.use({ seed: { corpus: 'yaounde' } })
+
+test('the read-only collected-sentence CFG records all twelve exact inputs with visible transformations and honest rejections', async ({ page, context }, testInfo) => {
   await context.route(/^https?:\/\/(?!127\.0\.0\.1:4190\/).*/, (route) => route.abort('blockedbyclient'))
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await signUp(page)
-  const session = await (await page.request.get('/api/auth/session')).json()
-  const headers = { Origin: 'http://127.0.0.1:4190', 'X-CSRF-Token': session.csrf_token }
+  await page.goto('/')
+  await expect(page.getByLabel('Statement to analyze')).toBeVisible()
+  const headers = await publicHeaders(page.request)
   expect(fixture.cases).toHaveLength(12)
-  for (const row of fixture.cases) {
-    const response = await page.request.post('/api/dataset', {
-      headers, data: { text: row.text, entry_type: 'Sentence', notes: 'Isolated regression fixture, not fieldwork.' },
-    })
-    expect(response.status(), await response.text()).toBe(201)
-  }
   const before = await (await page.request.get('/api/dataset')).json()
+  expect(before.total).toBe(12)
+  const state = await (await page.request.get('/api/analyzer')).json()
+  expect(state.grammar).toBe(fixture.grammar.trim())
+  expect(state.grammar_ownership).toEqual(readOnlyOwnership)
   await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill(fixture.grammar)
-  await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
-  await expect(page.getByText(/Grammar saved to the shared workspace/)).toBeVisible()
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue(state.grammar)
+  await expect(page.getByLabel('Context-free grammar')).not.toBeEditable()
+  await expect(page.getByRole('button', { name: 'Save grammar', exact: true })).toHaveCount(0)
   await page.getByRole('link', { name: 'Back to Franc Analyzer', exact: true }).click()
   const first = fixture.cases[0]
   if (!first) throw new Error('The corpus fixture must contain its first sentence.')
@@ -49,7 +49,7 @@ test('the collected-sentence CFG records all twelve exact inputs with visible tr
   await expect(page.getByRole('group', { name: 'Vocabulary approval', exact: true })).toContainText('ACCEPT')
   for (const row of fixture.cases.slice(1)) {
     const response = await page.request.post('/api/analyzer/tests', {
-      headers, data: { request_id: randomUUID(), text: row.text, grammar: fixture.grammar },
+      headers, data: { request_id: randomUUID(), text: row.text, grammar: state.grammar },
     })
     expect(response.status(), await response.text()).toBe(200)
     saved.push(await response.json())
@@ -57,6 +57,8 @@ test('the collected-sentence CFG records all twelve exact inputs with visible tr
   for (const [index, row] of fixture.cases.entries()) {
     const record = saved[index]
     expect(record?.text).toBe(row.text)
+    expect(record?.grammar_source).toBe(state.grammar)
+    expect(record?.ownership).toEqual(readOnlyOwnership)
     expect(record?.lexical.tokens.map((token) => token.category)).toEqual(row.categories)
     expect(record?.parse.accepted, row.reason).toBe(row.accepted)
     expect(record?.approval.accepted).toBe(row.accepted)

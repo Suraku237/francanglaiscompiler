@@ -6,6 +6,7 @@ import type { RecordedTest } from '../../src/analyzerTypes'
 test('Franc Analyzer classifies every word directly while Analysis retains all-test statistics', async ({ page, api }, testInfo) => {
   const input = tokenAnalysisResult()
   const saved = recordedTest({ text: input.text, lexical: input.lexical, parse: input.parse })
+  api.analyzer = analyzerState('S -> VERB')
   api.on('POST', '/api/analyzer/tests', async (route) => {
     api.testReport = retainedTestReport()
     await route.fulfill({ json: saved })
@@ -13,7 +14,8 @@ test('Franc Analyzer classifies every word directly while Analysis retains all-t
   await page.goto('/')
   await page.getByLabel('Statement to analyze').fill(saved.text)
   await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill('S -> VERB')
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
+  await expect(page.getByLabel('Context-free grammar')).not.toBeEditable()
   await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
   await page.getByRole('button', { name: 'Analyze', exact: true }).click()
   const verdict = page.getByRole('region', { name: 'Vocabulary result' })
@@ -135,18 +137,15 @@ test('complete frequency lists and long words stay readable without page overflo
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
 })
 
-test('grammar saving remains explicit and preserves recorded statistics without report-writing tools', async ({ page, api }) => {
+test('saved grammar stays read-only and explicit refresh preserves original recorded statistics', async ({ page, api }) => {
   api.testReport = retainedTestReport()
-  api.on('PUT', '/api/analyzer/grammar', async (route, request) => {
-    expect(request.body).toEqual({ grammar: 'S -> VERB' })
-    api.analyzer = analyzerState('S -> VERB')
-    await route.fulfill({ json: { grammar: 'S -> VERB', grammar_ownership: api.analyzer.grammar_ownership } })
-  })
   await page.goto('/')
   await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill('S -> VERB')
-  await expect(page.getByText('Using unsaved grammar', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Save grammar', exact: true }).click()
+  await expect(page.getByLabel('Context-free grammar')).not.toBeEditable()
+  await expect(page.getByRole('button', { name: 'Save grammar', exact: true })).toHaveCount(0)
+  api.analyzer = analyzerState('S -> VERB')
+  await page.getByRole('button', { name: 'Refresh saved grammar', exact: true }).click()
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
   await expect(page.getByText('Using saved grammar', { exact: true })).toBeVisible()
   await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
   await page.reload()
@@ -155,6 +154,7 @@ test('grammar saving remains explicit and preserves recorded statistics without 
   await expect(page.getByRole('group', { name: 'Tests recorded', exact: true })).toContainText('3')
   await expect(page.getByRole('button', { name: /Download coursework|Save project|Upload screenshot/ })).toHaveCount(0)
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
+  expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
 })
 
 test('failed recording and failed statistics reads remain explicit without success-shaped fallback', async ({ page, api }) => {
@@ -173,6 +173,28 @@ test('failed recording and failed statistics reads remain explicit without succe
   await error.getByRole('button', { name: 'Try again' }).click()
   await expect(page.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(1)
+})
+
+test('a stale saved grammar requires explicit reload before another test can be submitted', async ({ page, api }) => {
+  api.reply('POST', '/api/analyzer/tests', { detail: 'The saved grammar changed. Reload the saved grammar.' }, 409)
+  await page.goto('/')
+  await page.getByLabel('Statement to analyze').fill('  Veux\t')
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Reload the saved grammar')
+  await expect(page.getByRole('button', { name: 'Analyze', exact: true })).toBeDisabled()
+  await expect(page.getByLabel('Statement to analyze')).toHaveValue('  Veux\t')
+  expect(api.calls('/api/analyzer')).toHaveLength(1)
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(1)
+  api.analyzer = analyzerState('S -> VERB')
+  await page.getByRole('button', { name: 'Reload saved grammar', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Analyze', exact: true })).toBeEnabled()
+  expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(1)
+  const saved = recordedTest({ text: '  Veux\t', grammar_source: 'S -> VERB' })
+  api.reply('POST', '/api/analyzer/tests', saved)
+  await page.getByRole('button', { name: 'Analyze', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Vocabulary result', exact: true })).toBeVisible()
+  expect(api.calls('/api/analyzer/tests', 'POST')[1]?.body).toEqual({ request_id: expect.any(String), text: saved.text, grammar: 'S -> VERB' })
+  expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
 })
 
 test('empty input is a real saved epsilon test rather than a fabricated empty dashboard', async ({ page, api }) => {

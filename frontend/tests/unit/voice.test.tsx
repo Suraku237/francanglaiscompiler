@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReadButton } from '../../src/components'
@@ -7,7 +7,7 @@ import { useReadAloud } from '../../src/voice'
 import type { RecordedReading } from '../../src/voice'
 import { audioFixtures } from '../audioFixtures'
 import { ownership } from '../fixtures'
-import { jsonResponse, requestBody } from '../helpers'
+import { deferred, jsonResponse, requestBody } from '../helpers'
 import { speechFixtures } from '../speechFixtures'
 
 function reading(overrides: Partial<RecordedReading> = {}): RecordedReading {
@@ -31,11 +31,11 @@ async function openReading(saved: RecordedReading | null = null) {
   const view = render(<ReadingControls />)
   await user.click(screen.getByRole('button', { name: 'Read aloud with a recorded voice' }))
   const dialog = await screen.findByRole('dialog', { name: 'Recorded read-aloud' })
-  await screen.findByText(saved ? 'Saved reading' : /No voice recording is saved/)
+  await screen.findByText(saved ? 'Saved reading' : /No voice recording is available/)
   return { ...view, user, dialog }
 }
 
-describe('shared recorded read-aloud without synthesis or recognition', () => {
+describe('public read-only recorded playback without synthesis or recognition', () => {
   beforeEach(() => {
     audioFixtures()
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) {
@@ -75,45 +75,20 @@ describe('shared recorded read-aloud without synthesis or recognition', () => {
     const { dialog } = await openReading()
     expect(within(dialog).getByLabelText('Text for this reading').textContent).toBe('  Tchop\t')
     expect(requestBody(vi.mocked(fetch).mock.calls[0])).toEqual({ text: '  Tchop\t', language: 'fr' })
-    expect(within(dialog).getByRole('button', { name: 'Record audio' })).toBeEnabled()
-    expect(within(dialog).getByRole('button', { name: 'Save voice recording' })).toBeDisabled()
+    expect(within(dialog).getByText(/No voice recording is available/)).toHaveTextContent('read-only; recording and uploads are unavailable')
+    expect(within(dialog).queryByRole('button', { name: /Record audio|Save voice recording|Upload/i })).not.toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Attach an audio file')).not.toBeInTheDocument()
     expect(synthesis.speak).not.toHaveBeenCalled()
     expect(recognition).not.toHaveBeenCalled()
     expect(fetch).toHaveBeenCalledOnce()
   })
 
-  it('requires consent and uploads only the explicit saved recording, not a Collection entry', async () => {
-    const { user, dialog } = await openReading()
-    const file = new File(['Synthetic unit fixture audio'], 'my-reading.wav', { type: 'audio/wav' })
-    await user.upload(within(dialog).getByLabelText('Attach an audio file'), file)
-    expect(fetch).toHaveBeenCalledOnce()
-    expect(within(dialog).getByRole('button', { name: 'Save voice recording' })).toBeDisabled()
-    await user.click(within(dialog).getByRole('checkbox', { name: /permission to share/ }))
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(reading(), 201))
-    await user.click(within(dialog).getByRole('button', { name: 'Save voice recording' }))
-    expect(await within(dialog).findByText(/Your voice recording is saved/)).toBeVisible()
-    const request = vi.mocked(fetch).mock.calls[1]
-    expect(request?.[0]).toBe('/api/readings/audio')
-    const form = request?.[1]?.body
-    if (!(form instanceof FormData)) throw new Error('Expected a real multipart recording request.')
-    expect(form.get('file')).toBe(file)
-    expect(JSON.parse(String(form.get('fields')))).toEqual({ text: '  Tchop\t', language: 'fr', share_consent: true })
-    expect(within(dialog).queryByText(/my-reading.wav \(/)).not.toBeInTheDocument()
-    expect(within(dialog).getByRole('checkbox', { name: /permission to share/ })).not.toBeChecked()
-    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/dataset') || String(url).includes('/analyzer'))).toBe(false)
-  })
-
-  it('keeps microphone capture local until stopped and explicitly saved', async () => {
-    const { track, getUserMedia } = audioFixtures()
+  it('never requests microphone permission for a missing recording', async () => {
+    const { getUserMedia } = audioFixtures()
     const { recognition, synthesis } = speechFixtures()
     const { user, dialog } = await openReading()
-    await user.click(within(dialog).getByRole('button', { name: 'Record audio' }))
-    expect(getUserMedia).toHaveBeenCalledOnce()
-    expect(within(dialog).getByRole('button', { name: 'Save voice recording' })).toBeDisabled()
-    expect(fetch).toHaveBeenCalledOnce()
-    await user.click(within(dialog).getByRole('button', { name: 'Stop recording' }))
-    expect(await within(dialog).findByText(/recording-\d+\.webm/)).toBeVisible()
-    expect(track.stop).toHaveBeenCalled()
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }))
+    expect(getUserMedia).not.toHaveBeenCalled()
     expect(fetch).toHaveBeenCalledOnce()
     expect(recognition).not.toHaveBeenCalled()
     expect(synthesis.speak).not.toHaveBeenCalled()
@@ -131,9 +106,10 @@ describe('shared recorded read-aloud without synthesis or recognition', () => {
     expect(synthesis.speak).not.toHaveBeenCalled()
   })
 
-  it('lets another creator be heard but exposes no record, replacement or deletion controls', async () => {
-    const { dialog } = await openReading(reading({ ownership: ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: false }) }))
-    expect(within(dialog).getByText(/Creator: Alice/)).toHaveTextContent('Only its creator can replace or remove it.')
+  it.each([false, true])('exposes playback only even with obsolete ownership flags: %s', async (canEdit) => {
+    const { dialog } = await openReading(reading({ ownership: ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: canEdit }) }))
+    expect(within(dialog).getByText('Public recording · Read-only.')).toBeVisible()
+    expect(within(dialog).queryByText(/Creator:|Alice/)).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: /Record audio|Remove saved reading|Replace saved reading/ })).not.toBeInTheDocument()
     expect(within(dialog).queryByLabelText('Attach an audio file')).not.toBeInTheDocument()
   })
@@ -144,39 +120,36 @@ describe('shared recorded read-aloud without synthesis or recognition', () => {
     render(<ReadingControls />)
     await user.click(screen.getByRole('button', { name: 'Read aloud with a recorded voice' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Recording storage is unavailable.')
-    expect(screen.queryByText(/No voice recording is saved/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No voice recording is available/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save voice recording' })).not.toBeInTheDocument()
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ reading: null }))
     await user.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Try again' }))
-    expect(await screen.findByText(/No voice recording is saved/)).toBeVisible()
+    expect(await screen.findByText(/No voice recording is available/)).toBeVisible()
   })
 
-  it('retains draft audio on failed upload and confirms before discarding it', async () => {
-    const { user, dialog } = await openReading()
-    await user.upload(within(dialog).getByLabelText('Attach an audio file'), new File(['fixture'], 'retry.wav', { type: 'audio/wav' }))
-    await user.click(within(dialog).getByRole('checkbox', { name: /permission to share/ }))
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'The audio file is incomplete.' }, 422))
-    await user.click(within(dialog).getByRole('button', { name: 'Save voice recording' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('The audio file is incomplete.')
-    expect(within(dialog).getByText(/retry.wav \(/)).toBeVisible()
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
-    await user.click(within(dialog).getByRole('button', { name: 'Done' }))
-    expect(dialog).toBeVisible()
-    confirm.mockReturnValue(true)
-    await user.click(within(dialog).getByRole('button', { name: 'Done' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('requires explicit confirmation before removing a saved reading', async () => {
+  it('keeps native controls usable after autoplay is blocked and surfaces real playback errors', async () => {
+    vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(new DOMException('Browser blocked autoplay', 'NotAllowedError'))
     const saved = reading()
-    const { user, dialog } = await openReading(saved)
-    await user.click(within(dialog).getByRole('button', { name: 'Remove saved reading' }))
-    expect(fetch).toHaveBeenCalledOnce()
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }))
-    await user.click(within(dialog).getByRole('button', { name: 'Yes, remove reading' }))
-    expect(await within(dialog).findByText(/The active reading was removed/)).toBeVisible()
-    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(`/api/readings/${saved.id}`)
-    expect(vi.mocked(fetch).mock.calls[1]?.[1]?.method).toBe('DELETE')
-    expect(within(dialog).getByText(/No voice recording is saved/)).toBeVisible()
+    const { dialog } = await openReading(saved)
+    const player = within(dialog).getByLabelText(`Play recording: ${saved.audio_filename}`)
+    expect(player).toHaveAttribute('controls')
+    expect(await within(dialog).findByText(/Use the play control to listen/)).toBeVisible()
+    fireEvent.error(player)
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('could not be played')
+    expect(within(dialog).queryByRole('button', { name: /Record audio|Upload/i })).not.toBeInTheDocument()
+  })
+
+  it('cancels lookup and ignores a late response after the dialog closes', async () => {
+    const pending = deferred<Response>()
+    vi.mocked(fetch).mockReturnValueOnce(pending.promise)
+    const user = userEvent.setup()
+    render(<ReadingControls />)
+    await user.click(screen.getByRole('button', { name: 'Read aloud with a recorded voice' }))
+    const signal = vi.mocked(fetch).mock.calls[0]?.[1]?.signal
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(signal?.aborted).toBe(true)
+    await act(async () => pending.resolve(jsonResponse({ reading: reading() })))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled()
   })
 })

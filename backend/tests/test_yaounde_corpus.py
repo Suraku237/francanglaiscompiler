@@ -50,7 +50,7 @@ class YaoundeCorpusTests(AnalyzerHistoryCase, CompilerHostedCase):
         self.assertEqual(len(document["entries"]), len(entries))
         self.assertEqual(len(document["analyzer_tests"]), 13)
         self.assertEqual(len(document["coursework"]), 1)
-        app = create_app(Settings(), auth_settings=self.settings)
+        app = create_app(Settings(), require_auth=True, auth_settings=self.settings)
         with TestClient(app, headers={"Origin": "http://testserver"}) as reopened:
             self.login(reopened)
             self.assertEqual(reopened.get("/api/analyzer").json()["grammar"], GRAMMAR.strip())

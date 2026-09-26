@@ -1,10 +1,10 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../src/App'
-import AuthGate from '../../src/AuthGate'
+import PublicSession from '../../src/PublicSession'
 import { configureSession } from '../../src/api'
-import { analyzerState, dataset, entry, health, metadata, ownership, recordedTest, retainedTestReport, sharedWorkspace, testReport } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata, publicSession, recordedTest, retainedTestReport, testReport } from '../fixtures'
 import { jsonResponse } from '../helpers'
 
 beforeEach(() => {
@@ -23,8 +23,10 @@ function compilerApi() {
   })
 }
 
-describe('compiler-only navigation and account scope', () => {
-  it.each(['', '#translator', '#assistant', '#coursework', '#unknown', '#history', '#settings', '#imports'])('defaults %s to the compiler without retired screens or network requests', async (hash) => {
+describe('public compiler navigation', () => {
+  it.each(['', '#translator', '#assistant', '#coursework', '#unknown', '#history', '#settings', '#imports',
+    '#signin', '#register', '#forgot-password', '#reset-password?token=old', '#verify-email?token=old', '#profile', '#logout',
+  ])('defaults %s to the compiler without retired screens or network requests', async (hash) => {
     compilerApi()
     window.history.replaceState(null, '', `/${hash}`)
     render(<App />)
@@ -38,8 +40,9 @@ describe('compiler-only navigation and account scope', () => {
     ])
     expect(links[0]).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Compiler connected')).toBeVisible()
-    expect(screen.queryByRole('button', { name: /translate|assistant|Ask AI|dictat/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: /History|Workspace settings|Document import/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /translate|assistant|Ask AI|dictat|sign out|sign in/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /History|Workspace settings|Document import|Sign in/ })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Registered users')).not.toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.map(([url]) => url).sort()).toEqual(['/api/analyzer', '/api/health'])
   })
 
@@ -57,114 +60,67 @@ describe('compiler-only navigation and account scope', () => {
     expect(vi.mocked(fetch).mock.calls.map(([url]) => url).sort()).toEqual(['/api/analyzer', '/api/analyzer/tests?offset=0&limit=25', '/api/health'])
   })
 
-  it('resets account-specific drafts and permissions while preserving shared records, test totals and grammar', async () => {
-    const firstSession = {
-      user: { id: 'fixture-user', email: 'fixture@example.com', display_name: 'Fixture', email_verified: true, google_linked: false },
-      csrf_token: 'fixture-csrf', google_enabled: true, email_enabled: true, development_mail: false,
-    }
-    const secondSession = { ...firstSession, csrf_token: 'second-csrf', user: { ...firstSession.user, id: 'second-user', email: 'second@example.com', display_name: 'Second' } }
-    let session = firstSession
-    const firstEntry = entry({ text: '  Shared\tstatement\n', ownership: ownership({ owner_id: firstSession.user.id, owner_name: 'Fixture' }) })
-    const secondEntry = entry({ id: 'second-entry', text: 'Second shared statement', ownership: ownership({ owner_id: secondSession.user.id, owner_name: 'Second', can_edit: false }) })
-    const savedTest = recordedTest({ ownership: firstEntry.ownership, text: firstEntry.text })
+  it('initializes public access once and preserves input and immutable history through navigation', async () => {
+    const original = entry({ text: '  Shared\tstatement\n' })
+    const savedTest = recordedTest({ text: original.text })
     vi.mocked(fetch).mockImplementation(async (url) => {
-      if (url === '/api/auth/session') return jsonResponse(session)
-      if (url === '/api/workspace/projects') return jsonResponse(sharedWorkspace())
+      if (url === '/api/public/session') return jsonResponse(publicSession())
       if (url === '/api/health') return jsonResponse(health())
       if (url === '/api/metadata') return jsonResponse(metadata)
-      if (url === '/api/dataset') return jsonResponse(dataset([firstEntry, secondEntry].map((item) => ({
-        ...item, ownership: { ...item.ownership, can_edit: item.ownership.owner_id === session.user.id },
-      }))))
-      if (url === '/api/analyzer') return jsonResponse(analyzerState('S -> NOUN', { ...firstEntry.ownership, can_edit: session.user.id === firstSession.user.id }))
-      if (url === `/api/analyzer/tests/${savedTest.id}`) return jsonResponse({ ...savedTest, ownership: { ...savedTest.ownership, can_edit: session.user.id === firstSession.user.id } })
+      if (url === '/api/dataset') return jsonResponse(dataset([original]))
+      if (url === '/api/analyzer') return jsonResponse(analyzerState('S -> NOUN'))
+      if (url === `/api/analyzer/tests/${savedTest.id}`) return jsonResponse(savedTest)
       if (String(url).startsWith('/api/analyzer/tests?')) return jsonResponse(retainedTestReport())
       throw new Error(`Unexpected request ${String(url)}`)
     })
     const user = userEvent.setup()
-    render(<AuthGate />)
-    expect(screen.queryByLabelText('Statement to analyze')).not.toBeInTheDocument()
+    render(<PublicSession />)
     await screen.findByLabelText('Statement to analyze')
-    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/auth/session')
-    expect(await screen.findByLabelText('Registered users')).toHaveTextContent('2 registered users')
-    expect(screen.queryByLabelText('Active project')).not.toBeInTheDocument()
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/public/session')
+    expect(screen.queryByLabelText('Registered users')).not.toBeInTheDocument()
     const navigation = within(screen.getByRole('navigation', { name: 'Main navigation' }))
     await user.click(navigation.getByRole('link', { name: 'Collection' }))
-    const firstCard = () => screen.getByRole('heading', { name: /^Shared\s+statement$/ }).closest('article')!
-    await screen.findByRole('heading', { name: /^Second shared statement$/ })
-    expect(within(firstCard()).getByRole('button', { name: /^Edit expression/ })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'View expression: Second shared statement' })).toBeEnabled()
-    await user.click(within(firstCard()).getByRole('button', { name: 'Use as analyzer input' }))
-    expect(await screen.findByLabelText('Statement to analyze')).toHaveValue(firstEntry.text)
+    const viewButton = await screen.findByRole('button', { name: /^View expression:\s+Shared\s+statement\s*$/ })
+    await user.click(viewButton)
+    expect(screen.getByLabelText('Expression', { exact: true })).toHaveValue(original.text)
+    expect(screen.getByLabelText('Expression', { exact: true })).toHaveAttribute('readonly')
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.getByLabelText('Counts across the public workspace')).toHaveTextContent('1Total entries')
+    expect(screen.queryByRole('button', { name: /add entry|edit expression|delete expression/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Use as analyzer input' }))
+    expect(await screen.findByLabelText('Statement to analyze')).toHaveValue(original.text)
     await user.click(navigation.getByRole('link', { name: 'Analysis' }))
     expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
     await user.click(screen.getByRole('button', { name: 'Inspect test 1' }))
     expect(await screen.findByLabelText('Analyzed source text')).toHaveTextContent('Shared statement')
-    await user.click(screen.getByText('Grammar settings'))
-    await user.clear(screen.getByLabelText('Context-free grammar'))
-    await user.paste('S -> NUMBER')
-    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeEnabled()
-    session = secondSession
-    act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'mboa-session-change' })))
-    expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
-    expect(screen.queryByLabelText('Analyzed source text')).not.toBeInTheDocument()
-    await user.click(screen.getByText('Grammar settings'))
-    await waitFor(() => expect(screen.getByLabelText('Context-free grammar')).toHaveValue('S -> NOUN'))
-    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeDisabled()
-    expect(screen.getByText(/Shared grammar creator: Fixture/)).toBeVisible()
-    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Collection' }))
-    await screen.findByRole('button', { name: 'Edit expression: Second shared statement' })
-    expect(within(firstCard()).queryByRole('button', { name: /^Edit expression|^Delete expression/ })).not.toBeInTheDocument()
-    expect(within(firstCard()).getByRole('button', { name: /^View expression/ })).toBeEnabled()
-    expect(screen.getByLabelText('Counts across the shared workspace')).toHaveTextContent('2Total entries')
-    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Franc Analyzer' }))
-    expect(screen.queryByLabelText('Context-free grammar')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Statement to analyze')).toHaveValue('')
-    expect(screen.queryByLabelText('Group member 1')).not.toBeInTheDocument()
-    session = firstSession
-    act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'mboa-session-change' })))
-    await screen.findByLabelText('Statement to analyze')
-    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('link', { name: 'Analysis' }))
-    expect(await screen.findByRole('group', { name: 'Tests recorded' })).toHaveTextContent('3')
-    await user.click(screen.getByText('Grammar settings'))
-    await user.clear(screen.getByLabelText('Context-free grammar'))
-    await user.paste('S -> VERB')
-    expect(screen.getByRole('button', { name: 'Save grammar' })).toBeEnabled()
-    expect(vi.mocked(fetch).mock.calls.every(([, init]) => !new Headers(init?.headers).has('X-Mboa-Project'))).toBe(true)
-    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0)
-    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+    await user.click(screen.getByText('Grammar settings', { exact: true }))
+    expect(screen.getByLabelText('Context-free grammar')).toHaveAttribute('readonly')
+    expect(screen.queryByRole('button', { name: 'Save grammar' })).not.toBeInTheDocument()
+    await user.click(navigation.getByRole('link', { name: 'Franc Analyzer' }))
+    expect(screen.getByLabelText('Statement to analyze')).toHaveValue(original.text)
+    act(() => window.dispatchEvent(new Event('mboa:session-expired')))
+    expect(screen.getByLabelText('Statement to analyze')).toHaveValue(original.text)
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/public/session')).toHaveLength(1)
+    expect(vi.mocked(fetch).mock.calls.every(([, init]) => init?.method === 'GET')).toBe(true)
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => /\/auth\/|\/workspace\//.test(String(url)))).toBe(false)
   })
 
-  it('explains local processing and preserved backups without provider configuration or quotas', async () => {
+  it('explains public retention, read-only data and browser protection without account controls', async () => {
     compilerApi()
     const user = userEvent.setup()
     render(<App />)
     await screen.findByLabelText('Statement to analyze')
-    const sidebar = within(screen.getByRole('complementary', { name: 'Workspace navigation' }))
-    await user.click(sidebar.getByRole('button', { name: 'Privacy information' }))
+    await user.click(within(screen.getByRole('complementary', { name: 'Workspace navigation' })).getByRole('button', { name: 'Privacy information' }))
     const dialog = screen.getByRole('dialog', { name: 'Data & privacy' })
     expect(dialog).toHaveTextContent('no OCR or automatic transcription')
-    expect(dialog).toHaveTextContent('Google sign-in')
     expect(dialog).toHaveTextContent('Existing backups and legacy records remain on the server')
-    expect(dialog).toHaveTextContent('Analyze records each completed test')
-    expect(dialog).toHaveTextContent('remain after refresh or sign-out')
-    expect(dialog).toHaveTextContent('Only the creator can edit or delete')
-    expect(dialog).toHaveTextContent('every user’s retained tests')
-    expect(dialog).toHaveTextContent('credentials are not shared')
-    expect(dialog).not.toHaveTextContent('private account and selected project')
+    expect(dialog).toHaveTextContent('Analyze publicly retains each completed test')
+    expect(dialog).toHaveTextContent('Do not submit personal or confidential content')
+    expect(dialog).toHaveTextContent('saved grammar and recordings are read-only')
+    expect(dialog).toHaveTextContent('cookie and request token protect submissions against cross-site requests')
+    expect(dialog).toHaveTextContent('A stopped request may still finish and become publicly visible')
     expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument()
-    expect(dialog).not.toHaveTextContent(/Gemini|API key|AI allowance|provider retention/i)
-  })
-
-  it('keeps password sign-in guidance without linking to the removed Settings page', async () => {
-    window.history.replaceState(null, '', '/#signin?error=google-link-required')
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({
-      user: null, csrf_token: null, google_enabled: true, email_enabled: true, development_mail: false,
-    }))
-    render(<AuthGate />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Sign in with your existing password')
-    expect(screen.getByRole('alert')).not.toHaveTextContent('Workspace settings')
-    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '#forgot-password')
-    expect(screen.getByRole('link', { name: 'Continue with Google' })).toBeInTheDocument()
+    expect(dialog).not.toHaveTextContent(/signed-in|creator-only|sign-out|Google sign-in|user count|Gemini|API key|AI allowance/i)
   })
 })

@@ -23,11 +23,12 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.concurrency import run_in_threadpool
 from filelock import Timeout
 
 from .collection import CollectionError
+from .config import ServerSettings
+from .rate_limits import RateLimitExceeded, throttle
 
 ROOT = Path(__file__).resolve().parents[1]
 COOKIE = "mboa_session"
@@ -38,13 +39,7 @@ PASSWORDS = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 _identity: ContextVar["UserIdentity | None"] = ContextVar("mboa_identity", default=None)
 
 
-class AuthSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="MBOA_", env_file=(ROOT / ".env", ROOT / "backend" / ".env"), extra="ignore",
-    )
-    environment: Literal["development", "production"] = "development"
-    data_dir: Path = ROOT / ".mboa"
-    public_url: str = "http://127.0.0.1:8000"
+class AuthSettings(ServerSettings):
     mail_mode: Literal["file", "smtp"] = "file"
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
@@ -56,21 +51,13 @@ class AuthSettings(BaseSettings):
 
     @model_validator(mode="after")
     def valid_deployment(self):
-        url = urlsplit(self.public_url)
-        if (url.scheme not in ("http", "https") or not url.hostname or url.username or
-                url.password or url.path not in ("", "/") or url.query or url.fragment):
-            raise ValueError("MBOA_PUBLIC_URL must be an HTTP(S) origin without credentials or a path.")
         if bool(self.google_client_id) != bool(self.google_client_secret.get_secret_value()):
             raise ValueError("Configure both Google client ID and client secret, or neither.")
         if self.mail_mode == "smtp" and not (self.smtp_host and self.mail_from):
             raise ValueError("SMTP delivery requires MBOA_SMTP_HOST and MBOA_MAIL_FROM.")
         if self.environment == "production":
-            if url.scheme != "https" or url.hostname in ("localhost", "127.0.0.1", "::1"):
-                raise ValueError("Production requires a public HTTPS origin.")
             if self.mail_mode != "smtp":
                 raise ValueError("Production requires SMTP delivery, never a local mail outbox.")
-        self.public_url = self.public_url.rstrip("/")
-        self.data_dir = self.data_dir.absolute()
         return self
 
 
@@ -187,17 +174,11 @@ class AuthStore:
             return db.execute("SELECT count(*) FROM users").fetchone()[0]
 
     def throttle(self, key: str, maximum: int, seconds: int) -> None:
-        now = time.time()
-        with self.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
-            db.execute("DELETE FROM limits WHERE expires <= ?", (now,))
-            row = db.execute("SELECT * FROM limits WHERE key=?", (key,)).fetchone()
-            if row and row["count"] >= maximum:
-                raise AuthError(429, "Too many requests. Please try again later.", max(1, int(row["expires"] - now)))
-            db.execute(
-                "INSERT INTO limits VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1",
-                (key, now + seconds),
-            )
+        try:
+            with self.connection() as db:
+                throttle(db, key, maximum, seconds)
+        except RateLimitExceeded as exc:
+            raise AuthError(429, str(exc), exc.retry_after) from exc
 
     def session(self, raw: str) -> UserIdentity | None:
         if not raw or len(raw) > 200:

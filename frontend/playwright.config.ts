@@ -26,7 +26,7 @@ export default defineConfig({
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: `${npm} run preview -- --host 127.0.0.1 --port 4187 --strictPort${stagedAssets ? ` --outDir "${stagedAssets}"` : ''}`,
+    command: `${npm} run preview -- --config playwright.preview.config.ts --host 127.0.0.1 --port 4187 --strictPort${stagedAssets ? ` --outDir "${stagedAssets}"` : ''}`,
     cwd: fileURLToPath(new URL('.', import.meta.url)),
     url: origin,
     reuseExistingServer: false,

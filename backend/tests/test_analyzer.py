@@ -394,7 +394,7 @@ class HostedAnalyzerTests(CompilerHostedCase):
         self.assertEqual(json.loads(archived["coursework"][0]["data"]), profile)
         self.assertEqual(self.restore(preview).status_code, 409)
         self.assertEqual(store.export_document(), after)
-        app = create_app(Settings(), auth_settings=self.settings,
+        app = create_app(Settings(), require_auth=True, auth_settings=self.settings,
                          mailer=lambda address, _subject, text: self.mail.append((address, text)))
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
         self.login(reopened)

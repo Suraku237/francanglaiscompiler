@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from './fixtures'
-import { analyzerState, entry } from '../fixtures'
+import { entry, publicSession } from '../fixtures'
 import { openGrammarSettings } from '../browserGrammar'
 
 test('Franc Analyzer replaces the lab with one visible analysis action and no collection or report sections', async ({ page, api }, testInfo) => {
@@ -29,7 +29,7 @@ test('Franc Analyzer replaces the lab with one visible analysis action and no co
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-for (const retired of ['history', 'settings', 'imports', 'lab-collection', 'lab-submission']) {
+for (const retired of ['history', 'settings', 'imports', 'lab-collection', 'lab-submission', 'signin', 'register', 'forgot-password', 'verify-email?token=old', 'profile', 'logout']) {
   test(`retired ${retired} route returns to Franc Analyzer without loading removed-screen data`, async ({ page, api }) => {
     await page.goto(`/#${retired}`)
     await expect(page).toHaveURL(/#compiler$/)
@@ -58,7 +58,10 @@ test('grammar controls remain keyboard accessible without losing input or comput
   await settings.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Context-free grammar')).toBeVisible()
-  await page.getByLabel('Context-free grammar').fill('S -> VERB')
+  await expect(page.getByLabel('Context-free grammar')).not.toBeEditable()
+  await page.getByLabel('Context-free grammar').focus()
+  await page.keyboard.type('S -> VERB')
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue(api.analyzer.grammar)
   await settings.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Context-free grammar')).not.toBeVisible()
@@ -66,7 +69,7 @@ test('grammar controls remain keyboard accessible without losing input or comput
   await expect(page.getByLabel('Statement to analyze')).toHaveValue(raw)
   await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
   await openGrammarSettings(page)
-  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
+  await expect(page.getByLabel('Context-free grammar')).toHaveValue(api.analyzer.grammar)
   expect(api.calls('/api/analyzer/tests', 'POST')).toHaveLength(0)
   expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -83,7 +86,7 @@ test('collection export preserves legacy categories and only includes displayed 
   const event = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export results (JSON)' }).click()
   const download = await event
-  expect(download.suggestedFilename()).toBe('mboa-collection.json')
+  expect(download.suggestedFilename()).toBe('camfranglais-collection.json')
   expect(await download.failure()).toBeNull()
   const path = await download.path()
   if (!path) throw new Error('Expected a real downloaded JSON file.')
@@ -93,28 +96,19 @@ test('collection export preserves legacy categories and only includes displayed 
   expect(api.calls('/api/dataset', 'POST')).toHaveLength(0)
 })
 
-test('authenticated project selection remounts grammar, manual input and source context', async ({ page, api }) => {
-  api.reply('GET', '/api/workspace/projects', {
-    projects: [{ id: 'default', name: 'General', created_at: '' }, { id: 'isolated-project', name: 'Separate project', created_at: '' }],
-    default_project_id: 'default',
-  })
-  api.on('GET', '/api/analyzer', async (route, request) => {
-    const other = request.headers['x-mboa-project'] === 'isolated-project'
-    await route.fulfill({ json: analyzerState(other ? 'S -> VERB' : 'S -> NOUN') })
-  })
-  await page.goto('/')
-  await page.getByLabel('Statement to analyze').fill('Unsaved private text')
-  await openGrammarSettings(page)
-  await page.getByLabel('Context-free grammar').fill('S -> NUMBER')
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByLabel('Active project').selectOption('isolated-project')
-  await expect(page.getByRole('heading', { name: 'No saved tests yet' })).toBeVisible()
-  await openGrammarSettings(page)
-  await expect(page.getByLabel('Context-free grammar')).toHaveValue('S -> VERB')
-  await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-  await expect(page.getByLabel('Statement to analyze')).toHaveValue('')
-  await expect(page.getByLabel('Context-free grammar')).toHaveCount(0)
-  await expect(page.getByLabel('Group member 1')).toHaveCount(0)
-  expect(api.calls('/api/analyzer').at(-1)?.headers['x-mboa-project']).toBe('isolated-project')
-  expect(api.calls('/api/analyzer/grammar')).toHaveLength(0)
+test('bootstrap failure blocks submissions and offers an explicit retry without login screens', async ({ page, api }) => {
+  api.reply('GET', '/api/public/session', { detail: 'Public access temporarily unavailable.' }, 503)
+  await page.goto('/#signin')
+  await expect(page.getByRole('alert')).toContainText('Public access temporarily unavailable')
+  await expect(page.getByLabel('Statement to analyze')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Sign in|Sign out|Register/i })).toHaveCount(0)
+  expect(api.calls('/api/analyzer')).toHaveLength(0)
+  api.reply('GET', '/api/public/session', publicSession())
+  await page.getByRole('button', { name: 'Try again', exact: true }).click()
+  await expect(page.getByLabel('Statement to analyze')).toBeVisible()
+  await expect(page).toHaveURL(/#compiler$/)
+  await expect(page.getByLabel('Registered users')).toHaveCount(0)
+  await expect(page.getByLabel('Active project')).toHaveCount(0)
+  expect(api.calls('/api/public/session')).toHaveLength(2)
+  expect(api.requests.some((request) => request.headers['x-mboa-project'])).toBe(false)
 })

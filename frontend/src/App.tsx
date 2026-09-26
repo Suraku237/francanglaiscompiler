@@ -11,7 +11,6 @@ import type { Health, IncomingText, Page } from './types'
 import { useRequest } from './useRequest'
 import { useReadAloud } from './voice'
 import { RecordedReadings } from './RecordedReadings'
-import type { Account } from './accountTypes'
 
 const navigation: { page: Page; label: string; icon: IconName }[] = [
   { page: 'compiler', label: 'Franc Analyzer', icon: 'code' },
@@ -28,21 +27,17 @@ function currentPage(): Page {
 
 function PrivacyDialog({ onClose }: { onClose: () => void }) {
   return <Modal title="Data & privacy" onClose={onClose} className="privacy-modal">
-    <p className="modal-description">There is one shared workspace. All signed-in users can view its collection, recorded tests, grammar and recordings. Only the creator can edit or delete their records; saved tests are immutable.</p>
+    <p className="modal-description">This is a public workspace. Anyone can analyze text and save immutable tests. Collection, the saved grammar and recordings are read-only.</p>
     <div className="privacy-sections">
-      <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Collection and storage</h3><p>Analyze records each completed test, its text, grammar and results in the shared workspace, separately from Collection. Analysis statistics include every user’s retained tests, including repeats, and remain after refresh or sign-out. A stopped request may still finish and become visible to all signed-in users; refresh saved tests to check.</p><p>Unsubmitted drafts stay in this tab and are lost on reload, account switch or sign-out. Everyone can edit and test a local grammar draft. Only the grammar’s creator can save shared changes; the first save claims unowned grammar. Approval records the creator’s review, not verified fieldwork.</p><p>Exports can include source context and contributor details. Share only with permission. Existing backups and legacy records remain on the server; removing their screens does not delete stored data. Contact the server operator for recovery.</p></div></section>
-      <section><span className="privacy-section-icon"><Icon name="code" size={21} /></span><div><h3>Rule-based computation and audio</h3><p>The lexer and parser run on this server without AI. Vocabulary ACCEPT / REJECT depends only on UNKNOWN tokens; recognized slang is accepted. CFG grammar checks are shown separately. Neither check decides whether a speaker is correct. The starter grammar and synthetic examples are not fieldwork.</p><p>Read-aloud plays an actual recording for the selected text, never a synthetic or cloned voice. These shared pronunciation recordings are separate from Collection and only their creator can replace or remove them. Record only with permission. There is no OCR or automatic transcription.</p></div></section>
-      <section><span className="privacy-section-icon"><Icon name="shield" size={21} /></span><div><h3>Account safety</h3><p>Your email, password, profile and session remain account-specific; credentials are not shared. The user count is registered accounts, not people currently online, and no email directory is exposed. Hosted access requires HTTPS. Password and Google sign-in remain available when configured; password recovery is on the sign-in screen. Sign out on shared devices and keep verification links private.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="collection" size={21} /></span><div><h3>Collection and storage</h3><p>Analyze publicly retains each completed test, its original text, saved grammar and results, separately from Collection. Do not submit personal or confidential content. Statistics include all retained tests, including repeats, and remain after refresh. A stopped request may still finish and become publicly visible; refresh saved tests to check.</p><p>Unsubmitted text stays in this tab and is lost on reload. Tests use only the saved grammar; there are no editable grammar drafts. Collection approval is a recorded review, not verified fieldwork.</p><p>Exports can include source context and contributor details. Share only with permission. Existing backups and legacy records remain on the server. Contact the server operator for recovery.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="code" size={21} /></span><div><h3>Rule-based computation and audio</h3><p>The lexer and parser run on this server without AI. Vocabulary ACCEPT / REJECT depends only on UNKNOWN tokens; recognized slang is accepted. CFG grammar checks are shown separately. Neither check decides whether a speaker is correct. The starter grammar and synthetic examples are not fieldwork.</p><p>Read-aloud plays an existing recording for the selected text, never a synthetic or cloned voice. Recordings are read-only: this website cannot record, upload, replace or remove audio. There is no OCR or automatic transcription.</p></div></section>
+      <section><span className="privacy-section-icon"><Icon name="shield" size={21} /></span><div><h3>Public access and browser protection</h3><p>No account or login is required. An opaque browser cookie and request token protect submissions against cross-site requests; they are not an account or an identity. The public website does not expose maintenance tools.</p></div></section>
     </div>
     <div className="modal-footer"><button type="button" className="button button-primary" onClick={onClose}>Done<Icon name="check" size={17} /></button></div>
   </Modal>
 }
 
-export default function App({ account, registeredUsers = null, onSignOut }: {
-  account?: Account
-  registeredUsers?: number | null
-  onSignOut?: () => void
-}) {
+export default function App() {
   const [page, setPage] = useState<Page>(currentPage)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [health, setHealth] = useState<Health | null>(null)
@@ -109,7 +104,7 @@ export default function App({ account, registeredUsers = null, onSignOut }: {
         </a>)}
       </nav>
       <div className="sidebar-bottom">
-        <div className="workspace-scope"><span className="scope-indicator" /><div><strong>Shared workspace</strong><span>Everyone can view · Creator-only edits</span></div></div>
+        <div className="workspace-scope"><span className="scope-indicator" /><div><strong>Public workspace</strong><span>Analyze & save tests · Reference data read-only</span></div></div>
         <button type="button" className="sidebar-privacy" onClick={() => setPrivacyOpen(true)}><Icon name="shield" size={17} />Privacy information<Icon name="chevron" size={13} /></button>
         <span className="sidebar-version">French · English · Francanglais · Pidgin</span>
       </div>
@@ -118,10 +113,6 @@ export default function App({ account, registeredUsers = null, onSignOut }: {
     <div className="main-shell">
       <header className="topbar">
         <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>{pageLabel}</strong></div>
-        {account && <div className="account-controls"><span className="account-email">{account.email}</span>
-          <span className="shared-workspace-summary">Shared workspace <span aria-label="Registered users">{registeredUsers === null ? 'Registered users: unavailable' : `${registeredUsers.toLocaleString()} registered ${registeredUsers === 1 ? 'user' : 'users'}`}</span></span>
-          <button className="text-button" type="button" onClick={onSignOut}>Sign out</button>
-        </div>}
         <div className="topbar-actions">
           <div className={`connection-status ${connected ? 'is-connected' : ''}`} title="Application server connection">
             {checkingHealth ? <Spinner label="Checking backend connection" /> : <span className="status-dot" />}<span>{statusText}</span>
@@ -131,7 +122,7 @@ export default function App({ account, registeredUsers = null, onSignOut }: {
         </div>
       </header>
       <main id="main-content" className="main-content" ref={main} tabIndex={-1}>
-        {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>Server computation and saving may be unavailable. Your current editor drafts are kept; check the connection before retrying.</p></div>}
+        {healthError && <div className="connection-banner"><ErrorNotice message={healthError} onRetry={() => void checkHealth((signal) => api<Health>('/health', { signal }), setHealth)} /><p>Server computation and saving may be unavailable. Your current statement is kept; check the connection before retrying.</p></div>}
         {speech.error && <ErrorNotice message={speech.error} />}
         <div hidden={page !== 'compiler' && page !== 'analysis'}><FrancAnalyzer active={page === 'compiler' || page === 'analysis'} showAnalysis={page === 'analysis'} incomingText={compilerDraft} onUseText={(text) => openCompiler(text, undefined)} /></div>
         <div hidden={page !== 'collection'}><Collection active={page === 'collection'} onUseText={(text) => openCompiler(text, 'collection')} /></div>

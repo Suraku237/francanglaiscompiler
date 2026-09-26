@@ -52,7 +52,7 @@ def run_benchmark(*, rows: int = 1000, text_characters: int = 500, runs: int = 2
             mail_mode="file", google_client_id="", google_client_secret=SecretStr(""),
         )
         app = create_app(
-            Settings(), auth_settings=accounts,
+            Settings(), require_auth=True, auth_settings=accounts,
             auth_transport=httpx.MockTransport(reject_provider),
         )
         user_id = str(uuid4())

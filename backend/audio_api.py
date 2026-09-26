@@ -22,6 +22,7 @@ from .uploads import multipart_form
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/dataset", tags=["Local collection audio"])
+public_router = APIRouter(prefix="/api/dataset", tags=["Collection audio"])
 AUDIO_TYPES = {
     extension: MIME_TYPES[extension]
     for extension in (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm")
@@ -170,5 +171,6 @@ def _audio_response(entry_id: str) -> FileResponse:
 
 
 @router.get("/{entry_id}/audio")
+@public_router.get("/{entry_id}/audio")
 def read_audio(entry_id: str) -> FileResponse:
     return storage_operation(lambda: _audio_response(entry_id))

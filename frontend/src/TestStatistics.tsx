@@ -39,7 +39,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
   ]
   return <section className="test-dashboard" aria-labelledby="test-dashboard-title">
     <header className="test-dashboard-heading">
-      <div><span className="test-eyebrow">Shared workspace / retained tests</span><h2 id="test-dashboard-title">Test statistics</h2><p className="lab-copy">All completed tests by every user, including repeated inputs. Results remain after refresh, sign-out and account switches. Untested Collection entries are not included.</p></div>
+      <div><span className="test-eyebrow">Public workspace / retained tests</span><h2 id="test-dashboard-title">Test statistics</h2><p className="lab-copy">All completed public tests, including repeated inputs. Original text and results remain after refresh. Untested Collection entries are not included.</p></div>
       <button type="button" className="button button-secondary" onClick={onRefresh} disabled={busy}><Icon name="refresh" size={16} />Refresh saved tests</button>
     </header>
     <dl className="test-metrics">{metrics.map((metric) => <div key={metric.label} className={`test-metric ${metric.tone}`} role="group" aria-label={metric.label}>
@@ -99,7 +99,7 @@ export function TestStatistics({ report, busy, selectedId, onRefresh, onPage, on
           <div className="test-record-topline"><span className={`lab-status ${test.accepted ? 'ready' : 'needs_input'}`}>{test.accepted ? 'ACCEPT' : 'REJECT'}</span><span>{test.token_count.toLocaleString()} tokens</span><time dateTime={test.created_at}>{new Date(test.created_at).toLocaleString()}</time></div>
           <p className="test-record-source">{test.text || '(empty input)'}</p>
           <p className="lab-copy">{test.error ?? 'No UNKNOWN tokens.'} Grammar check: {test.grammar_accepted ? 'matched the saved rules' : 'did not match the saved rules'}.</p>
-          <p className="lab-copy">Creator: {test.ownership.owner_name} · Immutable saved test</p>
+          <p className="lab-copy">Public · Immutable saved test</p>
           <button type="button" className="text-button" aria-label={`Inspect test ${summary.total - report.offset - index}`} onClick={() => onInspect(test.id)} disabled={busy}>Inspect test<Icon name="arrow" size={16} /></button>
         </li>)}</ol>
         <nav className="test-pagination" aria-label="Saved tests pages">

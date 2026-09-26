@@ -3,7 +3,7 @@ import type { AnalyzerResult, AnalyzerState, RecordedTest, TestReport, Vocabular
 import type { ImportPreview } from '../src/importTypes'
 import { defaultMetadata } from '../src/types'
 import type { Dataset, DatasetEntry, Health, Metadata, Ownership } from '../src/types'
-import type { ProjectsResult } from '../src/accountTypes'
+import type { PublicSessionInfo } from '../src/PublicSession'
 
 // All records are synthetic test data. They never come from, or write to, the research CSV.
 export const metadata: Metadata = {
@@ -18,13 +18,13 @@ export function health(): Health {
 }
 
 export function ownership(overrides: Partial<Ownership> = {}): Ownership {
-  return { owner_id: 'test-user', owner_name: 'Test user', can_edit: true, ...overrides }
+  return { owner_id: null, owner_name: '', can_edit: false, ...overrides }
 }
 
-export function sharedWorkspace(registeredUsers = 2): ProjectsResult {
+export function publicSession(): PublicSessionInfo {
   return {
-    projects: [{ id: 'default', name: 'Shared workspace', created_at: '2026-01-01T00:00:00Z' }],
-    default_project_id: 'default', shared: true, registered_users: registeredUsers,
+    access_mode: 'public_read_only', csrf_token: 'test-csrf',
+    capabilities: { analyze: true, save_tests: true, edit_collection: false, edit_grammar: false, edit_recordings: false },
   }
 }
 

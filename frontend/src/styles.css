@@ -39,6 +39,10 @@ h1, h2, h3, p { margin: 0; }
 .skip-link { position: fixed; z-index: 100; left: 20px; top: -80px; background: var(--green-dark); color: white; padding: 12px 20px; border-radius: 8px; }
 .skip-link:focus { top: 16px; }
 .app-shell { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-height: 100dvh; }
+.public-session { width: min(600px, calc(100% - 40px)); margin: 12vh auto; display: grid; gap: 24px; }
+.public-session h1 { font-size: clamp(32px, 6vw, 48px); letter-spacing: -1px; }
+.public-session p { color: var(--muted); line-height: 1.7; }
+.public-session [role="status"] { display: flex; align-items: center; gap: 10px; }
 .sidebar { position: sticky; top: 0; align-self: start; height: 100dvh; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 34px 23px 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: #f0f1e8; }
 .brand { display: inline-flex; align-items: center; gap: 10px; width: fit-content; }
 .brand-mark { width: 43px; height: 43px; display: grid; place-items: center; color: var(--cream); background: var(--green); border-radius: 13px 13px 13px 3px; transform: rotate(-3deg); }

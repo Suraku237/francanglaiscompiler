@@ -1,9 +1,9 @@
 .brand .brand-logo { flex: 0 0 auto; width: 44px; height: 44px; object-fit: contain; }
 .brand .brand-word { font-family: var(--sans); font-size: 21px; font-weight: 750; letter-spacing: -.6px; line-height: 1.2; }
 .sidebar .brand { gap: 8px; padding-inline: 0; max-width: 100%; }
-.brand.brand-auth { gap: 12px; padding: 0; max-width: 100%; text-decoration: none; }
-.brand-auth .brand-logo { width: 58px; height: 58px; }
-.brand-auth .brand-word { color: var(--green-dark); font-size: clamp(23px, 6vw, 30px); }
+.public-session .brand { gap: 12px; max-width: 100%; }
+.public-session .brand-logo { width: 58px; height: 58px; }
+.public-session .brand-word { color: var(--green-dark); font-size: clamp(23px, 6vw, 30px); }
 @media (max-width: 480px) {
   .app-shell .sidebar .brand-tagline { flex-basis: 100%; margin: 7px 0 0; text-align: left; font-size: 11px; }
 }

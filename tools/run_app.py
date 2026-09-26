@@ -44,13 +44,13 @@ def is_loopback(host: str) -> bool:
 def load_settings() -> LaunchSettings:
     try:
         from pydantic import ValidationError
-        from backend.auth import AuthSettings
+        from backend.config import ServerSettings
     except ImportError as exc:
         raise LaunchError(
             "Backend dependencies are missing. Install requirements.txt in the project's virtual environment."
         ) from exc
     try:
-        return AuthSettings()
+        return ServerSettings()
     except ValidationError as exc:
         messages = [
             f"{'.'.join(str(item) for item in error['loc']) or 'configuration'}: {error['msg']}"

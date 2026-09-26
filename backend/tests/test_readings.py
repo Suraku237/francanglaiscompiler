@@ -151,7 +151,7 @@ class RecordedReadingTests(HostedCase):
         self.assertEqual(audio[original["audio_filename"]], self.content)
         self.assertEqual(self.replace(original).status_code, 200)
         store.import_document(document, store.version)
-        app = create_app(Settings(), auth_settings=self.settings)
+        app = create_app(Settings(), require_auth=True, auth_settings=self.settings)
         with TestClient(app, headers={"Origin": "http://testserver"}) as reopened:
             self.login(reopened)
             self.assertEqual(self.lookup(reopened).json()["reading"], original)

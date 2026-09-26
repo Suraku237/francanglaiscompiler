@@ -1,175 +1,134 @@
-import type { BrowserContext, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
-import type { RecordedTest, TestReport } from '../../src/analyzerTypes'
+import type { TestReport } from '../../src/analyzerTypes'
 import type { RecordedReading } from '../../src/voice'
-import { installSyntheticMicrophone } from '../browserAudio'
-import { openGrammarSettings } from '../browserGrammar'
-import { signIn, signUp } from './accountWorkflows'
-import { downloadedBytes, playMuted, silence, tracksReleased } from './audioWorkflows'
+import { downloadedBytes, playMuted, silence } from './audioWorkflows'
 import { expect, test } from './fixtures'
+import { analyzePublicInput, origin, protectPublicContext, publicHeaders, readOnlyOwnership } from './publicWorkflows'
 
-async function protectTestContext(context: BrowserContext) {
-  await context.route(/^https?:\/\/(?!127\.0\.0\.1:4190\/).*/, (route) => route.abort('blockedbyclient'))
-  await context.addInitScript(() => {
-    for (const name of ['speechSynthesis', 'SpeechRecognition', 'webkitSpeechRecognition']) {
-      Object.defineProperty(window, name, { configurable: true, get() { throw new Error('Synthetic voices and recognition must not be used.') } })
-    }
-    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
-      getUserMedia: () => Promise.reject(new Error('Physical microphones are not used by automated tests.')),
-    } })
-  })
-}
-
-async function openShibaReading(page: Page) {
+async function openDictionaryReading(page: Page, word: string) {
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Dictionary', exact: true }).click()
-  await page.getByRole('searchbox', { name: 'Search reference dictionary' }).fill('shiba')
-  const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'shiba', exact: true }) })
+  await page.getByRole('searchbox', { name: 'Search reference dictionary' }).fill(word)
+  const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: word, exact: true }) }).first()
   await card.getByRole('button', { name: 'Read aloud with a recorded voice', exact: true }).click()
-  return page.getByRole('dialog', { name: 'Recorded read-aloud' })
+  return page.getByRole('dialog', { name: 'Recorded read-aloud', exact: true })
 }
 
-test.beforeEach(async ({ context }) => protectTestContext(context))
+test.beforeEach(async ({ context }) => protectPublicContext(context))
 
-test('Camfranglais uses the supplied logo and persists actual shared voice recordings with creator-only changes', async ({ page, browser }, testInfo) => {
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  const email = await signUp(page)
-  await expect(page).toHaveTitle('Franc Analyzer — Camfranglais Compiler')
-  const brand = page.getByRole('link', { name: 'Camfranglais home, Franc Analyzer', exact: true })
-  await expect(brand).toBeVisible()
-  await expect(brand.locator('img')).toHaveAttribute('src', '/camfranglais-logo.png')
-  await expect.poll(() => brand.locator('img').evaluate((element) => element instanceof HTMLImageElement && element.naturalWidth)).toBe(256)
-  expect((await page.request.get('/camfranglais-icon.png')).headers()['content-type']).toContain('image/png')
-  await installSyntheticMicrophone(page)
-  const dialog = await openShibaReading(page)
-  await expect(dialog.getByText(/No voice recording is saved/)).toBeVisible()
-  await expect(dialog.getByLabel('Text for this reading')).toHaveText('shiba')
-  const uploads: string[] = []
-  page.on('request', (request) => {
-    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/readings/audio') uploads.push(request.url())
+test.describe('public recorded playback', () => {
+  test.use({ seed: {
+    entries: [{ text: 'Fixture with preserved audio', entry_type: 'Sentence', audio: true }],
+    readings: [{ text: 'shiba', language: 'fr' }],
+  } })
+
+  test('the supplied logo and existing recordings remain public, playable and read-only across fresh browsers', async ({ page, browser }, testInfo) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto('/')
+    await expect(page).toHaveTitle('Franc Analyzer — Camfranglais Compiler')
+    const brand = page.getByRole('link', { name: 'Camfranglais home, Franc Analyzer', exact: true })
+    await expect(brand.locator('img')).toHaveAttribute('src', '/camfranglais-logo.png')
+    await expect.poll(() => brand.locator('img').evaluate((element) => element instanceof HTMLImageElement && element.naturalWidth)).toBe(256)
+    expect((await page.request.get('/camfranglais-icon.png')).headers()['content-type']).toContain('image/png')
+    const bytes = await readFile(silence)
+    const dialog = await openDictionaryReading(page, 'shiba')
+    await expect(dialog.getByRole('heading', { name: 'Saved reading', exact: true })).toBeVisible()
+    await expect(dialog.getByLabel('Text for this reading')).toHaveText('shiba')
+    await expect(dialog.getByRole('button', { name: /Record audio|Replace saved reading|Remove saved reading|Save voice/ })).toHaveCount(0)
+    await expect(dialog.getByLabel('Attach an audio file')).toHaveCount(0)
+    const headers = await publicHeaders(page.request)
+    const lookup = await page.request.post('/api/readings/lookup', { headers, data: { text: 'SHIBA', language: 'fr' } })
+    expect(lookup.status(), await lookup.text()).toBe(200)
+    const saved: RecordedReading = (await lookup.json()).reading
+    expect(saved.ownership).toEqual(readOnlyOwnership)
+    expect(await (await page.request.get(saved.audio_url)).body()).toEqual(bytes)
+    const partial = await page.request.get(saved.audio_url, { headers: { Range: 'bytes=0-15' } })
+    expect(partial.status()).toBe(206)
+    expect(await partial.body()).toEqual(bytes.subarray(0, 16))
+    await playMuted(dialog.getByLabel(`Play recording: ${saved.audio_filename}`, { exact: true }))
+    expect(await downloadedBytes(page, dialog.getByRole('link', { name: 'Download audio', exact: true }))).toEqual(bytes)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('public-recorded-voice.png') })
+    await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+    await page.reload()
+    const reopened = await openDictionaryReading(page, 'shiba')
+    await expect(reopened.getByRole('heading', { name: 'Saved reading', exact: true })).toBeVisible()
+    expect((await page.request.patch(`/api/readings/${saved.id}/audio`, { headers, data: {} })).status()).toBe(403)
+    expect((await page.request.delete(`/api/readings/${saved.id}`, { headers })).status()).toBe(403)
+    expect((await page.request.post('/api/readings/audio', { headers, data: {} })).status()).toBe(403)
+    await reopened.getByRole('button', { name: 'Done', exact: true }).click()
+    const missing = await openDictionaryReading(page, 'mola')
+    await expect(missing.getByText(/No voice recording is available/)).toContainText('read-only; recording and uploads are unavailable')
+    await expect(missing.getByRole('button', { name: /Record audio|Save voice recording|Upload/i })).toHaveCount(0)
+    await missing.getByRole('button', { name: 'Done', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Collection', exact: true }).click()
+    const collection = await (await page.request.get('/api/dataset')).json()
+    const entry = collection.entries[0]
+    expect(entry.ownership).toEqual(readOnlyOwnership)
+    await playMuted(page.getByLabel(`Play recording: ${entry.audio_filename}`, { exact: true }))
+    expect(await downloadedBytes(page, page.getByRole('link', { name: 'Download audio', exact: true }))).toEqual(bytes)
+    const otherContext = await browser.newContext({ baseURL: origin, viewport: page.viewportSize() ?? undefined })
+    try {
+      await protectPublicContext(otherContext)
+      const other = await otherContext.newPage()
+      other.on('pageerror', (error) => errors.push(error.message))
+      expect(await (await other.request.get(saved.audio_url)).body()).toEqual(bytes)
+      expect(await (await other.request.get(`/api/dataset/${entry.id}/audio`)).body()).toEqual(bytes)
+      await other.goto('/')
+      const shared = await openDictionaryReading(other, 'shiba')
+      await expect(shared.getByRole('heading', { name: 'Saved reading', exact: true })).toBeVisible()
+      await expect(shared.getByRole('button', { name: /Record audio|Replace|Remove|Save voice/ })).toHaveCount(0)
+      await expect(shared.getByText(/Creator:/)).toHaveCount(0)
+      await playMuted(shared.getByLabel(`Play recording: ${saved.audio_filename}`, { exact: true }))
+    } finally {
+      await otherContext.close()
+    }
+    expect(await (await page.request.get(saved.audio_url)).body()).toEqual(bytes)
+    expect(await (await page.request.get('/api/dataset')).json()).toEqual(collection)
+    expect((await (await page.request.get('/api/analyzer/tests')).json()).summary.total).toBe(0)
+    expect(errors).toEqual([])
   })
-  await dialog.getByRole('button', { name: 'Record audio', exact: true }).click()
-  await expect(dialog.getByRole('button', { name: 'Save voice recording', exact: true })).toBeDisabled()
-  await expect.poll(() => page.evaluate(() => window.recordedTestBytes ?? 0)).toBeGreaterThan(0)
-  expect(uploads).toEqual([])
-  await dialog.getByRole('button', { name: 'Stop recording', exact: true }).click()
-  await tracksReleased(page)
-  const localAudio = await downloadedBytes(page, dialog.getByRole('link', { name: 'Download audio' }))
-  expect(localAudio.length).toBeGreaterThan(100)
-  expect(uploads).toEqual([])
-  await expect(dialog.getByRole('button', { name: 'Save voice recording', exact: true })).toBeDisabled()
-  await dialog.getByRole('checkbox', { name: /permission to share/ }).check()
-  const saving = page.waitForResponse((response) => response.url().endsWith('/api/readings/audio') && response.request().method() === 'POST')
-  await dialog.getByRole('button', { name: 'Save voice recording', exact: true }).click()
-  const savedResponse = await saving
-  expect(savedResponse.status(), await savedResponse.text()).toBe(201)
-  const saved: RecordedReading = await savedResponse.json()
-  expect(saved.text).toBe('shiba')
-  expect(saved.ownership.can_edit).toBe(true)
-  await expect(dialog.getByText(/Your voice recording is saved/)).toBeVisible()
-  expect(await (await page.request.get(saved.audio_url)).body()).toEqual(localAudio)
-  const partial = await page.request.get(saved.audio_url, { headers: { Range: 'bytes=0-15' } })
-  expect(partial.status()).toBe(206)
-  expect(await partial.body()).toEqual(localAudio.subarray(0, 16))
-  await playMuted(dialog.getByLabel(`Play recording: ${saved.audio_filename}`, { exact: true }))
-  expect((await (await page.request.get('/api/dataset')).json()).total).toBe(0)
-  expect((await (await page.request.get('/api/analyzer/tests')).json()).summary.total).toBe(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
-  await expect(dialog.getByRole('heading', { name: 'Recorded read-aloud', exact: true })).toBeInViewport()
-  await page.screenshot({ path: testInfo.outputPath('recorded-voice.png') })
-  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
-  await page.reload()
-  const reopened = await openShibaReading(page)
-  await expect(reopened.getByRole('heading', { name: 'Saved reading', exact: true })).toBeVisible()
-  await reopened.getByLabel('Attach an audio file').setInputFiles(silence)
-  await reopened.getByRole('checkbox', { name: /permission to share/ }).check()
-  const replacing = page.waitForResponse((response) => response.url().endsWith(`/api/readings/${saved.id}/audio`) && response.request().method() === 'PATCH')
-  await reopened.getByRole('button', { name: 'Replace saved reading', exact: true }).click()
-  const replaced = await replacing
-  expect(replaced.status(), await replaced.text()).toBe(200)
-  const replacement: RecordedReading = await replaced.json()
-  expect(replacement.id).toBe(saved.id)
-  expect(replacement.audio_filename).not.toBe(saved.audio_filename)
-  // Browser interactions can outlast the API client's pooled connection; retry only a reset GET.
-  expect(await (await page.request.get(saved.audio_url, { maxRetries: 1 })).body()).toEqual(await readFile(silence))
-  await playMuted(reopened.getByLabel(`Play recording: ${replacement.audio_filename}`, { exact: true }))
-  await reopened.getByRole('button', { name: 'Done', exact: true }).click()
-
-  const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4190', viewport: page.viewportSize() ?? undefined })
-  try {
-    await protectTestContext(otherContext)
-    const other = await otherContext.newPage()
-    other.on('pageerror', (error) => errors.push(error.message))
-    await signUp(other)
-    const shared = await openShibaReading(other)
-    await expect(shared.getByText(/Only its creator can replace or remove/)).toBeVisible()
-    await expect(shared.getByRole('button', { name: /Record audio|Replace saved reading|Remove saved reading/ })).toHaveCount(0)
-    expect(await (await other.request.get(saved.audio_url)).body()).toEqual(await readFile(silence))
-    const session = await (await other.request.get('/api/auth/session')).json()
-    const denied = await other.request.delete(`/api/readings/${saved.id}`, {
-      headers: { Origin: 'http://127.0.0.1:4190', 'X-CSRF-Token': session.csrf_token },
-    })
-    expect(denied.status()).toBe(403)
-    await shared.getByRole('button', { name: 'Done', exact: true }).click()
-  } finally {
-    await otherContext.close()
-  }
-
-  page.once('dialog', (prompt) => prompt.accept())
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Sign in to Camfranglais', exact: true })).toBeVisible()
-  expect((await page.request.get(saved.audio_url)).status()).toBe(401)
-  await signIn(page, email)
-  const retained = await openShibaReading(page)
-  await expect(retained.getByRole('heading', { name: 'Saved reading', exact: true })).toBeVisible()
-  await retained.getByRole('button', { name: 'Remove saved reading', exact: true }).click()
-  await retained.getByRole('button', { name: 'Yes, remove reading', exact: true }).click()
-  await expect(retained.getByText(/The active reading was removed/)).toBeVisible()
-  await expect(retained.getByText(/No voice recording is saved/)).toBeVisible()
-  expect((await page.request.get(saved.audio_url)).status()).toBe(404)
-  expect(errors).toEqual([])
 })
 
-test('recognized slang passes vocabulary approval while UNKNOWN fails even when its grammar accepts it', async ({ page }, testInfo) => {
-  await signUp(page)
-  for (const [text, grammar, approved, parsed] of [
-    ['  wanda\t', 'S -> NOUN', true, false],
-    ['sec souvent', 'S -> NOUN', true, false],
-    ['mbindi', 'S -> NOUN', true, false],
-    ['zqxyl', 'S -> UNKNOWN', false, true],
-  ] as const) {
-    await openGrammarSettings(page)
-    await page.getByLabel('Context-free grammar').fill(grammar)
-    await page.getByRole('link', { name: 'Back to Franc Analyzer' }).click()
-    await page.getByLabel('Statement to analyze').fill(text)
-    const saving = page.waitForResponse((response) => response.url().endsWith('/api/analyzer/tests') && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Analyze', exact: true }).click()
-    const record: RecordedTest = await (await saving).json()
-    expect(record.approval.accepted).toBe(approved)
-    expect(record.parse.accepted).toBe(parsed)
-    expect(record.text).toBe(text)
-    const verdict = page.getByRole('group', { name: 'Vocabulary approval', exact: true })
-    await expect(verdict.getByText(approved ? 'ACCEPT' : 'REJECT', { exact: true })).toBeVisible()
-    expect(await page.getByLabel('Analyzed source text').textContent()).toBe(text)
-  }
-  await page.getByRole('link', { name: 'View detailed analysis' }).click()
-  await expect(page.getByRole('group', { name: 'Accepted', exact: true })).toContainText('3')
-  await expect(page.getByRole('group', { name: 'Rejected', exact: true })).toContainText('1')
-  await expect(page.getByRole('group', { name: 'Acceptance rate', exact: true })).toContainText('75%')
-  await expect(page.getByRole('group', { name: 'Grammar matches', exact: true })).toContainText('1')
-  await expect(page.getByRole('group', { name: 'Grammar match rate', exact: true })).toContainText('25%')
-  await page.getByText('Parser trace for this input', { exact: true }).click()
-  const selected = page.getByRole('region', { name: 'Analyzed sentence or word', exact: true })
-  await expect(selected.getByRole('group', { name: 'Vocabulary approval', exact: true })).toContainText('REJECT')
-  await expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toContainText('Accept: input fully consumed.')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  await page.screenshot({ path: testInfo.outputPath('vocabulary-and-grammar.png'), fullPage: true })
-  await page.reload()
-  const report: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
-  expect(report.summary).toEqual({ total: 4, accepted: 3, rejected: 1, acceptance_rate: 75 })
-  expect(report.grammar_summary).toEqual({ total: 4, accepted: 1, rejected: 3, acceptance_rate: 25 })
-  await page.getByRole('button', { name: 'Inspect test 1', exact: true }).click()
-  expect(await page.getByLabel('Analyzed source text').textContent()).toBe('  wanda\t')
-  await expect(page.getByRole('group', { name: 'Vocabulary approval', exact: true })).toContainText('ACCEPT')
+test.describe('vocabulary approval separate from read-only grammar', () => {
+  test.use({ seed: { grammar: 'S -> UNKNOWN' } })
+
+  test('recognized slang passes vocabulary approval while UNKNOWN fails even when the saved grammar accepts it', async ({ page }, testInfo) => {
+    await page.goto('/')
+    for (const [text, approved, parsed] of [
+      ['  wanda\t', true, false],
+      ['sec souvent', true, false],
+      ['mbindi', true, false],
+      ['zqxyl', false, true],
+    ] as const) {
+      const record = await analyzePublicInput(page, text)
+      expect(record.approval.accepted).toBe(approved)
+      expect(record.parse.accepted).toBe(parsed)
+      expect(record.text).toBe(text)
+      expect(record.grammar_source).toBe('S -> UNKNOWN')
+      await expect(page.getByRole('group', { name: 'Vocabulary approval', exact: true }).getByText(approved ? 'ACCEPT' : 'REJECT', { exact: true })).toBeVisible()
+      expect(await page.getByLabel('Analyzed source text').textContent()).toBe(text)
+    }
+    await page.getByRole('link', { name: 'View detailed analysis', exact: true }).click()
+    await expect(page.getByRole('group', { name: 'Accepted', exact: true })).toContainText('3')
+    await expect(page.getByRole('group', { name: 'Rejected', exact: true })).toContainText('1')
+    await expect(page.getByRole('group', { name: 'Acceptance rate', exact: true })).toContainText('75%')
+    await expect(page.getByRole('group', { name: 'Grammar matches', exact: true })).toContainText('1')
+    await expect(page.getByRole('group', { name: 'Grammar match rate', exact: true })).toContainText('25%')
+    await page.getByText('Parser trace for this input', { exact: true }).click()
+    const selected = page.getByRole('region', { name: 'Analyzed sentence or word', exact: true })
+    await expect(selected.getByRole('group', { name: 'Vocabulary approval', exact: true })).toContainText('REJECT')
+    await expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toContainText('Accept: input fully consumed.')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('vocabulary-and-saved-grammar.png'), fullPage: true })
+    await page.reload()
+    const report: TestReport = await (await page.request.get('/api/analyzer/tests')).json()
+    expect(report.summary).toEqual({ total: 4, accepted: 3, rejected: 1, acceptance_rate: 75 })
+    expect(report.grammar_summary).toEqual({ total: 4, accepted: 1, rejected: 3, acceptance_rate: 25 })
+    await page.getByRole('button', { name: 'Inspect test 1', exact: true }).click()
+    expect(await page.getByLabel('Analyzed source text').textContent()).toBe('  wanda\t')
+    await expect(page.getByRole('group', { name: 'Vocabulary approval', exact: true })).toContainText('ACCEPT')
+  })
 })

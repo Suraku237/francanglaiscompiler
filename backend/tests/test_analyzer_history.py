@@ -409,7 +409,7 @@ class HostedAnalyzerHistoryTests(AnalyzerHistoryCase, CompilerHostedCase):
         self.report()
         self.assertEqual(store.version, version + 1)
         self.assertEqual(self.client.delete(f"/api/workspace/projects/{project}").status_code, 409)
-        app = create_app(Settings(), auth_settings=self.settings,
+        app = create_app(Settings(), require_auth=True, auth_settings=self.settings,
                          mailer=lambda address, _subject, text: self.mail.append((address, text)))
         reopened = self.stack.enter_context(TestClient(app, headers={"Origin": "http://testserver"}))
         self.login(reopened)

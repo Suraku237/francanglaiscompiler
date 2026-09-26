@@ -59,7 +59,7 @@ class HostedCase(unittest.TestCase):
             google_client_id="", google_client_secret=SecretStr(""),
         )
         self.app = create_app(
-            Settings(), auth_settings=self.settings,
+            Settings(), require_auth=True, auth_settings=self.settings,
             mailer=lambda address, subject, text: self.mail.append((address, text)),
         )
         self.client = self.stack.enter_context(TestClient(self.app, headers={"Origin": "http://testserver"}))
@@ -609,7 +609,7 @@ class GoogleSignInTests(HostedCase):
         self.settings.google_client_id = "test-google-client"
         self.settings.google_client_secret = SecretStr("test-secret-not-real")
         app = create_app(
-            Settings(), auth_settings=self.settings,
+            Settings(), require_auth=True, auth_settings=self.settings,
             mailer=lambda address, subject, text: self.mail.append((address, text)),
             auth_transport=httpx.MockTransport(self.google),
         )

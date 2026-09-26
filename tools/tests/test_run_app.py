@@ -63,6 +63,21 @@ class LauncherTests(unittest.TestCase):
             self.assertEqual(main([]), 0)
             self.assertEqual(os.environ["MBOA_PUBLIC_URL"], "http://localhost:5173")
 
+    def test_production_launcher_does_not_require_retired_email_or_google_settings(self):
+        with patch.dict(os.environ, {
+            "MBOA_ENVIRONMENT": "production",
+            "MBOA_PUBLIC_URL": "https://camfranglais.duckdns.org",
+            "MBOA_MAIL_MODE": "file",
+            "MBOA_SMTP_PORT": "unused-invalid-value",
+            "MBOA_GOOGLE_CLIENT_ID": "unused-client",
+            "MBOA_GOOGLE_CLIENT_SECRET": "",
+        }), patch("tools.run_app.ensure_frontend"), patch("uvicorn.run", autospec=True) as run:
+            self.assertEqual(main(["--host", "127.0.0.1", "--port", "2021"]), 0)
+            self.assertEqual(run.call_args.args, ("backend.main:app",))
+            self.assertEqual(run.call_args.kwargs["host"], "127.0.0.1")
+            self.assertEqual(run.call_args.kwargs["port"], 2021)
+            self.assertTrue(run.call_args.kwargs["proxy_headers"])
+
     def test_public_development_listening_and_production_reload_are_rejected(self):
         for settings, args in (
             (TestSettings(), ["--host", "0.0.0.0"]),

@@ -39,7 +39,8 @@ describe('retained test Analysis page', () => {
       ownership: ownership({ owner_id: 'alice', owner_name: 'Alice', can_edit: false }),
     }))
     const selected = within(screen.getByRole('region', { name: 'Analyzed sentence or word' }))
-    expect(selected.getByText(/Creator: Alice/)).toHaveTextContent('Saved tests are immutable.')
+    expect(selected.getByText(/Publicly retained original text and results/)).toHaveTextContent('Saved tests are immutable.')
+    expect(selected.queryByText(/Creator:|Alice/)).not.toBeInTheDocument()
     expect(selected.queryByRole('button', { name: /Delete|Edit/ })).not.toBeInTheDocument()
     await user.click(selected.getByText('Parser trace for this input'))
     expect(selected.getByRole('region', { name: 'Table-driven parser step trace' })).toBeVisible()

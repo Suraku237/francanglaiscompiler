@@ -4,34 +4,35 @@ import { deferred, jsonResponse, rejectOnAbort } from '../helpers'
 
 afterEach(() => { vi.useRealTimers(); configureSession(null) })
 
-describe('personal sessions and shared workspace transport', () => {
-  it('sends only session CSRF on mutations and never partitions API or audio requests by project', async () => {
+describe('public CSRF browser transport', () => {
+  it.each(['/analyze', '/analyzer/analyze', '/analyzer/tests', '/readings/lookup'])('sends CSRF and same-origin cookies on POST %s without project or account headers', async (path) => {
     configureSession('test-csrf')
     vi.mocked(fetch).mockImplementation(async () => jsonResponse({ id: 'entry' }))
-    await api('/dataset', { method: 'POST', body: { text: 'Shared phrase' } })
+    await api(path, { method: 'POST', body: { text: 'Public phrase' } })
     expect(vi.mocked(fetch).mock.calls[0]?.[1]?.headers).toEqual({
       'Content-Type': 'application/json', 'X-CSRF-Token': 'test-csrf',
     })
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]?.credentials).toBe('same-origin')
     expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio')
     configureSession('second-csrf')
-    await api('/dataset', { method: 'POST', body: { text: 'Another shared phrase' } })
+    await api(path, { method: 'POST', body: { text: 'Another public phrase' } })
     expect(vi.mocked(fetch).mock.calls[1]?.[1]?.headers).toEqual({
       'Content-Type': 'application/json', 'X-CSRF-Token': 'second-csrf',
     })
     expect(nativeApiUrl('/dataset/entry/audio')).toBe('/api/dataset/entry/audio')
   })
 
-  it.each(['/workspace/history', '/auth/profile', '/auth/logout'])('signals session expiry from %s without retrying a mutation under another identity', async (path) => {
+  it.each(['/analyzer/tests', '/readings/lookup'])('surfaces a 401 at %s without a forced login event or retry', async (path) => {
     const expired = vi.fn()
     window.addEventListener('mboa:session-expired', expired)
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: 'Sign in again.' }, 401))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: 'Request could not be authorized.' }, 401))
     await expect(api(path, { method: 'POST', body: {} })).rejects.toMatchObject({ status: 401 })
-    expect(expired).toHaveBeenCalledOnce()
+    expect(expired).not.toHaveBeenCalled()
     expect(fetch).toHaveBeenCalledOnce()
     window.removeEventListener('mboa:session-expired', expired)
   })
 
-  it('discards old permission flags when a response body finishes after the account changes', async () => {
+  it('discards a late response when the public browser session is reinitialized', async () => {
     configureSession('original-session')
     const body = deferred<unknown>()
     const response = jsonResponse({})
@@ -40,7 +41,7 @@ describe('personal sessions and shared workspace transport', () => {
     const pending = api('/dataset')
     await vi.waitFor(() => expect(response.json).toHaveBeenCalledOnce())
     configureSession('replacement-session')
-    body.resolve({ entries: [{ text: 'Shared data with obsolete edit permission', ownership: { can_edit: true } }] })
+    body.resolve({ entries: [{ text: 'Public reference data', ownership: { can_edit: false } }] })
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
   })
 })
@@ -51,8 +52,8 @@ describe('API response and error contracts', () => {
       .mockResolvedValueOnce(jsonResponse({ saved: true }))
       .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
 
-    await expect(api('/dataset', { method: 'POST', body: { text: 'Fixture' } })).resolves.toEqual({ saved: true })
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/dataset', expect.objectContaining({
+    await expect(api('/analyzer/tests', { method: 'POST', body: { text: 'Fixture' } })).resolves.toEqual({ saved: true })
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/analyzer/tests', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{"text":"Fixture"}',
@@ -65,20 +66,6 @@ describe('API response and error contracts', () => {
     }))
   })
 
-  it('leaves multipart boundaries to fetch and accepts an empty 204 deletion response', async () => {
-    const body = new FormData()
-    body.append('file', new File(['Fixture'], 'fixture.txt', { type: 'text/plain' }))
-    const fetchMock = vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse({ text: 'Fixture' }))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
-
-    await api('/imports/preview', { method: 'POST', body })
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/imports/preview', expect.objectContaining({
-      body, headers: undefined,
-    }))
-    await expect(api('/dataset/fixture', { method: 'DELETE' })).resolves.toBeUndefined()
-  })
-
   it('retains HTTP status and readable field-validation errors', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({
       detail: [
@@ -87,7 +74,7 @@ describe('API response and error contracts', () => {
       ],
     }, 422))
 
-    await expect(api('/translate', { method: 'POST', body: {} })).rejects.toEqual(
+    await expect(api('/analyze', { method: 'POST', body: {} })).rejects.toEqual(
       new ApiError('source language: Choose a supported language. text: An expression is required', 422),
     )
   })
@@ -116,19 +103,19 @@ describe('API response and error contracts', () => {
   })
 
   it.each([
-    { path: '/translate', method: 'POST' as const, message: 'Cannot reach the server.' },
-    { path: '/dataset/fixture', method: 'PATCH' as const, message: 'The change may have completed. Close this dialog and refresh the collection' },
-    { path: '/coursework/project', method: 'PUT' as const, message: 'The change may have completed. Refresh the saved coursework evidence' },
+    { path: '/analyze', method: 'POST' as const, message: 'Cannot reach the server.' },
+    { path: '/readings/lookup', method: 'POST' as const, message: 'Cannot reach the server.' },
     { path: '/analyzer/tests', method: 'POST' as const, message: 'The change may have completed. Open Analysis and refresh saved tests' },
   ])('distinguishes read failures from uncertain mutations at $path', async ({ path, method, message }) => {
     vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
     await expect(api(path, { method, body: {} })).rejects.toThrow(message)
   })
 
-  it('discloses uncertain completion after an interrupted audio upload', async () => {
-    vi.mocked(fetch).mockRejectedValue(new TypeError('Upload connection interrupted'))
-    await expect(api('/dataset/audio', { method: 'POST', body: new FormData() }))
-      .rejects.toThrow('The change may have completed. Close this dialog and refresh the collection')
+  it('preserves the explicit stale-grammar conflict rather than retrying with other grammar', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: 'Saved grammar changed. Reload the saved grammar.' }, 409))
+    await expect(api('/analyzer/tests', { method: 'POST', body: { text: 'Fixture', grammar: 'S -> NOUN' } }))
+      .rejects.toMatchObject({ status: 409, message: 'Saved grammar changed. Reload the saved grammar.' })
+    expect(fetch).toHaveBeenCalledOnce()
   })
 
   it('discloses uncertain recorded-test completion after an unreadable success response', async () => {
@@ -142,23 +129,23 @@ describe('API cancellation and time limits', () => {
     const controller = new AbortController()
     controller.abort()
     vi.mocked(fetch).mockImplementation(rejectOnAbort)
-    await expect(api('/translate', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' })
+    await expect(api('/analyze', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' })
     expect(vi.mocked(fetch).mock.calls[0]?.[1]?.signal?.aborted).toBe(true)
   })
 
   it('aborts an in-flight fetch when its caller cancels', async () => {
     const controller = new AbortController()
     vi.mocked(fetch).mockImplementation(rejectOnAbort)
-    const request = expect(api('/translate', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' })
+    const request = expect(api('/analyze', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' })
     controller.abort()
     await request
     expect(vi.mocked(fetch).mock.calls[0]?.[1]?.signal?.aborted).toBe(true)
   })
 
   it.each([
-    { path: '/translate', method: 'POST' as const, message: 'This is taking longer than expected.' },
-    { path: '/dataset', method: 'POST' as const, message: 'The change may have completed. Close this dialog and refresh the collection' },
-    { path: '/coursework/project', method: 'PUT' as const, message: 'The change may have completed. Refresh the saved coursework evidence' },
+    { path: '/analyze', method: 'POST' as const, message: 'This is taking longer than expected.' },
+    { path: '/readings/lookup', method: 'POST' as const, message: 'This is taking longer than expected.' },
+    { path: '/analyzer/tests', method: 'POST' as const, message: 'The change may have completed. Open Analysis and refresh saved tests' },
   ])('aborts timed-out $path requests with the correct recovery guidance', async ({ path, method, message }) => {
     vi.useFakeTimers()
     vi.mocked(fetch).mockImplementation(rejectOnAbort)

@@ -2,12 +2,12 @@ import base64
 import json
 import re
 import sqlite3
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Generator, Iterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, closing, contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, FastAPI, Query, Request
@@ -24,6 +24,9 @@ from .analyzer_models import RecordedTest, StoredAnalyzerTest
 from .collection import CollectionError, storage_operation
 from .coursework_models import ProjectProfile
 from .schemas import DatasetEntry, EntryCreate, TranslationLanguage
+
+if TYPE_CHECKING:
+    from .shared_workspace import SharedWorkspaceStore
 
 MAX_ENTRIES = 10000
 MAX_HISTORY = 500
@@ -597,8 +600,19 @@ def current_workspace() -> WorkspaceStore:
     return workspace
 
 
-def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, Request], AbstractAsyncContextManager[WorkspaceStore]]:
+@contextmanager
+def use_workspace(workspace: "SharedWorkspaceStore") -> Generator["SharedWorkspaceStore", None, None]:
     from .ownership import use_ownership
+
+    token = _workspace.set(workspace)
+    try:
+        with dataset.use_storage(workspace), coursework_store.use_storage(workspace), use_ownership(workspace):
+            yield workspace
+    finally:
+        _workspace.reset(token)
+
+
+def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, Request], AbstractAsyncContextManager[WorkspaceStore]]:
     from .shared_workspace import SharedWorkspaceStore
 
     router = APIRouter(prefix="/api/workspace", tags=["Shared workspace"])
@@ -662,11 +676,7 @@ def install_workspace(app: FastAPI, data_dir: Path) -> Callable[[UserIdentity, R
             if project:
                 valid_id(project, default=True)
         workspace = await run_in_threadpool(SharedWorkspaceStore, data_dir, user.id, user.display_name)
-        token = _workspace.set(workspace)
-        try:
-            with dataset.use_storage(workspace), coursework_store.use_storage(workspace), use_ownership(workspace):
-                yield workspace
-        finally:
-            _workspace.reset(token)
+        with use_workspace(workspace):
+            yield workspace
 
     return workspace_context

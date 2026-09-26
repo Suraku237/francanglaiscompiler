@@ -24,6 +24,7 @@ from .workspaces import current_workspace, now
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/readings", tags=["Recorded read-aloud"])
+public_router = APIRouter(prefix="/api/readings", tags=["Recorded read-aloud"])
 RECORDING_UPLOAD_SCHEMA = {"requestBody": {
     "required": True, "content": {"multipart/form-data": {"schema": {
         "type": "object", "required": ["file", "fields"], "additionalProperties": False,
@@ -40,7 +41,7 @@ RECORDING_UPLOAD_SCHEMA = {"requestBody": {
 def _store() -> SharedWorkspaceStore:
     store = current_workspace()
     if not isinstance(store, SharedWorkspaceStore):
-        raise CollectionError(403, "Recorded read-aloud requires a signed-in shared workspace.")
+        raise CollectionError(403, "Recorded read-aloud requires the shared workspace.")
     return store
 
 
@@ -60,6 +61,7 @@ def _view(store: SharedWorkspaceStore, record: ReadingRecord) -> ReadingView:
 
 
 @router.post("/lookup")
+@public_router.post("/lookup")
 def find_reading(payload: ReadingLookup) -> ReadingSearch:
     def operation() -> ReadingSearch:
         store = _store()
@@ -143,6 +145,7 @@ async def replace_reading(reading_id: CanonicalUUID, request: Request) -> Readin
 
 
 @router.get("/{reading_id}/audio")
+@public_router.get("/{reading_id}/audio")
 def play_reading(reading_id: CanonicalUUID) -> FileResponse:
     def operation() -> FileResponse:
         store = _store()

@@ -44,7 +44,7 @@ export function Analysis({ result, report, lexicalSpec, analyzing, loading, load
     {inspecting && <p className="lab-loading" role="status"><Spinner label="Loading recorded test" />Opening the saved snapshot...</p>}
     {result && <section ref={details} tabIndex={-1} className="lab-card selected-test" aria-labelledby="analysis-input-title">
       <div className="lab-card-heading"><div><span className="test-eyebrow">Selected saved test</span><h2 id="analysis-input-title">Analyzed sentence or word</h2><p>Recorded {new Date(result.created_at).toLocaleString()}. These are the original results, not a new analysis using today's settings.</p></div></div>
-      <p className="lab-copy">Creator: {result.ownership.owner_name} · Shared with all signed-in users. Saved tests are immutable.</p>
+      <p className="lab-copy">Publicly retained original text and results. Saved tests are immutable.</p>
       <AnalyzedSource text={result.text} />
       <VocabularyVerdict result={result.approval} empty={result.lexical.tokens.length === 0} />
       <div className="lab-actions"><button type="button" className="text-button" onClick={() => onUseText(result.text)}>Use as analyzer input<Icon name="arrow" size={16} /></button></div>

@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test'
 import type { Route } from '@playwright/test'
-import { analyzerState, dataset, entry, health, metadata, sharedWorkspace, testReport } from '../fixtures'
+import { analyzerState, dataset, entry, health, metadata, publicSession, testReport } from '../fixtures'
 
 export interface RecordedRequest {
   method: string
@@ -49,11 +49,7 @@ export class MockApi {
       return
     }
     if (recorded.method === 'GET') {
-      if (recorded.path === '/api/auth/session') return route.fulfill({ json: {
-        user: { id: 'test-user', email: 'test@example.com', display_name: 'Test user', email_verified: true, google_linked: false },
-        csrf_token: 'test-csrf', google_enabled: false, email_enabled: true, development_mail: false,
-      } })
-      if (recorded.path === '/api/workspace/projects') return route.fulfill({ json: sharedWorkspace() })
+      if (recorded.path === '/api/public/session') return route.fulfill({ json: publicSession() })
       if (recorded.path === '/api/health') return route.fulfill({ json: this.health })
       if (recorded.path === '/api/metadata') return route.fulfill({ json: metadata })
       if (recorded.path === '/api/analyzer') return route.fulfill({ json: this.analyzer })
@@ -107,8 +103,14 @@ export const test = base.extend<{ api: MockApi }>({
     await use(api)
     await context.unrouteAll({ behavior: 'ignoreErrors' })
     expect(api.unexpected, 'Every API request must have an isolated fixture; no backend passthrough is allowed.').toEqual([])
-    expect(api.requests.filter((request) => ['/api/translate', '/api/chat', '/api/imports/suggest', '/api/coursework/explain', '/api/coursework/export'].includes(request.path)),
-      'Analyzer workflows must never call retired generation endpoints.').toEqual([])
+    expect(api.requests.filter((request) => /^\/api\/(?:auth|workspace|coursework|imports?|translate|chat)(?:\/|$)/.test(request.path)),
+      'Public workflows must never call account, maintenance or retired generation endpoints.').toEqual([])
+    expect(api.requests.filter((request) => request.method !== 'GET' && !['/api/analyzer/tests', '/api/analyzer/analyze', '/api/analyze', '/api/readings/lookup'].includes(request.path)),
+      'Only analysis, immutable tests and recording lookup may use POST requests.').toEqual([])
+    for (const request of api.requests.filter((request) => request.method === 'POST')) {
+      expect(request.headers['x-csrf-token'], 'Every POST needs the public browser CSRF token.').toBe('test-csrf')
+      expect(request.headers.origin, 'Every POST is same-origin.').toBe(origin)
+    }
     expect(externalRequests, 'No provider, external asset, or other origin may be contacted.').toEqual([])
     expect(pageErrors, 'The browser must not encounter uncaught application errors.').toEqual([])
   }, { auto: true }],

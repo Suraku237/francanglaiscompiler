@@ -4,15 +4,35 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import type { EditableEntry } from '../../src/types'
 
 const frontend = fileURLToPath(new URL('../..', import.meta.url))
 const root = resolve(frontend, '..')
 const fixtureRoot = join(frontend, '.playwright')
 const origin = 'http://127.0.0.1:4190'
 
+export interface LiveSeed {
+  corpus?: 'yaounde'
+  grammar?: string
+  entries?: (Partial<EditableEntry> & { text: string; audio?: boolean })[]
+  readings?: { text: string; language: 'fr' | 'en' }[]
+  tests?: { text: string; grammar: string }[]
+}
+
+export function seedLiveData(seed: LiveSeed): { entry_ids: string[]; reading_ids: string[]; test_ids: string[] } {
+  const data = process.env.MBOA_LIVE_DATA_DIR
+  if (!data) throw new Error('Missing explicit isolated browser fixture directory.')
+  const python = process.platform === 'win32' ? join(root, '.venv', 'Scripts', 'python.exe') : 'python'
+  return JSON.parse(execFileSync(python, [join(frontend, 'tests', 'live', 'seed_data.py'), data], {
+    cwd: root, input: JSON.stringify(seed), encoding: 'utf8', timeout: 30000,
+    env: { ...process.env, MBOA_DATA_DIR: data, TEMP: fixtureRoot, TMP: fixtureRoot, TMPDIR: fixtureRoot },
+  }))
+}
+
 export { expect }
-export const test = base.extend<{ liveServer: void }>({
-  liveServer: [async ({ request }, use, testInfo) => {
+export const test = base.extend<{ liveServer: void; seed: LiveSeed }>({
+  seed: [{}, { option: true }],
+  liveServer: [async ({ request, seed }, use, testInfo) => {
     mkdirSync(fixtureRoot, { recursive: true })
     const data = mkdtempSync(join(fixtureRoot, 'mboa-live-'))
     const previousData = process.env.MBOA_LIVE_DATA_DIR
@@ -47,6 +67,11 @@ export const test = base.extend<{ liveServer: void }>({
         }).toPass({ timeout: 30000, intervals: [100, 200, 500] }),
         stopped.then(() => { throw new Error(`Live server stopped before becoming ready.\n${exitError?.message ?? ''}\n${log}`) }),
       ])
+      if (Object.keys(seed).length) {
+        const initialized = await request.get('/api/analyzer')
+        expect(initialized.status(), await initialized.text()).toBe(200)
+        seedLiveData(seed)
+      }
       await use()
     } finally {
       if (server.pid && server.exitCode === null && server.signalCode === null) server.stdin.end()
