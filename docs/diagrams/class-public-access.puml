@@ -1,0 +1,69 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Public access — state, policy and ownership contracts
+hide empty members
+package "backend.public_access" {
+  class PublicAccessState {
+    data_dir: Path
+    path: Path
+    _store: PublicWorkspaceStore | None
+    _initialization: Lock
+    __init__(data_dir)
+    workspace(): PublicWorkspaceStore
+    limit(address): PublicWorkspaceStore
+  }
+  class PublicWorkspaceStore {
+    __init__(data_dir)
+    authorize_write(db, kind, identifier, new=False)
+    authorize_import(document)
+    ownership(kind, identifier): Ownership
+  }
+  rectangle "install_public_access()\nrequire_shared_grammar()\n<<module functions>>" as Public
+}
+package "backend.ownership" {
+  class Ownership {
+    owner_id: str | None
+    owner_name: str
+    can_edit: bool
+  }
+  class OwnershipStore <<protocol>> {
+    ownership(kind, identifier): Ownership
+    require_owner(kind, identifier)
+  }
+  rectangle "use_ownership()\nrecord_ownership()\n<<ContextVar functions>>" as Owners
+}
+class SharedWorkspaceStore <<reference>>
+class ServerSettings <<reference>>
+class "threading.Lock" as Lock <<external>>
+class "pydantic.BaseModel" as BaseModel <<external>>
+PublicAccessState "0..1" --> "0..1" PublicWorkspaceStore : _store
+PublicAccessState "0..*" --> "1" Lock : _initialization
+PublicWorkspaceStore --|> SharedWorkspaceStore
+SharedWorkspaceStore ..|> OwnershipStore : structural conformance
+Ownership --|> BaseModel
+OwnershipStore ..> Ownership : returns DTO
+PublicWorkspaceStore ..> Ownership : constructs redacted result
+Owners ..> OwnershipStore : request-local dispatch
+Public ..> ServerSettings : reads public deployment policy
+Public ..> PublicAccessState : retains in app.state.public_access
+Public ..> Owners : via use_workspace()
+note bottom of PublicWorkspaceStore
+  Only a new analyzer_test write is allowed.
+  Existing-test writes and all imports are forbidden.
+  ownership() always returns:
+  owner_id=null, owner_name="", can_edit=false.
+  Raw stored historical ownership is untouched.
+end note
+note bottom of PublicAccessState
+  Lazily initializes one shared store under a lock.
+  public-access.sqlite3 is separate from auth.sqlite3.
+  limit(): 120 requests / 60 seconds / client IP,
+  using the common throttle() function.
+end note
+legend bottom
+  DatasetStorage and CourseworkStorage contracts are on class-workspaces.
+  Stable PUBLIC_OWNER_ID derives from UUID5; it supports request-id lookup, not authentication.
+  Opaque HttpOnly browser cookie + CSRF protect POST requests; no AuthStore or fake account is created.
+endlegend
+@enduml

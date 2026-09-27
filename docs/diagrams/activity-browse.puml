@@ -1,0 +1,35 @@
+@startuml
+!include theme.iuml
+title Read-only reference use — browse, inspect and hand off without mutation
+start
+:Open public workspace;
+switch (Chosen page)
+case (Collection)
+  :GET /api/dataset;\nsearch supplied text and metadata;\nkeep collection review status visible;
+case (Dictionary)
+  :GET /api/dictionary;\nsearch source-labelled senses;\npage matching results;
+case (Synthetic examples)
+  :GET /api/examples;\nshow constructed=true provenance;\npage practice examples;
+endswitch
+:Inspect the original text, glosses\nand available source context;
+if (Copy to Franc Analyzer?) then (yes)
+  :Pass text unchanged through openCompiler() in App.tsx;\nlabel Collection/reference/synthetic origin;
+  :Show the draft in Franc Analyzer;\nno test is saved until Analyze is selected;
+else (no)
+  :Keep browsing without a save;
+endif
+if (Request an existing recorded reading?) then (yes)
+  :POST /api/readings/lookup\nwith text, language, Origin and CSRF;
+  if (A reading exists?) then (yes)
+    :Play or download its existing audio;\nshow browser playback errors honestly;
+  else (no)
+    :Show unavailable recording;\nno synthesis or upload fallback;
+  endif
+endif
+stop
+legend bottom
+  The sources are separate datasets, not subclasses of one collected-statement entity.
+  Human collection place/date/consent are unconfirmed; a label or review flag is not fieldwork certification.
+  No Collection, grammar or audio editing occurs; browsing and handoff never add an entry or a test.
+endlegend
+@enduml

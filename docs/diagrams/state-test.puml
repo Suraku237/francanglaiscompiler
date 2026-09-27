@@ -1,0 +1,36 @@
+@startuml
+!include theme.iuml
+title Public test submission — browser state versus durable result
+state "Draft ready\nsaved grammar loaded" as Draft
+state "Waiting\npendingTest holds UUID/text/grammar" as Waiting
+state "Result displayed\npendingTest cleared" as Displayed
+state "Completion uncertain\npending request retained" as Uncertain
+state "Reload required\ngrammarStale=true" as Reload
+[*] --> Draft : public bootstrap and grammar load succeed
+Draft --> Waiting : Analyze / allocate UUID unless same pending payload
+Waiting --> Displayed : validated response / show exact saved snapshot
+Waiting --> Uncertain : Stop waiting, timeout or connection interruption
+Waiting --> Reload : HTTP 409 / block further analysis until reload
+Reload --> Draft : refresh saved grammar / retain typed text
+Uncertain --> Waiting : retry unchanged input/grammar / reuse pending UUID
+Uncertain --> Draft : change text / discard pending retry key
+Displayed --> Waiting : Analyze again / new UUID, intentional additional test
+Displayed --> Draft : edit text / clear displayed result
+note right of Uncertain
+  Client cancellation stops waiting, not server execution.
+  The server may already have inserted the snapshot.
+  Refresh Analysis before making assumptions about completion.
+  Inspecting a saved test does not clear the unresolved retry key.
+end note
+note bottom of Displayed
+  The durable record has no public update/delete transition.
+  Identical request retry returns its existing snapshot;
+  request-ID reuse with different text/grammar returns 409.
+  Saved tests remain even when this tab reloads or closes.
+end note
+legend bottom
+  Derived logical browser states, not an invented enum or application class.
+  Source: frontend/src/FrancAnalyzer.tsx, api.ts, useRequest.ts; persistence: analyzer_history.py/public_access.py.
+  Selecting an old snapshot does not rerun it against today's Collection or grammar.
+endlegend
+@enduml

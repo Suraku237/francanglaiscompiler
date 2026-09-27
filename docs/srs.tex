@@ -1,393 +1,450 @@
-\documentclass[11pt,a4paper]{article}
-\input{document-style.tex}
-\hypersetup{pdftitle={Mboa - Software Requirements Specification - Non-AI Compiler Lab}}
-\rhead{\small SRS / v3.0}
-\newcommand{\req}[4]{\textbf{#1}\newline #2 & #3\par\smallskip\textbf{Acceptance:} #4\\\addlinespace}
+\documentclass[11pt]{article}
+\input{document-style}
+\hypersetup{pdftitle={Camfranglais Software Requirements Specification},
+  pdfauthor={Kwete Ngouba Junior Rayan; Djemtchimo Noukui Bruno Jonatan; Amina Boubakary}}
+\newcommand{\req}[4]{\textbf{#1}\newline #2 & #3 & #4\\\addlinespace}
 \begin{document}
 \projectcover{Software Requirements Specification}
-{Real manual statements. Deterministic lexical and syntactic analysis.}
-{This document specifies the assignment-focused software, not the final
-coursework report. Genuine fieldwork, an evidence-based grammar, real screenshots,
-linguistic discussion and final pagination still require the group.}
-\tableofcontents\newpage
+{Public lexical and syntactic analysis workspace}
+{Baseline: the implemented five-screen application at source revision
+\texttt{a1b88aa}. Visitors can analyze and save immutable tests without accounts.
+Collection, saved grammar and recordings are read-only. This specification
+separates software acceptance from unconfirmed fieldwork provenance.}
+\tableofcontents
+\clearpage
 
 \section{Purpose and Document Control}
-Mboa supports the CS4110 Compiler Construction SET A assignment, \emph{Lexical
-and Syntactic Analysis of Informal Urban Communication in Yaoundé}. The product
-combines a deterministic custom lexer and LL(1) compiler laboratory with private
-manual collection, local text import and recoverable account/project storage.
-It is not an AI translation or conversational service.
+This SRS defines the externally observable behavior, constraints and acceptance
+criteria of Camfranglais for the CS4110 Compiler Construction assignment,
+Summer 2026, SET A. It is an implemented-product baseline, not a promise of a
+general-purpose language understanding system. Requirements use ``shall'' for
+the current product contract; unimplemented proposals are labelled explicitly.
 
-Version 3.0 supersedes the active business/AI product scope. Earlier
-\nolinkurl{*.legacy.md}, \nolinkurl{srs-legacy.tex},
-\nolinkurl{sdd-legacy.tex} and evidence JSON remain historical material;
-they are not acceptance of this release. No earlier research or sprint is
-retroactively declared complete. The SDD and its source-grounded UML explain
-implementation. The root README explains operation; the documentation register
-records fresh document validation.
+The companion Software Design Description (SDD) explains the implementation and
+contains source-grounded UML views. The UML atlas provides separately zoomable
+diagram sheets. The final coursework report is a distinct 25--30-page document
+containing the supplied corpus, calculations, test outcomes and genuine browser
+captures. Its page limit does not apply to this engineering specification or
+the SDD.
 
-\subsection{Status vocabulary}
-\begin{description}[style=nextline]
-\item[Implemented capability] A source-level function or user workflow exists.
-This alone does not prove correct fieldwork, complete coursework or every
-deployment configuration.
-\item[Automated evidence] A stated test/build/measurement with controlled
-fixtures. Synthetic fixtures never count as real collected statements.
-\item[Human gate] Authentic transcription, linguistic interpretation,
-consent, final report review, rehearsal or deployment acceptance.
-\item[Illustrative material] Supplied references, constructed examples and
-the default CFG. These are learning aids, not empirical findings.
-\end{description}
+\begin{tabularx}{\linewidth}{@{}L{3.2cm}X@{}}
+\toprule
+Baseline & Version 4.0; 27 September 2026; public-access release.\\
+Replaces & Version 3.0's account/private-project, editable-grammar,
+import and in-app report workflows. Historical archives remain preserved.\\
+Primary stakeholders & Three student authors, instructor/examiner,
+public visitors, and the deployment operator.\\
+Decision & No login. Everyone may analyze and retain tests; reference
+Collection, grammar and recordings are not publicly editable.\\
+Change authority & The group and instructor approve requirement changes;
+the operator controls deployment and offline reference maintenance.\\
+\bottomrule
+\end{tabularx}
 
-\notice{Current evidence boundary}{
-At the 22 September 2026 scope review, the legacy CSV and three inspected
-hosted workspaces each contained zero entries. The user's genuine manually
-transcribed text file is pending. The 179 reference rows and 26 constructed
-examples are not fieldwork; the default CFG is not corpus-derived.}
+\section{Problem, Scope and Evidence}
+\subsection{Educational problem}
+Informal urban expressions can combine French, English, Pidgin, local slang,
+nonstandard spellings and incomplete clauses. A conventional compiler's lexer
+and parser provide a useful, inspectable model of selected structures, but
+cannot establish a speaker's intended meaning, social context or authenticity.
+Camfranglais therefore preserves raw input and exposes deterministic token
+classification, grammar transformations, sets, table entries and parse traces.
 
-\section{Assignment Baseline and Traceability}
-The supplied Summer 2026 brief sets the due date to \textbf{29 September 2026}.
-Groups contain three students. The final report must be 25--30 pages and must
-not exceed 30 pages. A ten-minute PowerPoint presentation and demonstration
-allocates three minutes to each member, leaving one shared minute.
+\subsection{Current product boundary}
+The active navigation contains exactly five destinations:
+\begin{enumerate}
+\item \textbf{Franc Analyzer}: type or paste a statement, then analyze and
+publicly retain its original input and results.
+\item \textbf{Analysis}: inspect immutable saved tests, vocabulary statistics,
+separate CFG statistics, saved grammar and computed parser artifacts.
+\item \textbf{Collection}: search and inspect existing entries, glosses,
+annotations and available audio without modifying them.
+\item \textbf{Dictionary}: search source-labelled reference vocabulary.
+\item \textbf{Synthetic examples}: browse explicitly constructed practice
+material, never automatically counted as fieldwork.
+\end{enumerate}
 
-Suggested contexts include taxis/commuting, internet connectivity, electricity,
-market bargaining, rain, fuel scarcity, roadside business, bendskins,
-security and university life. The brief does not require a fabricated example
-for every topic.
+Login, registration, recovery, Google identity, profiles, logout, project
+management, public imports, microphone recording, grammar editing, administration,
+history screens and in-app report/presentation generation are outside the active
+interface. Translation/chat, OCR, automatic transcription, browser dictation,
+speech synthesis and AI explanations are not features of this release.
+Recorded read-aloud uses existing audio; it is not generated speech.
 
-\begin{longtable}{L{3.1cm}L{6.1cm}L{5.0cm}}
-\toprule\textbf{Brief requirement} & \textbf{Software support} & \textbf{Required human evidence}\\\midrule\endhead
-10--15 real statements; group of three &
-Sentence counts, private collection, provenance fields, three-member profile,
-manual-transcription self-attestation &
-Real listening/recording and faithful manual transcription; no generated or
-constructed replacements\\\addlinespace
-Nouns, verbs, slang, code-mixing and multiword phrases &
-Regex/lexicon specification, token tables, phrase detection and unknown labels &
-Review classification and explain multilingual ambiguities\\\addlinespace
-Custom lexer; frequency and variation &
-Python regex implementation; corpus token/category counts; spelling variants &
-Interpret observed counts and differences, not hypothetical findings\\\addlinespace
-Construct CFG; remove left recursion; left-factor &
-Editable CFG and ordered transformation logs with before/after productions &
-Tie rules and rationale to structures in the actual statements\\\addlinespace
-FIRST/FOLLOW and LL(1) table, or LR alternative &
-Fixed-point FIRST/FOLLOW; predictive table and conflicts; LL(1) parser &
-Explain calculated artifacts and any unresolved conflicts. LR/SLR is not
-implemented or required in addition to the chosen LL(1) path\\\addlinespace
-Parse own tokenized inputs; accept/reject &
-Single-input trace and full saved-corpus outcomes &
-Own-data test cases and a discussion of rejections/limitations\\\addlinespace
-25--30-page report &
-Draft HTML structure, raw/tokens/regex/grammar/table artifacts and real
-screenshot attachments &
-Original linguistic discussion, screenshot authenticity and actual page count
-review, capped at 30\\\addlinespace
-Source and ten-minute demo &
-Source snapshots, own-corpus cases and editable slide draft with timing notes &
-Review source/cases, personalize slides and rehearse three minutes per member\\
+\subsection{Corpus and reference baseline}
+The documentation snapshot contains 13 Collection entries: 12 supplied
+sentences and one Word annotation. The supplied sentences contain 81 tokens.
+The saved corpus-specific CFG accepts ten and rejects two, both at token six:
+\texttt{n'ais} and \texttt{alli} remain \texttt{UNKNOWN}. These results do not
+correct the original wording. The reference dictionary exposes 938 entries
+derived from 878 supplied CSV rows plus retained distinct legacy senses.
+Twenty-six synthetic examples remain a separate practice library.
+
+These are dated observations, not hard-coded deployment limits. Public test
+history grows independently of Collection: 34 saved tests were observed online
+on 27 September. Repeated tests and older snapshots can produce totals that
+differ from a one-pass evaluation of the twelve statements.
+
+\notice{Fieldwork is not certified}{
+The saved manual-transcription confirmation is false and the collection-method
+field is blank. Some records contain location text or audio references; neither
+proves when, where or by whom the original expression was heard. The documentation
+must not invent collection dates, speaker identities, consent or authenticity.}
+
+\section{Actors, Permissions and Operating Modes}
+\begin{longtable}{L{3.0cm}L{6.6cm}L{4.6cm}}
+\toprule\textbf{Actor} & \textbf{Permitted actions} & \textbf{Restrictions}\\\midrule\endhead
+Public visitor & View all public pages; analyze input; retain and inspect
+immutable tests; play available recordings. &
+No accounts, private user workspace, reference editing or public administration.\\\addlinespace
+Student authors / examiner & The same public actions; use exported documentation
+and source locally for coursework review. &
+No elevated browser role is inferred from a name or matricule.\\\addlinespace
+Deployment operator & Configure service, TLS, storage, backups and controlled
+offline reference maintenance using filesystem/server access. &
+Not an account role in the public application; maintenance endpoints are not
+made public.\\
 \bottomrule
 \end{longtable}
 
-\section{Product Scope and Actors}
-\subsection{Primary roles}
-A visitor can register, verify email, sign in and recover an account. A verified
-account owner works only inside that account's private projects. Three group
-names are assignment metadata, not a shared-team authorization role. There is
-no cross-account collaboration, billing or in-app administrator console.
+The default factory mode, \texttt{require\_auth=None}, selects the public
+read-only boundary. Explicit \texttt{True} retains the authenticated legacy
+API for compatibility tooling/tests; it is not the deployed public API.
+Explicit \texttt{False} is unrestricted local maintenance and is prohibited
+in production. Historical classes and records remain in the repository without
+implying that their interfaces are enabled.
 
-The operator manages the durable host, identity/email configuration and backup
-policy. The operator can access underlying files; account isolation is not
-end-to-end encryption. SMTP delivers account messages in production. Optional
-Google OAuth supplies identity, never language generation.
-
-\subsection{Included and excluded capabilities}
-The default authenticated application exposes compiler/coursework workflows,
-manual collection, reference dictionary, constructed practice, local document
-import, retained history and workspace settings. Accounts, projects, recordings,
-revisions and backups remain available.
-
-The product excludes AI generation, chat, translation endpoints, provider
-explanations, OCR, remote transcription and browser dictation. Leftover private
-\nolinkurl{GEMINI_*} configuration is unused; no model key is required.
-Optional browser text-to-speech is read-aloud only, not field transcription or
-linguistic evidence. Only voices reported by the browser as
-\texttt{localService} are selected, with no remote-voice fallback. Voice
-availability and locality reporting depend on the browser/OS; this is not an
-application-level guarantee of every underlying network behavior.
-
-The desktop collector and an explicitly unauthenticated maintenance factory
-retain compatibility with legacy files. They are separate from normal web
-storage. Production refuses to disable authentication.
+Anonymous cookie and CSRF bootstrap is not authentication. It supplies
+same-origin request protection, not user identity or access isolation. Public
+test text is visible to other visitors; the UI shall warn against submitting
+personal, confidential or sensitive material.
 
 \section{Functional Requirements}
-\begin{longtable}{L{2.0cm}L{12.4cm}}
-\toprule\textbf{ID / area} & \textbf{Requirement and measurable acceptance}\\\midrule\endhead
-\req{FR-01}{Accounts}
-{Require verified email/password access; support explicit optional Google
-sign-in/linking and single-use verification/recovery tokens.}
-{Unverified password login fails. Invalid/replayed tokens fail. Recovery
-revokes previous sessions. Matching Google email alone cannot link an account.}
-\req{FR-02}{Sessions}
-{Enforce authenticated private APIs, allowed Origin and session-specific CSRF
-on mutations. Keep deployment credentials server-side.}
-{Missing identity returns 401; invalid Origin/CSRF returns 403. Production
-requires secure cookies/HTTPS and refuses no-auth operation.}
-\req{FR-03}{Isolation}
-{Select the account directory from server-validated identity and bind dataset
-and coursework adapters to the current project using request-local contexts.}
-{Foreign account/project access cannot expose or mutate statements, profile,
-screenshots, audio, history, revisions or backups. Concurrent requests do not
-switch one another's storage.}
-\req{FR-04}{Projects}
-{Create/rename projects, retain General, and allow deletion only when the
-project is empty of protected records, including coursework/screenshots.}
-{An unknown/foreign project fails. Switching/sign-out warns before discarding
-unsaved drafts. Existing accounts are neither deleted nor silently migrated.}
-\req{FR-05}{Manual data}
-{Preserve exact nonblank raw statements, glosses and notes, including case,
-accents, code-mixing and incomplete speech. Store provenance separately.}
-{Raw text, glosses and notes are not rewritten. Existing ShortText validation
-trims supplied contributor/location values on save, not during import preview.
-Duplicates and failed saves are explicit. Only Sentence entries count toward
-the 10--15 requirement.}
-\req{FR-06}{Review}
-{Require explicit human review of annotations. An evidence edit invalidates
-prior approval unless the new evidence is explicitly reviewed.}
-{Imported records start unreviewed. A change of raw text, language or lexical
-annotation cannot silently keep stale approval.}
-\req{FR-07}{Recording}
-{Allow local browser recording/preview/download and explicit private attachment,
-without dictation, transcription or automatic upload on recording alone.}
-{Permission/codec failures are actionable; typed/file input remains available.
-Private playback honors owner/project selection and HTTP range semantics.}
-\req{FR-08}{Import}
-{Extract UTF-8 TXT/Markdown/CSV/JSON, DOCX and text-layer PDF locally on the
-application server. Show text/warnings/drafts before any save.}
-{No generation/provider call occurs. Unsupported/scanned-only inputs fail
-explicitly. Structured metadata cannot import an approved status. Extracted
-text is bounded and checked against the original by the user. Preview preserves
-provenance values; an explicit save applies the short-metadata rule in FR-05.}
-\req{FR-09}{References}
-{Expose a read-only, source-labelled dictionary and clearly constructed practice
-library without populating the real corpus automatically.}
-{Search preserves reference file/line and competing senses. Reference origin
-is not presented as POS or a French translation; practice is marked constructed.}
-\req{FR-10}{Lexer}
-{Use a deterministic custom regex/lexicon pipeline for token categories,
-multiword verb/slang phrases and code-mixing clues, preserving raw token text.}
-{Token tables retain unrecognized symbols as UNKNOWN. Approved unambiguous
-Word annotations can extend lookup; Sentence rows do not train a model.}
-\req{FR-11}{Corpus metrics}
-{Compute frequency, category totals, unknown tokens and observed spelling
-variation from the selected project's saved entries.}
-{No reference/example rows are injected. Normalized variation groups are
-labelled orthographic candidates, not certified semantic equivalence.}
-\req{FR-12}{Project profile}
-{Save exactly three member strings, manual-transcription confirmation, collection
-method, grammar, rationale, discussion and limitations per project.}
-{Nonblank member names must be distinct. New profiles use blank members and an
-illustrative grammar; missing fieldwork never becomes an automatic ready claim.}
-\req{FR-13}{Grammar}
-{Parse bounded CFG notation, remove supported direct/indirect left recursion
-and left-factor with traceable before/after steps.}
-{Invalid notation or excessive transformation work is rejected. Unchanged
-stages are explained. The group must justify the grammar against its own data.}
-\req{FR-14}{Sets/table}
-{Compute FIRST/FOLLOW to a fixed point, including epsilon/end marker, then
-construct an LL(1) table with explicit conflicts.}
-{Conflicts and residual recursion are surfaced; the implementation does not
-arbitrarily select a production to conceal a non-LL(1) grammar.}
-\req{FR-15}{Parser}
-{Run a bounded table-driven predictive parser over lexical categories, showing
-stack, remaining input, selected production/action and acceptance/rejection.}
-{Single-input and corpus results use the submitted grammar and actual tokenized
-text. Rejection is a grammar-fit result, not a judgment of spoken correctness.}
-\req{FR-16}{Screenshots}
-{Accept genuine uploaded analyzer captures with bounded decoding, normalization
-and private owner/project-scoped byte retrieval.}
-{Only allowed image formats/sizes pass. Foreign project/owner reads fail.
-Upload/delete increments the workspace version; no fabricated evidence is generated.}
-\req{FR-17}{Course export}
-{Export a DRAFT HTML report, editable PowerPoint, saved raw data, lexical/grammar/
-parser artifacts, screenshot bytes and implementation source snapshots.
-Hold the account's shared lock across the profile/corpus/screenshot evidence read.}
-{Missing data/discussion is explicit. The 25-section structure is not called
-25 printed pages. Concurrent account mutations cannot mix saved evidence
-revisions during export. Report/presentation remain human-review tasks.}
-\req{FR-18}{Legacy history}
-{Keep existing AI-generated translations/conversations readable and exportable
-as legacy data without resuming a generation workflow.}
-{Upgrading the product does not delete histories or invoke removed endpoints
-when viewing/downloading them.}
-\req{FR-19}{Recovery}
-{Retain revisions, verified backups, bounded scheduling, validation previews,
-version checks and a pre-restore safety backup. Include coursework/screenshots.}
-{Workspace document format 2 round-trips private data; legacy format 1 remains
-restorable. The outer archive manifest stays format 1. Stale previews cannot
-overwrite new profile/screenshot changes.}
-\req{FR-20}{Non-AI contract}
-{Return health status ok with mode compiler. Remove translation/chat/suggestion/
-explanation routes and generation settings/quotas.}
-{No language-provider client or model configuration is required. Local compiler
-and import tests run without external providers; Google HTTP and SMTP remain
-separate identity facilities.}
+\begin{longtable}{L{2.0cm}L{6.1cm}L{6.1cm}}
+\toprule\textbf{ID / area} & \textbf{Required behavior} & \textbf{Acceptance criterion}\\\midrule\endhead
+\req{FR-01}{Public entry}
+{The application shall open directly into the five-screen workspace without
+sign-in, registration, SMTP or an identity provider.}
+{A fresh browser loads the analyzer and reference pages without an account.
+There is no account gate or credential control.}
+\req{FR-02}{Capabilities}
+{Bootstrap shall report public access and allowed capabilities. Reference
+mutations shall be denied by the server, not merely hidden.}
+{Analyze/save are true; Collection/grammar/recording edit flags are false.
+Reference mutations return 403; absent maintenance APIs return 404.}
+\req{FR-03}{Input fidelity}
+{The analyzer shall preserve original case, spacing, accents, apostrophes,
+punctuation and mistakes in the saved input.}
+{Normalization is limited to matching/statistics. Raw saved text is unchanged;
+tokens retain original spelling. Empty input is a valid test request.}
+\req{FR-04}{Lexer}
+{The lexer shall segment with regular expressions, then classify deterministically
+using structural rules, approved Word annotations, explicit word lists,
+reference categories, French forms and morphological fallbacks.}
+{Unsupported non-whitespace input remains represented as UNKNOWN.
+Conflicting reference classifications produce AMBIGUOUS, not guessed context.}
+\req{FR-05}{Language clues}
+{Code-mixing clues shall compare French/English/Pidgin language-candidate sets
+independently of token part-of-speech labels.}
+{Unknowns carry no language evidence. Sentence-ending punctuation resets the
+comparison. Output retains the original endpoint spellings.}
+\req{FR-06}{Phrase annotations}
+{Recognized multiword verb/slang expressions shall be additional source-ordered
+annotations, not replacements for the original token stream.}
+{Phrase boundaries exclude word-internal matches; absence of a phrase match
+does not erase, merge or reject otherwise valid tokens.}
+\req{FR-07}{Vocabulary verdict}
+{Vocabulary approval shall reject exactly tests with one or more UNKNOWN
+tokens. It shall remain separate from CFG acceptance.}
+{Recognized slang, AMBIGUOUS and other known labels pass vocabulary approval.
+Empty input has no UNKNOWN, but the saved corpus CFG still rejects it.}
+\req{FR-08}{Saved grammar}
+{New public analyses shall use the operator-saved grammar, displayed read-only.}
+{A stale/different grammar on a new analysis returns 409 with a reload instruction;
+the browser cannot submit an editable local draft as the shared grammar.}
+\req{FR-09}{CFG transforms}
+{The grammar service shall parse bounded notation, perform supported direct
+and ordered indirect left-recursion elimination, then left-factor.}
+{Each transformation records before/after rules and its operation.
+Unsafe cycles, notation errors and excessive expansion fail explicitly.}
+\req{FR-10}{Sets and table}
+{FIRST/FOLLOW shall be computed to a fixed point, including epsilon and
+end-of-input. The LL(1) table shall retain conflict diagnostics.}
+{No conflicting production is silently selected. A residual recursive or
+conflicting grammar disables predictive parsing.}
+\req{FR-11}{Predictive parser}
+{A bounded stack machine shall consume lexical categories using the LL(1)
+table and expose stack, remaining input, action and consumed-token count.}
+{The rightmost stack symbol is the top; snapshots precede the action.
+Acceptance requires complete input consumption. Failure identifies the position.}
+\req{FR-12}{Immutable tests}
+{Analyze shall retain the input, grammar, lexical results, statistics,
+approval and parser trace as one original test snapshot.}
+{Refresh preserves tests. No public edit/delete route exists.
+Later dictionary/grammar changes do not rewrite earlier results.}
+\req{FR-13}{Retry semantics}
+{A request UUID shall distinguish retrying a submission from intentionally
+running a new test.}
+{An identical retry returns the original record, including after an operator
+grammar change. Conflicting reuse fails; a new completed test counts separately.}
+\req{FR-14}{Statistics}
+{Analysis shall aggregate original saved-test snapshots, including repeats;
+Collection entries not tested shall not inflate these statistics.}
+{Vocabulary and CFG totals are visibly distinct. Frequency case-folding and
+orthographic variation rules are described; unknown counts remain explicit.}
+\req{FR-15}{Collection}
+{Visitors shall search/filter and view existing raw expressions, glosses,
+annotations and available attachments read-only.}
+{No create/edit/delete/import control is active. Existing raw text, revisions
+and ownership are preserved in storage during the public-access upgrade.}
+\req{FR-16}{References}
+{Dictionary entries shall retain source/line, origin, part of speech and
+distinct senses. Examples shall be clearly synthetic.}
+{Search does not turn dictionary entries/examples into collected statements.
+Ambiguous senses and reference-origin limitations are visible.}
+\req{FR-17}{Recorded audio}
+{Read-aloud shall look up and play only an existing compatible recording,
+with an explicit unavailable state otherwise.}
+{No TTS fallback, browser speech synthesis, voice cloning or public upload/
+record/delete function is invoked. Playback failures are actionable.}
+\req{FR-18}{Ownership privacy}
+{Public responses shall redact historical ownership presentation without
+altering stored owners. New tests use the internal public actor convention.}
+{Public ownership is null/blank and cannot edit. No fake user account is
+created. Existing credentials and archival records remain untouched.}
+\req{FR-19}{Recovery boundary}
+{Configured operator backup lifecycle shall continue privately. The release
+shall preserve existing databases/media and immutable tests.}
+{Backup/restore/admin APIs are not mounted publicly. Operators verify protected,
+database-consistent backups and rehearse restoration in isolation.}
+\req{FR-20}{Documents}
+{Source-grounded SRS/SDD/UML and a separate 25--30-page coursework report
+shall be supplied in editable form and PDF.}
+{All production classes have UML coverage; sequence activations balance;
+current images are embedded; PDF references/layout pass the strict checker.}
 \bottomrule
 \end{longtable}
 
 \section{Quality Requirements and Failure Contracts}
-\begin{longtable}{L{2.8cm}L{11.6cm}}
-\toprule\textbf{ID} & \textbf{Requirement and evidence boundary}\\\midrule\endhead
-\textbf{QR-01}\newline Integrity &
-Use SQLite transactions and coordinated file locks. Reject stale recovery
-versions, invalid identifiers, unsafe archive paths and invalid media. Filesystem
-and SQLite operations are coordinated, not a distributed ACID transaction.
-Failures must not be reported as successful persistence.\\\addlinespace
-\textbf{QR-02}\newline Privacy &
-No field data or source code is sent to a generation provider or online diagram
-renderer. Private account storage remains outside public assets. Protect session/
-email/OAuth secrets and avoid query-string logging. The server/operator remains
-inside the trust boundary.\\\addlinespace
-\textbf{QR-03}\newline Explainability &
-Expose rules, transformation steps, sets, table conflicts, traces and lexical
-limitations. Natural-language explanations are authored by students, not generated.
-A passing parse is not evidence of real-world authenticity.\\\addlinespace
-\textbf{QR-04}\newline Responsiveness &
-Bound file, corpus, grammar and trace work; preserve cancellation/stale-response
-protection in the UI. Report measured timings with machine, fixture, warm-up,
-sample count and limitations, never borrowed historical performance claims.\\\addlinespace
+\begin{longtable}{L{2.4cm}L{11.8cm}}
+\toprule\textbf{ID} & \textbf{Requirement and verification boundary}\\\midrule\endhead
+\textbf{QR-01}\newline Correctness &
+The same bounded input, grammar and lexicon snapshot shall yield the same
+compiler output. Tests shall exercise actual source sentences and independent
+boundary cases. Passing a small corpus is not an accuracy benchmark.\\\addlinespace
+\textbf{QR-02}\newline Durability &
+SQLite transactions and coordinated locks shall protect shared snapshots.
+Persistence failures shall never be presented as successful saves. Browser
+cancellation does not guarantee that the server cancelled an in-flight save.\\\addlinespace
+\textbf{QR-03}\newline Public safety &
+HTTPS, trusted hosts/proxies, body limits, same-origin CSRF, secure production
+cookies, rate limits and security headers shall remain. These controls do not
+make public submissions private or constitute an abuse-proof system.\\\addlinespace
+\textbf{QR-04}\newline Explainability &
+The UI and report shall distinguish vocabulary recognition, grammar fit,
+heuristic language evidence, supplied glosses and verified facts. No generated
+meaning or hidden correction may substitute for a failed analysis.\\\addlinespace
 \textbf{QR-05}\newline Accessibility &
-Retain labelled forms, keyboard actions, focus-managed dialogs, visible errors
-and text/file alternatives to microphone functions. Test desktop/mobile layouts;
-mocked checks alone do not certify every browser, device or assistive technology.\\\addlinespace
-\textbf{QR-06}\newline Maintainability &
-Use existing test/build tools. Cover all authored production classes in UML with
-actual methods/relationships. Validate every sequence activation, atlas mapping,
-image fingerprint and clean LaTeX references/layout after rebuilding.\\
+Keep labelled controls, keyboard navigation, visible errors, focus management,
+responsive layouts and text alternatives to audio. Tests on selected desktop/
+mobile browsers do not certify all devices or assistive technologies.\\\addlinespace
+\textbf{QR-06}\newline Maintain\-ability &
+Use the existing Python/TypeScript test suites, source-labelled references,
+local PlantUML renderer and LaTeX pipeline. No online renderer receives project
+code or private records. Historical evidence is preserved with its original date.\\\addlinespace
+\textbf{QR-07}\newline Operational bounds &
+Bound input, grammar expansion, parser traces and retained media. No unmeasured
+latency, throughput, uptime or concurrency guarantee is claimed. Public tests
+have no automatic purge: operators must monitor storage growth.\\
 \bottomrule
 \end{longtable}
 
-Validation errors use actionable messages and bounded inputs. Authentication,
-authorization, conflict, missing-resource and storage failures remain distinct;
-provider availability is not a compiler failure category. A failed PDF import
-must request a supported/manual transcript rather than silently fabricate text.
+\begin{tabularx}{\linewidth}{@{}L{2.1cm}X@{}}
+\toprule\textbf{Failure} & \textbf{Required distinction}\\\midrule
+403 & Invalid Origin/CSRF or a forbidden reference mutation.\\
+404 & Missing resource or an endpoint not exposed in public mode.\\
+409 & Stale grammar or conflicting idempotency input, with recovery guidance.\\
+413 / 422 & Oversized or structurally invalid input, not successful analysis.\\
+429 & Client rate limit exceeded, with \texttt{Retry-After}.\\
+503 & Operational/storage/reference failure, explicitly surfaced.\\
+CFG rejection & A successfully computed result, not a network failure; it may
+be retained as an immutable test.\\
+\bottomrule
+\end{tabularx}
 
-\section{Data, Limits and Lifecycle}
-\subsection{Data classifications}
-\begin{longtable}{L{3.2cm}L{6.8cm}L{4.2cm}}
-\toprule\textbf{Data} & \textbf{Purpose and storage} & \textbf{Evidence status}\\\midrule\endhead
-Raw statements/provenance & Selected-project entries and revisions in the
-account SQLite database; original wording separate from glosses & Human-supplied,
-authenticity not machine-proven\\\addlinespace
-Coursework profile & Project-keyed JSON with three names, grammar and narrative &
-Human-authored metadata, not a generated report\\\addlinespace
-Screenshots & Project-bound ID/name/base64 PNG rows with private byte route &
-User must provide genuine captures\\\addlinespace
-Recordings & Private account audio files referenced by entries & Supporting raw
-material, never auto-transcribed\\\addlinespace
-Dictionary and practice & Versioned source-labelled references and constructed examples &
-Not collected statements\\\addlinespace
-Legacy history & Existing validated translation/conversation records &
-Historical output, no new generation\\\addlinespace
-Backups & Verified account ZIPs containing all project data/media &
-Sensitive recovery copies, not proof of authorship\\
+\section{Data and Lifecycle Requirements}
+\subsection{Logical records}
+\begin{longtable}{L{3.0cm}L{7.0cm}L{4.2cm}}
+\toprule\textbf{Record} & \textbf{Purpose and lifecycle} & \textbf{Public policy}\\\midrule\endhead
+Collection entry & Raw wording, glosses, reviewed annotations, location text and
+audio references; revisions preserved. & Read-only.\\\addlinespace
+Saved grammar/profile & Grammar, rationale, limitations and retained coursework
+metadata in shared storage. & Grammar read-only; profile management not exposed.\\\addlinespace
+Analyzer test & Original raw text, grammar/lexer/parser snapshots, derived
+statistics, timestamp and request identity. & Create and read; immutable; public.\\\addlinespace
+Recorded reading & Existing saved audio with matching text and metadata;
+separate from Collection audio attachments. & Lookup and playback only.\\\addlinespace
+Dictionary and examples & Versioned bundled references and synthetic examples. &
+Read-only; not fieldwork.\\\addlinespace
+Legacy accounts/history & Existing credentials, identities, older workspace
+archives and histories retained for compatibility. & Never served by the
+default public API or as static assets.\\\addlinespace
+Operational records & Public rate counters, private backups and server
+configuration. & Operator-only; not application content.\\
 \bottomrule
 \end{longtable}
 
-\subsection{Bounded operation}
-\begin{longtable}{L{7.4cm}L{6.8cm}}
-\toprule\textbf{Boundary} & \textbf{Limit}\\\midrule\endhead
-Raw entry / individual analysis & 4,000 characters\\
-Coursework corpus analysis & 500 entries; 100,000 text characters\\
-Grammar text & 12,000 characters plus syntax/transformation/parser work guards\\
-Import input / extracted text & 12 MiB; 40,000 characters\\
-PDF / structured drafts & 40 pages; 100 draft records\\
-Screenshots per selected project & 6; 2 MiB each; 12 megapixels\\
-Projects / entries per account & 20; 10,000\\
-Saved history / revisions per account & 500; 20,000\\
-Saved conversation messages & 1--100, for legacy history compatibility\\
-Private recordings & 1,000 files; 128 MiB aggregate\\
-Backup ZIP compressed / expanded & 32 MiB; 160 MiB\\
-Stored backups / pending previews & 512 MiB per account; three one-hour previews\\
-Automatic backup retention & 1--10 copies, daily or weekly\\
+The default local data root is \texttt{.mboa}; the shared workspace resides under
+\nolinkurl{shared-workspace/workspace.sqlite3}. Public rate counters use
+\texttt{public-access.sqlite3}, separate from the legacy authentication database.
+Deployment uses a persistent directory outside the web root. Public response
+redaction does not delete or replace the original stored ownership.
+
+Backups are sensitive recovery artifacts, not evidence of record authorship.
+The current shared workspace document format is 5; the outer archive manifest
+remains format 1. Backward-compatible migration and validation must preserve
+older formats and related media. Same-disk backups are not disaster recovery.
+Credentials/configuration require separately protected full-root backup.
+
+\subsection{Active processing bounds}
+\begin{tabularx}{\linewidth}{@{}X L{5.3cm}@{}}
+\toprule\textbf{Boundary} & \textbf{Current limit}\\\midrule
+General JSON body & 1 MiB.\\
+Statement / grammar text & 4,000 / 12,000 characters.\\
+Coursework corpus helper & 500 entries / 100,000 text characters.\\
+Parser input / token text & 256 tokens / 1,000 characters per token.\\
+Parse trace / stack & 2,000 steps / 1,024 symbols.\\
+Transformed grammar & 200 nonterminals; 600 alternatives; 6,000 RHS symbols.\\
+Anonymous request rate & 120 requests per 60 seconds per client address;
+health excluded.\\
 \bottomrule
-\end{longtable}
-These are storage/processing limits, not assignment targets or certified load
-capacity. Deletion may leave older revisions/backups until their explicit
-retention policy removes them. Unreferenced recordings are not silently erased.
-The screenshot route allows a 3 MiB JSON body for base64 transport; the generic
-JSON cap remains 1 MiB. Coursework exports contain screenshot bytes but do not
-bundle raw recordings; full workspace backups preserve recordings and coursework
-together.
+\end{tabularx}
 
-\subsection{Backup compatibility}
-The workspace document advances to format 2 to include coursework and screenshots.
-Restoring format 1 remains supported without those newer collections. The outer
-ZIP manifest remains format 1. Every new coursework/screenshot mutation must
-advance the workspace version so a preview cannot overwrite unseen changes.
-Restore validates logical records, stages safe media, creates a safety backup
-and commits under the selected account lock.
+The corpus-helper bounds are not the assignment target of 10--15 statements,
+nor a guarantee that every maximum-size grammar will fit transformation budgets.
+Additional legacy import/media/backup guards remain in their private code paths;
+they are not public upload features. Visitors sharing an address may share a
+rate bucket; trusted proxy configuration affects address attribution.
 
-Backups omit authentication secrets and server configuration. The operator must
-protect and rehearse a separate consistent backup of the full data root,
-including the identity database. Same-disk workspace ZIPs cannot recover a lost
-host or recreate account identities on their own.
-
-\section{Interfaces and Operating Constraints}
-The browser uses same-origin HTTP APIs served by FastAPI alongside the built
-React application. Private calls carry a session cookie; mutations additionally
-require Origin/CSRF. A validated project header selects request scope; private
-native audio/image URLs can carry a project query parameter.
-
+\section{External Interfaces}
 \begin{longtable}{L{3.3cm}L{10.9cm}}
-\toprule\textbf{Area} & \textbf{Interface}\\\midrule\endhead
-Compiler & \nolinkurl{/api/analyze}; coursework state, project, analyze, parse,
-screenshots and export under \nolinkurl{/api/coursework}\\\addlinespace
-Collection and references & Dataset CRUD/audio, metadata, dictionary and constructed
-examples under \nolinkurl{/api}\\\addlinespace
-Import & \nolinkurl{/api/imports/preview}; supported local text formats only\\\addlinespace
-Accounts/recovery & Auth/session/Google routes and private project, legacy history,
-revision and backup routes\\\addlinespace
-Health & \texttt{status=ok}, \texttt{mode=compiler}; not provider acceptance\\\addlinespace
-Removed interfaces & \nolinkurl{/api/translate}, \nolinkurl{/api/chat},
-\nolinkurl{/api/imports/suggest}, \nolinkurl{/api/coursework/explain}\\
+\toprule\textbf{Area} & \textbf{Default public interface}\\\midrule\endhead
+Bootstrap &
+\texttt{GET} \nolinkurl{/api/public/session}: public capability policy,
+anonymous CSRF token and cookie; not an account session.\\\addlinespace
+Single lexer / analysis &
+\texttt{POST} \nolinkurl{/api/analyze} and
+\nolinkurl{/api/analyzer/analyze}; same-origin CSRF protection.\\\addlinespace
+Saved tests &
+\texttt{POST} \nolinkurl{/api/analyzer/tests}; read list/report/detail through
+the analyzer routes. No public test-update/delete interface.\\\addlinespace
+Read-only data &
+Metadata, dataset/search and available audio, dictionary, examples and saved
+analyzer state/grammar.\\\addlinespace
+Readings &
+\texttt{POST} \nolinkurl{/api/readings/lookup}; existing reading byte playback.
+No public record, upload, replacement or deletion.\\\addlinespace
+Health &
+\texttt{GET} \nolinkurl{/api/health}: \texttt{status=ok},
+\texttt{mode=compiler}; no external language-provider dependency.\\\addlinespace
+Not mounted &
+\nolinkurl{/api/auth/*}, \nolinkurl{/api/workspace/*},
+\nolinkurl{/api/coursework/*}, public imports, restore and administration.\\
 \bottomrule
 \end{longtable}
 
-Local operation uses loopback and a private file-mail outbox unless SMTP is
-configured. Production requires an HTTPS public origin, secure cookies, actual
-SMTP and durable private storage behind a trusted reverse proxy; interactive
-API docs are disabled. Google remains optional. The supported topology is one
-durable application host, not a stateless/multi-host SQLite cluster.
+The anonymous cookie is HttpOnly and SameSite=Lax, with Secure in production.
+Public POST requests require the allowed Origin and
+\texttt{X-CSRF-Token}. No project or account selection is needed in the browser.
+Public resources are not protected by an authentication wall; confidentiality
+cannot be inferred from CSRF protection.
 
-\section{Acceptance Strategy and Completion Gates}
-\subsection{Software verification}
-Fresh backend/compiler, frontend and browser results must name exact commands,
-fixtures and outcomes. Unit tests use synthetic data and isolated storage;
-browser tests exercise the built application. Compiler measurements must identify
-the measured workload and exclusions. The documentation build must render all
-current diagrams, compile atlas/SRS/SDD, and pass the strict checker without
-layout/reference warnings. Earlier evidence JSON stays historical and unmodified.
+\section{Deployment and Operational Acceptance}
+The selected deployment is a single durable Ubuntu VPS, supervised by systemd
+and fronted by Nginx. The public address is
+\url{https://camfranglais.duckdns.org}; the application listens only on
+\texttt{127.0.0.1:2021}. Port 2021 is an internal upstream, not an extra
+public-facing URL. HTTPS traffic uses port 443; port 80 supports the configured
+HTTP redirect/certificate flow.
 
-\subsection{Fieldwork and report gates}
+\begin{tabularx}{\linewidth}{@{}L{3.2cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Application & \nolinkurl{/var/www/francanglaiscompiler}\\
+Persistent data & \nolinkurl{/var/lib/camfranglais}\\
+Environment & \nolinkurl{/etc/camfranglais.env}\\
+Service & \texttt{camfranglais.service}, under a restricted service account\\
+Required production settings & \texttt{MBOA\_ENVIRONMENT=production},
+HTTPS \texttt{MBOA\_PUBLIC\_URL}, absolute \texttt{MBOA\_DATA\_DIR}\\
+Proxy & Preserve Host and forwarded protocol/client address; trust only the
+actual reverse proxy.\\
+\bottomrule
+\end{tabularx}
+
+SMTP/Google configuration is not required in public mode. The operator shall
+preserve existing environment and data, validate Nginx before reload, protect
+off-host backups and avoid changing unrelated sites on the shared VPS.
+Interactive API documentation is disabled in production. The documentation
+session observed the public bootstrap returning HTTP 200 and the direct
+no-login browser interface on 27 September; this does not prove long-term
+availability, backup recovery or the mechanism used to deploy it.
+
+\section{Verification and Traceability}
+\begin{longtable}{L{3.1cm}L{6.7cm}L{4.4cm}}
+\toprule\textbf{Requirement group} & \textbf{Evidence / check} & \textbf{Limitation}\\\midrule\endhead
+FR-01--02, 18--19 & Public-boundary backend tests; fresh desktop/mobile browser
+workflows; observed live no-login policy. & No full independent security audit
+or availability certification claimed.\\\addlinespace
+FR-03--07 & Lexer/language/reference tests; exact twelve-sentence token
+fixtures; saved lexical snapshots. & Reference labels and language clues are
+not independent linguistic ground truth.\\\addlinespace
+FR-08--11 & Grammar/transformation/parser tests; all twelve own-data outcomes;
+full FIRST/FOLLOW and LL(1) table in the report. & Category grammar has restricted
+coverage; positive matches can still be nonstandard speech.\\\addlinespace
+FR-12--14 & Idempotency, immutability, persisted history/statistics tests and
+isolated data-preservation checks. & Growing public history differs from a fixed
+controlled corpus.\\\addlinespace
+FR-15--17 & Read-only Collection/grammar/audio tests; live reference views and
+recorded playback regressions. & A recording is not proof of original fieldwork.\\\addlinespace
+FR-20 & Local PlantUML/LaTeX build; strict class, activation, image and PDF
+checks; measured report pagination. & Human authors still review provenance,
+attribution and submission requirements.\\
+\bottomrule
+\end{longtable}
+
+The 26 September release record reports 186 backend/launcher/legacy-storage
+tests, 148 frontend unit tests, 68 mocked browser tests, passing TypeScript
+checks and a production build. Fourteen distinct live workflows passed across
+the full run and focused rerun: two startup/teardown interruptions occurred in
+the full run and passed in a three-case mobile rerun. This is not an
+uninterrupted 14/14 result.
+
+The seven targeted corpus grammar/persistence tests passed again on
+27 September. One known pre-existing full-suite regression remains:
+\nolinkurl{compiler.tests.test_parser.GrammarNotationTests.}
+\nolinkurl{test_every_real_lexer_category_is_a_supported_terminal}.
+Its old expected category set omits newly supported categories. This
+documentation task does not repair it and does not claim the whole CI suite
+is green.
+
+\section{Submission Gates and Exclusions}
 \begin{enumerate}
-\item Receive 10--15 genuine manual transcriptions and record provenance,
-collection method, consent/anonymization and all three member contributions.
-\item Review exact raw text and lexical labels, including unknowns, multiword
-phrases, code-mixing and frequency/variation interpretations.
-\item Construct and justify the CFG from those observations; examine
-transformation logs, FIRST/FOLLOW, conflicts and own-data accepted/rejected cases.
-\item Attach genuine analyzer screenshots and author the linguistic discussion:
-mixing, slang, context, incomplete speech and limits of the chosen formal grammar.
-\item Export the draft and check actual printed pagination: 25--30 pages,
-never over 30. The engineering SRS/SDD are not that report.
-\item Rehearse the ten-minute demo with three minutes per member and a shared
-minute. Only the group/instructor can approve submission readiness.
+\item The group shall confirm the true origin and manual-transcription process,
+or clearly retain the provenance limitation in the submitted report.
+\item The authors shall review original wording, supplied glosses, lexical
+ambiguities, the two unresolved tokens and the corpus-specific CFG rationale.
+\item The final report shall contain the raw statements, actual token tables,
+regex rules, transformations, FIRST/FOLLOW, the complete LL(1) table, parser
+results, real screenshots and linguistic discussion.
+\item The built report shall measure 25--30 PDF pages, including front matter.
+The SRS, SDD and UML atlas are supplementary engineering documents and are
+not included in that page limit.
+\item The required ten-minute presentation/demo and individual contributions
+shall be rehearsed separately. This documentation release does not claim that
+slides, oral performance, authenticity or instructor approval are complete.
 \end{enumerate}
 
-\notice{No premature completion claim}{
-Empty data, an illustrative CFG, synthetic test passes or a generated draft
-cannot satisfy real collection and linguistic analysis. The product deliberately
-keeps authenticity, report pagination and presentation rehearsal as human gates.}
+\notice{Meaning of acceptance}{
+Software verification establishes behavior on stated tests and snapshots.
+It cannot certify speaker intent, accurate transcription of an unheard event,
+fieldwork consent, population-level language coverage or academic approval.}
 \end{document}

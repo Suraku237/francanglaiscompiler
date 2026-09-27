@@ -1,81 +1,45 @@
 @startuml
 !include theme.iuml
-title Non-AI compiler workspace: authenticated request-local storage
-skinparam componentFontSize 14
-package "Browser / React" {
-  component "AuthGate + App\nprivate compiler / collection /\nreferences / import / recovery" as UI
-  component "api.ts / useRequest.ts\ncookie, CSRF, project and cancellation" as WebAPI
-  component "Native recording / optional read-aloud\nno dictation or automatic upload" as Media
+title Camfranglais — public processing architecture
+top to bottom direction
+skinparam wrapWidth 180
+actor "Public visitor" as Visitor
+[PublicSession / App\npublic React browser] as Browser
+package "FastAPI public app — require_auth=None" {
+  [main.py / web.py\npublic_access.py\nOrigin + CSRF · allowlist] as Boundary
+  together {
+    [analyzer.py\nanalyzer_history.py\ntests and statistics] as Analyzer
+    [Collection · Dictionary\nSynthetic examples\nread-only source modules] as Reference
+    [readings_api.py / audio_api.py\nexisting lookup and playback] as Media
+  }
+  [PublicWorkspaceStore\nrequest-local adapters] as Store
+  [compiler.lexer\ncompiler.parser\nrules · CFG · LL(1)] as Compiler
 }
-package "FastAPI / Python backend" {
-  component "main.py / web.py\nsame-origin routes / security boundary" as Web
-  component "auth.py\nverified identity / sessions / throttles" as Auth
-  component "workspaces.py\nWorkspaceStore + request contexts" as Workspaces
-  component "collection.py\nvalidated raw-entry CRUD" as Collection
-  component "coursework_api.py / coursework.py\nlexical report / corpus parsing / readiness" as Course
-  component "coursework_store.py\nCourseworkStorage dispatch" as CourseStore
-  component "coursework_export.py\nDRAFT report / slides / artifacts" as Export
-  component "imports.py / import_api.py\nbounded local text extraction" as Imports
-  component "dictionary.py / examples.py\nread-only labelled source material" as Reference
-  component "workspace_backups.py\nverified format-2 data / format-1 manifest" as Backups
-}
-package "Deterministic libraries" {
-  component "compiler/lexer\nregex / approved word annotations / phrases" as Lexer
-  component "compiler/parser\nCFG transforms / FIRST-FOLLOW /\nLL(1) table and traces" as Parser
-  component "data_collector/dataset.py\nDatasetStorage protocol dispatch" as Dataset
-}
-package "Explicit desktop / maintenance compatibility" {
-  component "App.py / audio_utils.py\nCustomTkinter collector and local audio" as Desktop
-  artifact "Legacy CSV / audio /\nproject.json / screenshots" as Legacy
-}
-database "auth.sqlite3\nidentities / sessions / tokens" as Accounts
-database "Per-account workspace.sqlite3\nprojects / entries / revisions / history /\ncoursework JSON / screenshot base64" as Private
-folder "Per-account audio / backups" as Files
-artifact "Versioned dictionary / practice\nreferences and constructed examples" as References
-cloud "Google OAuth / SMTP\nidentity and account mail only" as Identity
-
-UI ..> WebAPI
-UI ..> Media
-WebAPI ..> Web : same-origin /api
-Web ..> Auth : private API gate
-Auth ..> Accounts
-Auth ..> Identity : configured network identity/mail
-Auth ..> Workspaces : bind verified user and project
-Web ..> Collection
-Web ..> Course
-Web ..> Imports
-Web ..> Reference
-Web ..> Backups
-Web ..> Lexer : individual /analyze
-Workspaces ..> Private : transactional project rows
-Workspaces ..> Files : private media / locking
-Dataset ..> Workspaces : bound DatasetStorage
-CourseStore ..> Workspaces : bound CourseworkStorage
-Collection ..> Dataset
-Course ..> Dataset : selected-project corpus
-Course ..> Lexer
-Course ..> Parser
-Course ..> CourseStore : profile / screenshots
-Course ..> Export : explicit saved-evidence export
-Export ..> Course : compute saved-corpus artifacts
-Export ..> CourseStore : saved profile and screenshot bytes
-Reference ..> References : no corpus insertion
-Backups ..> Workspaces : all projects + coursework/screenshots
-Backups ..> Files
-Desktop ..> Dataset
-Desktop ..> Legacy : local recording
-Dataset ..> Legacy : no bound adapter only
-CourseStore ..> Legacy : explicit no-auth maintenance only
-note bottom of Parser
-  Acceptance comes from token categories and the submitted CFG.
-  No AI, translation, OCR, remote transcription or tutoring provider.
+database "Shared SQLite\nexact test snapshots\nand shared resources" as DB
+folder "Existing audio files" as Files
+artifact "Bundled reference files" as Bundled
+Visitor --> Browser
+Browser --> Boundary : same-origin HTTPS
+Boundary --> Analyzer
+Boundary --> Reference
+Boundary --> Media
+Analyzer --> Compiler
+Analyzer --> Store : append/read tests
+Reference --> Store : Collection only
+Reference --> Bundled
+Compiler --> Bundled : vocabulary
+Media --> Store : lookup
+Media --> Files : checked stream
+Store --> DB
+note right of Boundary
+  IP limits: public-access.sqlite3.
+  No account or AuthStore.
+  Health bypasses the limiter.
 end note
 legend bottom
-  Dashed arrows are dependencies, not associations with invented multiplicities.
-  Authentication is default; production rejects require_auth=False.
-  Legacy files are never assigned to a private account automatically.
-  Coursework ZIPs contain draft deliverables, not raw recordings; workspace backups retain audio.
-  TTS selects only browser-reported localService voices, without remote fallback.
-  Browser/OS reporting is not an application-level guarantee of all voice/network behavior.
+  Components are modules, not invented runtime classes.
+  Only tests append; Collection, grammar and audio are read-only.
+  Operator backups/legacy APIs are outside this public UI.
+  No AI/voice generation, microphone or coursework export UI.
 endlegend
 @enduml

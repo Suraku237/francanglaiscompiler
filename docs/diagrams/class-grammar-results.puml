@@ -1,0 +1,62 @@
+@startuml
+!include theme.iuml
+title Grammar analysis and predictive parsing — snapshot DTOs
+hide empty members
+class SnapshotModel <<reference>>
+class GrammarAnalysis {
+  original; transformed: Grammar
+  start_symbol: str
+  terminals; nonterminals: list[str]
+  first; follow: dict[str, list[str]]
+  table: dict[str, dict[str, list[str]]]
+  is_ll1: bool
+  warnings: list[str]
+  consistent_symbols(): Self
+}
+class TransformationStep {
+  operation: str
+  before; after: Grammar
+  description: str
+}
+class GrammarConflict {
+  nonterminal: str
+  terminal: str
+  productions: list[list[str]]
+}
+class ParseResult {
+  accepted: bool
+  error: str | None
+  consumed: int >= 0
+  consistent_outcome(): Self
+}
+class ParseStep {
+  stack: list[str]
+  remaining: list[str]
+  action: str
+}
+GrammarAnalysis --|> SnapshotModel
+TransformationStep --|> SnapshotModel
+GrammarConflict --|> SnapshotModel
+ParseResult --|> SnapshotModel
+ParseStep --|> SnapshotModel
+GrammarAnalysis "0..*" --> "0..*" TransformationStep : steps
+GrammarAnalysis "0..*" --> "0..*" GrammarConflict : conflicts
+ParseResult "0..*" --> "1..*" ParseStep : trace
+note bottom of GrammarAnalysis
+  Grammar = dict[str, list[list[str]]], not a runtime class.
+  Epsilon is an empty RHS; FIRST displays epsilon;
+  FOLLOW/table lookahead uses $ for end of input.
+  Conflicting table cells are retained in conflicts, not
+  resolved by arbitrarily choosing a production.
+end note
+note bottom of ParseResult
+  accepted iff error is None.
+  RecordedTest additionally checks consumed token count
+  and forbids accepted parsing with a non-LL(1) grammar.
+end note
+legend bottom
+  Source: backend/analyzer_models.py. These are real DTO classes, not the compiler's internal dictionaries.
+  Compiler functions create dictionaries; snapshot validation constructs these typed nested values.
+  GrammarAnalysis and ParseResult are separately referenced by RecordedTest, not associated with each other.
+endlegend
+@enduml

@@ -1,10 +1,9 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Preserved desktop compatibility: actual classes and audio ownership
+title Retained desktop collector — actual GUI, helper and recorder classes
 hide empty members
-' @class data_collector.App.App
-class App {
+class App <<retained>> {
   recorder: Recorder | None
   pending_audio_path: str | None
   selected_browse_id: str | None
@@ -21,64 +20,58 @@ class App {
   _refresh_stats()
   destroy()
 }
-' @class data_collector.App.Tooltip
-class Tooltip {
+class Tooltip <<retained>> {
   widget
   text: str
   tip_window
   _show(event=None)
   _hide(event=None)
 }
-' @class data_collector.audio_utils.Recorder
-class Recorder {
+class Recorder <<retained>> {
   frames: list
   stream: InputStream | None
   recording: bool
+  sample_rate: int
+  warning: str
   start()
   stop()
+  _close_stream()
   close()
 }
-' @class data_collector.audio_utils.AudioError
-class AudioError
-' @class data_collector.dataset.EntryNotFoundError
-class EntryNotFoundError
+class AudioError <<retained>>
+class EntryNotFoundError <<retained>>
 class RuntimeError <<external>>
 class LookupError <<external>>
 class "customtkinter.CTk" as CTk <<external>>
-class "Widget" as Widget <<external>>
-class "CTkToplevel" as TipWindow <<external>>
+class "Tk widget" as Widget <<external>>
+class "customtkinter.CTkToplevel" as TipWindow <<external>>
 class "sounddevice.InputStream" as Stream <<external>>
-rectangle "dataset.py <<module>>\nload_all(), append_entry()\nupdate_entry(), delete_entry()\ndataset_lock(), count_by()" as Dataset
-rectangle "audio_utils.py <<module>>\nattach_file(), save_recording()\nplay_audio()" as Audio
+rectangle "data_collector.dataset <<module>>\nload_all(), append_entry(), update_entry()\ndelete_entry(), dataset_lock(), count_by()" as Dataset
+rectangle "data_collector.audio_utils <<module>>\nattach_file(), save_recording(), play_audio()" as Audio
 App --|> CTk
-App "1" *-- "0..1" Recorder : creates when audio is available
+App "1" *-- "0..1" Recorder : creates if audio is available
 Recorder "0..1" --> "0..1" Stream : stream
 Tooltip "0..*" --> "1" Widget : widget
 Tooltip "0..1" --> "0..1" TipWindow : tip_window
-App ..> Tooltip : creates for controls
-App ..> Dataset : calls functions
-App ..> Audio : calls functions
+App ..> Tooltip : creates callbacks for controls
+App ..> Dataset
+App ..> Audio
 AudioError --|> RuntimeError
 EntryNotFoundError --|> LookupError
 Recorder ..> AudioError : raises retryable failures
-Audio ..> AudioError : raises file / playback errors
-Dataset ..> EntryNotFoundError : rejects stale IDs
-App ..> AudioError : reports and retains retry state
-App ..> EntryNotFoundError : reports no longer available
+Audio ..> AudioError
+Dataset ..> EntryNotFoundError
+App ..> AudioError : reports / retains retry state
+App ..> EntryNotFoundError : handles stale selection
 note bottom of Recorder
-  One optional stream per recorder.
-  Frames are sample arrays, not domain classes.
-  Callback execution is asynchronous.
-end note
-note bottom of Tooltip
-  A tooltip retains one widget and at most one
-  popup. App does not store a Tooltip collection:
-  bound callbacks retain these helper objects.
+  Actual device sample rate is retained.
+  Stop/close failures preserve retryable state.
+  Sample arrays are values, not invented domain classes.
+  The desktop recorder is not a public browser feature.
 end note
 legend bottom
-  This is the optional local desktop collector, not the default authenticated web UI.
-  Five production classes; library types are explicitly external.
-  Per-instance target multiplicities express stored references.
-  Audio filenames are not object ownership or database foreign keys.
+  App/Tooltip: data_collector/App.py; Recorder/AudioError: audio_utils.py; EntryNotFoundError: dataset.py.
+  App creates the optional Recorder; bound widget callbacks retain Tooltip objects, not an App tooltip collection.
+  CSV and local capture workflows are retained operator/desktop compatibility, not the default web product.
 endlegend
 @enduml

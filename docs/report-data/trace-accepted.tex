@@ -1,0 +1,23 @@
+\par\noindent
+\begin{tabularx}{\linewidth}{@{}r >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l@{}}
+\toprule
+\textbf{Step} & \textbf{Stack (top at right)} & \textbf{Remaining input} & \textbf{Action}\\
+\midrule
+1 & \texttt{\$} \texttt{Ut} & \texttt{FF} \texttt{V} \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & P01\\
+2 & \texttt{\$} \texttt{Uf} \texttt{Cl} & \texttt{FF} \texttt{V} \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & P02\\
+3 & \texttt{\$} \texttt{Uf} \texttt{St} \texttt{FF} & \texttt{FF} \texttt{V} \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & match FF\\
+4 & \texttt{\$} \texttt{Uf} \texttt{St} & \texttt{V} \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & P05\\
+5 & \texttt{\$} \texttt{Uf} \texttt{Pt} \texttt{V} & \texttt{V} \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & match V\\
+6 & \texttt{\$} \texttt{Uf} \texttt{Pt} & \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & P12\\
+7 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{ADJ} & \texttt{ADJ} \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & match ADJ\\
+8 & \texttt{\$} \texttt{Uf} \texttt{Ct} & \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & P32\\
+9 & \texttt{\$} \texttt{Uf} \texttt{Lp} \texttt{FF} & \texttt{FF} \texttt{V} \texttt{V} \texttt{\$} & match FF\\
+10 & \texttt{\$} \texttt{Uf} \texttt{Lp} & \texttt{V} \texttt{V} \texttt{\$} & P19\\
+11 & \texttt{\$} \texttt{Uf} \texttt{Pt} \texttt{V} & \texttt{V} \texttt{V} \texttt{\$} & match V\\
+12 & \texttt{\$} \texttt{Uf} \texttt{Pt} & \texttt{V} \texttt{\$} & P10\\
+13 & \texttt{\$} \texttt{Uf} \texttt{Pt} \texttt{V} & \texttt{V} \texttt{\$} & match V\\
+14 & \texttt{\$} \texttt{Uf} \texttt{Pt} & \texttt{\$} & P18\\
+15 & \texttt{\$} \texttt{Uf} & \texttt{\$} & P38\\
+16 & \texttt{\$} & \texttt{\$} & accept\\
+\bottomrule
+\end{tabularx}\par

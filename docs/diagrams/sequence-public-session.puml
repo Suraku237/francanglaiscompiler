@@ -1,0 +1,47 @@
+@startuml
+!include theme.iuml
+title Public bootstrap — CSRF preparation without an account
+hide footbox
+autonumber
+participant "Browser\nPublicSession / api.ts" as Browser
+participant "public_access.py\nmiddleware + route functions" as Access
+participant "state : PublicAccessState" as State
+participant "rate_limits.throttle()\n<<function>>" as Limiter
+activate Browser
+Browser -> Access : GET /api/public/session\noptional camfranglais_public cookie
+activate Access
+Access -> State : limit(client address)
+activate State
+State -> State : workspace()
+activate State
+State --> State : lazily cached PublicWorkspaceStore
+deactivate State
+State -> Limiter : throttle(db, hashed IP key, 120, 60)
+activate Limiter
+Limiter --> State : window incremented, or RateLimitExceeded
+deactivate Limiter
+State --> Access : shared store, or explicit error
+deactivate State
+opt limit and storage initialization succeeded
+  note over Access : use_workspace(store) binds dataset, coursework and ownership.\nAll bindings are reset when the request exits.
+  Access -> Access : public_session(request)
+  activate Access
+  Access --> Access : reuse/generate opaque cookie;\nderive CSRF token and capabilities
+  deactivate Access
+end
+Access --> Browser : 200 bootstrap + Set-Cookie, or 429/503/500
+deactivate Access
+opt valid public_read_only capabilities and token
+  Browser -> Browser : configureSession(csrf_token)
+  activate Browser
+  Browser --> Browser : in-memory token ready; render App
+  deactivate Browser
+end
+deactivate Browser
+legend bottom
+  Successful capabilities: analyze/save_tests=true; edit_collection/edit_grammar/edit_recordings=false.
+  Cookie: HttpOnly, SameSite=Lax, Secure in production. It is CSRF state, not login or user identity.
+  Rate-limit rows live in public-access.sqlite3; no auth.sqlite3 initialization or fake account is required.
+  Health bypasses the shared limit; this sequence shows the default include_academic=true bootstrap.
+endlegend
+@enduml

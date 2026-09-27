@@ -1,0 +1,21 @@
+\par\noindent
+\begin{tabularx}{\linewidth}{@{}r >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l@{}}
+\toprule
+\textbf{Step} & \textbf{Stack (top at right)} & \textbf{Remaining input} & \textbf{Action}\\
+\midrule
+1 & \texttt{\$} \texttt{Ut} & \texttt{V} \texttt{FF} \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P01\\
+2 & \texttt{\$} \texttt{Uf} \texttt{Cl} & \texttt{V} \texttt{FF} \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P04\\
+3 & \texttt{\$} \texttt{Uf} \texttt{Pt} \texttt{V} & \texttt{V} \texttt{FF} \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & match V\\
+4 & \texttt{\$} \texttt{Uf} \texttt{Pt} & \texttt{FF} \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P16\\
+5 & \texttt{\$} \texttt{Uf} \texttt{Lp} \texttt{FF} & \texttt{FF} \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & match FF\\
+6 & \texttt{\$} \texttt{Uf} \texttt{Lp} & \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P20\\
+7 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{Nm} & \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P35\\
+8 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{Nr} \texttt{N} & \texttt{N} \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & match N\\
+9 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{Nr} & \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P36\\
+10 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{Nr} \texttt{N} & \texttt{N} \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & match N\\
+11 & \texttt{\$} \texttt{Uf} \texttt{Ct} \texttt{Nr} & \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P37\\
+12 & \texttt{\$} \texttt{Uf} \texttt{Ct} & \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & P32\\
+13 & \texttt{\$} \texttt{Uf} \texttt{Lp} \texttt{FF} & \texttt{FF} \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & match FF\\
+14 & \texttt{\$} \texttt{Uf} \texttt{Lp} & \texttt{UNK} \texttt{FF} \texttt{ADV} \texttt{FF} \texttt{EF} \texttt{\$} & reject\\
+\bottomrule
+\end{tabularx}\par

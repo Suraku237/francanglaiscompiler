@@ -1,0 +1,58 @@
+@startuml
+!include theme.iuml
+title Recorded readings — public lookup/playback and retained upload contracts
+hide empty members
+class SnapshotModel <<reference>>
+class ReadingLookup {
+  text: nonblank str [1..4000]
+  language: fr | en
+  lookup_key(): str
+}
+class ReadingConsent <<retained>> {
+  share_consent: true
+  explicit_consent(value): bool {class}
+}
+class ReadingUpload <<retained>>
+class ReadingRecord {
+  id: CanonicalUUID
+  audio_filename: safe generated filename
+  created_at; updated_at: Timestamp
+}
+class ReadingView {
+  audio_url: str
+}
+class ReadingSearch
+class StoredReading {
+  id: CanonicalUUID
+  key: 64-character SHA-256 hex
+  consistent_identity(): Self
+}
+class Ownership <<reference>>
+ReadingLookup --|> SnapshotModel
+ReadingConsent --|> SnapshotModel
+ReadingUpload --|> ReadingLookup
+ReadingUpload --|> ReadingConsent
+ReadingRecord --|> ReadingLookup
+ReadingView --|> ReadingRecord
+ReadingSearch --|> SnapshotModel
+StoredReading --|> SnapshotModel
+ReadingView "0..*" --> "1" Ownership : ownership
+ReadingSearch "0..*" --> "0..1" ReadingView : reading
+StoredReading "0..*" --> "1" ReadingRecord : data\nJson[ReadingRecord] after validation
+note bottom of ReadingLookup
+  Key = SHA-256(language + NUL + normalized text).
+  Unicode/case/apostrophe normalization and collapsed spaces
+  share a reading; punctuation and language stay distinct.
+  Missing reading returns reading=null, never generated audio.
+end note
+note bottom of ReadingConsent
+  Multiple inheritance is implemented by ReadingUpload.
+  Consent is a legacy upload-input requirement, not a public
+  capture feature or retrospective proof about existing audio.
+end note
+legend bottom
+  Source: backend/readings_models.py. Public routes: POST /api/readings/lookup; GET /api/readings/{id}/audio.
+  Existing audio may be played/downloaded. Public create/replace/delete are denied.
+  No browser TTS, microphone capture, automatic transcription or cloned voice is in this public workflow.
+endlegend
+@enduml

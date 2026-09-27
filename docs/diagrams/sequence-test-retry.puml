@@ -1,0 +1,55 @@
+@startuml
+!include theme.iuml
+title Test retry — preserved snapshot versus stale/new request
+hide footbox
+autonumber
+participant "FrancAnalyzer / api.ts" as UI
+participant "analyzer_api.record_test()" as API
+participant "require_shared_grammar()\npublic_access.py" as Guard
+participant "analyzer_history.record_test()" as History
+participant "store : PublicWorkspaceStore" as Store
+activate UI
+UI -> API : POST /api/analyzer/tests\nsame pending UUID, text and grammar
+activate API
+note over API : Origin/CSRF/limits passed; shared lock is held.\nA curator may have changed the saved grammar since the first attempt.
+API -> Guard : require_shared_grammar(grammar, request_id)
+activate Guard
+Guard -> Store : load_coursework() via load_project()
+activate Store
+Store --> Guard : current saved grammar
+deactivate Store
+opt submitted grammar differs from current saved grammar
+  Guard -> Store : load_analyzer_request(request_id)
+  activate Store
+  Store --> Guard : earlier snapshot, or None
+  deactivate Store
+end
+Guard --> API : allow current grammar or existing request;\notherwise 409 reload required
+deactivate Guard
+opt grammar guard allowed this request
+  API -> History : record_test(request)
+  activate History
+  History -> Store : load_analyzer_request(request_id)
+  activate Store
+  Store --> History : earlier RecordedTest, or None
+  deactivate Store
+  alt prior snapshot has identical text and grammar_source
+    note over History : Return that exact earlier snapshot; no compiler run or insert.\nThis remains valid after an offline grammar change.
+  else prior snapshot has different text or grammar_source
+    note over History : Raise CollectionError(409); do not replace the original.
+  else no prior snapshot and current grammar matched
+    note over History : Run the normal new-test workflow on sequence-analyzer-test.
+  end
+  History --> API : original/new snapshot, or explicit 409
+  deactivate History
+end
+API --> UI : result, or 409 with reload/conflict guidance
+deactivate API
+note over UI : Success clears pendingTest. A retryable interruption keeps it.\nAfter a successful run, pressing Analyze again intentionally uses a new UUID.
+deactivate UI
+legend bottom
+  Stable PUBLIC_OWNER_ID makes retry lookup survive cookie changes; it is not a fabricated account.
+  Public request IDs are idempotency keys, not credentials. Exact payload comparison prevents key reuse from overwriting data.
+  A new stale request fails before analysis; existence alone does not bypass the later exact-payload check.
+endlegend
+@enduml

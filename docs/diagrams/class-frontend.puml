@@ -1,57 +1,54 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Non-AI frontend: one runtime class, function components and hooks
+title React implementation — one authored class, functions and hooks
 hide empty members
 class ApiError {
   status: number {readOnly}
   constructor(message: string, status: number)
 }
 class "JavaScript Error" as Error <<external>>
-rectangle "api.ts <<function module>>\napi<T>(), nativeApiUrl(), errorDetail()\nconfigureSession(), selectProject(), isCancelled()" as API
-rectangle "AuthGate.tsx <<function component>>\nverified session / project selection /\ncross-tab identity and dirty-draft handling" as Gate
-rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\ncompiler-default navigation / explicit draft handoff" as App
-rectangle "Coursework.tsx / CourseworkResults.tsx\n<<function-component modules>>\nCoursework(), GrammarResults(), LexicalResults()\nParseTrace(), CorpusResults()" as Lab
-rectangle "Collection / Dictionary / Examples / Imports\nSavedWork / WorkspaceSettings\n<<function components>>" as Pages
-rectangle "CourseworkEvidence.tsx <<functions>>\ndownloadBundle(), CourseworkExport()\nCourseworkScreenshots()" as Evidence
+rectangle "api.ts <<function module>>\napi<T>(), configureSession(), nativeApiUrl()\nerrorDetail(), isCancelled(), messageOf()" as API
+rectangle "PublicSession.tsx <<function component>>\nbootstrap public capabilities + CSRF\nrender App only after validation" as Session
+rectangle "App.tsx <<function components>>\nApp(), PrivacyDialog()\nfive-page navigation and exact text handoff" as App
+rectangle "FrancAnalyzer.tsx <<function component>>\nrecord public test / saved-test selection\npending request UUID / stale grammar state" as Analyzer
+rectangle "Analysis.tsx / TestStatistics.tsx\nCourseworkResults.tsx / VocabularyVerdict.tsx\n<<function-component modules>>" as Analysis
+rectangle "Collection.tsx / Dictionary.tsx / Examples.tsx\n<<function-component modules>>\nread-only browsing and handoff" as Pages
 rectangle "useRequest.ts <<hook>>\nrun / cancel / pending / error" as Request
-rectangle "useAudioRecorder.ts / AudioRecorder.tsx\n<<hook / function component>>\nnative capture / local preview / explicit attachment" as Recorder
-rectangle "voice.ts <<hook module>>\nuseReadAloud(), browserVoiceLanguage()\nonly browser-reported localService voices" as Voice
-rectangle "audioFocus.ts <<function module>>\nclaimAudioFocus(), hasAudioFocus()\nshared browser audio-focus events" as Focus
-rectangle "components.tsx <<functions>>\nModal(), TokenAnalysis(), ReadButton()\nErrorNotice(), CopyButton()" as Components
+rectangle "voice.ts <<hook module>>\nuseReadAloud(): selection / speak / stop\nselects an existing-recording lookup" as Voice
+rectangle "RecordedReadings.tsx <<functions>>\nRecordedReadings(), ReadingDialog()" as Readings
+rectangle "AudioRecorder.tsx <<function>>\nAudioPlayer(): native audio + download" as Player
+rectangle "audioFocus.ts <<function module>>\nclaimAudioFocus(), hasAudioFocus()" as Focus
+rectangle "Retained, not rendered publicly\nAudioRecorder() / useAudioRecorder()\n<<function / hook>>" as Recorder #FFF6E8
 ApiError --|> Error
-API ..> ApiError : throws status-bearing errors
-Request ..> API : cancellation / safe error text
-Gate ..> API : account / project operations
-Gate ..> App : renders authenticated session
-App ..> Lab
+API ..> ApiError : throws
+Session ..> API
+Session ..> Request
+Session ..> App : renders after bootstrap
+App ..> Analyzer
 App ..> Pages
 App ..> Voice
-App ..> Components
-Lab ..> Request
-Lab ..> API
-Lab ..> Evidence
-Lab ..> Components
-Pages ..> Request
+App ..> Readings
+Analyzer ..> Analysis
+Analyzer ..> Request
+Analyzer ..> API
+Analyzer ..> ApiError : 409 marks grammar stale
 Pages ..> API
-Pages ..> Components
-Pages ..> Recorder : collection recording only
-Evidence ..> API : scoped export URL / screenshot CRUD
-Evidence ..> ApiError : failed export HTTP response
-Evidence ..> Request : pending / cancellation
-Recorder ..> Focus : claims focus for capture / playback
-Voice ..> Focus : stops when another audio action claims focus
+Pages ..> Player : Collection attachments
+Request ..> API : cancellation and safe message helpers
+Readings ..> API : POST reading lookup
+Readings ..> Player
+Player ..> Focus : one active audio source
+Recorder ..> Focus : retained recorder implementation
 note bottom of Voice
-  No SpeechRecognition or dictation hook exists.
-  If no reported-local French/English voice is available,
-  read-aloud gives an error instead of selecting a remote voice.
-  Browser/OS reporting is not an application-level network guarantee.
+  The historical name speak() now opens a recorded-reading
+  selection. It does not call speechSynthesis or record a mic.
+  Hooks, components, TypeScript interfaces and callbacks
+  are not invented runtime classes.
 end note
 legend bottom
-  frontend.src.api.ApiError is the authored runtime class.
-  Interfaces/types, including recorder state shapes, are erased and not invented classes.
-  Rectangles show dependencies, not object ownership or associations with multiplicities.
-  Coursework is the default product. History preserves legacy data without generation.
-  API generation guards prevent older account/project responses replacing current state.
+  AuthGate, account controls, project selectors and account counter are absent from the current frontend.
+  Only frontend.src.api.ApiError is an authored production TypeScript class.
+  Existing AudioRecorder/useAudioRecorder source does not imply a public capture/upload capability.
 endlegend
 @enduml

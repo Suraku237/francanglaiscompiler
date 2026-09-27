@@ -177,6 +177,31 @@ def image_fingerprint(image: Image.Image) -> str:
     return digest.hexdigest()
 
 
+def check_report_page_count(pages: int) -> None:
+    if not 25 <= pages <= 30:
+        raise ValueError(f"The coursework report must have 25-30 actual PDF pages, not {pages}.")
+
+
+def check_report_screenshots(docs: Path, source: str, reader: PdfReader) -> int:
+    names = set(re.findall(r"\\screen\{([\w-]+\.png)\}", source))
+    if not names:
+        raise ValueError("The coursework report must reference genuine application screenshots.")
+    register = json.loads((docs / "evidence" / "screenshots" / "captures-20260927.json").read_text(encoding="utf-8"))
+    records = {entry["file"]: entry for entry in register["images"]}
+    embedded = {
+        image_fingerprint(image.image)
+        for page in reader.pages for image in page.images if image.image is not None
+    }
+    for name in names:
+        path = docs / "evidence" / "screenshots" / name
+        if name not in records or records[name]["sha256"] != hashlib.sha256(path.read_bytes()).hexdigest():
+            raise ValueError(f"Missing or stale screenshot capture record: {name}")
+        with Image.open(path) as image:
+            if image_fingerprint(image) not in embedded:
+                raise ValueError(f"Current application screenshot is absent or stale in the report: {name}")
+    return len(names)
+
+
 def verify_documents(root: Path) -> dict[str, object]:
     docs = root / "docs"
     classes = check_class_coverage(root)
@@ -218,6 +243,7 @@ def verify_documents(root: Path) -> dict[str, object]:
     for stem, title in (
         ("srs", "Software Requirements Specification"),
         ("sdd", "Software Design Description"),
+        ("final-report", "Final Coursework Report"),
     ):
         reader = PdfReader(docs / f"{stem}.pdf", strict=True)
         text = " ".join(unicodedata.normalize(
@@ -241,6 +267,13 @@ def verify_documents(root: Path) -> dict[str, object]:
             missing = [name for name, digest in expected_images.items() if digest not in embedded]
             if missing:
                 raise ValueError(f"Current rendered diagrams are absent or stale in the SDD PDF: {missing}")
+        if stem == "final-report":
+            from tools.build_report_evidence import write_or_check
+
+            check_report_page_count(len(reader.pages))
+            report_source = (docs / "final-report.tex").read_text(encoding="utf-8")
+            results["report_screenshots"] = check_report_screenshots(docs, report_source, reader)
+            results["report_evidence"] = write_or_check(root, check=True)
     return results
 
 

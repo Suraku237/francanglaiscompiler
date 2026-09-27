@@ -1,105 +1,64 @@
 @startuml
 !include theme.iuml
-title Validated account backup restore with a safety copy
+title Operator background backup — one due shared-workspace cycle
 hide footbox
 autonumber
-actor User
-participant "WorkspaceSettings\n<<React function>>" as Web
-participant "workspace_backups.py\n<<routes / functions>>" as Backup
-participant "workspace : WorkspaceStore" as Store
-participant "Private filesystem" as Files
-
-activate User
-User -> Web : select ZIP and request preview
-activate Web
-Web -> Backup : POST /backups/preview\ncookie + Origin + CSRF
-activate Backup
-note over Backup : Authenticated account context precedes this domain interaction.
-Backup -> Backup : validate size/paths/hashes/media;\nnormalize workspace format 1 or validate format 2
-activate Backup
-Backup --> Backup : validated document or rejection
-deactivate Backup
-opt valid archive
-  Backup -> Files : publish bounded preview ZIP atomically
-  activate Files
-  Files --> Backup : staged or explicit I/O error
-  deactivate Files
-  opt archive staged
-    Backup -> Store : read version and record expiring owner-scoped preview
-    activate Store
-    Store --> Backup : version / preview metadata
-    deactivate Store
-  end
-end
-Backup --> Web : counts, warnings, token and version, or error
-deactivate Backup
-Web --> User : inspect replacement scope
-deactivate Web
-
-User -> Web : type REPLACE and confirm
-activate Web
-Web -> Backup : POST /backups/restore\n{token, expected_version, confirmation}
-activate Backup
-Backup -> Store : acquire account lock; verify token and version
+participant "main.py lifespan" as App
+participant "maintain_backups()\nmaintenance_cycle()" as Worker
+participant "snapshot()/build_archive()\nworkspace_backups.py" as Backup
+participant "store : SharedWorkspaceStore\nsystem=True" as Store
+participant "Private audio / backup files" as Files
+activate App
+App -> Worker : maintain_backups(data_dir, stop)
+activate Worker
+note over Worker : Poll in threadpool; this view shows one shared-workspace cycle.\nWhen shared storage is absent, retained private stores are considered instead.
+Worker -> Store : SharedWorkspaceStore(data_dir, SYSTEM_OWNER_ID,\n"System", system=True)
 activate Store
-Store --> Backup : current snapshot or conflict
+Store --> Worker : privileged internal store
 deactivate Store
-alt preview valid and workspace unchanged
-  Backup -> Files : reread and validate staged archive
-  activate Files
-  Files --> Backup : valid archive or rejection
-  deactivate Files
-  Backup -> Backup : snapshot current workspace as pre-restore backup
+Worker -> Store : lock(); get_metadata(settings/state) via connection()
+activate Store
+Store --> Worker : automatic schedule and prior attempts/success
+deactivate Store
+opt automatic enabled and interval/retry timing is due
+  Worker -> Backup : snapshot(store, kind="automatic")
   activate Backup
-  Backup --> Backup : verified safety backup ID or failure
-  deactivate Backup
-  opt safety snapshot and archive validation succeeded
-    Backup -> Files : stage immutable audio; remap conflicting names
-    activate Files
-    Files --> Backup : staged files or error
-    deactivate Files
-    alt audio staged
-    Backup -> Store : import_document(document, expected_version)\nprojects/entries/revisions/history/coursework/screenshots
-    activate Store
-    Store --> Backup : committed new version or rolled-back SQL transaction
-    deactivate Store
-    alt logical data committed
-      Backup -> Store : invalidate preview token
+  Backup -> Store : export_document()
+  activate Store
+  Store --> Backup : logical shared format-5 document
+  deactivate Store
+  Backup -> Files : read all safe audio files;\ncheck referenced media and size limits
+  activate Files
+  Files --> Backup : audio bytes, or explicit storage error
+  deactivate Files
+  opt archive construction succeeds
+    Backup -> Backup : validate_archive(new ZIP + checksum manifest)
+    activate Backup
+    Backup --> Backup : verified archive, or rejection
+    deactivate Backup
+    opt archive validated and disk quota allows publication
+      Backup -> Files : atomic_write(generated backup ZIP path, data)
+      activate Files
+      Files --> Backup : published
+      deactivate Files
+      Backup -> Store : set_metadata("backup:item:" + id, entry)
       activate Store
-      Store --> Backup : token removed
+      Store --> Backup : catalogue record, or error
       deactivate Store
-      Backup -> Files : remove used preview
-      activate Files
-      Files --> Backup : cleaned up or explicit error
-      deactivate Files
-    else logical commit failed
-      Backup -> Files : remove only newly staged audio
-      activate Files
-      Files --> Backup : original committed media retained
-      deactivate Files
-    end
-    else audio staging failed
-      Backup -> Files : remove only newly staged audio
-      activate Files
-      Files --> Backup : original committed media retained
-      deactivate Files
     end
   end
-else expired preview or changed workspace
-  note over Backup : Reject without logical replacement; user must preview again.
+  Backup --> Worker : verified backup entry, or explicit failure
+  deactivate Backup
+  note over Worker : On success: retain keep_last automatic copies and record last_success.\nOn failure: log safely, record last_error if possible; never claim success.\nIf catalogue insertion failed, snapshot() removes the just-published ZIP.
 end
-note over Backup, Store : Release account lock on exit.\nNever report a failed/uncertain commit as success.
-Backup --> Web : restored counts + safety ID, or explicit error
-deactivate Backup
-Web --> User : reopen General and review restored content,\nor preserve error/recovery guidance
-deactivate Web
-deactivate User
+note over Worker : Release locks. Wait up to 60 seconds, then repeat unless stop is set.
+Worker --> App : return when lifespan stop event is set
+deactivate Worker
+deactivate App
 legend bottom
-  Backups replace logical workspace data, not account credentials or server settings.
-  Workspace document format 2 includes profile JSON and screenshot base64; outer manifest stays format 1.
-  Older format-1 documents normalize to empty coursework/screenshots before replacement.
-  Profile/screenshot mutations invalidate a previously captured expected_version.
-  Late client cancellation does not promise server rollback.
-  Existing committed media remains available for recovery; this is not a cross-file ACID transaction.
+  No public backup API or recovery screen is mounted; maintenance can run privately in public mode.
+  Default automatic=false; configured intervals are 24/168 hours and keep_last is 1..10.
+  This backup preserves workspace/media, not auth.sqlite3 or /etc/camfranglais.env.
+  Archive validation and atomic file publication precede a successful catalogue entry.
 endlegend
 @enduml

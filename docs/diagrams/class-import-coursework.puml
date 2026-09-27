@@ -1,87 +1,63 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Local imports, private coursework and constructed practice
+title Retained coursework/import contracts — saved grammar reuse, no public export UI
 hide empty members
-package "backend.import_models" {
-  class ImportEntry {
+package "backend.coursework_models" {
+  class ProjectProfile {
+    group_members: list[str] [3]
+    grammar: str [1..12000]
+    manual_transcription_confirmed: bool
+    grammar_rationale; discussion
+    collection_method; limitations
+    distinct_members(members): list[str] {class}
+  }
+  class ParseRequest <<retained>> {
+    text: str [0..4000] = ""
+  }
+  class ScreenshotRequest <<retained>> {
+    name: str [1..120]
+    data_url: str [0..2800000]
+  }
+}
+package "backend.import_models — retained local extraction" #FFF6E8 {
+  class ImportEntry <<retained>> {
     text; entry_type; language
     french_gloss; english_gloss; lexical_category
     category; source_location; contributor; notes
     review_status: unreviewed
-    model_config: extra = forbid
   }
-  class ImportPreview {
-    filename; format
+  class ImportPreview <<retained>> {
+    filename; format; text
     method: local
-    text; segments; warnings
-  }
-  ImportPreview "0..*" --> "0..100" ImportEntry : drafts
-}
-package "backend.coursework_models" {
-  class ProjectProfile {
-    group_members: list[str] [3]
-    grammar: str [1..12000 chars]
-    manual_transcription_confirmed: bool
-    grammar_rationale; discussion
-    collection_method; limitations
-    distinct_members(members): list[str]
-  }
-  class GrammarRequest {
-    grammar: str [1..12000 chars]
-  }
-  class ParseRequest {
-    text: str [0..4000 chars]
-  }
-  class ScreenshotRequest {
-    name: str [1..120 chars]
-    data_url: str [0..2800000 chars]
+    segments; warnings: list[str]
   }
 }
-package "backend.coursework_store" {
-  class CourseworkStorage <<protocol>> {
-    project: str
-    load_coursework(): ProjectProfile | None
-    save_coursework(profile)
-    list_coursework_screenshots(): list[dict]
-    read_coursework_screenshot(id): bytes
-    save_coursework_screenshot(id, name, content)
-    delete_coursework_screenshot(id)
-  }
-  rectangle "use_storage() / request ContextVar\nload_project(), save_project()\nscreenshot_bytes(), add_screenshot()" as Store
-}
-package "backend.schemas" {
-  class PracticeEntry {
-    id; text; french_gloss; english_gloss
-    language: francanglais
-    topic; notes; source_document; source_line
-    constructed: true
-  }
-  class PracticeResponse {
-    total; matched; offset; limit
-    sources: list[str]
-  }
-  PracticeResponse "0..*" --> "0..100" PracticeEntry : entries
-}
-class "RequestModel\n(request view)" as RequestModel <<reference>>
+class RequestModel <<reference>>
+class GrammarRequest <<reference>>
+class CourseworkStorage <<protocol,reference>>
+class "pydantic.BaseModel" as BaseModel <<external>>
+rectangle "coursework_store.load_project()\n<<function>>" as Load
 ProjectProfile --|> RequestModel
-GrammarRequest --|> RequestModel
 ParseRequest --|> GrammarRequest
 ScreenshotRequest --|> RequestModel
-Store ..> CourseworkStorage : dispatches bound request
-CourseworkStorage ..> ProjectProfile : accepts / returns; not a retained object
-Store ..> ScreenshotRequest : validates / normalizes genuine upload
-note bottom of CourseworkStorage
-  WorkspaceStore structurally implements this protocol.
-  Normal requests never read the legacy global profile/screenshots.
-  Screenshots are rows/bytes, not an invented Screenshot class.
+ImportEntry --|> BaseModel
+ImportPreview --|> BaseModel
+ImportPreview "0..*" --> "0..100" ImportEntry : drafts
+CourseworkStorage ..> ProjectProfile : load/save contract
+Load ..> CourseworkStorage : request-local storage
+Load ..> ProjectProfile : returns saved profile or starter
+note bottom of ProjectProfile
+  The public analyzer reads only the saved grammar through
+  this retained profile model; there is no profile-editing UI.
+  Three nonblank member strings must be distinct if supplied.
+  manual_transcription_confirmed is stored data, not a
+  verified certification of consent, location or collection date.
 end note
 legend bottom
-  Import/practice DTOs directly extend BaseModel; serialization methods are inherited.
-  Three member strings may be blank initially; nonblank names must be distinct.
-  ImportEntry never accepts an approved status. No suggestion/generation model exists.
-  Preview provenance stays unchanged; only a collection save trims short contributor/location fields.
-  Screenshot limits: 6/project, 2 MiB decoded/normalized, 12 MP; JSON route cap 3 MiB.
-  Reference/practice records do not silently become field statements.
+  ProjectProfile still participates in active grammar loading; the other authored classes here are retained compatibility.
+  GrammarRequest is a shared public analyzer input base, detailed in class-api-requests.
+  Import preview, screenshots, coursework editing and generated report/presentation routes are not mounted publicly.
+  Profile/screenshot/archive preservation does not expose legacy data through the default public application.
 endlegend
 @enduml

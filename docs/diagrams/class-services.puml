@@ -1,36 +1,66 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Runtime configuration and actual function boundaries
+title Runtime settings, web boundary and shared throttling
 hide empty members
-class "backend.config.Settings" as Settings {
-  cors_origins: list[str]
-  model_config: env files / extra = ignore
+package "backend.config" {
+  class ServerSettings {
+    environment: development | production
+    data_dir: Path
+    public_url: str
+    valid_server()
+  }
+  class Settings {
+    cors_origins: list[str]
+  }
 }
-class "pydantic_settings.BaseSettings" as BaseSettings <<external>> {
-  model_validate(value) {inherited}
-  model_dump() {inherited}
+package "backend.web" {
+  class WebBoundaryMiddleware {
+    app: ASGIApp
+    production: bool
+    __init__(app, production=False)
+    async __call__(scope, receive, send)
+  }
+  class PrivateQueryFilter {
+    filter(record): bool
+  }
 }
-class "AuthSettings\n(account view)" as AuthSettings <<reference>>
-rectangle "main.py <<functions>>\ncreate_app(settings, include_academic=True,\nrequire_auth=True, auth_settings, auth_transport, mailer)\nanalyze(text, entries)" as Factory
-rectangle "auth.py <<functions>>\ninstall_auth(), Google identity exchange,\naccount email delivery" as Identity
-rectangle "coursework_api.py <<functions>>\ncourse_operation(), analyze_corpus(), parse_text()\ndownload_export(), screenshot routes" as Course
-rectangle "imports.py <<functions>>\npreview_file(), _local_preview(), split_segments()\nDOCX/PDF/UTF-8 extraction" as Imports
+package "backend.rate_limits" {
+  class RateLimitExceeded {
+    retry_after: int
+    __init__(retry_after)
+  }
+  rectangle "throttle(db, key, maximum, seconds)\n<<function>>" as Throttle
+}
+class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
+class "logging.Filter" as Filter <<external>>
+rectangle "starlette.types.ASGIApp\n<<external callable type alias>>" as ASGI
+class Exception <<external>>
+class PublicAccessState <<reference>>
+class AuthStore <<retained,reference>>
+rectangle "main.create_app()\nrequire_auth=None by default\n<<function>>" as Factory
+ServerSettings --|> BaseSettings
 Settings --|> BaseSettings
-Factory ..> Settings : resolves CORS configuration
-Factory ..> AuthSettings : resolves identity/deployment policy
-Factory ..> Identity : installs account boundary
-Factory ..> Course : includes default compiler router
-Factory ..> Imports : includes local import router
-note bottom of Settings
-  There are no generation keys, model names,
-  AI timeouts or provider quotas in active settings.
-  Existing private GEMINI_* variables are ignored.
+PrivateQueryFilter --|> Filter
+RateLimitExceeded --|> Exception
+WebBoundaryMiddleware "0..*" --> "1" ASGI : app
+Factory ..> ServerSettings : public environment / paths / origin
+Factory ..> Settings : development CORS origins
+Factory ..> WebBoundaryMiddleware : install_web()
+Factory ..> PrivateQueryFilter : query-string redaction
+PublicAccessState ..> Throttle : public limit database
+AuthStore ..> Throttle : retained identity limit database
+Throttle ..> RateLimitExceeded : raises with Retry-After
+note bottom of ServerSettings
+  MBOA_ prefix; .env compatibility retained.
+  Public production requires a non-loopback HTTPS origin,
+  not mail settings or OAuth credentials.
+  AuthSettings extends this class only in explicit legacy mode.
 end note
 legend bottom
-  Settings is the only production class introduced in this view.
-  Other rectangles are actual function modules, not service classes.
-  Auth HTTP still needs httpx for optional Google OAuth; no generative provider client exists.
-  Class relationships across views are references; dependencies have no cardinalities.
+  The ASGI reference is an external callable type alias, not an invented runtime class.
+  Settings and ServerSettings are independent BaseSettings subclasses.
+  Web boundary applies in all modes; public policy is in public_access.py.
+  A microphone Permissions-Policy allowance does not create a public recording feature.
 endlegend
 @enduml

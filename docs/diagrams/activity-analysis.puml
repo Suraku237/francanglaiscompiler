@@ -1,40 +1,48 @@
 @startuml
 !include theme.iuml
-title Coursework loop: real observations before formal analysis
+title Public Analyze — saved grammar, immutable tests and separate verdicts
 start
-:Collect and manually transcribe\n10-15 real Yaounde statements;
-:Preserve exact wording and provenance;\nrecord all three members and method;
-if (Authentic statements supplied?) then (yes)
-  :Explicitly save selected-project Sentence entries;
+:Prepare public browser session;\nload the saved shared grammar;
+:Type text or copy a reference unchanged;\nshow public-retention/privacy notice;
+:Submit request_id, exact text and saved grammar;
+:Check allowlist, Origin, CSRF,\nrequest limits and payload;
+if (Request permitted?) then (yes)
+  :Bind PublicWorkspaceStore;\nacquire course_operation shared lock;
 else (no)
-  :Keep evidence incomplete;\nreferences/practice cannot replace fieldwork;
+  :Show the explicit HTTP error;\nno analysis is dispatched;
   stop
 endif
-:Inspect regex tokens, nouns/verbs/slang,\nmultiword phrases, unknowns and code-mixing;
-:Interpret frequency and spelling variation;
-:Construct or revise CFG from observed structures;\nsave the group's rationale;
-:Compute recursion removal / left factoring,\nFIRST/FOLLOW and predictive table;
-if (Valid bounded LL(1) grammar?) then (yes)
-  :Run table-driven parser over own tokenized inputs;
+if (Grammar is current or request_id already exists?) then (yes)
+  :Look up prior test for the stable public actor\nand this request_id;
 else (no)
-  :Inspect validation errors/conflicts;\nrevise grammar, never choose a rule arbitrarily;
+  :Return 409; reload saved grammar;\nkeep the user's typed text;
   stop
 endif
-:Discuss accepted and rejected cases;\nfit is not a judgment of natural speech;
-:Capture genuine analyzer screenshots;\nauthor linguistic discussion and limitations;
-:Export DRAFT report / slides / artifacts;
-if (Human evidence and pagination reviewed?) then (yes)
-  :Confirm 25-30 pages, maximum 30;\nrehearse 10 minutes, 3 per member + shared minute;
+if (Prior request exists?) then (yes)
+  if (Exact text and grammar_source match?) then (yes)
+    :Reuse the original immutable snapshot;\ndo not recompute or insert;
+  else (no)
+    :Return 409 request-ID conflict;\ndo not overwrite the earlier result;
+    stop
+  endif
 else (no)
-  :Retain DRAFT status and complete missing work;
-  stop
+  :Analyze CFG notation and transformations;
+  if (Grammar can be analyzed within bounds?) then (yes)
+    :Load Collection; build reviewed-word lexicon;\ntokenize and classify exact input;
+  else (no)
+    :Return explicit validation error;\nno snapshot inserted;
+    stop
+  endif
+  :Calculate lexical statistics and predictive trace;\nvalidate RecordedTest and exact-match metadata;
+  :Authorize a new analyzer_test only;\ninsert snapshot + request mapping in one transaction;\nincrement shared version;
 endif
-:Group reviews submission for 29 September 2026;
+:Derive vocabulary approval from UNKNOWN count;\nattach redacted ownership; release shared lock;
+:Show vocabulary ACCEPT / REJECT and CFG result separately;\nrefresh saved-test report when requested;
 stop
 legend bottom
-  This activity combines implemented software steps and explicitly human coursework tasks.
-  Suggested topic coverage is a discussion aid, not a mandatory one-sentence-per-topic gate.
-  The default CFG is illustrative until justified against real statements.
-  Export is not evidence certification and is separate from the engineering SRS/SDD.
+  Analyze in the UI records a public test; Collection is never mutated by this workflow.
+  A missing CFG table cell, non-LL(1) grammar or parser bound can yield a retained rejected test.
+  Stopping client-side waiting does not cancel or roll back a server commit; inspect saved tests before retry.
+  An existing identical retry may return its old snapshot even after offline grammar curation.
 endlegend
 @enduml

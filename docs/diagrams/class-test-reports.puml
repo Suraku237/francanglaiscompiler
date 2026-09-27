@@ -1,0 +1,55 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Saved-test reporting — two verdict totals and paged summaries
+hide empty members
+class SnapshotModel <<reference>>
+class TestSummary {
+  id: CanonicalUUID
+  created_at: Timestamp
+  text: str [0..4000]
+  accepted: bool
+  token_count; unknown_count: int >= 0
+  error: str | None
+  grammar_accepted: bool
+  grammar_error: str | None
+}
+class OwnedTestSummary
+class TestTotals {
+  total; accepted; rejected: int >= 0
+  acceptance_rate: float [0..100] | None
+}
+class TestReport {
+  approval_basis: no_unknown_tokens
+  topic_counts; language_counts: dict[str, PositiveCount]
+  offset: int >= 0
+  limit: int [1..100]
+}
+class AggregateStatistics <<reference>>
+class UnknownReview <<reference>>
+class Ownership <<reference>>
+rectangle "analyzer_history.test_report(offset, limit)\n<<function>>\nstreams every saved test, pages summaries" as Reporting
+TestSummary --|> SnapshotModel
+OwnedTestSummary --|> TestSummary
+TestTotals --|> SnapshotModel
+TestReport --|> SnapshotModel
+OwnedTestSummary "0..*" --> "1" Ownership : ownership
+TestReport "0..*" --> "1" TestTotals : summary\nvocabulary
+TestReport "0..*" --> "1" TestTotals : grammar_summary\nCFG
+TestReport "0..*" --> "1" AggregateStatistics : statistics
+TestReport "0..*" --> "0..*" UnknownReview : unknown_review
+TestReport "0..*" --> "0..*" TestSummary : tests\nmay contain OwnedTestSummary
+Reporting ..> TestReport : constructs
+Reporting ..> TestSummary : derives from saved snapshots
+note bottom of TestReport
+  Summaries are paged; totals/statistics use all retained tests.
+  Repeated intentional tests remain separate observations.
+  Collection counts are not this report's token statistics.
+  Empty totals have acceptance_rate=null, not a fabricated percentage.
+end note
+legend bottom
+  Source: backend/analyzer_models.py; aggregation: backend/analyzer_history.py.
+  A report retains nested DTO references. SQL records are not model-object compositions.
+  Public summaries redact ownership; vocabulary accepted/error and grammar_accepted/grammar_error stay distinct.
+endlegend
+@enduml

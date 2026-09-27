@@ -1,76 +1,67 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Retained private accounts: actual classes and selected operations
+title Retained accounts — explicit legacy mode only
 hide empty members
-package "backend.auth" {
-  class AuthSettings {
-    environment: development | production
-    data_dir: Path
-    public_url; mail_mode
+package "backend.auth — not installed by default" #FFF6E8 {
+  class AuthSettings <<retained>> {
+    mail_mode: file | smtp
+    smtp_host; smtp_port; smtp_username; mail_from
     smtp_password; google_client_secret: SecretStr
-    valid_deployment(): Self
+    google_client_id: str
+    valid_deployment()
   }
-  class AuthStore {
+  class AuthStore <<retained>> {
     path: Path
     dummy_hash: str
     connection()
+    identity(row): UserIdentity {static}
+    registered_user_count(): int
     session(raw): UserIdentity | None
     new_session(user_id): str
     issue_token(user_id, purpose): str
     consume_token(raw, purpose, password)
     throttle(key, maximum, seconds)
   }
-  class UserIdentity {
+  class UserIdentity <<retained>> {
     id; email; display_name
     email_verified: bool
     google_linked: bool
   }
-  class AuthInput {
+  class AuthInput <<retained>> {
     model_config: extra=forbid
   }
-  class EmailInput {
+  class EmailInput <<retained>> {
     email: EmailStr
   }
-  class LoginInput {
+  class LoginInput <<retained>> {
     password: str [1..128]
   }
-  class RegisterInput {
+  class RegisterInput <<retained>> {
     display_name: str [1..100]
     password: str [12..128]
   }
-  class TokenInput {
+  class TokenInput <<retained>> {
     token: str [20..200]
   }
-  class ResetInput {
+  class ResetInput <<retained>> {
     password: str [12..128]
   }
-  class ProfileInput {
+  class ProfileInput <<retained>> {
     display_name: str [1..100]
   }
-  class AuthError {
+  class AuthError <<retained>> {
     status: int
     detail: str
     retry_after: int | None
+    __init__(status, detail, retry_after=None)
   }
 }
-package "backend.web" {
-  class WebBoundaryMiddleware {
-    production: bool
-    async __call__(scope, receive, send)
-  }
-  class PrivateQueryFilter {
-    filter(record): bool
-  }
-}
+class ServerSettings <<reference>>
 class "pydantic.BaseModel" as BaseModel <<external>>
-class "pydantic_settings.BaseSettings" as BaseSettings <<external>>
-class "logging.Filter" as Filter <<external>>
 class Exception <<external>>
-class "ASGI application" as ASGI <<external protocol>>
-rectangle "install_auth() / route functions\n<<module functions>>" as Auth
-rectangle "create_app() / install_web()\n<<module functions>>" as Factory
-AuthSettings --|> BaseSettings
+rectangle "install_auth()\n<<function>>\nexplicit require_auth=True only" as Auth
+AuthSettings --|> ServerSettings
 UserIdentity --|> BaseModel
 AuthInput --|> BaseModel
 EmailInput --|> AuthInput
@@ -80,25 +71,19 @@ TokenInput --|> AuthInput
 ResetInput --|> TokenInput
 ProfileInput --|> AuthInput
 AuthError --|> Exception
-PrivateQueryFilter --|> Filter
 AuthStore "0..*" --> "1" AuthSettings : settings
-WebBoundaryMiddleware "0..*" --> "1" ASGI : app
-AuthStore ..> UserIdentity : returns validated identity
+AuthStore ..> UserIdentity : constructs from SQL rows
 AuthStore ..> AuthError : raises
-Auth ..> AuthStore : sessions, tokens and request throttles
-Auth ..> AuthInput : validates concrete request types
-Auth ..> UserIdentity : request ContextVar
-Factory ..> Auth : installs account routes
-Factory ..> WebBoundaryMiddleware : installs
-Factory ..> PrivateQueryFilter : redacts query strings
-note bottom of AuthStore
-  One store is retained in app.state per application.
-  SQLite rows are not retained UserIdentity objects.
-  Tokens/sessions are hashed; passwords use Argon2id.
+Auth ..> AuthStore
+Auth ..> AuthInput : validates concrete subclasses
+note bottom of AuthSettings
+  Environment/data_dir/public_url come from ServerSettings.
+  SMTP is required for production only in this explicit
+  authenticated mode, not for the default public application.
 end note
 legend bottom
-  Hollow triangles: inheritance. Dashed arrows: dependencies, not object ownership.
-  Associations describe actual stored references and include multiplicities.
-  Secrets stay server-side; UserIdentity is the public account DTO.
+  Account data and credentials are preserved privately, not exposed as public routes or counters.
+  Public access reuses digest/private_directory helpers, not AuthStore or a fabricated visitor account.
+  registered_user_count() remains real retained code; the public frontend never displays its result.
 endlegend
 @enduml

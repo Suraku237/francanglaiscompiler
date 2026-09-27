@@ -1,28 +1,61 @@
 @startuml
 !include theme.iuml
-title Deterministic analysis request contract
+title API inputs — current analyzer contracts and retained Collection mutations
 hide empty members
-class "pydantic.BaseModel" as BaseModel <<external>> {
-  model_validate(value) {inherited}
-  model_dump() {inherited}
-}
+class "pydantic.BaseModel" as BaseModel <<external>>
 class RequestModel {
-  model_config: extra = forbid
+  model_config: extra=forbid
 }
 class AnalyzeRequest {
-  text: StoredText [1..4000 chars]
-  nonblank_text(text): str
+  text: str [1..4000], original whitespace
+  nonblank_text(text): str {class}
+}
+class GrammarRequest {
+  grammar: str [1..12000], trimmed
+}
+class AnalyzerRequest {
+  text: str [0..4000]
+}
+class AnalyzerTestRequest {
+  request_id: canonical UUID
+  text: str [0..4000]
+}
+class EntryCreate <<retained>> {
+  text; french_gloss; english_gloss
+  entry_type: Word | Phrase | Sentence
+  language; review_status; lexical_category
+  category; source_location; notes; contributor
+  valid_lexical_metadata(): Self
+}
+class EntryPatch <<retained>> {
+  text; entry_type; french_gloss; english_gloss
+  language; review_status; lexical_category
+  category; source_location; notes; contributor
+  reject_null_fields(): Self
 }
 RequestModel --|> BaseModel
 AnalyzeRequest --|> RequestModel
-note bottom of AnalyzeRequest
-  Raw whitespace, accents and spelling are preserved.
-  Empty/whitespace-only input is rejected.
-  StoredText is a constrained string alias, not a class.
+GrammarRequest --|> RequestModel
+AnalyzerRequest --|> GrammarRequest
+AnalyzerTestRequest --|> GrammarRequest
+EntryCreate --|> RequestModel
+EntryPatch --|> RequestModel
+note bottom of AnalyzerTestRequest
+  GrammarRequest is defined in coursework_models.py,
+  but its analyzer subclasses are public.
+  AnalyzerRequest: backend/analyzer_api.py.
+  AnalyzerTestRequest: backend/analyzer_models.py.
+  Empty input is a valid test input, not a Collection entry.
+end note
+note bottom of EntryPatch
+  Optional fields mean omission, not explicit null.
+  At least one field is required by reject_null_fields().
+  These DTOs remain implemented, but the public boundary
+  rejects Collection writes before route execution.
 end note
 legend bottom
-  Production classes: backend.schemas.RequestModel and AnalyzeRequest.
-  Concrete collection/coursework request subclasses are in their detail views.
-  Removed translator/chat request classes are not part of the current inventory.
+  Other classes here: backend/schemas.py. Pydantic validation/serialization methods are inherited.
+  The public analyzer uses the saved grammar; an arbitrary client grammar is not an editable public draft.
+  Inheritance carries no multiplicities; no invented HTTP controller/request service class is introduced.
 endlegend
 @enduml

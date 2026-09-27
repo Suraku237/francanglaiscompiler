@@ -1,0 +1,62 @@
+@startuml
+!include theme.iuml
+title Lexical snapshots, token counts and UNKNOWN-only approval
+hide empty members
+class SnapshotModel <<reference>>
+class TokenSnapshot {
+  text: str [1..4000]
+  category: validated lexer terminal
+}
+class Frequency {
+  token: str
+  count: int > 0
+}
+class VariationForm {
+  text: str
+  count: int > 0
+}
+class Variation {
+  normalized: str
+}
+class LexicalStatistics {
+  category_counts: dict[Category, PositiveCount]
+  total_tokens: int >= 0
+}
+class VocabularyApproval {
+  basis: no_unknown_tokens
+  accepted: bool
+  unknown_count: int >= 0
+  from_statistics(statistics): Self {class}
+  consistent_outcome(): Self
+}
+class AggregateStatistics
+class UnknownReview {
+  tests: int > 0
+  forms: list[str] [1..*]
+}
+TokenSnapshot --|> SnapshotModel
+Frequency --|> SnapshotModel
+VariationForm --|> SnapshotModel
+Variation --|> SnapshotModel
+LexicalStatistics --|> SnapshotModel
+VocabularyApproval --|> SnapshotModel
+AggregateStatistics --|> LexicalStatistics
+UnknownReview --|> Frequency
+Variation "0..*" --> "2..*" VariationForm : forms
+LexicalStatistics "0..*" --> "0..*" Frequency : frequencies
+LexicalStatistics "0..*" --> "0..*" Frequency : unknown_tokens
+LexicalStatistics "0..*" --> "0..*" Variation : variations
+AggregateStatistics "0..*" --> "0..*" Frequency : raw_frequencies
+AggregateStatistics "0..*" --> "0..*" Frequency : normalized_frequencies
+VocabularyApproval ..> LexicalStatistics : derives count, does not retain it
+note bottom of VocabularyApproval
+  accepted == (unknown_count == 0).
+  SLANG, AMBIGUOUS and heuristic categories are not UNKNOWN.
+  A vocabulary ACCEPT is not CFG acceptance or fieldwork approval.
+end note
+legend bottom
+  Source: backend/analyzer_models.py. All displayed generalizations are actual base classes.
+  Token text retains spelling; casefolded and normalized frequency keys are separate projections.
+  Counts/variations are values and nested references, not a fabricated TokenStatistics service class.
+endlegend
+@enduml

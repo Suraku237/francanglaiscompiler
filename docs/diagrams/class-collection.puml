@@ -1,104 +1,69 @@
 @startuml
 !include theme.iuml
-allowmixing
-title Private manual collection and read-only reference DTOs
+title Collection, Dictionary and Synthetic examples — separate data models
 hide empty members
-class "RequestModel\n(request view)" as RequestModel <<reference>>
-' @class backend.schemas.EntryCreate
-class EntryCreate {
-  text: StoredText
-  entry_type: Word | Phrase | Sentence
-  language; review_status
-  lexical_category; category
-  french_gloss; english_gloss: StoredGloss
-  notes: StoredNotes
-  source_location; contributor: ShortText
-  valid_lexical_metadata(): Self
-}
-' @class backend.schemas.EntryPatch
-class EntryPatch {
-  editable fields: optional
-  reject_null_fields(): Self
-}
-' @class backend.schemas.DatasetEntry
+class "pydantic.BaseModel" as BaseModel <<external>>
 class DatasetEntry {
   id; text; entry_type
   french_gloss; english_gloss
-  category; source_location; notes
-  audio_filename; contributor; timestamp
+  category; source_location; contributor; notes
+  audio_filename; timestamp
   language; review_status; lexical_category
 }
-' @class backend.schemas.DatasetResponse
+class OwnedDatasetEntry
 class DatasetResponse {
   total: int
-  by_category: dict[str, int]
-  by_type: dict[str, int]
-  by_review_status: dict[str, int]
+  by_category; by_type; by_review_status: dict[str, int]
 }
-' @class backend.schemas.DictionaryEntry
 class DictionaryEntry {
   id; text; aliases
-  language: francanglais
-  english_gloss; origin; topic
-  source_document; source_line
+  language; part_of_speech; english_gloss
+  origin; topic; source_document
+  source_line: int >= 1
 }
-' @class backend.schemas.DictionaryResponse
 class DictionaryResponse {
-  total; matched; offset; limit
+  total; matched; offset; limit: int
   sources: list[str]
 }
-' @class backend.schemas.HealthResponse
-class HealthResponse {
-  status: ok
-  mode: compiler
+class PracticeEntry {
+  id; text; language
+  french_gloss; english_gloss; topic; notes
+  source_document; source_line
+  constructed: true
 }
-' @class backend.schemas.MetadataResponse
-class MetadataResponse {
-  categories: list[str]
-  entry_types: list[str]
-  lexical_categories: list[str]
-  dataset_languages: list[str]
+class PracticeResponse {
+  total; matched; offset; limit: int
+  sources: list[str]
 }
-' @class backend.collection.CollectionError
+class Ownership <<reference>>
 class CollectionError {
   status_code: int
   detail: str
   __init__(status_code, detail)
 }
 class Exception <<external>>
-rectangle "collection.py <<module>>\nlist_entries(), create_entry()\nedit_entry(), remove_entry()" as Collection
-rectangle "dictionary.py <<module>>\nparse_dictionary(), load_dictionary()\nlist_dictionary(), headword_aliases()" as Dictionary
-EntryCreate --|> RequestModel
-EntryPatch --|> RequestModel
+DatasetEntry --|> BaseModel
+OwnedDatasetEntry --|> DatasetEntry
+DatasetResponse --|> BaseModel
+DictionaryEntry --|> BaseModel
+DictionaryResponse --|> BaseModel
+PracticeEntry --|> BaseModel
+PracticeResponse --|> BaseModel
 CollectionError --|> Exception
-DatasetResponse "0..*" --> "0..*" DatasetEntry : entries
+OwnedDatasetEntry "0..*" --> "1" Ownership : ownership
+DatasetResponse "0..*" --> "0..*" DatasetEntry : entries\nmay contain OwnedDatasetEntry
 DictionaryResponse "0..*" --> "0..100" DictionaryEntry : entries
-Dictionary ..> DictionaryEntry : parses supplied Markdown rows
-Dictionary ..> DictionaryResponse : search and pagination
-Dictionary ..> CollectionError : raises safe 503 on load failure
-Collection ..> EntryCreate : validates create
-Collection ..> EntryPatch : applies changed fields
-Collection ..> DatasetResponse : returns list / selected-project counts
-Collection ..> CollectionError : raises 404 / 409 / 422
-note bottom of EntryPatch
-  At least one field; explicit null is rejected.
-  Omitted fields survive unchanged.
-  ID, timestamp and audio are not editable.
-end note
-note bottom of EntryCreate
-  Raw text, glosses and notes retain exact input.
-  Supplied contributor/source_location values use
-  existing ShortText whitespace trimming on save.
-  Import previews preserve those original values.
+PracticeResponse "0..*" --> "0..100" PracticeEntry : entries
+note bottom of DatasetResponse
+  Matching entries are returned newest first.
+  Counts summarize the whole Collection, not only matches.
+  Public entries preserve source metadata but redact the
+  ownership object; contributor text is not an account ID.
 end note
 legend bottom
-  The six response DTOs directly extend pydantic.BaseModel.
-  EntryCreate/EntryPatch inherit extra=forbid via RequestModel.
-  DatasetEntry is an API DTO, not the storage representation:
-  Authenticated storage serializes dictionaries to private SQLite JSON rows.
-  Desktop fallback helpers still persist dictionaries as CSV.
-  Reference entries are read-only, not approved corpus entries.
-  Their etymological origin does not supply a French gloss or POS.
-  Pydantic response values inherit model_validate()/model_dump().
+  DTO source: backend/schemas.py; CollectionError: backend/collection.py.
+  No association links a dictionary/practice entry to a Collection entry: selecting text does not save it.
+  Public views are read-only. review_status records a review; it does not certify human provenance.
+  Dictionary/practice serialization is inherited from BaseModel, not invented business methods.
 endlegend
 @enduml

@@ -1,0 +1,112 @@
+{
+  "format": 1,
+  "snapshot_date": "2026-09-27",
+  "source_revision": "a1b88aac3ba2b8249649ec945797b767cc5890ea",
+  "source": "Read-only snapshot of the shared Collection; all twelve raw texts matched compiler/tests/yaounde_cases.py. The snapshot date is not a fieldwork date.",
+  "provenance_status": "User-supplied transcriptions. Original fieldwork, collection dates, collector identities and consent are unconfirmed.",
+  "manual_transcription_confirmed": false,
+  "collection_method": "",
+  "observed_collection_entries": 13,
+  "reviewed_lexicon": {
+    "choa": "SLANG"
+  },
+  "saved_grammar": "# Yaounde collected-sentence grammar; original wording is never corrected.\n# Category acceptance is not a claim of standard French or authentic fieldwork.\n# UNKNOWN is deliberately excluded; n'ais and alli still need human review.\nUtterance -> Clause | Clause PUNCTUATION\nClause -> FRENCH_FUNCTION_WORD SubjectTail | Nominal BareSubjectTail | VERB PredicateTail\nSubjectTail -> VERB PredicateTail | Nominal VERB PredicateTail | AMBIGUOUS PIDGIN_MARKER ComplementTail\nBareSubjectTail -> VERB PredicateTail | FRENCH_FUNCTION_WORD SubjectTail\nPredicateTail -> VERB PredicateTail | ENGLISH_FUNCTION_WORD VERB PredicateTail | ADJECTIVE ComplementTail | AMBIGUOUS ComplementTail | ADVERB AdverbTail | Nominal ComplementTail | FRENCH_FUNCTION_WORD LinkedPhrase | PIDGIN_MARKER ComplementTail | epsilon\nLinkedPhrase -> VERB PredicateTail | Nominal ComplementTail | AMBIGUOUS ComplementTail | ADVERB AdverbTail | FRENCH_FUNCTION_WORD ModifiedNominal\nModifiedNominal -> Nominal ComplementTail | AMBIGUOUS ComplementTail | ADVERB AdverbTail\nAdverbTail -> Nominal ComplementTail | AMBIGUOUS ComplementTail | FRENCH_FUNCTION_WORD LinkedPhrase | VERB PredicateTail | epsilon\nComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase | VERB PredicateTail | epsilon\nNominal -> Nominal NOUN | NOUN",
+  "statements": [
+    {
+      "id": "S01",
+      "text": "J'ai n'est pas tchop depuis bayar",
+      "category": "Other",
+      "french_gloss": "Je n'ai pas mang\u00e9 depuis longtemps.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S02",
+      "text": "je suis kass je go nang",
+      "category": "Other",
+      "french_gloss": "Je suis fatigu\u00e9, je vais dormir.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S03",
+      "text": "je suis back du school le sharp man",
+      "category": "Other",
+      "french_gloss": "Je suis revenu de l'\u00e9cole ce matin.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S04",
+      "text": "j'ai mban gars je yabat",
+      "category": "Other",
+      "french_gloss": "J'ai \u00e9chou\u00e9, mon gars, j'ai mal.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S05",
+      "text": "elles yamo flop le kongossa",
+      "category": "Other",
+      "french_gloss": "Elles perdent leur temps \u00e0 comm\u00e9rer.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S06",
+      "text": "go au piol shoua mes kako",
+      "category": "Other",
+      "french_gloss": "Va \u00e0 la maison laver mes habits.",
+      "recorded_location": "",
+      "has_collection_audio": false
+    },
+    {
+      "id": "S07",
+      "text": "pere ca me chop je suis kass",
+      "category": "Other",
+      "french_gloss": "P\u00e8re, \u00e7a me touche, je suis \u00e9puis\u00e9.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true
+    },
+    {
+      "id": "S08",
+      "text": "Ont a cote la light depuis le shap",
+      "category": "Other",
+      "french_gloss": "On a coup\u00e9 le courant depuis ce matin.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true
+    },
+    {
+      "id": "S09",
+      "text": "shiba le price pere je n'ais pas flop les do",
+      "category": "Other",
+      "french_gloss": "Baisse le prix, s'il te pla\u00eet, je n'ai pas beaucoup d'argent.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true
+    },
+    {
+      "id": "S10",
+      "text": "mon combi came au school alli day a pied",
+      "category": "Other",
+      "french_gloss": "Mon ami est venu \u00e0 l'\u00e9cole, il est venu \u00e0 pied.",
+      "recorded_location": "",
+      "has_collection_audio": true
+    },
+    {
+      "id": "S11",
+      "text": "je falla le taco depuis bayar",
+      "category": "Other",
+      "french_gloss": "Je cherche le taxi depuis longtemps.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true
+    },
+    {
+      "id": "S12",
+      "text": "les talk free le francais",
+      "category": "Other",
+      "french_gloss": "Ils parlent le fran\u00e7ais librement.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true
+    }
+  ]
+}

@@ -1,11 +1,9 @@
 @startuml
 !include theme.iuml
-title Lexical analysis result values
+allowmixing
+title Small public API results — lexical preview, health and metadata
 hide empty members
-class "pydantic.BaseModel" as BaseModel <<external>> {
-  model_validate(value) {inherited}
-  model_dump() {inherited}
-}
+class "pydantic.BaseModel" as BaseModel <<external>>
 class TokenResult {
   text: str
   category: str
@@ -14,18 +12,35 @@ class AnalysisResult {
   code_mixed_spans: list[str]
   verb_phrases: list[str]
 }
+class HealthResponse {
+  status: ok
+  mode: compiler
+}
+class MetadataResponse {
+  categories: list[str]
+  entry_types: list[str]
+  lexical_categories: list[str]
+  dataset_languages: list[str]
+}
+rectangle "backend.main.analyze(text, entries)\n<<function>>" as Analyze
+rectangle "GET /api/health\nGET /api/metadata\n<<route functions>>" as Routes
 TokenResult --|> BaseModel
 AnalysisResult --|> BaseModel
+HealthResponse --|> BaseModel
+MetadataResponse --|> BaseModel
 AnalysisResult "0..*" --> "0..*" TokenResult : tokens
+Analyze ..> AnalysisResult : constructs from compiler output
+Analyze ..> TokenResult : constructs each token DTO
+Routes ..> HealthResponse
+Routes ..> MetadataResponse
 note bottom of AnalysisResult
-  Nested Pydantic values may be reused by Python callers:
-  this is an association, not exclusive composition.
-  Token strings preserve observed wording.
-  Code-mixed spans and verb phrases are heuristic annotations.
+  POST /api/analyze is a non-persisting lexical API.
+  Franc Analyzer's visible Analyze action instead calls
+  POST /api/analyzer/tests and retains a complete snapshot.
 end note
 legend bottom
-  Both primary classes live in backend.schemas.
-  Grammar analyses, parse traces and corpus reports are dictionaries, not hidden DTO classes.
-  No translation, provider-evidence or generated-reply classes remain.
+  Source: backend/schemas.py. No selected authored methods: fields are the authored contract.
+  BaseModel supplies serialization/validation; no invented constructors or business methods are listed.
+  These DTOs are separate from strict TokenSnapshot and RecordedTest in analyzer_models.py.
 endlegend
 @enduml

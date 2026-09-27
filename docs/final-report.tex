@@ -1,0 +1,1025 @@
+\documentclass[11pt]{article}
+\input{document-style}
+\usepackage{graphicx}
+\input{report-data/metrics}
+\hypersetup{pdftitle={Camfranglais Final Coursework Report},
+  pdfauthor={Kwete Ngouba Junior Rayan; Djemtchimo Noukui Bruno Jonatan; Amina Boubakary}}
+\setcounter{tocdepth}{1}
+\makeatletter
+\renewcommand{\l@section}{\@dottedtocline{1}{0em}{2.5em}}
+\makeatother
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\screen}[3]{%
+  \par\smallskip
+  {\centering
+    \includegraphics[width=\linewidth,height=#2,keepaspectratio]{evidence/screenshots/#1}
+    \par}
+  {\small\textbf{Screenshot.} #3\par}}
+\begin{document}
+\projectcover{Final Coursework Report}
+{Lexical and Syntactic Analysis of Informal Urban Communication in Yaound\'e}
+{A reproducible study of twelve supplied transcriptions using a custom regex
+lexer and a corpus-derived LL(1) parser. Includes all raw statements and tokens,
+actual transformations, FIRST/FOLLOW, the predictive table, test traces and
+working-application screenshots. Original fieldwork provenance remains
+unconfirmed; software results do not certify collection authenticity.}
+\setcounter{page}{2}
+
+\section*{Abstract and Evidence Statement}
+\addcontentsline{toc}{section}{Abstract and Evidence Statement}
+Camfranglais is a compiler-construction teaching application for examining
+informal expressions without replacing their wording with standardized French
+or English. The implementation combines a regular-expression tokenizer,
+priority-ordered lexical rules, explicit reference vocabulary, conservative
+language-transition clues and a table-driven LL(1) parser. It deliberately
+separates vocabulary recognition from membership in a selected category grammar.
+
+This report evaluates twelve exact transcriptions supplied to the project and
+preserved in Collection. One controlled pass produces \CorpusTokens{} tokens
+and \CorpusForms{} case-folded forms. The derived grammar has ten original
+nonterminals and 37 alternatives. Actual elimination of direct left recursion
+and left factoring produce twelve nonterminals, \GrammarProductions{}
+alternatives and \GrammarCells{} populated predictive-table cells with no
+conflict. Ten statements parse completely. Two reject after five consumed
+tokens because their sixth tokens, \code{n'ais} and \code{alli}, are unresolved.
+Neither word is silently corrected.
+
+The application is publicly accessible without accounts. Visitors may analyze
+and retain immutable test snapshots; Collection, grammar and recordings remain
+read-only. Browser screenshots in this report were captured from the deployed
+public application on 27 September 2026 without submitting additional tests.
+Historical aggregate statistics in those screenshots differ from this report's
+fixed twelve-statement evaluation.
+
+\begin{tabularx}{\linewidth}{@{}X r@{}}
+\toprule\textbf{Controlled evaluation} & \textbf{Measured result}\\\midrule
+Raw statements / original token occurrences & 12 / \CorpusTokens\\
+Known-category occurrences / unresolved occurrences & 79 / 2\\
+Emitted language-transition clues & \CorpusSwitches\\
+Accepted / rejected category sequences & \CorpusAccepted{} / \CorpusRejected\\
+LL(1) conflicts / residual left-recursive nonterminals & 0 / 0\\
+Additional constructed boundary controls & 7\\
+\bottomrule
+\end{tabularx}
+
+\notice{Scope of the evidence}{
+These are user-supplied transcriptions, not independently verified field
+observations. The saved collection-method field is blank and the
+manual-transcription confirmation is false. The authors must confirm collection
+details and consent before representing this material as completed fieldwork.
+The observed 83.3\% grammar-match rate is not a language-accuracy score.}
+
+\clearpage
+{\setlength{\parskip}{0pt}\tableofcontents}
+\vfill
+\notice{How to reproduce this report}{
+The public corpus snapshot and complete computed JSON accompany the LaTeX
+source. Run \code{python -m tools.build\_report\_evidence --check} in the configured
+project environment to verify all generated tables. The SRS, SDD and full-size
+UML atlas are separate engineering companions, not pages of this report.}
+
+\clearpage
+\section{Context, Problem and Objectives}
+\subsection*{The assignment and the problem}
+CS4110 SET A asks a group of three to examine 10--15 real-life expressions
+heard in Yaound\'e, preserving slang, code-mixing, incomplete speech and
+nonstandard forms. The required compiler work includes token categories and
+regular expressions, frequency and variation analysis, a grammar constructed
+from the expressions, grammar transformations, FIRST/FOLLOW, a parsing table
+and accepted/rejected test cases. The chosen parsing route here is LL(1);
+an LR automaton is not additionally required for that route.
+
+The educational challenge is that source-code languages usually have an
+explicitly agreed syntax, whereas everyday speech is contextual and variable.
+A token such as \code{school} may occur within a French-framed expression.
+Different spellings may suggest the same intention without proving equivalence.
+An apparent mistake may be part of the original transcription rather than
+permission for the software to rewrite it. A useful teaching tool must expose
+its assumptions instead of masking them behind a successful-looking result.
+
+Ebongue's study distinguishes speaker-written Camfranglais from researcher
+transcriptions and discusses variation in spelling, syntax and morphosyntax
+\cite{ebongue}. That distinction motivates caution here: stored text and
+computed categories are observable, but a small unverified textual sample
+cannot establish how a community speaks or how a particular speaker intended
+an expression.
+
+\subsection*{Operational objectives}
+\begin{enumerate}
+\item Preserve all twelve supplied strings and label every token in source order.
+\item Implement deterministic recognition rules and expose unknowns, ambiguous
+labels, language clues and corpus frequencies.
+\item Derive reusable category productions from observed structures rather
+than hard-code a whitelist of twelve complete sentences.
+\item Perform actual grammar transformations and compute every set/table cell.
+\item Demonstrate predictive parsing, successful consumption and precise
+failure positions, including examples outside the supplied corpus.
+\item Present an accessible public workspace with durable, immutable test
+evidence and no unnecessary account workflow.
+\end{enumerate}
+
+\subsection*{Non-objectives}
+This is not a general Camfranglais translator, speech recognizer, generative
+assistant, spelling corrector or semantic parser. It does not infer speaker
+identity, indigenous-language origin, consent or authenticity. The present
+report documents completed compiler behavior while identifying the unresolved
+fieldwork requirement rather than claiming it has been satisfied automatically.
+
+\clearpage
+\section{Collection Method, Provenance and Ethics}
+\subsection*{What was actually available}
+The twelve statements were supplied to the project on 22 September and saved
+without changing their wording. A read-only documentation snapshot was taken
+on 27 September. Every sentence in that snapshot was compared with the exact
+regression inputs, and the saved grammar was compared with the implemented
+corpus grammar. These comparisons establish consistency within the project;
+they do not establish the circumstances of the original utterances.
+
+The Collection snapshot contains thirteen entries: twelve Sentence entries
+and one approved Word annotation, \code{choa}. The latter is not counted as a
+thirteenth sentence and contributes no token to the twelve-statement analysis.
+All twelve topic categories are recorded as ``Other''. Five sentence records
+contain location text and six contain an audio-reference field. A location
+label or attachment field is not independent proof of where an utterance was
+heard, nor proof that an attachment is an original field recording.
+
+\begin{tabularx}{\linewidth}{@{}L{4.1cm}X@{}}
+\toprule\textbf{Evidence item} & \textbf{Status at the snapshot}\\\midrule
+Twelve original strings & Present and matched exactly to regression fixtures.\\
+Supplied French meanings & Present; human-supplied, not independently reviewed.\\
+Collection method & Not recorded in the saved project profile.\\
+Manual-transcription confirmation & False; no new confirmation was supplied.\\
+Original collection dates / collectors & Unconfirmed. Snapshot/supply dates
+must not be substituted for fieldwork dates.\\
+Speaker identities / consent & Not established; no demographic claims are made.\\
+Location / audio metadata & Some values exist; authenticity still unconfirmed.\\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Responsible handling}
+Raw wording is separated from meanings, annotations and commentary. Suspected
+errors are discussed rather than silently corrected. The evidence snapshot
+contains only coursework-relevant text and metadata; account identifiers,
+credentials, sessions and server secrets are not included. Public test
+submission warns that original text and results will be visible to other
+visitors and retained. No confidential or identifying utterance should be
+entered merely to demonstrate the application.
+
+\subsection*{What the group must still attest}
+Before presenting the dataset as real-life Yaound\'e fieldwork, the authors
+should document who collected each statement, the genuine collection context
+and date, how exact wording was transcribed, and the applicable consent or
+anonymization procedure. If those facts cannot be recovered, the appropriate
+description remains ``supplied transcriptions with unconfirmed provenance''.
+An audio read-aloud recorded later would demonstrate pronunciation/playback,
+not retroactively verify the original event.
+
+\clearpage
+\section{Raw Corpus: Statements S01--S06}
+The identifiers below are report-local labels, not private database identifiers.
+Case, apostrophes and wording are exactly those saved in Collection. French
+meanings are displayed only as \emph{supplied glosses}; they are neither
+generated translations nor independent correctness judgments.
+
+{\small\renewcommand{\arraystretch}{1.6}\input{report-data/statements-a}}
+
+\subsection*{Reading the evidence}
+S01 contains two contracted forms and the lexeme \code{tchop}. Its supplied
+meaning suggests eating, but the present explicit lexicon classifies
+\code{tchop} as a noun. This disagreement is valuable evidence of a coarse,
+context-insensitive category assignment. The report does not change that
+category to make the grammar appear more natural.
+
+S02 motivates an adjective complement followed by a juxtaposed clause and
+serial verbs. S03 combines a French frame with the reference words
+\code{back}, \code{school}, \code{sharp} and \code{man}; some categories are
+ambiguous. S04 contains a discourse-marker category, while S05 illustrates an
+adverb plus a complement whose supplied reference categories conflict.
+S06 is compatible with two successive verb-initial phrases.
+
+These descriptions motivate category structures. They are not claims that
+one formal analysis exhausts the expressions' possible interpretations.
+In particular, supplied glosses may paraphrase rather than align word by word
+with the raw statement.
+
+\notice{No editorial repair}{
+S01 remains \code{J'ai n'est pas tchop depuis bayar}; it is not rewritten into
+standard French. The application retains that exact string even though its
+category sequence fits the selected grammar.}
+
+\clearpage
+\section{Raw Corpus: Statements S07--S12}
+These six records complete the fixed evaluation corpus. None of the later
+public test-history entries, dictionary rows or synthetic practice examples
+is added to the totals in this report.
+
+{\small\renewcommand{\arraystretch}{1.6}\input{report-data/statements-b}}
+
+\subsection*{Interpretive themes, not invented collection categories}
+The wording and supplied glosses suggest fatigue or personal state (S07),
+electricity interruption (S08), bargaining (S09), school and walking (S10),
+transport (S11), and speaking French (S12). These are analytical observations
+about the text, not verified locations or a replacement for the saved ``Other''
+topic metadata. The corpus does not demonstrate balanced coverage of every
+topic suggested in the assignment, such as security, rain or fuel.
+
+S08 retains \code{Ont a cote} exactly. The classifier gives \code{a} the existing
+English-function-word category rather than contextualizing it as a French
+auxiliary. S09 retains \code{n'ais}; S10 retains \code{alli}. Both are unresolved
+in the actual lexer and are the first points at which their category parses
+fail. Proposed intended spellings are not substituted without human review.
+
+\subsection*{Sampling boundary}
+Twelve records satisfy the assignment's numerical range, but that fact alone
+does not establish genuine field collection, representativeness, thematic
+balance or linguistic annotation quality. This is a small development corpus,
+used to construct and exercise the grammar, not an independently sampled
+evaluation set for a language model.
+
+\clearpage
+\section{Custom Lexical Specification}
+\subsection*{Segmentation by regular expression}
+The tokenizer recognizes Unicode word-like runs, internal apostrophes/hyphens,
+decimal numbers, selected punctuation and finally any remaining non-whitespace
+character. The final alternative is important: unsupported input is preserved
+for classification rather than silently discarded.
+
+The following factored notation describes the actual segmentation pattern.
+\code{M} denotes the combining-mark ranges U+0300--036F, U+1AB0--1AFF,
+U+1DC0--1DFF, U+20D0--20FF and U+FE20--FE2F. Substituting those ranges and
+\code{L} into the definitions yields the pattern in the source; spaces around
+the displayed alternatives are notation, not characters to match.
+{\small
+\begin{verbatim}
+L     = [^\W\d_]+(?:[M]+[^\W\d_]*)*
+WORD  = L(?:['\u2018\u2019\u02bc-]L)*
+TOKEN = WORD | \d+(?:[.,]\d+)? | [.,!?;:"()] | \S
+\end{verbatim}}
+
+Internal apostrophes therefore keep \code{J'ai}, \code{n'est} and
+\code{n'ais} as single tokens. The twelve supplied statements have no explicit
+punctuation tokens, but punctuation behavior is exercised by separate controls.
+Whitespace separates matches; the original full input, including its whitespace,
+is preserved independently of the token list.
+
+\subsection*{Regex classification and fallback}
+{\small
+\begin{verbatim}
+NUMBER       ^\d+(?:[.,]\d+)?$
+PUNCTUATION  ^[.,!?;:"()]+$
+ENGLISH_VERB_LIKE  suffix "ing" or "ed"
+FRENCH_VERB_LIKE   suffix "er", "ir" or "re", length > 3
+\end{verbatim}}
+
+Only the first two rules are structural full matches applied before lookup.
+The suffix checks operate on normalized words \emph{after} explicit lexical
+sources have failed. A \code{\_LIKE} label is a morphological guess, not a
+confirmed part of speech. A word ending in an apparent verbal suffix can
+have a different function in context.
+
+\subsection*{Deterministic pipeline}
+Tokenize the raw input; classify each token by the first applicable rule;
+retain each raw token and its chosen category; add phrase and language clues
+without altering the token stream; compute statistics; pass categories to the
+parser. There is no random model, translation provider or automatic spelling
+correction. The implementation is in
+\nolinkurl{compiler/lexer/tokenizer.py} and
+\nolinkurl{compiler/lexer/lexicon.py} \cite{source}.
+
+\clearpage
+\section{Lexicon, Category Policy and Notation}
+\subsection*{Precedence is part of the result}
+After NUMBER/PUNCTUATION, a compatible approved, unambiguous Word annotation may
+override bundled lookup. Conflicting reviewed labels are ignored rather than
+arbitrarily resolved. The snapshot's approved \code{choa} annotation does not
+occur in these twelve sentences.
+
+Explicit lookup then proceeds through SLANG, PIDGIN\_MARKER, NOUN, VERB,
+French function words and English function words. The supplied CSV fills
+remaining gaps; one category is retained, multiple candidates yield
+AMBIGUOUS. Explicit French forms supplement gaps, then morphological guesses
+and finally UNKNOWN apply. Existing explicit labels take precedence over new
+reference labels. This explains why a dictionary origin or apparent contextual
+meaning does not automatically determine the emitted category.
+
+The dictionary contains \DictionaryCount{} display entries from
+\ReferenceRows{} supplied rows plus 60 retained distinct legacy senses.
+Dictionary entries are source-labelled references, not collected utterances.
+Alias normalization can support lookup without changing displayed spelling.
+Multiword references annotate phrases separately; they do not assign a whole
+phrase's category to each component word.
+
+\begin{tabularx}{\linewidth}{@{}l X l X@{}}
+\toprule\textbf{Code} & \textbf{Actual lexer category} &
+\textbf{Code} & \textbf{Actual lexer category}\\\midrule
+FF & FRENCH\_FUNCTION\_WORD & EF & ENGLISH\_FUNCTION\_WORD\\
+N & NOUN & V & VERB\\
+ADJ & ADJECTIVE & ADV & ADVERB\\
+AMB & AMBIGUOUS & PID & PIDGIN\_MARKER\\
+PUNC & PUNCTUATION & UNK & UNKNOWN\\
+\bottomrule
+\end{tabularx}
+
+These compact labels are used only to keep printed tables readable. The JSON
+and application retain full category names. The lexer supports twenty
+categories overall; only nine occur in this corpus. The selected grammar uses
+nine terminals as well, but these are not the same nine: it includes PUNC and
+excludes UNK. Other supported lexer categories may legitimately fall outside
+this particular grammar.
+
+\notice{Recognition is not disambiguation}{
+\code{back}, \code{man}, \code{kongossa}, \code{me} and \code{free} remain AMBIGUOUS
+where conflicting reference categories exist. They are recognized vocabulary,
+not UNKNOWN, and the grammar permits AMB only in specified positions.}
+
+Colloquial words need not receive the literal SLANG label. For example,
+\code{kass} is ADJ and \code{nang} is V under the current lookup. The category
+system is a software convention, not an exhaustive sociolinguistic taxonomy.
+
+\clearpage
+\section{Token Tables: S01--S04}
+Every token below is emitted by the running lexer, in original order. Labels
+use the legend on the previous page; neither capitalization nor apostrophes
+have been normalized in the raw-token column.
+
+{\small\input{report-data/tokens-a}}
+
+\subsection*{What these classifications show}
+S01's \code{J'ai} and \code{n'est} are whole VERB tokens, not separately parsed
+pronoun/auxiliary contractions. The grammar therefore operates at a different
+granularity from a detailed French morphosyntactic analysis. Treating a
+successful category sequence as corrected French would overstate the model.
+
+S02's \code{go nang} yields two verbs, enabling a serial-verb tail. S03 contains
+two ambiguous tokens without an UNKNOWN. This is a direct example of recognized
+but unresolved reference classification. S04 labels \code{gars} as a Pidgin
+marker because that explicit list has priority; the project does not infer
+the function of a word anew for every context.
+
+The lengths are six, six, eight and five tokens respectively. These 25
+occurrences contribute to the corpus total once each, even when the deployed
+test history contains additional executions of similar wording.
+
+\clearpage
+\section{Token Tables: S05--S08}
+The same deterministic precedence is applied across statements. No category
+was manually substituted in these tables to force a successful parse.
+
+{\small\input{report-data/tokens-b}}
+
+\subsection*{Interpretation and limitations}
+S05's \code{flop} is ADV and \code{kongossa} is AMB. S06 shows that two
+verb-initial phrases can be adjacent without punctuation. In S07, \code{pere}
+is N, \code{ca} is FF and \code{chop} is PID. The coarse PID category can cover
+items with different discourse or verbal roles; it is not a detailed syntactic
+analysis of each use.
+
+S08 illustrates a deliberate limitation of fixed lookup: \code{a} is EF
+because the explicit English-function-word set wins before contextual
+interpretation. The original \code{Ont} is V. Their resulting V--EF--V pattern
+is modeled as an observed category link, not defended as the only linguistic
+analysis or as standard French.
+
+These four statements contribute 26 occurrences. Along with the previous
+25, they account for 51 of the 81 tokens. Their successful CFG results reflect
+the productions chosen for these category patterns, not verification of their
+glosses or their collection context.
+
+\clearpage
+\section{Token Tables: S09--S12}
+Both rejected originals are included in full. The parser stops at the first
+unsupported lookahead, but the lexer still classifies every token; later words
+are not omitted from corpus statistics.
+
+{\small\input{report-data/tokens-c}}
+
+\subsection*{The two unresolved forms}
+\code{n'ais} and \code{alli} each occur once and are the sixth token in their
+respective statement. They match no explicit reference, approved annotation
+or permitted morphological fallback. Each is therefore represented as UNK.
+Neither token is deleted, treated as a wildcard, or replaced with a guessed
+spelling.
+
+S09's later \code{do} and S10's later \code{a} retain EF, even though parsing
+has already failed before them. The complete lexical analysis and the partial
+parser consumption are different outputs. This distinction matters when
+debugging: ``consumed five'' does not mean ``only five tokens were extracted''.
+
+The lengths here are ten, nine, six and five, contributing the final 30
+occurrences. S11 and S12 demonstrate that the same reference/grammar rules
+can accept other supplied patterns without changing the unresolved inputs.
+
+\clearpage
+\section{Frequency, Coverage and Observed Variation}
+Statistics below use each of the twelve statements exactly once. Frequencies
+case-fold spelling; original forms remain available in the token tables.
+The sample contains \CorpusTokens{} occurrences, \CorpusForms{} case-folded
+forms and a mean of 6.75 tokens per statement. Lengths range from five to ten.
+
+\begin{minipage}[t]{0.55\linewidth}
+{\footnotesize\input{report-data/categories}}
+\par\medskip
+{\small FF and V account for 47/81 occurrences. This reflects the selected
+sample and the broad category definitions; it is not an estimate of category
+prevalence in Yaound\'e. Percentages are independently rounded.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.40\linewidth}
+{\small\input{report-data/frequencies}}
+\end{minipage}
+
+\subsection*{Forty forms occur once}
+{\small\input{report-data/singletons}}
+
+\subsection*{Coverage is not accuracy}
+Seventy-nine of 81 occurrences receive a non-UNKNOWN category (97.5\%).
+That measures lookup coverage, not correct linguistic tagging: recognized
+AMBIGUOUS and context-insensitive labels are included. No independently
+annotated gold standard was supplied, so precision/recall and linguistic
+accuracy cannot honestly be calculated.
+
+The orthographic variation function uses case-folding, Unicode decomposition,
+accent removal and curly-apostrophe normalization to propose groups. In this
+sample it finds only \code{J'ai} and \code{j'ai}, one occurrence each. The
+semantically suggestive pair \code{sharp}/\code{shap} is \emph{not} grouped by
+that function because their normalized strings differ. Variation candidates
+must not be inflated with dictionary aliases that were not observed.
+
+\clearpage
+\section{Code-Mixing, Phrases and Linguistic Complexity}
+Language clues are separate from part of speech. Word lists and explicit
+reference origins provide candidate sets for FR, EN and PID. Shared forms can
+have several candidates. The algorithm narrows compatible runs and emits the
+last anchor and new token when evidence becomes incompatible. UNKNOWN carries
+no language evidence; sentence-ending punctuation resets the run.
+
+{\small\input{report-data/language-spans}}
+
+There are \CorpusSwitches{} emitted clues, not 26 proven language switches.
+An ellipsis denotes endpoints and can span intervening tokens; it is neither
+a quoted contiguous phrase nor a claim that every intervening word belongs to
+one language. No verb-phrase or slang-phrase regex matches these twelve inputs,
+although the raw expressions still contain colloquial words and constructions.
+The tool must report zero matches rather than fabricate phrase evidence.
+
+French framing around words such as \code{school}, \code{light} and
+\code{price} illustrates the interaction between grammar, borrowing and
+code-mixing. A fixed word origin cannot determine whether a speaker perceives a
+form as a switch or an established borrowing. Ellipsis, juxtaposition, local
+idioms and contextual meanings also exceed the information represented by a
+category sequence.
+
+Written variation must be distinguished from pronunciation and from a
+transcriber's choices \cite{ebongue}. The available material cannot support
+claims about speakers' ages, education, neighborhoods, accent or intentions.
+S04 and S11 emit no transition clue; that absence is limited evidence, not a
+certificate that the originals are monolingual.
+
+\clearpage
+\section{Constructing a Corpus-Derived Grammar}
+The chosen CFG models recurring lexer-category structures instead of listing
+twelve raw sentences. The original has ten nonterminals and 37 alternatives.
+For compact printing, Ut, Cl, St, Bt, Pt, Lp, Mn, At, Ct and Nm abbreviate
+Utterance, Clause, SubjectTail, BareSubjectTail, PredicateTail, LinkedPhrase,
+ModifiedNominal, AdverbTail, ComplementTail and Nominal respectively.
+
+{\small\renewcommand{\arraystretch}{1.3}\input{report-data/grammar-original}}
+
+\subsection*{Evidence-to-rule rationale}
+Cl permits a function-word subject, a nominal opening or a verb-initial
+clause. St covers \code{je suis}, \code{mon combi came} and the observed
+AMB--PID pattern in \code{ca me chop}. Pt permits auxiliary/serial verbs
+(\code{j'ai mban}, \code{go nang}), observed V--EF--V links, and nominal,
+adjectival, adverbial or ambiguous complements.
+
+Lp and Mn represent introduced groups such as \code{au piol},
+\code{depuis bayar} and \code{depuis le shap}. Ct allows juxtaposition, as in
+\code{je suis kass je go nang} and \code{go au piol shoua mes kako}.
+Nm represents noun clusters; its natural left recursion is intentionally
+processed by the real transformation routine.
+
+Ut permits one optional punctuation token, although the twelve inputs lack
+one. This narrowly stated extension is tested separately. UNKNOWN is excluded,
+and AMB is allowed only in explicit positions. A new empty installation may
+use an illustrative starter grammar; that starter is not the saved grammar
+evaluated in this report.
+
+\clearpage
+\section{Actual Grammar Transformations}
+\subsection*{Step 1: eliminate direct left recursion}
+The implementation detects the original left-recursive nonterminal Nm:
+\[
+  \mathrm{Nm}\rightarrow\mathrm{Nm}\ \mathrm{N}\mid\mathrm{N}.
+\]
+It introduces \code{Nominal\_LR1}, abbreviated Nr, and rewrites:
+\[
+  \mathrm{Nm}\rightarrow\mathrm{N}\ \mathrm{Nr},
+  \qquad
+  \mathrm{Nr}\rightarrow\mathrm{N}\ \mathrm{Nr}\mid\epsilon .
+\]
+Both forms generate one or more noun-category tokens. The original extends
+a noun chain by left recursion; the transformed form consumes the first noun
+and extends it through a right-recursive suffix. No raw noun is deleted and
+the language of this subgrammar is unchanged.
+
+\subsection*{Step 2: left-factor the start rule}
+The original start rule has a shared prefix:
+\[
+  \mathrm{Ut}\rightarrow\mathrm{Cl}\mid\mathrm{Cl}\ \mathrm{PUNC}.
+\]
+The routine introduces \code{Utterance\_LF1}, abbreviated Uf:
+\[
+  \mathrm{Ut}\rightarrow\mathrm{Cl}\ \mathrm{Uf},
+  \qquad
+  \mathrm{Uf}\rightarrow\epsilon\mid\mathrm{PUNC}.
+\]
+The alternative choice is postponed until the clause has been processed.
+End-of-input selects epsilon; PUNC selects the optional punctuation. The
+empty alternative is a suffix, not permission for an empty whole utterance.
+
+\subsection*{What the implementation actually logged}
+The two operation identifiers are
+\nolinkurl{eliminate_direct_left_recursion} and \nolinkurl{left_factor}.
+Each record contains the complete grammar before and after the operation.
+No ordered indirect-substitution step was needed for this particular rule
+ordering. The generic implementation supports bounded ordered substitution
+and separately checks for residual nullable-prefix recursion.
+
+The final result has twelve nonterminals, \GrammarProductions{} alternatives,
+no residual left-recursive nonterminal and no LL(1) conflict. Transformation
+limits reject degenerate cycles or unsafe expansion instead of claiming
+success. The regression suite also compares original and transformed
+languages with an independent bounded derivation oracle up to four terminals;
+that is useful finite evidence, not a proof for every arbitrary CFG.
+
+\notice{General algorithm, specific result}{
+It is not enough to say that recursion and common prefixes were ``handled''.
+The two before/after rewrites above are the actual transformations computed
+for this saved corpus grammar.}
+
+\clearpage
+\section{Transformed Production Catalogue}
+The identifiers P01--P39 are report references assigned in the computed
+grammar's order. They are used consistently in the predictive table and
+traces. Nr is \code{Nominal\_LR1}; Uf is \code{Utterance\_LF1}.
+
+{\small\renewcommand{\arraystretch}{1.15}\input{report-data/productions}}
+
+\subsection*{How to use the catalogue}
+P01 starts every parse by expanding Ut into Cl and Uf. P02--P04 select a
+clause opening from FF, N or V. S02 then selects P05 and P12 for its verb and
+adjective complement. Later P32 and P19 admit the juxtaposed phrase, and
+P10 admits its next verb. The empty suffixes P18 and P38 complete the parse.
+
+P35--P37 describe noun clusters. P37 can be chosen only when the next token
+belongs to FOLLOW(Nr), not for every unexpected token. P38 and P39 preserve
+the original optional single-punctuation choice. The table on the next two
+pages makes each choice explicit rather than relying on procedural
+``try alternatives until one works'' logic.
+
+The aliases and production numbers affect only presentation. Full original
+names, alternatives, generated helpers and transformation records are included
+in the companion computed JSON, so the calculations can be reproduced without
+reverse-engineering the abbreviations.
+
+\clearpage
+\section{FIRST and FOLLOW Sets}
+FIRST contains possible initial terminals of a derivation and epsilon when
+the nonterminal is nullable. FOLLOW contains terminals, or the end marker
+\code{\$}, that can immediately follow a nonterminal in a derivation from the
+start symbol. Epsilon does not belong in FOLLOW.
+
+{\small\renewcommand{\arraystretch}{1.25}\input{report-data/first-follow}}
+
+\subsection*{Fixed-point computation}
+For each production, FIRST accumulates the first symbol's terminal evidence,
+continuing through nullable prefixes and adding epsilon only when the entire
+right-hand side is nullable. The implementation repeats these updates until
+no set grows. FOLLOW starts by adding \code{\$} to Ut. For each nonterminal
+within a right-hand side, FIRST of the suffix contributes non-epsilon
+terminals; a nullable or absent suffix also contributes FOLLOW of the left
+side. Those updates likewise continue to a fixed point.
+
+\subsection*{Sanity checks on this grammar}
+FIRST(Ut) is exactly \{FF, N, V\}; hence empty input cannot begin a clause.
+FOLLOW(Ut) contains only end-of-input. Uf is nullable and permits punctuation,
+which explains PUNC in FOLLOW(Cl). Nr can begin another N or become empty,
+but its FOLLOW set is \{\$, FF, PUNC, V\}, not UNKNOWN.
+
+These sets are computed from the transformed productions, not handwritten
+independently for the report. Reporting the full sets allows a reader to verify
+the table's epsilon entries and to explain why both unresolved sixth tokens
+lead to rejection.
+
+\clearpage
+\section{Complete LL(1) Predictive Table}
+For \(A\rightarrow\alpha\), each terminal in
+\(\mathrm{FIRST}(\alpha)\setminus\{\epsilon\}\) receives that production.
+If \(\alpha\) is nullable, its production is also placed under every terminal
+in FOLLOW(A). Multiple distinct productions in one cell are conflicts;
+the implementation retains the conflict and does not choose an arbitrary
+winner.
+
+The complete table is printed below. Columns are the nine grammar terminals
+plus end-of-input. The 47 populated cells refer to P01--P39 in the catalogue.
+``--'' means no production and causes rejection for that nonterminal/lookahead.
+
+{\scriptsize\setlength{\tabcolsep}{2pt}\renewcommand{\arraystretch}{1.8}
+\input{report-data/ll1-table}}
+
+\subsection*{Worked entries}
+\begin{itemize}
+\item \(M[\mathrm{Ut},\mathrm{FF}]=\mathrm{P01}\), since Cl can begin with FF
+and Uf follows it. The same production is selected under N and V.
+\item \(M[\mathrm{Pt},\mathrm{ADJ}]=\mathrm{P12}\), selecting
+\(\mathrm{Pt}\rightarrow\mathrm{ADJ}\ \mathrm{Ct}\).
+\item \(M[\mathrm{Pt},\$]=\mathrm{P18}\), since the Pt alternative is empty
+and end-of-input is in FOLLOW(Pt).
+\item \(M[\mathrm{Nr},\mathrm{N}]=\mathrm{P36}\), whereas FF, V, PUNC and
+\code{\$} select its empty alternative P37.
+\item Uf selects P38 at \code{\$} and P39 at PUNC. No row has a defined
+UNKNOWN entry.
+\end{itemize}
+
+\subsection*{LL(1) conclusion and limits}
+No cell has competing productions, and the transformed grammar has no residual
+left recursion. Predictive parsing is therefore enabled for this grammar.
+This does not imply that every Camfranglais expression is derivable: a valid
+everyday statement can still have a category sequence outside the modeled
+subset. It also does not imply that a derived category sequence has a sensible
+meaning. Formal determinism and linguistic coverage are different properties.
+
+\clearpage
+\section{Predictive Parser Implementation}
+The parser maintains a stack, a category sequence, a current input position
+and a trace. The stack is printed with its top at the right. Trace snapshots
+are taken \emph{before} the recorded action; the final accept row still displays
+the end marker. A production is pushed in reverse order so its leftmost symbol
+is processed next.
+
+{\small
+\begin{verbatim}
+stack = ["$", start_symbol]
+position = 0
+while stack is not empty:
+    top = stack[-1]
+    lookahead = categories[position] or end marker
+    if top is "$":
+        accept only if lookahead is also "$"
+    elif top is a terminal:
+        reject if top != lookahead
+        record the match; pop; advance position
+    else:
+        reject if table[top, lookahead] is absent
+        record the chosen production
+        pop top; push its RHS in reverse order
+\end{verbatim}}
+
+The displayed pseudocode summarizes the control flow; the implementation also
+validates token shapes/categories, refuses conflicting grammars and checks
+resource limits. It detects repeated stack/input configurations, excessive
+trace length and oversized stack expansion. UNKNOWN is a real lexer category
+that can be represented in input, but it is not a wildcard and has no production
+in this saved grammar.
+
+\begin{tabularx}{\linewidth}{@{}X r@{}}
+\toprule\textbf{Parser bound} & \textbf{Value}\\\midrule
+Input tokens & 256\\
+Characters in an individual token & 1,000\\
+Recorded parse steps & 2,000\\
+Stack symbols & 1,024\\
+\bottomrule
+\end{tabularx}
+
+The output includes \code{accepted}, an explicit error or null, the trace and
+the consumed count. A CFG rejection is a valid computed test result and can be
+saved; it is not a network error. Conversely, a storage failure must not look
+like a successful saved test. This separation helps students distinguish
+lexical uncertainty, syntactic mismatch and operational failure.
+
+\clearpage
+\section{Complete Accepted Trace: S02}
+Input: \code{je suis kass je go nang}. Categories:
+FF, V, ADJ, FF, V, V. The table below contains every recorded step; production
+identifiers refer to the full catalogue. Each stack/remaining pair precedes its
+action.
+
+{\small\renewcommand{\arraystretch}{1.2}\input{report-data/trace-accepted}}
+
+\subsection*{Explanation of the derivation}
+P02 chooses the FF-led clause. After matching \code{je}, P05 provides a verb
+and predicate tail. P12 selects an adjective complement for \code{kass}.
+P32 consumes the next FF and P19 allows a following verb, modeling the
+juxtaposition rather than insisting on punctuation or a conjunction.
+
+P10 permits the second verb in \code{go nang}. Once all six input categories
+have been consumed, P18 removes the empty predicate tail and P38 removes the
+optional punctuation suffix. The final row sees only the two end markers and
+accepts. The consumed count is six and the error field is null.
+
+\subsection*{What acceptance does and does not mean}
+This is evidence that the observed category pattern belongs to the transformed
+grammar. It does not validate spelling, supply the expression's intended
+meaning, or identify the language of each token. Vocabulary approval also
+passes because no UNKNOWN occurs, but that is a separate calculation.
+The contrast becomes visible in the constructed known-word controls, where
+vocabulary passes and CFG parsing rejects.
+
+\clearpage
+\section{Complete Rejected Traces: S09 and S10}
+The lexer completes both inputs. The parser then rejects at the first
+unavailable table entry; no recovery production skips the unknown.
+
+\textbf{S09: \code{n'ais} at position 6.}
+{\scriptsize\renewcommand{\arraystretch}{1.02}\input{report-data/trace-rejected-a}}
+
+\textbf{S10: \code{alli} at position 6.}
+{\scriptsize\renewcommand{\arraystretch}{1.02}\input{report-data/trace-rejected-b}}
+
+S09 ends at Lp (LinkedPhrase) with lookahead UNK; its legal lookaheads are
+ADV, AMB, FF, N and V. S10 ends at Nr (Nominal\_LR1) with UNK; legal
+lookaheads are \code{\$}, FF, N, PUNC and V. Both have consumed five tokens.
+The different stack tops explain the distinct error messages even though the
+failure positions match. Guessing an intended spelling or adding UNKNOWN
+everywhere would conceal the unresolved evidence instead of fixing it.
+
+\clearpage
+\section{Evaluation Results and Boundary Controls}
+All twelve exact originals were evaluated using the same saved grammar and
+reviewed lexicon snapshot. Each lexical token, parser result, consumed count
+and trace length below is computed, not manually assigned.
+
+{\small\renewcommand{\arraystretch}{1.2}\input{report-data/outcomes}}
+
+Ten statements fit the grammar (83.3\%); two reject (16.7\%). Here vocabulary
+and CFG verdicts happen to agree for the twelve originals. The following
+constructed controls demonstrate why the verdicts must nevertheless remain
+separate. These are software tests, not additional collected statements.
+
+{\small\renewcommand{\arraystretch}{1.2}\input{report-data/controls}}
+
+Empty input has no UNKNOWN but cannot derive a Clause. A noun-only fragment
+and a dangling FF-led clause also reject. One punctuation token is supported;
+two are not. Known categories in an unsupported order can reject without any
+unknown word. These controls establish more than a ``reject only if UNKNOWN''
+parser shortcut.
+
+The grammar-development corpus is also the principal demonstrated corpus.
+The result is therefore descriptive coverage, not independent generalization
+accuracy. Regression tests add unseen combinations, negative category orders
+and bounded language-equivalence checks, but a larger consented corpus with
+independent annotation would be necessary for stronger linguistic evaluation.
+
+\clearpage
+\section{Working Analyzer: Genuine Browser Evidence}
+The captures were taken from
+\url{https://camfranglais.duckdns.org} on 27 September 2026. They show the
+implemented public interface, not a mockup or generated design. The documentation
+session opened an existing saved test rather than submitting another test.
+
+\screen{public-test-20260927.png}{11.8cm}
+{Existing S02 selected through Analysis, with its original input, vocabulary
+verdict and token details. The image is a top crop of a real saved-test panel;
+the complete capture is retained alongside it.}
+
+\screen{public-analyzer-20260927.png}{6.5cm}
+{The current analyzer opens directly without login. Submission explicitly warns
+that tests are public and retained. This crop shows the input panel.}
+
+Inspecting S02 retrieves its original token table and trace, not a new analysis.
+The uncropped captures and metadata are supplied for verification.
+
+\clearpage
+\section{Reference Views and Historical Statistics}
+\screen{public-collection-20260927.png}{8.1cm}
+{The actual Collection view is read-only and distinct from saved test history.
+Raw statements and supplied metadata remain inspectable.}
+
+\screen{public-analysis-20260927.png}{8.1cm}
+{The deployed Analysis view reports all 34 saved tests observed at capture:
+24 vocabulary passes and ten failures; separately, 15 grammar matches and
+19 mismatches.}
+
+The history screenshot totals 179 tokens and includes repeated inputs,
+additional public tests and older lexical/grammar snapshots. Its vocabulary
+rate (70.6\%) and grammar-match rate (44.1\%) are therefore not the fixed
+twelve-statement result of this report. Older snapshots can retain a former
+UNKNOWN classification even after the current lexer recognizes that word.
+Immutability makes that historical distinction visible instead of rewriting
+the evidence.
+
+Dictionary entries and 26 synthetic examples form separate read-only views.
+Existing recorded read-aloud and Collection audio can be played when available.
+Neither implies automatic transcription, generated speech or independently
+verified field recording. No account name or privileged editor is required
+for the public read-and-analyze workflow.
+
+\clearpage
+\section{Application Architecture and Public Deployment}
+\subsection*{Separation of responsibilities}
+\begin{tabularx}{\linewidth}{@{}L{3.0cm}>{\raggedright\arraybackslash}X@{}}
+\toprule\textbf{Layer} & \textbf{Actual responsibility}\\\midrule
+React / TypeScript & Five-screen UI, anonymous capability bootstrap, input
+handling, read-only references and display of immutable tests.\\
+FastAPI boundary & Bounded requests, origin/CSRF policy, public allowlist,
+explicit errors and shared-workspace context.\\
+Lexer and parser & Regex/lexicon classification, language clues, CFG
+transformations, FIRST/FOLLOW, LL(1) table and bounded parsing.\\
+Shared storage & SQLite-backed Collection, saved profile/grammar, immutable
+test snapshots, retained ownership and media references.\\
+Operator facilities & Restricted environment, persistent storage, backups,
+controlled reference maintenance and deployment.\\
+\bottomrule
+\end{tabularx}
+
+The anonymous bootstrap is not identity authentication. Visitors can create
+tests, but Collection, grammar and recording mutations are rejected server-side.
+New analyses must use the saved grammar; a stale grammar yields an explicit
+409/reload response. A request UUID supports idempotent retries without
+duplicating an already-completed test. A deliberately new test counts separately.
+
+Historical account/admin/import code and data remain for compatibility.
+Their continued existence does not expose those routes publicly. CSRF tokens,
+secure production cookies and rate limits constrain requests; they do not
+make public submissions confidential. Public ownership presentation is
+redacted without changing historical ownership in storage.
+
+\subsection*{Selected hosted topology}
+Nginx serves HTTPS for \url{https://camfranglais.duckdns.org} on the Ubuntu VPS
+at \code{109.199.120.38}. It proxies to the application on
+\code{127.0.0.1:2021}; port 2021 is private, not an additional public entry point.
+The restricted systemd service uses persistent data outside the public assets.
+SMTP and Google credentials are not required by this public mode.
+
+The documentation check observed an HTTP 200 public bootstrap with the correct
+read-only capabilities and a working no-login browser interface on 27 September.
+It did not change the remote server, prove off-host restoration or establish
+long-term availability. Detailed source-grounded class, sequence, activity,
+component, deployment and other UML views are provided in the separate SDD
+and atlas, including clear boundaries around retained legacy code.
+
+\clearpage
+\section{Verification, Reproducibility and Limitations}
+\subsection*{Checks and the dates to which they apply}
+\begin{tabularx}{\linewidth}{@{}L{3.1cm}X@{}}
+\toprule\textbf{Evidence} & \textbf{Observed result}\\\midrule
+27 September corpus checks & Seven targeted grammar/persistence tests passed;
+the exact twelve cases are exercised within them. Seven additional constructed
+controls in the report generator also matched their expected outcomes.\\
+26 September application release & 186 backend/launcher/legacy-storage tests,
+148 frontend unit tests and 68 mocked browser tests passed. App/test TypeScript
+checks and the production build passed.\\
+Live workflow qualification & Fourteen distinct cases passed across the full
+run and focused rerun. Two full-run startup/teardown interruptions later passed
+in a three-case mobile rerun; no uninterrupted 14/14 run is claimed.\\
+Documentation reproducibility & Generated tables are compared byte-for-byte
+with freshly computed evidence; source hashes and the public corpus snapshot
+are retained. UML/PDF checks verify current figures, class coverage,
+activations, references and layout.\\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Known regression, not hidden}
+The existing test
+\nolinkurl{GrammarNotationTests.test_every_real_lexer_category_is_a_supported_terminal}
+still expects an older category set. It omits nine categories now supported by
+the lexer. This documentation task does not fix that pre-existing failure;
+the project must not be described as having an entirely green full CI suite.
+A deprecation warning about the installed FastAPI/Starlette test-client
+transport also appeared during the targeted run without failing it.
+
+\subsection*{Reproduction procedure}
+Use the configured Python environment and installed project requirements.
+Run \code{python -m tools.build\_report\_evidence --check}, then the targeted
+grammar/persistence tests. Rebuilding uses the existing local PlantUML/LaTeX
+task and \code{python -m tools.check\_documentation}. The JSON records complete
+traces and unabridged grammar names; production numbers in this report are
+derived from that ordering.
+
+No software test can retrospectively certify manual transcription, consent,
+meaning or representative sampling. The small development corpus, broad FF/PID
+categories, unresolved reference ambiguity and two UNKNOWN forms remain
+substantive limitations. No latency, throughput, uptime or linguistic-accuracy
+benchmark is claimed. Presentation slides and oral rehearsal are separate
+deliverables, not automatically completed by producing this report.
+
+\clearpage
+\section{Conclusion and Group Review}
+The project demonstrates an inspectable compiler pipeline rather than a
+black-box language assistant. It preserves all twelve supplied transcriptions,
+classifies all 81 token occurrences, computes frequency and language clues,
+transforms a genuinely corpus-derived grammar and exposes the complete
+conflict-free LL(1) table. Successful and unsuccessful traces show how category
+decisions propagate into parsing instead of hiding failures.
+
+The two rejected cases are informative. They identify precise unresolved
+forms at token six rather than treating every input as acceptable. The known-word
+controls also reject invalid category orders, proving that parsing is more
+than a dictionary-membership check. Conversely, acceptance of nonstandard
+wording illustrates why the application must keep grammar fit separate from
+linguistic correctness and supplied meaning.
+
+The final public interface removes irrelevant account management while
+retaining server-side boundaries: anyone can analyze and save an immutable
+test, but reference data and grammar cannot be changed through the public app.
+The deployed browser was observed functioning in this mode. The separate
+engineering documents describe the actual classes and interactions rather
+than the older authenticated product.
+
+\subsection*{Priorities after this report}
+The highest-priority academic action is provenance confirmation, not another
+feature: establish the original fieldwork context or retain the explicit
+limitation. Then review the two unknowns and disputed lexical labels using
+human evidence, evaluate a genuinely independent corpus, address the stale
+category regression, and rehearse the required ten-minute demonstration.
+Any corrected or extended analysis should be saved as new evidence, not
+silently substituted into original immutable tests.
+
+\subsection*{Author review and contribution record}
+Known names and matricules are filled below. Specific individual contributions
+and signatures are left for the group to attest; no division of work is invented.
+
+{\small\renewcommand{\arraystretch}{1.6}
+\begin{tabularx}{\linewidth}{@{}L{7.0cm}L{3.1cm}X@{}}
+\toprule\textbf{Member} & \textbf{Matricule} & \textbf{Confirmed contribution}\\\midrule
+Kwete Ngouba Junior Rayan & ICTU20241377 & \rule{2cm}{0.3pt}\\
+Djemtchimo Noukui Bruno Jonatan & ICTU20241585 & \rule{2cm}{0.3pt}\\
+Amina Boubakary & ICTU20241870 & \rule{2cm}{0.3pt}\\
+\bottomrule
+\end{tabularx}}
+
+Group review date: \rule{3cm}{0.3pt}\qquad
+Instructor feedback: \rule{4cm}{0.3pt}
+
+\clearpage
+\addcontentsline{toc}{section}{References and Evidence Register}
+\renewcommand{\refname}{References and Evidence Register}
+\begin{thebibliography}{9}
+\bibitem{brief}
+Faculty of Information and Communication Technologies.
+\emph{CS4110 Compiler Construction, Summer 2026, SET A:
+Lexical and Syntactic Analysis of Informal Urban Communication in Yaound\'e}.
+Supplied assignment brief; instructor Engr. Tanwi Nkiamboh; assessment dated
+29 September 2026. Source of the 10--15-statement, group-of-three and
+25--30-page requirements.
+
+\bibitem{ebongue}
+Augustin Emmanuel Ebongue.
+``Linguistic Features in a Marginal Corpus. The Case of Written Camfranglais,
+a Cameroon Youth Language.''
+\emph{Multilingual Margins}, 9(1), issue year 2022; published online
+25 May 2023. Publisher metadata and abstract checked 27 September 2026.
+\url{https://www.epubs.ac.za/index.php/mm/article/view/1392}.
+
+\bibitem{compiler}
+Alfred V. Aho, Monica S. Lam, Ravi Sethi and Jeffrey D. Ullman.
+\emph{Compilers: Principles, Techniques, and Tools}, second edition.
+Pearson/Addison-Wesley. General compiler background for lexical analysis,
+grammar transformations and predictive parsing; not the source of this corpus.
+
+\bibitem{source}
+Camfranglais project source, baseline \code{a1b88aa}.
+\nolinkurl{compiler/lexer/tokenizer.py},
+\nolinkurl{compiler/lexer/languages.py},
+\nolinkurl{compiler/lexer/reference.py},
+\nolinkurl{compiler/parser/yaounde.py},
+\nolinkurl{compiler/parser/analysis.py},
+\nolinkurl{compiler/parser/predictive.py}.
+The implemented rules, not textbook examples, determine the reported outputs.
+
+\bibitem{corpus}
+Project Collection, twelve user-supplied transcriptions.
+\nolinkurl{docs/evidence/final-corpus-20260927.json}.
+Sanitized read-only snapshot; supply date 22 September, snapshot date
+27 September 2026. Original fieldwork provenance remains unconfirmed.
+French meanings are supplied annotations.
+
+\bibitem{computed}
+Reproducible coursework analysis.
+\nolinkurl{tools/build_report_evidence.py},
+\nolinkurl{docs/evidence/final-analysis-20260927.json},
+\nolinkurl{docs/report-data/}.
+Contains source fingerprints, full tokens, sets, table, transformations,
+traces and boundary controls. Tested against the twelve exact cases in
+\nolinkurl{compiler/tests/yaounde_cases.py}.
+
+\bibitem{reference}
+Supplied classified vocabulary and retained reference senses.
+\nolinkurl{dictionary/full_lexicon_classified.csv},
+\nolinkurl{dictionary/camfranglais.md},
+\nolinkurl{dictionary/extra_lexicon.md}.
+Source-labelled lookup material; \ReferenceRows{} supplied CSV rows and
+\DictionaryCount{} dictionary display entries, not fieldwork observations.
+
+\bibitem{screens}
+Public application screenshots, captured 27 September 2026.
+\nolinkurl{docs/evidence/screenshots/};
+\url{https://camfranglais.duckdns.org}.
+Existing records were inspected without posting new tests. The capture
+register records image hashes, context and the saved-test crop.
+\end{thebibliography}
+
+Supplementary SRS, SDD and UML atlas sources and PDFs are distributed in the
+same documentation directory. Historical evidence and legacy documents remain
+dated archives; their former product scope and test counts are not substituted
+for the current report's results.
+\end{document}

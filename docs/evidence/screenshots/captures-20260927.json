@@ -1,0 +1,76 @@
+{
+  "captured_at": "2026-09-27T07:59:30.123Z",
+  "source_url": "https://camfranglais.duckdns.org",
+  "capture_method": "Local headless Playwright Chromium browser, real deployed API; no mocked responses. Editor-integrated captures were replaced because its rendered viewport was clipped.",
+  "viewport_css_pixels": [
+    1280,
+    900
+  ],
+  "device_scale_factor": 1,
+  "new_tests_submitted": 0,
+  "existing_test_inspected": "je suis kass je go nang",
+  "history_snapshot": {
+    "saved_tests": 34,
+    "vocabulary_accepted": 24,
+    "vocabulary_rejected": 10,
+    "grammar_accepted": 15,
+    "grammar_rejected": 19,
+    "tokens": 179
+  },
+  "provenance_note": "Working-software evidence, not proof of original field collection or recording authenticity.",
+  "images": [
+    {
+      "file": "public-analysis-20260927.png",
+      "sha256": "dc15b1694e0456dc77a0d0ce70972af6f2d8a70082e12c61b8e41c054beef976",
+      "width": 1280,
+      "height": 900
+    },
+    {
+      "file": "public-analyzer-20260927.png",
+      "sha256": "20698d82d97db34f0334ce7321853e602b2efa4988428b2a8b376541a3e4a547",
+      "width": 1020,
+      "height": 480,
+      "derived_from": "public-analyzer-full-20260927.png",
+      "crop_box": [
+        250,
+        70,
+        1270,
+        550
+      ],
+      "edit": "Crop only: analyzer input panel; no text or result altered."
+    },
+    {
+      "file": "public-collection-20260927.png",
+      "sha256": "e586985a436673f6e4ab266dccac48ce523d6f662953af38c78c986c1b4b4eb5",
+      "width": 1280,
+      "height": 900,
+      "captured_at": "2026-09-27T08:01:04.426Z"
+    },
+    {
+      "file": "public-test-20260927.png",
+      "sha256": "33fdcc5568fe379c88b2eea00cef2d7c3df48b1ed0d5a5185d3b82b52d255eb4",
+      "width": 980,
+      "height": 730,
+      "derived_from": "public-test-full-20260927.png",
+      "crop_box": [
+        0,
+        0,
+        980,
+        730
+      ],
+      "edit": "Crop only; no text or result altered."
+    },
+    {
+      "file": "public-test-full-20260927.png",
+      "sha256": "598845326a637e355f70f164b9aac324837e3182391b773a91f36086d25a11e7",
+      "width": 980,
+      "height": 1896
+    },
+    {
+      "file": "public-analyzer-full-20260927.png",
+      "sha256": "b6ac93c8cda7c1e88e1e44c77dd1e0a7221ea6c90d46e1ab4338daa7943ee165",
+      "width": 1280,
+      "height": 900
+    }
+  ]
+}

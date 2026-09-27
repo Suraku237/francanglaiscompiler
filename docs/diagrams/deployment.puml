@@ -1,50 +1,45 @@
 @startuml
 !include theme.iuml
-title Deployment: one durable host, local compiler, retained identity services
-node "Student's device" <<device>> {
-  node "Browser" as Browser <<executionEnvironment>> {
-    artifact "Built React frontend\nunsaved drafts / native recorder" as React
-    artifact "Optional read-aloud\nbrowser-reported localService voices only" as Speech
+title Camfranglais — target deployment and private persistence
+top to bottom direction
+node "Visitor device\nDesktop or mobile browser" as Browser
+cloud "HTTPS Internet\ncamfranglais.duckdns.org" as Internet
+node "Ubuntu 24.04 VPS — 109.199.120.38" as VPS {
+  node "Nginx\n80: redirect to TLS\n443: HTTPS reverse proxy" as Nginx
+  node "systemd: camfranglais.service\nservice user: camfranglais" as Systemd {
+    node "Uvicorn / FastAPI\n127.0.0.1:2021 only" as App
+  }
+  artifact "/var/www/francanglaiscompiler\nPython source + frontend/dist" as Code
+  artifact "/etc/camfranglais.env\nrestricted operator configuration" as Env
+  folder "/var/lib/camfranglais\nrestricted persistent data" as Data {
+    database "shared-workspace/workspace.sqlite3" as Workspace
+    database "public-access.sqlite3" as Limits
+    folder "shared-workspace/audio + backups" as Media
+    database "auth.sqlite3 / legacy workspaces\npreserved, not publicly served" as Legacy
   }
 }
-node "HTTPS reverse proxy" as Proxy <<executionEnvironment>>
-node "Durable application host\nrestricted service account" <<device>> {
-  node "FastAPI / Uvicorn / Python\nloopback or firewalled private interface" as Backend <<executionEnvironment>> {
-    artifact "Backend + deterministic compiler\nlocal document extraction" as Python
-    artifact "frontend/dist\nserved on the same origin" as Assets
-    artifact "Server-only configuration\nSMTP / optional Google / storage" as Configuration
-  }
-  node "Persistent private disk" <<device>> {
-    artifact "auth.sqlite3" as Accounts
-    artifact "workspaces/<account UUID>/workspace.sqlite3\ncoursework + screenshot rows included" as Workspace
-    artifact "Per-account audio / verified backups" as PrivateFiles
-  }
-  artifact "Versioned dictionary / constructed practice\nread-only reference sources" as Reference
-}
-node "Protected off-host backup destination" as Recovery <<external storage>>
-node "Microphone / speakers" as Devices <<device>>
-node "Google OAuth / signing keys" as Google <<external service>>
-node "SMTP provider" as Mail <<external service>>
-Browser -- Proxy : HTTPS: frontend and private APIs
-Proxy -- Backend : restricted HTTP;\ntrusted forwarded headers
-Python ..> Accounts : identity transactions
-Python ..> Workspace : account/project-selected transactions
-Python ..> PrivateFiles : locked media / recovery operations
-Python ..> Reference : read-only lookup
-Backend -- Recovery : operator-managed consistent snapshots
-Browser -- Devices : permissioned recording / playback
-Browser -- Google : optional human authorization
-Backend -- Google : optional HTTPS code exchange / JWT validation
-Backend -- Mail : configured account email via STARTTLS
-Configuration ..> Python
+actor "Server operator" as Operator
+Browser --> Internet : TLS requests / responses
+Internet --> Nginx : 443
+Nginx --> App : private loopback proxy\ntrusted forwarded scheme/address
+App ..> Code : executable code / same-origin static assets
+Systemd ..> Env : EnvironmentFile
+App --> Workspace
+App --> Limits
+App --> Media
+Operator ..> Code : controlled release update
+Operator ..> Data : private backup / recovery
+Operator ..> Env : deployment configuration
+note bottom of App
+  Default release design: public_read_only.
+  Production requires the built frontend and a public HTTPS origin.
+  SMTP and Google credentials are not required in public mode.
+  Do not expose :2021 as a public application URL.
+end note
 legend bottom
-  No language-model, OCR or transcription integration exists.
-  TTS has no remote-voice fallback; the app relies on browser/OS localService reporting.
-  That reporting is not a guarantee about every underlying browser/OS network behavior.
-  Google/SMTP are network identity services; local compilation is not a claim of an offline website.
-  Local development: browser -> loopback FastAPI; no public proxy needed.
-  Authentication stays enabled; legacy CSV/profile/screenshots are a separate maintenance boundary.
-  Backup identity/configuration separately from user ZIPs. Account isolation is not E2E encryption.
-  Do not deploy private SQLite to ephemeral disks or imply a multi-host database cluster.
+  This is the intended deployment of the final source, not evidence that an update was executed.
+  Last supplied remote observation (26 September): HTTPS health 200; bootstrap 401 from the old deployment.
+  A prepared updater is not proof of a remotely installed release. Re-check bootstrap after deployment.
+  Operator recovery must preserve data/configuration; a workspace ZIP does not recreate account identities.
 endlegend
 @enduml

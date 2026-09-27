@@ -1,50 +1,49 @@
 @startuml
 !include theme.iuml
-title Read-only dictionary lookup: source rows, not fieldwork
+title Dictionary search and exact text handoff — no Collection write
 hide footbox
 autonumber
-actor User
-participant "Dictionary\n<<React function>>" as Web
-participant "main.get_dictionary\n<<route function>>" as API
-participant "dictionary\n<<function module>>" as Reference
-participant "Versioned Markdown files" as Files
-
-activate User
-User -> Web : Open dictionary / change search or page
-activate Web
-note over Web : Debounce 250 ms; cancel stale requests.\nDo not load the dictionary while its page is hidden.
-Web -> API : GET /api/dictionary?query&offset&limit
-activate API
-API -> Reference : list_dictionary(query, offset, limit)
+actor Visitor
+participant "Dictionary / App\n<<browser functions>>" as UI
+participant "backend.dictionary\n<<route-target functions>>" as Dictionary
+participant "compiler.lexer.reference\n<<functions>>" as Reference
+database "Bundled Markdown\nlegacy senses" as Files
+activate Visitor
+Visitor -> UI : search words and select a result page
+activate UI
+UI -> Dictionary : GET /api/dictionary?query=...&offset=...&limit=...
+activate Dictionary
+note over Dictionary : FastAPI public read routing/limit precedes list_dictionary().
+Dictionary -> Dictionary : load_dictionary()
+activate Dictionary
+Dictionary -> Reference : load_classified_lexicon()
 activate Reference
-Reference -> Reference : load_dictionary()
-activate Reference
-loop Each supplied file, until complete or read/validation failure
-  Reference -> Files : read_text(UTF-8)
-  activate Files
-  Files --> Reference : Markdown or read error
-  deactivate Files
-  opt Read succeeded
-    Reference -> Reference : parse_dictionary(text, filename)
-    activate Reference
-    Reference --> Reference : Entries / validation error
-    deactivate Reference
-  end
-end
-Reference --> Reference : All entries / safe CollectionError
+Reference --> Dictionary : immutable supplied ReferenceEntry rows (cached)
 deactivate Reference
-note over Reference : Successful loads preserve every source row and sense.\nSearch normalized words, forms and meanings; slice one page.\nNo dataset read, approval, fieldwork count or provider call.
-Reference --> API : DictionaryResponse / safe 503
-deactivate Reference
-API --> Web : 200 paginated entries / 422 or 503
-deactivate API
-Web --> User : Meanings + source file/line / retryable error
-deactivate Web
-deactivate User
+Dictionary -> Files : read camfranglais.md and extra_lexicon.md
+activate Files
+Files --> Dictionary : Markdown source text, or read error
+deactivate Files
+note over Dictionary : parse_dictionary() retains source lines.\nMerge supplied rows with legacy senses not already supplied.
+Dictionary --> Dictionary : DictionaryEntry list, or CollectionError(503)
+deactivate Dictionary
+note over Dictionary : Normalize search words, require every word to match,\nthen page matches and retain all source filenames.
+Dictionary --> UI : DictionaryResponse, or explicit error
+deactivate Dictionary
+UI --> Visitor : source-labelled senses, counts and pagination
+deactivate UI
+Visitor -> UI : copy selected reference text to Franc Analyzer
+activate UI
+UI -> UI : openCompiler(text, "dictionary")\nin App.tsx
+activate UI
+UI --> UI : exact incoming text with reference provenance
+deactivate UI
+UI --> Visitor : draft only; Analyze must be selected to retain a test
+deactivate UI
+deactivate Visitor
 legend bottom
-  Every dictionary row remains a supplied reference, including repeated forms and senses.
-  English meanings and source origin are not a POS annotation or a reviewed French gloss.
-  The separate practice library is constructed material; neither source is real collected fieldwork.
-  This lookup has no translation/generation side effect.
+  Dictionary reference data is not Collection and is not evidence of human collection.
+  The UI handoff sends no POST and never inserts a Collection entry.
+  The 938-entry merged dictionary is a dated source snapshot, not a test count or fieldwork result.
 endlegend
 @enduml

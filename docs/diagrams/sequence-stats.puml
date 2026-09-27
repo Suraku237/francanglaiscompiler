@@ -1,41 +1,46 @@
 @startuml
 !include theme.iuml
-title Preserved desktop statistics from one snapshot
+title Analysis statistics — all saved snapshots, one page of summaries
 hide footbox
 autonumber
-actor Maintainer
-participant "app : App" as App
-participant "dataset\n<<module>>" as Dataset
-activate Maintainer
-Maintainer -> App : _refresh_stats() or _refresh_views()
-activate App
-App -> Dataset : load_all() through _load_entries()
-activate Dataset
-note over Dataset : Locked, validated CSV read.
-Dataset --> App : Shared normalized rows or storage exception
-deactivate Dataset
-alt Read failed
-  note over App : Show Dataset unavailable; retain previous bars/total.
-else Snapshot available
-  note over App : Remove old bars but keep headings.\nTotal = len(snapshot).
-  loop Type, topic, language, review status
-    App -> App : _render_bar_group(frame, counts, total)
-    activate App
-    alt Empty counts
-      note over App : Display No data yet.
-    else Nonempty counts
-      note over App : Descending count labels and count / total bars.\nEmpty values use (none).
-    end
-    App --> App : Group rendered
-    deactivate App
+participant "FrancAnalyzer / Analysis\n<<browser functions>>" as UI
+participant "analyzer_api.test_report()" as API
+participant "analyzer_history.test_report()" as History
+participant "store : PublicWorkspaceStore" as Store
+participant "VocabularyApproval\n<<model class>>" as Approval
+activate UI
+UI -> API : GET /api/analyzer/tests?offset=0&limit=25
+activate API
+note over API : Public read allowlist and rate limit passed;\ncourse_operation() holds the shared lock.
+API -> History : test_report(offset, limit)
+activate History
+History -> Store : iter_analyzer_tests()
+activate Store
+Store --> History : iterator of validated RecordedTest snapshots
+deactivate Store
+loop each saved snapshot, including intentional repeated tests
+  History -> Approval : from_statistics(record.lexical.statistics)
+  activate Approval
+  Approval --> History : UNKNOWN-only approval
+  deactivate Approval
+  note over History : Aggregate saved raw/normalized tokens, categories, variations,\nunknown review, vocabulary/CFG totals and recorded metadata.
+  opt this record is inside the requested summary page
+    History -> Store : ownership("analyzer_test", record.id)\nvia record_ownership()
+    activate Store
+    Store --> History : redacted Ownership
+    deactivate Store
+    note over History : Construct OwnedTestSummary, not the full snapshot.
   end
 end
-App --> Maintainer : Consistent distributions or preserved view + error
-deactivate App
-deactivate Maintainer
+History --> API : TestReport(all totals/statistics, paged tests)
+deactivate History
+API --> UI : report with separate summary and grammar_summary
+deactivate API
+note over UI : Inspecting a selected test uses GET /api/analyzer/tests/{id}.\nNothing is reclassified against a newly edited Collection or CFG.
+deactivate UI
 legend bottom
-  _refresh_views also supplies the same rows to count, recent and Browse views.
-  Direct Stats refresh loads once; count_by() is not called by this handler.
-  Earlier desktop benchmarks are historical; this diagram makes no current timing claim.
+  Iteration is lazy: the store validates SQL rows as consumed, retaining one complete snapshot at a time.
+  offset/limit page only summaries, not the population underlying the aggregates.
+  Empty acceptance rates are null; historical test counts are dated observations, not permanent constants.
 endlegend
 @enduml

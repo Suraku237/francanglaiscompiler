@@ -1,67 +1,53 @@
 @startuml
 !include theme.iuml
+title Camfranglais — public use cases, not account administration
 left to right direction
-title Assignment user goals and retained identity/recovery
-actor "Visitor (signed out)" as Visitor
-actor "Group member / private account owner" as Member
-actor "Email service" as Mail
-actor "Google identity service" as Google
-rectangle "Mboa non-AI compiler workspace" {
-  usecase "Register / verify / sign in /\nrecover account" as Account
-  usecase "Optional Google sign-in /\nexplicit account linking" as OAuth
-  usecase "Manage private projects" as Projects
-  usecase "Save exact manual statements\nand provenance" as Collect
-  usecase "Record / attach / play audio" as Audio
-  usecase "Review lexical annotations" as Review
-  usecase "Preview local text documents" as Import
-  usecase "Read dictionary / constructed practice" as Reference
-  usecase "Tokenize corpus and inspect\nfrequency / variation / phrases" as Lexical
-  usecase "Construct and justify own-data CFG" as CFG
-  usecase "Compute transformations,\nFIRST/FOLLOW and LL(1) table" as Grammar
-  usecase "Parse own tokenized inputs\nand inspect accept/reject traces" as Parse
-  usecase "Upload genuine screenshots;\nauthor profile / discussion" as Evidence
-  usecase "Export DRAFT report / slides /\nsource and analysis artifacts" as Export
-  usecase "Read/export preserved legacy history" as History
-  usecase "Restore entry revisions" as Revision
-  usecase "Create / schedule / download backup" as Backup
-  usecase "Preview and confirm workspace restore" as Restore
-  usecase "Validate archive integrity\nand data bounds" as Validate
+actor "Public visitor" as Visitor
+actor "Server operator\n(outside public UI)" as Operator
+rectangle "Public compiler workspace" {
+  usecase "Open public session\n(no registration or login)" as Open
+  usecase "Analyze text and retain\nan immutable public test" as Analyze
+  usecase "Inspect saved tests,\ntoken statistics and CFG traces" as Inspect
+  usecase "Browse/search\nread-only Collection" as Collection
+  usecase "Search source-labelled\nDictionary" as Dictionary
+  usecase "Browse clearly labelled\nSynthetic examples" as Examples
+  usecase "Copy chosen text unchanged\nto Franc Analyzer" as Copy
+  usecase "Look up an existing\nrecorded reading" as Lookup
+  usecase "Play/download\nexisting audio" as Play
+  usecase "Read privacy and\nprovenance limitations" as Privacy
 }
-Visitor -- Account
-Visitor -- OAuth
-Member -- OAuth
-Member -- Projects
-Member -- Collect
-Member -- Audio
-Member -- Review
-Member -- Import
-Member -- Reference
-Member -- Lexical
-Member -- CFG
-Member -- Grammar
-Member -- Parse
-Member -- Evidence
-Member -- Export
-Member -- History
-Member -- Revision
-Member -- Backup
-Member -- Restore
-Mail -- Account
-Google -- OAuth
-Parse ..> Grammar : <<include>>
-Export ..> Lexical : <<include>>
-Export ..> Grammar : <<include>>
-Backup ..> Validate : <<include>>
-Restore ..> Validate : <<include>>
-note bottom of Member
-  Three names describe the assignment group,
-  not shared-team access permissions.
-  Each private goal requires a verified account.
+rectangle "Private operational procedures\nnot public HTTP use cases" #FFF6E8 {
+  usecase "Configure HTTPS and\nservice deployment" as Deploy
+  usecase "Maintain/recover protected\nshared data and archives" as Recover
+  usecase "Review/curate source data\noffline with change control" as Curate
+}
+Visitor --> Open
+Visitor --> Analyze
+Visitor --> Inspect
+Visitor --> Collection
+Visitor --> Dictionary
+Visitor --> Examples
+Visitor --> Copy
+Visitor --> Lookup
+Visitor --> Play
+Visitor --> Privacy
+Analyze ..> Open : <<include>>\nrequest protection ready
+Copy ..> Collection : <<extend>>\nchosen entry
+Copy ..> Dictionary : <<extend>>\nchosen reference
+Copy ..> Examples : <<extend>>\nchosen example
+Play ..> Lookup : <<extend>>\nmatching reading exists
+Operator --> Deploy
+Operator --> Recover
+Operator --> Curate
+note bottom of Analyze
+  Analyze in the current UI records a test.
+  A test does not add an entry to Collection.
+  UNKNOWN-only vocabulary approval and
+  CFG acceptance are separate results.
 end note
 legend bottom
-  Include points to mandatory reused behavior; no dependency is decorated with cardinalities.
-  Import/reference lookup never automatically saves or authenticates a field statement.
-  Real listening/manual transcription, final pagination and presentation rehearsal remain human work.
-  No AI, translation, chat, OCR, remote transcription or browser dictation use case exists.
+  Read-only means protected reference resources; public test append is deliberately allowed.
+  No account controls, account counter, Collection/grammar/audio mutation or coursework export UI.
+  Recorded voice is playback, not browser synthesis, dictation or cloning.
 endlegend
 @enduml

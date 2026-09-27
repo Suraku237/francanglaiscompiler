@@ -1,125 +1,90 @@
 @startuml
 !include theme.iuml
 allowmixing
-title Private projects, coursework, legacy history and recovery
+title Shared persistence — real store hierarchy and structural protocols
 hide empty members
-package "backend.workspaces" {
-  rectangle "install_workspace() <<route functions>>" as Routes
-  class WorkspaceInput {
-    model_config: extra=forbid
-  }
-  class ProjectInput {
-    name: str [1..100, nonblank]
-  }
-  class SavedTranslation {
-    source_text; source_language; target_language
-    translation; explanation; note
-  }
-  class SavedMessage {
-    role: user | assistant
-    content: str [1..4000]
-  }
-  class SavedConversation
-  class HistoryInput {
-    kind: translation | conversation
-    title: str [1..100, nonblank]
-    document(): dict
-  }
-  class RestoreRevision {
-    expected_version: int >= 0
-  }
-  class WorkspaceStore {
-    root; path; audio_dir: Path
-    project: str
-    lock(): FileLock
-    connection()
-    load_all(): list[dict]
-    save_all(entries, action)
-    load_coursework(): ProjectProfile | None
-    save_coursework(profile)
-    read_coursework_screenshot(id): bytes
-    save_coursework_screenshot(id, name, content)
-    delete_coursework_screenshot(id)
-    change_project(name, project_id)
-    save_history(payload)
-    restore_revision(id, expected_version)
-    export_document(): dict
-    import_document(document, expected_version)
-    check_audio_capacity(additional)
-  }
+class WorkspaceStore {
+  user_id; project: str
+  root; path; audio_dir: Path
+  _lock: FileLock
+  storage_root(data_dir, user_id): Path
+  lock(): FileLock
+  connection(): Iterator[Connection]
+  load_all(): list[dict]
+  save_all(entries, action=None)
+  load_coursework(): ProjectProfile | None
+  save_coursework(profile)
+  load_analyzer_test(test_id): RecordedTest | None
+  save_analyzer_test(record)
+  iter_analyzer_tests(): Iterator[RecordedTest]
+  export_document(): dict
+  import_document(document, expected_version)
 }
-package "backend.workspace_backups" {
-  rectangle "workspace_backups.py <<functions>>\nsnapshot(), validate_archive(), preview_backup()\nrestore_backup(), maintenance_cycle()" as Backups
-  class BackupSettings {
-    automatic: bool = false
-    interval_hours: 24 | 168
-    keep_last: int [1..10]
-  }
-  class BackupRestore {
-    token: str [32 hex characters]
-    expected_version: int >= 0
-    confirmation: REPLACE
-  }
+class SharedWorkspaceStore {
+  owner_name: str
+  system: bool
+  storage_root(data_dir, user_id): Path
+  authorize_write(db, kind, identifier, new=False)
+  require_owner(kind, identifier)
+  ownership(kind, identifier): Ownership
+  load_analyzer_request(request_id): RecordedTest | None
+  analyzer_test_identifier(request_id): str
+  save_analyzer_request(request_id, record)
+  validate_document(document, combined=False): dict {static}
+  authorize_import(document)
 }
-class "DatasetStorage" as DatasetStorage <<protocol>> {
+class PublicWorkspaceStore <<reference>>
+class DatasetStorage <<protocol>> {
   audio_dir: Path
   lock(): FileLock
   ensure()
-  load_all(): list[dict]
+  load_all(): list[dict[str, str]]
   save_all(entries)
   append_entry(entry)
   check_audio_capacity(additional)
 }
-class "pydantic.BaseModel" as BaseModel <<external>>
+class CourseworkStorage <<protocol>> {
+  project: str
+  load_coursework(): ProjectProfile | None
+  save_coursework(profile)
+  list_coursework_screenshots(): list[dict]
+  read_coursework_screenshot(image_id): bytes
+  save_coursework_screenshot(image_id, name, content)
+  delete_coursework_screenshot(image_id)
+  load_analyzer_test(test_id): RecordedTest | None
+  save_analyzer_test(record)
+  iter_analyzer_tests(): Iterator[RecordedTest]
+  load_analyzer_request(request_id): RecordedTest | None
+  analyzer_test_identifier(request_id): str
+  save_analyzer_request(request_id, record)
+}
+class OwnershipStore <<protocol,reference>>
+class ProjectProfile <<reference>>
+class RecordedTest <<reference>>
 class "filelock.FileLock" as FileLock <<external>>
-class "DatasetEntry\n(collection view)" as DatasetEntry <<reference>>
-class "CourseworkStorage\n(coursework view)" as CourseworkStorage <<reference protocol>>
-class "ProjectProfile\n(coursework view)" as ProjectProfile <<reference>>
-rectangle "dataset.py <<module>>\nuse_storage() / request ContextVar" as Adapter
-WorkspaceInput --|> BaseModel
-ProjectInput --|> WorkspaceInput
-SavedTranslation --|> WorkspaceInput
-SavedMessage --|> WorkspaceInput
-SavedConversation --|> WorkspaceInput
-HistoryInput --|> WorkspaceInput
-RestoreRevision --|> WorkspaceInput
-BackupSettings --|> WorkspaceInput
-BackupRestore --|> WorkspaceInput
-WorkspaceStore ..|> DatasetStorage : structural conformance
-WorkspaceStore ..|> CourseworkStorage : structural conformance
-WorkspaceStore "0..*" -left-> "1" FileLock : _lock
-SavedConversation "0..*" --> "1..100" SavedMessage : messages
-HistoryInput "0..*" --> "0..1" SavedTranslation : content\n{xor}
-HistoryInput "0..*" --> "0..1" SavedConversation : content\n{xor}
-WorkspaceStore ..> HistoryInput : validates saved content
-WorkspaceStore ..> DatasetEntry : validates persisted entries
-WorkspaceStore ..> ProjectInput : validates restored projects
-WorkspaceStore ..> ProjectProfile : validates profile JSON; does not retain DTOs
-Adapter ..> DatasetStorage : delegates current request
-Backups ..> WorkspaceStore : versioned logical snapshot
-Backups ..> BackupSettings : validates scheduling
-Backups ..> BackupRestore : validates confirmation
-Routes ..> RestoreRevision : validates restore request
-Routes ..> WorkspaceStore : invokes selected private store
-note bottom of HistoryInput
-  Exactly one content alternative is present and matches kind.
-  Nested DTOs are references, not exclusive composition.
-end note
-note bottom of WorkspaceStore
-  Each request selects a server-owned account directory.
-  Project IDs must exist in that account's SQLite database.
-  Projects/backups management is account-scoped.
-  Tables persist JSON/rows, not live DTO instances.
-  coursework: one profile JSON row per project.
-  screenshots: at most six ID/name/base64 rows per project.
-  Profile/image mutations increment the workspace version.
+rectangle "workspaces.use_workspace()\ncurrent_workspace()\n<<ContextVar functions>>" as Context
+SharedWorkspaceStore --|> WorkspaceStore
+PublicWorkspaceStore --|> SharedWorkspaceStore
+WorkspaceStore ..|> DatasetStorage
+WorkspaceStore ..|> CourseworkStorage
+SharedWorkspaceStore ..|> OwnershipStore
+WorkspaceStore "0..*" --> "1" FileLock : _lock
+WorkspaceStore ..> ProjectProfile : validates JSON / returns DTO
+WorkspaceStore ..> RecordedTest : validates JSON / returns DTO
+Context ..> SharedWorkspaceStore : binds selected store
+Context ..> DatasetStorage : dataset.use_storage()
+Context ..> CourseworkStorage : coursework_store.use_storage()
+Context ..> OwnershipStore : use_ownership()
+note bottom of SharedWorkspaceStore
+  Root: data_dir/shared-workspace (all visitors).
+  Separate project mutations raise 409 even in legacy shared mode.
+  Public subclass narrows the inherited mutation policy.
+  SELECT/INSERT use SQLite rows, not retained DTO object graphs.
 end note
 legend bottom
-  Generalization/realization point toward the base contract.
-  The CSV fallback is used only without a hosted storage context.
-  SavedTranslation/Conversation remain for legacy history, not live generation.
-  Workspace document format 2 adds coursework/screenshots; format 1 restores remain supported.
-  The enclosing backup ZIP manifest stays format 1.
-  Audio and SQLite are coordinated, not one filesystem-wide ACID transaction.
+  Hollow triangles toward bases; dotted triangles are structural Protocol conformance.
+  WorkspaceStore also retains revision/history/screenshot operations for private compatibility.
+  use_workspace() resets all request-local bindings on exit; no global file path is reassigned.
+  A per-store file lock serializes related shared reads/writes; SQLite transactions protect logical rows.
 endlegend
 @enduml

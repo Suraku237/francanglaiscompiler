@@ -1,0 +1,6537 @@
+{
+  "format": 1,
+  "snapshot_date": "2026-09-27",
+  "source_revision": "a1b88aac3ba2b8249649ec945797b767cc5890ea",
+  "provenance_status": "User-supplied transcriptions. Original fieldwork, collection dates, collector identities and consent are unconfirmed.",
+  "corpus_snapshot": "docs/evidence/final-corpus-20260927.json",
+  "source_sha256": {
+    "backend/analyzer.py": "f8640596e718513327dc08a6b64dc29e440145b0a48eb4c516454c3d981807f9",
+    "backend/dictionary.py": "b02539ce6b1430186f6d4c4d5119a4d6d613d03c19811d2bb902f3e492b663fd",
+    "backend/token_statistics.py": "cc4b893b0ea2d20c9b0eeeb62f951be4e9d8471450e0f9cacc7df58a2581fc06",
+    "compiler/lexer/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiler/lexer/frequency.py": "863e8dbd5a1dc6adedde1d5a164eb0f11a4cfde96dacfc396cff7e22952b816b",
+    "compiler/lexer/languages.py": "462e0c055596765e4e5119e96966e816b2b69ea1c14c1c826b4e498c8c321436",
+    "compiler/lexer/learned.py": "9516deed8487082476891f2bfa7ac7820ea6886696a0dbb717fdb0e725161707",
+    "compiler/lexer/lexicon.py": "053dd8f1c16bc7d7d918abec7a2ca5d8c8a346a6bec02e8bd05a7c89cf1085fd",
+    "compiler/lexer/reference.py": "4c9fe8fcff48615da1c45d72abb479326a444fa620f82787b085cba38ce1c0c2",
+    "compiler/lexer/tokenizer.py": "fc9c882182c9fe272c8c06eafd78cc16755bc71783f4cd9bfe3c23b771079fea",
+    "compiler/lexer/vocabulary.py": "ea370fb3ab82983fad6258a212c2b4a513f12bb01b03ce27044b9643e429e5ff",
+    "compiler/parser/__init__.py": "6338ba5fd97c843c5461d9aaf8560cf1576a6d5ca2ac94dfd379957075c8f481",
+    "compiler/parser/analysis.py": "2a068bea4125e373dba45745d29fbd9029e2ff365a1b4b9e19427f9a63fdff4b",
+    "compiler/parser/grammar.py": "486415979085b2f1b44eabab915e5b2b4ede80f1a0807b2b3f8d2197b7b22ca5",
+    "compiler/parser/predictive.py": "1c6cd93e8aa9999e602df8376888233f630069eab58b371cfb9bfee56ce451f3",
+    "compiler/parser/service.py": "ccd1d51840335372b411e34a61ac5352625ff6e625ddd72405f48a760f21af41",
+    "compiler/parser/yaounde.py": "7bb1b60f7c4f707b8928ff863473faa5dcf36935da42e72998bc2c61618cbd5e",
+    "compiler/tests/yaounde_cases.py": "c47e9c7e1be46ee54d02497a516ab206090a9ae4393a5424e97c3394161f0cae",
+    "dictionary/camfranglais.md": "bfc2a67619403187a5614f97ba55478b9297b369cfc05133143b524e62619a10",
+    "dictionary/extra_lexicon.md": "dad1c436e5c220a942e72bf9bf60b693f13ceb85d48187f35fc15baa88c0ce93",
+    "dictionary/full_lexicon_classified.csv": "a153bf6a262644e7238c2e88aa366b1ef9ae4e622a9b7ffc44d75b36c1fbc717",
+    "docs/evidence/final-corpus-20260927.json": "8142398a2b0076d7b08f353b2314f1f0927a2b1ee639a069ca95d72dbfcccbd1"
+  },
+  "dictionary_entries": 938,
+  "reference_csv_rows": 878,
+  "statistics": {
+    "frequencies": [
+      {
+        "token": "je",
+        "count": 7
+      },
+      {
+        "token": "le",
+        "count": 6
+      },
+      {
+        "token": "depuis",
+        "count": 3
+      },
+      {
+        "token": "suis",
+        "count": 3
+      },
+      {
+        "token": "j'ai",
+        "count": 2
+      },
+      {
+        "token": "pas",
+        "count": 2
+      },
+      {
+        "token": "bayar",
+        "count": 2
+      },
+      {
+        "token": "kass",
+        "count": 2
+      },
+      {
+        "token": "go",
+        "count": 2
+      },
+      {
+        "token": "school",
+        "count": 2
+      },
+      {
+        "token": "flop",
+        "count": 2
+      },
+      {
+        "token": "au",
+        "count": 2
+      },
+      {
+        "token": "pere",
+        "count": 2
+      },
+      {
+        "token": "a",
+        "count": 2
+      },
+      {
+        "token": "les",
+        "count": 2
+      },
+      {
+        "token": "n'est",
+        "count": 1
+      },
+      {
+        "token": "tchop",
+        "count": 1
+      },
+      {
+        "token": "nang",
+        "count": 1
+      },
+      {
+        "token": "back",
+        "count": 1
+      },
+      {
+        "token": "du",
+        "count": 1
+      },
+      {
+        "token": "sharp",
+        "count": 1
+      },
+      {
+        "token": "man",
+        "count": 1
+      },
+      {
+        "token": "mban",
+        "count": 1
+      },
+      {
+        "token": "gars",
+        "count": 1
+      },
+      {
+        "token": "yabat",
+        "count": 1
+      },
+      {
+        "token": "elles",
+        "count": 1
+      },
+      {
+        "token": "yamo",
+        "count": 1
+      },
+      {
+        "token": "kongossa",
+        "count": 1
+      },
+      {
+        "token": "piol",
+        "count": 1
+      },
+      {
+        "token": "shoua",
+        "count": 1
+      },
+      {
+        "token": "mes",
+        "count": 1
+      },
+      {
+        "token": "kako",
+        "count": 1
+      },
+      {
+        "token": "ca",
+        "count": 1
+      },
+      {
+        "token": "me",
+        "count": 1
+      },
+      {
+        "token": "chop",
+        "count": 1
+      },
+      {
+        "token": "ont",
+        "count": 1
+      },
+      {
+        "token": "cote",
+        "count": 1
+      },
+      {
+        "token": "la",
+        "count": 1
+      },
+      {
+        "token": "light",
+        "count": 1
+      },
+      {
+        "token": "shap",
+        "count": 1
+      },
+      {
+        "token": "shiba",
+        "count": 1
+      },
+      {
+        "token": "price",
+        "count": 1
+      },
+      {
+        "token": "n'ais",
+        "count": 1
+      },
+      {
+        "token": "do",
+        "count": 1
+      },
+      {
+        "token": "mon",
+        "count": 1
+      },
+      {
+        "token": "combi",
+        "count": 1
+      },
+      {
+        "token": "came",
+        "count": 1
+      },
+      {
+        "token": "alli",
+        "count": 1
+      },
+      {
+        "token": "day",
+        "count": 1
+      },
+      {
+        "token": "pied",
+        "count": 1
+      },
+      {
+        "token": "falla",
+        "count": 1
+      },
+      {
+        "token": "taco",
+        "count": 1
+      },
+      {
+        "token": "talk",
+        "count": 1
+      },
+      {
+        "token": "free",
+        "count": 1
+      },
+      {
+        "token": "francais",
+        "count": 1
+      }
+    ],
+    "category_counts": {
+      "VERB": 19,
+      "FRENCH_FUNCTION_WORD": 28,
+      "NOUN": 14,
+      "ADVERB": 6,
+      "ADJECTIVE": 2,
+      "AMBIGUOUS": 5,
+      "PIDGIN_MARKER": 2,
+      "ENGLISH_FUNCTION_WORD": 3,
+      "UNKNOWN": 2
+    },
+    "variations": [
+      {
+        "normalized": "j'ai",
+        "forms": [
+          {
+            "text": "J'ai",
+            "count": 1
+          },
+          {
+            "text": "j'ai",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "unknown_tokens": [
+      {
+        "token": "n'ais",
+        "count": 1
+      },
+      {
+        "token": "alli",
+        "count": 1
+      }
+    ],
+    "total_tokens": 81
+  },
+  "grammar": {
+    "original": {
+      "Utterance": [
+        [
+          "Clause"
+        ],
+        [
+          "Clause",
+          "PUNCTUATION"
+        ]
+      ],
+      "Clause": [
+        [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ],
+        [
+          "Nominal",
+          "BareSubjectTail"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ]
+      ],
+      "SubjectTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "Nominal",
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ]
+      ],
+      "BareSubjectTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ]
+      ],
+      "PredicateTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "ENGLISH_FUNCTION_WORD",
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "ADJECTIVE",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ],
+        []
+      ],
+      "LinkedPhrase": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "ModifiedNominal"
+        ]
+      ],
+      "ModifiedNominal": [
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ]
+      ],
+      "AdverbTail": [
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        []
+      ],
+      "ComplementTail": [
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        []
+      ],
+      "Nominal": [
+        [
+          "Nominal",
+          "NOUN"
+        ],
+        [
+          "NOUN"
+        ]
+      ]
+    },
+    "transformed": {
+      "Utterance": [
+        [
+          "Clause",
+          "Utterance_LF1"
+        ]
+      ],
+      "Clause": [
+        [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ],
+        [
+          "Nominal",
+          "BareSubjectTail"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ]
+      ],
+      "SubjectTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "Nominal",
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ]
+      ],
+      "BareSubjectTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ]
+      ],
+      "PredicateTail": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "ENGLISH_FUNCTION_WORD",
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "ADJECTIVE",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ],
+        []
+      ],
+      "LinkedPhrase": [
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "ModifiedNominal"
+        ]
+      ],
+      "ModifiedNominal": [
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "ADVERB",
+          "AdverbTail"
+        ]
+      ],
+      "AdverbTail": [
+        [
+          "Nominal",
+          "ComplementTail"
+        ],
+        [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        []
+      ],
+      "ComplementTail": [
+        [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        [
+          "VERB",
+          "PredicateTail"
+        ],
+        []
+      ],
+      "Nominal": [
+        [
+          "NOUN",
+          "Nominal_LR1"
+        ]
+      ],
+      "Nominal_LR1": [
+        [
+          "NOUN",
+          "Nominal_LR1"
+        ],
+        []
+      ],
+      "Utterance_LF1": [
+        [],
+        [
+          "PUNCTUATION"
+        ]
+      ]
+    },
+    "start_symbol": "Utterance",
+    "terminals": [
+      "ADJECTIVE",
+      "ADVERB",
+      "AMBIGUOUS",
+      "ENGLISH_FUNCTION_WORD",
+      "FRENCH_FUNCTION_WORD",
+      "NOUN",
+      "PIDGIN_MARKER",
+      "PUNCTUATION",
+      "VERB"
+    ],
+    "nonterminals": [
+      "Utterance",
+      "Clause",
+      "SubjectTail",
+      "BareSubjectTail",
+      "PredicateTail",
+      "LinkedPhrase",
+      "ModifiedNominal",
+      "AdverbTail",
+      "ComplementTail",
+      "Nominal",
+      "Nominal_LR1",
+      "Utterance_LF1"
+    ],
+    "steps": [
+      {
+        "operation": "eliminate_direct_left_recursion",
+        "before": {
+          "Utterance": [
+            [
+              "Clause"
+            ],
+            [
+              "Clause",
+              "PUNCTUATION"
+            ]
+          ],
+          "Clause": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ],
+            [
+              "Nominal",
+              "BareSubjectTail"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ]
+          ],
+          "SubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ]
+          ],
+          "BareSubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ]
+          ],
+          "PredicateTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ADJECTIVE",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ],
+            []
+          ],
+          "LinkedPhrase": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "ModifiedNominal"
+            ]
+          ],
+          "ModifiedNominal": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ]
+          ],
+          "AdverbTail": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "ComplementTail": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "Nominal": [
+            [
+              "Nominal",
+              "NOUN"
+            ],
+            [
+              "NOUN"
+            ]
+          ]
+        },
+        "after": {
+          "Utterance": [
+            [
+              "Clause"
+            ],
+            [
+              "Clause",
+              "PUNCTUATION"
+            ]
+          ],
+          "Clause": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ],
+            [
+              "Nominal",
+              "BareSubjectTail"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ]
+          ],
+          "SubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ]
+          ],
+          "BareSubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ]
+          ],
+          "PredicateTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ADJECTIVE",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ],
+            []
+          ],
+          "LinkedPhrase": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "ModifiedNominal"
+            ]
+          ],
+          "ModifiedNominal": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ]
+          ],
+          "AdverbTail": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "ComplementTail": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "Nominal": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ]
+          ],
+          "Nominal_LR1": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ],
+            []
+          ]
+        },
+        "description": "Replace Nominal -> Nominal alpha | beta with Nominal -> beta Nominal_LR1 and Nominal_LR1 -> alpha Nominal_LR1 | epsilon, for every alpha and beta."
+      },
+      {
+        "operation": "left_factor",
+        "before": {
+          "Utterance": [
+            [
+              "Clause"
+            ],
+            [
+              "Clause",
+              "PUNCTUATION"
+            ]
+          ],
+          "Clause": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ],
+            [
+              "Nominal",
+              "BareSubjectTail"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ]
+          ],
+          "SubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ]
+          ],
+          "BareSubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ]
+          ],
+          "PredicateTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ADJECTIVE",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ],
+            []
+          ],
+          "LinkedPhrase": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "ModifiedNominal"
+            ]
+          ],
+          "ModifiedNominal": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ]
+          ],
+          "AdverbTail": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "ComplementTail": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "Nominal": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ]
+          ],
+          "Nominal_LR1": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ],
+            []
+          ]
+        },
+        "after": {
+          "Utterance": [
+            [
+              "Clause",
+              "Utterance_LF1"
+            ]
+          ],
+          "Clause": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ],
+            [
+              "Nominal",
+              "BareSubjectTail"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ]
+          ],
+          "SubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ]
+          ],
+          "BareSubjectTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "SubjectTail"
+            ]
+          ],
+          "PredicateTail": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "ADJECTIVE",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "PIDGIN_MARKER",
+              "ComplementTail"
+            ],
+            []
+          ],
+          "LinkedPhrase": [
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "ModifiedNominal"
+            ]
+          ],
+          "ModifiedNominal": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "ADVERB",
+              "AdverbTail"
+            ]
+          ],
+          "AdverbTail": [
+            [
+              "Nominal",
+              "ComplementTail"
+            ],
+            [
+              "AMBIGUOUS",
+              "ComplementTail"
+            ],
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "ComplementTail": [
+            [
+              "FRENCH_FUNCTION_WORD",
+              "LinkedPhrase"
+            ],
+            [
+              "VERB",
+              "PredicateTail"
+            ],
+            []
+          ],
+          "Nominal": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ]
+          ],
+          "Nominal_LR1": [
+            [
+              "NOUN",
+              "Nominal_LR1"
+            ],
+            []
+          ],
+          "Utterance_LF1": [
+            [],
+            [
+              "PUNCTUATION"
+            ]
+          ]
+        },
+        "description": "Factor the common prefix 'Clause' from Utterance; move the remaining alternatives to Utterance_LF1, using epsilon for an empty suffix."
+      }
+    ],
+    "first": {
+      "Utterance": [
+        "FRENCH_FUNCTION_WORD",
+        "NOUN",
+        "VERB"
+      ],
+      "Clause": [
+        "FRENCH_FUNCTION_WORD",
+        "NOUN",
+        "VERB"
+      ],
+      "SubjectTail": [
+        "AMBIGUOUS",
+        "NOUN",
+        "VERB"
+      ],
+      "BareSubjectTail": [
+        "FRENCH_FUNCTION_WORD",
+        "VERB"
+      ],
+      "PredicateTail": [
+        "ADJECTIVE",
+        "ADVERB",
+        "AMBIGUOUS",
+        "ENGLISH_FUNCTION_WORD",
+        "FRENCH_FUNCTION_WORD",
+        "NOUN",
+        "PIDGIN_MARKER",
+        "VERB",
+        "epsilon"
+      ],
+      "LinkedPhrase": [
+        "ADVERB",
+        "AMBIGUOUS",
+        "FRENCH_FUNCTION_WORD",
+        "NOUN",
+        "VERB"
+      ],
+      "ModifiedNominal": [
+        "ADVERB",
+        "AMBIGUOUS",
+        "NOUN"
+      ],
+      "AdverbTail": [
+        "AMBIGUOUS",
+        "FRENCH_FUNCTION_WORD",
+        "NOUN",
+        "VERB",
+        "epsilon"
+      ],
+      "ComplementTail": [
+        "FRENCH_FUNCTION_WORD",
+        "VERB",
+        "epsilon"
+      ],
+      "Nominal": [
+        "NOUN"
+      ],
+      "Nominal_LR1": [
+        "NOUN",
+        "epsilon"
+      ],
+      "Utterance_LF1": [
+        "PUNCTUATION",
+        "epsilon"
+      ]
+    },
+    "follow": {
+      "Utterance": [
+        "$"
+      ],
+      "Clause": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "SubjectTail": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "BareSubjectTail": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "PredicateTail": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "LinkedPhrase": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "ModifiedNominal": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "AdverbTail": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "ComplementTail": [
+        "$",
+        "PUNCTUATION"
+      ],
+      "Nominal": [
+        "$",
+        "FRENCH_FUNCTION_WORD",
+        "PUNCTUATION",
+        "VERB"
+      ],
+      "Nominal_LR1": [
+        "$",
+        "FRENCH_FUNCTION_WORD",
+        "PUNCTUATION",
+        "VERB"
+      ],
+      "Utterance_LF1": [
+        "$"
+      ]
+    },
+    "table": {
+      "Utterance": {
+        "FRENCH_FUNCTION_WORD": [
+          "Clause",
+          "Utterance_LF1"
+        ],
+        "NOUN": [
+          "Clause",
+          "Utterance_LF1"
+        ],
+        "VERB": [
+          "Clause",
+          "Utterance_LF1"
+        ]
+      },
+      "Clause": {
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ],
+        "NOUN": [
+          "Nominal",
+          "BareSubjectTail"
+        ],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "SubjectTail": {
+        "AMBIGUOUS": [
+          "AMBIGUOUS",
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ],
+        "NOUN": [
+          "Nominal",
+          "VERB",
+          "PredicateTail"
+        ],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "BareSubjectTail": {
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "SubjectTail"
+        ],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "PredicateTail": {
+        "$": [],
+        "ADJECTIVE": [
+          "ADJECTIVE",
+          "ComplementTail"
+        ],
+        "ADVERB": [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        "AMBIGUOUS": [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        "ENGLISH_FUNCTION_WORD": [
+          "ENGLISH_FUNCTION_WORD",
+          "VERB",
+          "PredicateTail"
+        ],
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        "NOUN": [
+          "Nominal",
+          "ComplementTail"
+        ],
+        "PIDGIN_MARKER": [
+          "PIDGIN_MARKER",
+          "ComplementTail"
+        ],
+        "PUNCTUATION": [],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "LinkedPhrase": {
+        "ADVERB": [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        "AMBIGUOUS": [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "ModifiedNominal"
+        ],
+        "NOUN": [
+          "Nominal",
+          "ComplementTail"
+        ],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "ModifiedNominal": {
+        "ADVERB": [
+          "ADVERB",
+          "AdverbTail"
+        ],
+        "AMBIGUOUS": [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        "NOUN": [
+          "Nominal",
+          "ComplementTail"
+        ]
+      },
+      "AdverbTail": {
+        "$": [],
+        "AMBIGUOUS": [
+          "AMBIGUOUS",
+          "ComplementTail"
+        ],
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        "NOUN": [
+          "Nominal",
+          "ComplementTail"
+        ],
+        "PUNCTUATION": [],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "ComplementTail": {
+        "$": [],
+        "FRENCH_FUNCTION_WORD": [
+          "FRENCH_FUNCTION_WORD",
+          "LinkedPhrase"
+        ],
+        "PUNCTUATION": [],
+        "VERB": [
+          "VERB",
+          "PredicateTail"
+        ]
+      },
+      "Nominal": {
+        "NOUN": [
+          "NOUN",
+          "Nominal_LR1"
+        ]
+      },
+      "Nominal_LR1": {
+        "$": [],
+        "FRENCH_FUNCTION_WORD": [],
+        "NOUN": [
+          "NOUN",
+          "Nominal_LR1"
+        ],
+        "PUNCTUATION": [],
+        "VERB": []
+      },
+      "Utterance_LF1": {
+        "$": [],
+        "PUNCTUATION": [
+          "PUNCTUATION"
+        ]
+      }
+    },
+    "conflicts": [],
+    "is_ll1": true,
+    "warnings": [
+      "This category-level grammar has limited coverage: rejection does not prove a sentence is invalid Francanglais, and acceptance is not a linguistic validation.",
+      "Results depend on lexer categories, including heuristic classifications, not word meanings.",
+      "Lexer categories not covered by this grammar: CONJUNCTION, DETERMINER, ENGLISH_VERB_LIKE, FRENCH_VERB_LIKE, INTERJECTION, NUMBER, PARTICLE, PREPOSITION, PRONOUN, SLANG, UNKNOWN."
+    ]
+  },
+  "results": [
+    {
+      "id": "S01",
+      "text": "J'ai n'est pas tchop depuis bayar",
+      "category": "Other",
+      "french_gloss": "Je n'ai pas mang\u00e9 depuis longtemps.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "J'ai",
+            "category": "VERB"
+          },
+          {
+            "text": "n'est",
+            "category": "VERB"
+          },
+          {
+            "text": "pas",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "tchop",
+            "category": "NOUN"
+          },
+          {
+            "text": "depuis",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "bayar",
+            "category": "ADVERB"
+          }
+        ],
+        "code_mixed_spans": [
+          "pas ... tchop",
+          "tchop ... depuis"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "j'ai",
+              "count": 1
+            },
+            {
+              "token": "n'est",
+              "count": 1
+            },
+            {
+              "token": "pas",
+              "count": 1
+            },
+            {
+              "token": "tchop",
+              "count": 1
+            },
+            {
+              "token": "depuis",
+              "count": 1
+            },
+            {
+              "token": "bayar",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "VERB": 2,
+            "FRENCH_FUNCTION_WORD": 2,
+            "NOUN": 1,
+            "ADVERB": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 6
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Clause -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> ADVERB AdverbTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail",
+              "ADVERB"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match ADVERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply AdverbTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 6
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Contracted verbs, a function-word nominal group and a temporal adverbial group; not corrected French."
+    },
+    {
+      "id": "S02",
+      "text": "je suis kass je go nang",
+      "category": "Other",
+      "french_gloss": "Je suis fatigu\u00e9, je vais dormir.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "suis",
+            "category": "VERB"
+          },
+          {
+            "text": "kass",
+            "category": "ADJECTIVE"
+          },
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "go",
+            "category": "VERB"
+          },
+          {
+            "text": "nang",
+            "category": "VERB"
+          }
+        ],
+        "code_mixed_spans": [
+          "je ... go"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "je",
+              "count": 2
+            },
+            {
+              "token": "suis",
+              "count": 1
+            },
+            {
+              "token": "kass",
+              "count": 1
+            },
+            {
+              "token": "go",
+              "count": 1
+            },
+            {
+              "token": "nang",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 2,
+            "VERB": 3,
+            "ADJECTIVE": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 6
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ADJECTIVE ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "ADJECTIVE"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Match ADJECTIVE"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "VERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply PredicateTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 6
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Pronominal clause with an adjective, followed by a juxtaposed clause with serial verbs."
+    },
+    {
+      "id": "S03",
+      "text": "je suis back du school le sharp man",
+      "category": "Other",
+      "french_gloss": "Je suis revenu de l'\u00e9cole ce matin.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "suis",
+            "category": "VERB"
+          },
+          {
+            "text": "back",
+            "category": "AMBIGUOUS"
+          },
+          {
+            "text": "du",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "school",
+            "category": "NOUN"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "sharp",
+            "category": "ADVERB"
+          },
+          {
+            "text": "man",
+            "category": "AMBIGUOUS"
+          }
+        ],
+        "code_mixed_spans": [
+          "suis ... back",
+          "back ... du",
+          "du ... school",
+          "school ... le",
+          "le ... sharp",
+          "sharp ... man"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "je",
+              "count": 1
+            },
+            {
+              "token": "suis",
+              "count": 1
+            },
+            {
+              "token": "back",
+              "count": 1
+            },
+            {
+              "token": "du",
+              "count": 1
+            },
+            {
+              "token": "school",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "sharp",
+              "count": 1
+            },
+            {
+              "token": "man",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 3,
+            "VERB": 1,
+            "AMBIGUOUS": 2,
+            "NOUN": 1,
+            "ADVERB": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 8
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> AMBIGUOUS ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "AMBIGUOUS"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match AMBIGUOUS"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> ADVERB AdverbTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail",
+              "ADVERB"
+            ],
+            "remaining": [
+              "ADVERB",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match ADVERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply AdverbTail -> AMBIGUOUS ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "AMBIGUOUS"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match AMBIGUOUS"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 8
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Ambiguous complement, school nominal group and a marked adverb-plus-ambiguous group."
+    },
+    {
+      "id": "S04",
+      "text": "j'ai mban gars je yabat",
+      "category": "Other",
+      "french_gloss": "J'ai \u00e9chou\u00e9, mon gars, j'ai mal.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "j'ai",
+            "category": "VERB"
+          },
+          {
+            "text": "mban",
+            "category": "VERB"
+          },
+          {
+            "text": "gars",
+            "category": "PIDGIN_MARKER"
+          },
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "yabat",
+            "category": "VERB"
+          }
+        ],
+        "code_mixed_spans": [],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "j'ai",
+              "count": 1
+            },
+            {
+              "token": "mban",
+              "count": 1
+            },
+            {
+              "token": "gars",
+              "count": 1
+            },
+            {
+              "token": "je",
+              "count": 1
+            },
+            {
+              "token": "yabat",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "VERB": 3,
+            "PIDGIN_MARKER": 1,
+            "FRENCH_FUNCTION_WORD": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 5
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Clause -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "VERB",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "VERB",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> PIDGIN_MARKER ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "PIDGIN_MARKER"
+            ],
+            "remaining": [
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Match PIDGIN_MARKER"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "VERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply PredicateTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 5
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Contracted auxiliary and verb, discourse marker, then a juxtaposed pronominal clause."
+    },
+    {
+      "id": "S05",
+      "text": "elles yamo flop le kongossa",
+      "category": "Other",
+      "french_gloss": "Elles perdent leur temps \u00e0 comm\u00e9rer.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "elles",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "yamo",
+            "category": "VERB"
+          },
+          {
+            "text": "flop",
+            "category": "ADVERB"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "kongossa",
+            "category": "AMBIGUOUS"
+          }
+        ],
+        "code_mixed_spans": [
+          "le ... kongossa"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "elles",
+              "count": 1
+            },
+            {
+              "token": "yamo",
+              "count": 1
+            },
+            {
+              "token": "flop",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "kongossa",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 2,
+            "VERB": 1,
+            "ADVERB": 1,
+            "AMBIGUOUS": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 5
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ADVERB AdverbTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail",
+              "ADVERB"
+            ],
+            "remaining": [
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match ADVERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply AdverbTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> AMBIGUOUS ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "AMBIGUOUS"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "$"
+            ],
+            "action": "Match AMBIGUOUS"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 5
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Pronominal clause with an adverb and an introduced ambiguous complement."
+    },
+    {
+      "id": "S06",
+      "text": "go au piol shoua mes kako",
+      "category": "Other",
+      "french_gloss": "Va \u00e0 la maison laver mes habits.",
+      "recorded_location": "",
+      "has_collection_audio": false,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "go",
+            "category": "VERB"
+          },
+          {
+            "text": "au",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "piol",
+            "category": "NOUN"
+          },
+          {
+            "text": "shoua",
+            "category": "VERB"
+          },
+          {
+            "text": "mes",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "kako",
+            "category": "NOUN"
+          }
+        ],
+        "code_mixed_spans": [
+          "go ... au"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "go",
+              "count": 1
+            },
+            {
+              "token": "au",
+              "count": 1
+            },
+            {
+              "token": "piol",
+              "count": 1
+            },
+            {
+              "token": "shoua",
+              "count": 1
+            },
+            {
+              "token": "mes",
+              "count": 1
+            },
+            {
+              "token": "kako",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "VERB": 2,
+            "FRENCH_FUNCTION_WORD": 2,
+            "NOUN": 2
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 6
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Clause -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 6
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Two juxtaposed verb-initial phrases with introduced nominal complements."
+    },
+    {
+      "id": "S07",
+      "text": "pere ca me chop je suis kass",
+      "category": "Other",
+      "french_gloss": "P\u00e8re, \u00e7a me touche, je suis \u00e9puis\u00e9.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "pere",
+            "category": "NOUN"
+          },
+          {
+            "text": "ca",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "me",
+            "category": "AMBIGUOUS"
+          },
+          {
+            "text": "chop",
+            "category": "PIDGIN_MARKER"
+          },
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "suis",
+            "category": "VERB"
+          },
+          {
+            "text": "kass",
+            "category": "ADJECTIVE"
+          }
+        ],
+        "code_mixed_spans": [
+          "ca ... chop",
+          "chop ... je"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "pere",
+              "count": 1
+            },
+            {
+              "token": "ca",
+              "count": 1
+            },
+            {
+              "token": "me",
+              "count": 1
+            },
+            {
+              "token": "chop",
+              "count": 1
+            },
+            {
+              "token": "je",
+              "count": 1
+            },
+            {
+              "token": "suis",
+              "count": 1
+            },
+            {
+              "token": "kass",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "NOUN": 1,
+            "FRENCH_FUNCTION_WORD": 2,
+            "AMBIGUOUS": 1,
+            "PIDGIN_MARKER": 1,
+            "VERB": 1,
+            "ADJECTIVE": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 7
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply Clause -> Nominal BareSubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply BareSubjectTail -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> AMBIGUOUS PIDGIN_MARKER ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "PIDGIN_MARKER",
+              "AMBIGUOUS"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match AMBIGUOUS"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "PIDGIN_MARKER"
+            ],
+            "remaining": [
+              "PIDGIN_MARKER",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match PIDGIN_MARKER"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ADJECTIVE ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "ADJECTIVE"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "$"
+            ],
+            "action": "Match ADJECTIVE"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 7
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Nominal address, pronominal/Pidgin pattern, then a pronominal clause and adjective."
+    },
+    {
+      "id": "S08",
+      "text": "Ont a cote la light depuis le shap",
+      "category": "Other",
+      "french_gloss": "On a coup\u00e9 le courant depuis ce matin.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "Ont",
+            "category": "VERB"
+          },
+          {
+            "text": "a",
+            "category": "ENGLISH_FUNCTION_WORD"
+          },
+          {
+            "text": "cote",
+            "category": "VERB"
+          },
+          {
+            "text": "la",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "light",
+            "category": "NOUN"
+          },
+          {
+            "text": "depuis",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "shap",
+            "category": "ADVERB"
+          }
+        ],
+        "code_mixed_spans": [
+          "la ... light",
+          "light ... depuis",
+          "le ... shap"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "ont",
+              "count": 1
+            },
+            {
+              "token": "a",
+              "count": 1
+            },
+            {
+              "token": "cote",
+              "count": 1
+            },
+            {
+              "token": "la",
+              "count": 1
+            },
+            {
+              "token": "light",
+              "count": 1
+            },
+            {
+              "token": "depuis",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "shap",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "VERB": 2,
+            "ENGLISH_FUNCTION_WORD": 1,
+            "FRENCH_FUNCTION_WORD": 3,
+            "NOUN": 1,
+            "ADVERB": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 8
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "VERB",
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "VERB",
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Clause -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ENGLISH_FUNCTION_WORD VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB",
+              "ENGLISH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "ENGLISH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match ENGLISH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> FRENCH_FUNCTION_WORD ModifiedNominal"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ModifiedNominal",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ModifiedNominal"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply ModifiedNominal -> ADVERB AdverbTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail",
+              "ADVERB"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match ADVERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply AdverbTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 8
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Observed verb-link-verb categories, nominal complement and a two-marker adverbial group."
+    },
+    {
+      "id": "S09",
+      "text": "shiba le price pere je n'ais pas flop les do",
+      "category": "Other",
+      "french_gloss": "Baisse le prix, s'il te pla\u00eet, je n'ai pas beaucoup d'argent.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "shiba",
+            "category": "VERB"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "price",
+            "category": "NOUN"
+          },
+          {
+            "text": "pere",
+            "category": "NOUN"
+          },
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "n'ais",
+            "category": "UNKNOWN"
+          },
+          {
+            "text": "pas",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "flop",
+            "category": "ADVERB"
+          },
+          {
+            "text": "les",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "do",
+            "category": "ENGLISH_FUNCTION_WORD"
+          }
+        ],
+        "code_mixed_spans": [
+          "le ... price",
+          "price ... pere",
+          "les ... do"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "shiba",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "price",
+              "count": 1
+            },
+            {
+              "token": "pere",
+              "count": 1
+            },
+            {
+              "token": "je",
+              "count": 1
+            },
+            {
+              "token": "n'ais",
+              "count": 1
+            },
+            {
+              "token": "pas",
+              "count": 1
+            },
+            {
+              "token": "flop",
+              "count": 1
+            },
+            {
+              "token": "les",
+              "count": 1
+            },
+            {
+              "token": "do",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "VERB": 1,
+            "FRENCH_FUNCTION_WORD": 4,
+            "NOUN": 2,
+            "UNKNOWN": 1,
+            "ADVERB": 1,
+            "ENGLISH_FUNCTION_WORD": 1
+          },
+          "variations": [],
+          "unknown_tokens": [
+            {
+              "token": "n'ais",
+              "count": 1
+            }
+          ],
+          "total_tokens": 10
+        }
+      },
+      "parse": {
+        "accepted": false,
+        "error": "No production for LinkedPhrase with lookahead UNKNOWN at token 6; expected: ADVERB, AMBIGUOUS, FRENCH_FUNCTION_WORD, NOUN, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Clause -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "UNKNOWN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "FRENCH_FUNCTION_WORD",
+              "ENGLISH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Reject: No production for LinkedPhrase with lookahead UNKNOWN at token 6; expected: ADVERB, AMBIGUOUS, FRENCH_FUNCTION_WORD, NOUN, VERB."
+          }
+        ],
+        "consumed": 5
+      },
+      "vocabulary_accepted": false,
+      "rationale": "The original n'ais is UNKNOWN. No silent correction to n'ai is made."
+    },
+    {
+      "id": "S10",
+      "text": "mon combi came au school alli day a pied",
+      "category": "Other",
+      "french_gloss": "Mon ami est venu \u00e0 l'\u00e9cole, il est venu \u00e0 pied.",
+      "recorded_location": "",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "mon",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "combi",
+            "category": "NOUN"
+          },
+          {
+            "text": "came",
+            "category": "VERB"
+          },
+          {
+            "text": "au",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "school",
+            "category": "NOUN"
+          },
+          {
+            "text": "alli",
+            "category": "UNKNOWN"
+          },
+          {
+            "text": "day",
+            "category": "NOUN"
+          },
+          {
+            "text": "a",
+            "category": "ENGLISH_FUNCTION_WORD"
+          },
+          {
+            "text": "pied",
+            "category": "NOUN"
+          }
+        ],
+        "code_mixed_spans": [
+          "mon ... combi",
+          "combi ... came",
+          "came ... au",
+          "au ... school",
+          "day ... pied"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "mon",
+              "count": 1
+            },
+            {
+              "token": "combi",
+              "count": 1
+            },
+            {
+              "token": "came",
+              "count": 1
+            },
+            {
+              "token": "au",
+              "count": 1
+            },
+            {
+              "token": "school",
+              "count": 1
+            },
+            {
+              "token": "alli",
+              "count": 1
+            },
+            {
+              "token": "day",
+              "count": 1
+            },
+            {
+              "token": "a",
+              "count": 1
+            },
+            {
+              "token": "pied",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 2,
+            "NOUN": 4,
+            "VERB": 1,
+            "UNKNOWN": 1,
+            "ENGLISH_FUNCTION_WORD": 1
+          },
+          "variations": [],
+          "unknown_tokens": [
+            {
+              "token": "alli",
+              "count": 1
+            }
+          ],
+          "total_tokens": 9
+        }
+      },
+      "parse": {
+        "accepted": false,
+        "error": "No production for Nominal_LR1 with lookahead UNKNOWN at token 6; expected: $, FRENCH_FUNCTION_WORD, NOUN, PUNCTUATION, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> Nominal VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "UNKNOWN",
+              "NOUN",
+              "ENGLISH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Reject: No production for Nominal_LR1 with lookahead UNKNOWN at token 6; expected: $, FRENCH_FUNCTION_WORD, NOUN, PUNCTUATION, VERB."
+          }
+        ],
+        "consumed": 5
+      },
+      "vocabulary_accepted": false,
+      "rationale": "The original alli is UNKNOWN. Its intended form and usage require human review."
+    },
+    {
+      "id": "S11",
+      "text": "je falla le taco depuis bayar",
+      "category": "Other",
+      "french_gloss": "Je cherche le taxi depuis longtemps.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "je",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "falla",
+            "category": "VERB"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "taco",
+            "category": "NOUN"
+          },
+          {
+            "text": "depuis",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "bayar",
+            "category": "ADVERB"
+          }
+        ],
+        "code_mixed_spans": [],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "je",
+              "count": 1
+            },
+            {
+              "token": "falla",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "taco",
+              "count": 1
+            },
+            {
+              "token": "depuis",
+              "count": 1
+            },
+            {
+              "token": "bayar",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 3,
+            "VERB": 1,
+            "NOUN": 1,
+            "ADVERB": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 6
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> ADVERB AdverbTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail",
+              "ADVERB"
+            ],
+            "remaining": [
+              "ADVERB",
+              "$"
+            ],
+            "action": "Match ADVERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "AdverbTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply AdverbTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 6
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Pronominal clause, introduced nominal complement and temporal adverbial group."
+    },
+    {
+      "id": "S12",
+      "text": "les talk free le francais",
+      "category": "Other",
+      "french_gloss": "Ils parlent le fran\u00e7ais librement.",
+      "recorded_location": "yaounde",
+      "has_collection_audio": true,
+      "lexical": {
+        "tokens": [
+          {
+            "text": "les",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "talk",
+            "category": "VERB"
+          },
+          {
+            "text": "free",
+            "category": "AMBIGUOUS"
+          },
+          {
+            "text": "le",
+            "category": "FRENCH_FUNCTION_WORD"
+          },
+          {
+            "text": "francais",
+            "category": "NOUN"
+          }
+        ],
+        "code_mixed_spans": [
+          "les ... talk",
+          "free ... le"
+        ],
+        "verb_phrases": [],
+        "slang_expressions": [],
+        "statistics": {
+          "frequencies": [
+            {
+              "token": "les",
+              "count": 1
+            },
+            {
+              "token": "talk",
+              "count": 1
+            },
+            {
+              "token": "free",
+              "count": 1
+            },
+            {
+              "token": "le",
+              "count": 1
+            },
+            {
+              "token": "francais",
+              "count": 1
+            }
+          ],
+          "category_counts": {
+            "FRENCH_FUNCTION_WORD": 2,
+            "VERB": 1,
+            "AMBIGUOUS": 1,
+            "NOUN": 1
+          },
+          "variations": [],
+          "unknown_tokens": [],
+          "total_tokens": 5
+        }
+      },
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> AMBIGUOUS ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "AMBIGUOUS"
+            ],
+            "remaining": [
+              "AMBIGUOUS",
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match AMBIGUOUS"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> FRENCH_FUNCTION_WORD LinkedPhrase"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "NOUN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "LinkedPhrase"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply LinkedPhrase -> Nominal ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 5
+      },
+      "vocabulary_accepted": true,
+      "rationale": "Function-word-led clause with an ambiguous complement and an introduced nominal group."
+    }
+  ],
+  "controls": [
+    {
+      "id": "C01",
+      "text": "",
+      "accepted": false,
+      "rationale": "Empty input: no Clause derivation.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": false,
+        "error": "No production for Utterance with lookahead $ at token 1; expected: FRENCH_FUNCTION_WORD, NOUN, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Reject: No production for Utterance with lookahead $ at token 1; expected: FRENCH_FUNCTION_WORD, NOUN, VERB."
+          }
+        ],
+        "consumed": 0
+      }
+    },
+    {
+      "id": "C02",
+      "text": "school",
+      "accepted": false,
+      "rationale": "Noun-only fragment lacks a predicate.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": false,
+        "error": "No production for BareSubjectTail with lookahead $ at token 2; expected: FRENCH_FUNCTION_WORD, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Clause -> Nominal BareSubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Apply Nominal -> NOUN Nominal_LR1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal_LR1",
+              "NOUN"
+            ],
+            "remaining": [
+              "NOUN",
+              "$"
+            ],
+            "action": "Match NOUN"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail",
+              "Nominal_LR1"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Apply Nominal_LR1 -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "BareSubjectTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Reject: No production for BareSubjectTail with lookahead $ at token 2; expected: FRENCH_FUNCTION_WORD, VERB."
+          }
+        ],
+        "consumed": 1
+      }
+    },
+    {
+      "id": "C03",
+      "text": "je",
+      "accepted": false,
+      "rationale": "Incomplete subject-led clause.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": false,
+        "error": "No production for SubjectTail with lookahead $ at token 2; expected: AMBIGUOUS, NOUN, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Reject: No production for SubjectTail with lookahead $ at token 2; expected: AMBIGUOUS, NOUN, VERB."
+          }
+        ],
+        "consumed": 1
+      }
+    },
+    {
+      "id": "C04",
+      "text": "je suis kass.",
+      "accepted": true,
+      "rationale": "One optional punctuation token.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": true,
+        "error": null,
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ADJECTIVE ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "ADJECTIVE"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match ADJECTIVE"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> PUNCTUATION"
+          },
+          {
+            "stack": [
+              "$",
+              "PUNCTUATION"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match PUNCTUATION"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "$"
+            ],
+            "action": "Accept: input fully consumed."
+          }
+        ],
+        "consumed": 4
+      }
+    },
+    {
+      "id": "C05",
+      "text": "je suis kass?!",
+      "accepted": false,
+      "rationale": "Two punctuation tokens exceed the one-token suffix.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": false,
+        "error": "Unexpected trailing token PUNCTUATION; expected end of input.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply PredicateTail -> ADJECTIVE ComplementTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail",
+              "ADJECTIVE"
+            ],
+            "remaining": [
+              "ADJECTIVE",
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match ADJECTIVE"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "ComplementTail"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply ComplementTail -> epsilon"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Apply Utterance_LF1 -> PUNCTUATION"
+          },
+          {
+            "stack": [
+              "$",
+              "PUNCTUATION"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Match PUNCTUATION"
+          },
+          {
+            "stack": [
+              "$"
+            ],
+            "remaining": [
+              "PUNCTUATION",
+              "$"
+            ],
+            "action": "Reject: Unexpected trailing token PUNCTUATION; expected end of input."
+          }
+        ],
+        "consumed": 4
+      }
+    },
+    {
+      "id": "C06",
+      "text": "je je suis",
+      "accepted": false,
+      "rationale": "Unsupported category order, despite known words.",
+      "vocabulary_accepted": true,
+      "parse": {
+        "accepted": false,
+        "error": "No production for SubjectTail with lookahead FRENCH_FUNCTION_WORD at token 2; expected: AMBIGUOUS, NOUN, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "$"
+            ],
+            "action": "Reject: No production for SubjectTail with lookahead FRENCH_FUNCTION_WORD at token 2; expected: AMBIGUOUS, NOUN, VERB."
+          }
+        ],
+        "consumed": 1
+      }
+    },
+    {
+      "id": "C07",
+      "text": "je suis alli",
+      "accepted": false,
+      "rationale": "UNKNOWN is not a grammar terminal.",
+      "vocabulary_accepted": false,
+      "parse": {
+        "accepted": false,
+        "error": "No production for PredicateTail with lookahead UNKNOWN at token 3; expected: $, ADJECTIVE, ADVERB, AMBIGUOUS, ENGLISH_FUNCTION_WORD, FRENCH_FUNCTION_WORD, NOUN, PIDGIN_MARKER, PUNCTUATION, VERB.",
+        "trace": [
+          {
+            "stack": [
+              "$",
+              "Utterance"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Apply Utterance -> Clause Utterance_LF1"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "Clause"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Apply Clause -> FRENCH_FUNCTION_WORD SubjectTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail",
+              "FRENCH_FUNCTION_WORD"
+            ],
+            "remaining": [
+              "FRENCH_FUNCTION_WORD",
+              "VERB",
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Match FRENCH_FUNCTION_WORD"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "SubjectTail"
+            ],
+            "remaining": [
+              "VERB",
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Apply SubjectTail -> VERB PredicateTail"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail",
+              "VERB"
+            ],
+            "remaining": [
+              "VERB",
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Match VERB"
+          },
+          {
+            "stack": [
+              "$",
+              "Utterance_LF1",
+              "PredicateTail"
+            ],
+            "remaining": [
+              "UNKNOWN",
+              "$"
+            ],
+            "action": "Reject: No production for PredicateTail with lookahead UNKNOWN at token 3; expected: $, ADJECTIVE, ADVERB, AMBIGUOUS, ENGLISH_FUNCTION_WORD, FRENCH_FUNCTION_WORD, NOUN, PIDGIN_MARKER, PUNCTUATION, VERB."
+          }
+        ],
+        "consumed": 2
+      }
+    }
+  ]
+}

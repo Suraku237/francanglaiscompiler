@@ -6,7 +6,8 @@ from pathlib import Path
 from PIL import Image
 
 from tools.check_documentation import (
-    application_classes, check_class_coverage, check_sequence_activations, declared_classes, image_fingerprint,
+    application_classes, check_class_coverage, check_report_page_count, check_sequence_activations,
+    declared_classes, image_fingerprint,
 )
 
 
@@ -114,6 +115,13 @@ class DocumentationCheckTests(unittest.TestCase):
         self.assertEqual(image_fingerprint(rgb), image_fingerprint(rgba))
         self.assertEqual(image_fingerprint(rgb), image_fingerprint(transparent))
         self.assertNotEqual(image_fingerprint(rgb), image_fingerprint(Image.new("RGB", (3, 3), "black")))
+
+    def test_report_page_bounds_include_front_matter(self) -> None:
+        for pages in (25, 26, 29, 30):
+            check_report_page_count(pages)
+        for pages in (0, 24, 31):
+            with self.subTest(pages=pages), self.assertRaisesRegex(ValueError, "25-30 actual PDF pages"):
+                check_report_page_count(pages)
 
     def test_sequence_calls_and_nested_activations_are_balanced(self) -> None:
         (self.diagrams / "sequence-fixture.puml").write_text(

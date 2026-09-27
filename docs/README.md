@@ -1,205 +1,186 @@
-# Mboa compiler documentation
+# Camfranglais documentation
 
-**Version 3.0 · 22 September 2026 · CS4110 SET A**
+**Version 4.0 · 27 September 2026 · CS4110 SET A**
 
-The current documents describe the **authenticated, non-AI assignment product**.
-Local testing and hosting exercise the same private account/project workflow.
-They supersede the business/AI product guidance without rewriting its history.
+This edition documents the actual **public, non-AI, five-screen application**:
+anyone may analyze and retain immutable tests, while Collection, saved grammar
+and recordings are read-only. It replaces the old account/private-project,
+editable-grammar and in-app report-generation guidance without rewriting
+historical archives.
 
-## Reading order
+## Deliverables and reading order
 
 | Document | Purpose |
 | --- | --- |
-| [SRS](srs.pdf) · [LaTeX](srs.tex) | Assignment traceability, functional/quality requirements, limits, evidence and human completion gates |
-| [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Deterministic compiler, isolated coursework storage, local imports, retained accounts/recovery and source-grounded UML |
-| [UML atlas](uml-atlas.pdf) · [LaTeX](uml-atlas.tex) | Full-size readable diagram sheets, also embedded in the SDD |
-| [PlantUML sources and PNGs](diagrams) | Editable current diagrams and the exact [production class inventory](diagrams/class-coverage.json) |
-| [Operating guide](../README.md) | Startup, truthful assignment workflow, limits, configuration and verification commands |
+| [Final coursework report](final-report.pdf) · [LaTeX](final-report.tex) | Fixed twelve-statement study; all raw text and token tables; real regex/CFG calculations, complete LL(1) table and representative complete traces; browser evidence and linguistic limitations |
+| [SRS](srs.pdf) · [LaTeX](srs.tex) | Public permissions, functional/quality requirements, failure contracts, limits and acceptance criteria |
+| [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Source-grounded design and UML; active public boundary distinguished from retained legacy/desktop code |
+| [UML atlas](uml-atlas.pdf) · [LaTeX](uml-atlas.tex) | One full-size zoomable sheet per current diagram, also embedded in the SDD |
+| [PlantUML and PNGs](diagrams) | Editable sources, rendered images and the exact [class-coverage inventory](diagrams/class-coverage.json) |
+| [Operating guide](../README.md) | Local launch, public behavior, storage, deployment and test commands |
 
-The author group is Kwete Ngouba Junior Rayan (**ICTU20241377**),
-Djemtchimo Noukui Bruno Jonatan (**ICTU20241585**) and Amina Boubakary
-(**ICTU20241870**). These document identities do not prepopulate private accounts.
+The coursework report is the **25–30-page submission document**; the SRS, SDD
+and atlas are separate supplements and are not subject to that limit. The
+checker counts actual PDF pages, including the cover and contents, not sections.
 
-## Evidence and coursework status
+The known author group is filled on the covers:
 
-The supplied brief requires 10–15 **real manually transcribed Yaoundé
-statements**, a group of three, lexical specification/frequency/variation,
-a corpus-derived CFG and transformations, FIRST/FOLLOW and an LL(1) table
-(or the LR alternative), an implemented parser tested on the group's own data,
-a 25–30-page final report capped at 30 pages, and a ten-minute presentation.
-Each member presents for three minutes. The due date is **29 September 2026**.
+| Name | Matricule |
+| --- | --- |
+| Kwete Ngouba Junior Rayan | ICTU20241377 |
+| Djemtchimo Noukui Bruno Jonatan | ICTU20241585 |
+| Amina Boubakary | ICTU20241870 |
 
-At the 22 September scope review, the legacy CSV and three inspected hosted
-workspaces had **zero entries**. The 179 dictionary rows, 26 constructed practice
-examples and illustrative default grammar are not empirical fieldwork.
-The user's genuine manually transcribed text file is still needed. The app can
-export a **DRAFT HTML report, editable presentation and artifacts**, not certify
-authenticity or final pagination. SRS/SDD PDFs are separate engineering documents,
-not that 25–30-page submission. Screenshots must be actual analyzer captures.
+Signatures and individually confirmed contributions remain blank for the
+authors. No account or privileged application role is created from these names.
 
-## UML conventions
+## Evidence boundaries
 
-Every authored production Python/TypeScript class, including protocols and the
-generated lexer `Token`, belongs in `class-coverage.json`. Tests, maintenance
-tools, external framework types and erased TypeScript interfaces are excluded.
-Selected operations use real method names. Function modules/hooks are shown as
-such, not invented service classes.
+The [corpus snapshot](evidence/final-corpus-20260927.json) was extracted
+read-only from the existing shared Collection. Its twelve raw strings match
+the [exact regression cases](../compiler/tests/yaounde_cases.py), and its saved
+grammar matches the [corpus grammar source](../compiler/parser/yaounde.py).
+Only public coursework text and relevant metadata are included, not accounts,
+credentials, sessions or private configuration.
 
-Real nested/reference associations have cardinalities. Inheritance, protocol
-realization and module dependencies do not acquire artificial multiplicities.
-Each sequence call/reply has explicit, balanced caller/callee activations.
-Historical desktop classes remain covered as preserved production code, with
-their non-default legacy storage boundary made explicit.
+The [computed analysis](evidence/final-analysis-20260927.json) and
+[generated LaTeX tables](report-data) contain:
 
-All sources render locally; repository code or field data is not uploaded to
-online diagram services. Large sheets retain their native aspect ratio instead
-of being shrunk to unreadable A4 figures.
+- Twelve supplied statements, 81 tokens, 55 case-folded forms.
+- Full token/category tables, frequencies, observed spelling variation and
+  26 language-transition clues.
+- The original grammar, two actual transformations, complete FIRST/FOLLOW
+  sets, 39 transformed productions and all 47 populated LL(1) table cells.
+- Ten accepted originals and two rejections at token six (`n'ais`, `alli`).
+- Complete traces for all twelve cases in JSON; full S02/S09/S10 traces in the
+  report; seven additional constructed boundary controls.
+- Source SHA-256 fingerprints for reproducibility.
+
+**Fieldwork remains unconfirmed.** The saved manual-transcription flag is false
+and collection method is blank. Some locations and audio references exist, but
+they do not establish the original utterance's date, collector or consent.
+Supplied meanings have not been independently validated. Numerical corpus size,
+available recordings and successful parsing cannot certify authenticity.
+
+The 938 dictionary entries and 26 synthetic examples are reference/practice
+material, not additional field statements. Vocabulary recognition, CFG fit
+and linguistic correctness are deliberately distinguished.
+
+### Genuine screenshots, not mockups
+
+The [capture register](evidence/screenshots/captures-20260927.json) records
+six images: four real browser captures and two cropped derivatives. They were
+captured locally with Playwright Chromium from the deployed application, using
+its real API and no mocked responses. The report embeds four images:
+
+- [Public analyzer input panel](evidence/screenshots/public-analyzer-20260927.png);
+  its [full-page view](evidence/screenshots/public-analyzer-full-20260927.png)
+  is retained.
+- [Loaded read-only Collection](evidence/screenshots/public-collection-20260927.png).
+- [Saved-test statistics](evidence/screenshots/public-analysis-20260927.png).
+- [Selected S02 token panel](evidence/screenshots/public-test-20260927.png);
+  its [uncropped original](evidence/screenshots/public-test-full-20260927.png)
+  is retained.
+
+No new test was submitted for these captures. The history screenshot shows 34
+tests and 179 token occurrences, including repeats and older snapshots. These
+are not the fixed twelve-statement/81-token evaluation. The register records
+the crop coordinates, capture context and image hashes. Screenshots establish
+working software, not authentic original field recordings.
+
+## UML modeling rules
+
+Every authored production Python/TypeScript runtime class is covered, including
+protocols and the lexer `Token` namedtuple. Tests, tools, framework/vendor classes
+and erased TypeScript interfaces are outside that inventory. Selected methods
+use actual source names. Modules, React functions/hooks and record-shaped data
+must not be turned into invented runtime classes.
+
+Real associations have meaningful multiplicities. Inheritance, protocol
+realization and dependencies do not receive artificial cardinalities.
+Optional/collection-valued fields and retained legacy relationships are
+distinguished. Overview and detailed views are provided instead of making a
+single unreadable all-to-all graph.
+
+Each sequence call activates its receiver; callers/return receivers are active,
+replies match their calls, and activations close explicitly. Active public
+workflows are distinguished from retained private or desktop compatibility
+paths. Diagram sources render locally; no code or private data is uploaded to
+an online renderer. Large atlas sheets preserve their aspect ratio for zooming.
 
 ## Rebuild and verify
 
-Use the existing VS Code **Build documentation PDFs** task, or from the root:
+Use the existing VS Code **Build documentation PDFs** task. From the repository
+root, the equivalent commands are:
 
 ```powershell
+.\.venv\Scripts\python.exe -m tools.build_report_evidence --check
 .\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
-if ($LASTEXITCODE -ne 0) { throw "Documentation build failed." }
 .\.venv\Scripts\python.exe -m tools.check_documentation
-if ($LASTEXITCODE -ne 0) { throw "Documentation verification failed." }
-.\.venv\Scripts\python.exe -m unittest tools.tests.test_documentation_checks -q
+.\.venv\Scripts\python.exe -m unittest tools.tests.test_documentation_checks tools.tests.test_report_evidence
 ```
 
-The script renders PlantUML and compiles atlas → SRS → SDD with existing local
-tools. `-SkipDiagrams` is only valid when diagram sources have not changed.
-PlantUML's 8,192-pixel canvas ceiling is a guard, not proof against clipping;
-inspect image bounds after layout changes.
+When intentionally regenerating evidence after a reviewed compiler/snapshot
+change, omit `--check` from the report-evidence command. Review the resulting
+data and narrative together before publishing. Generation never reads or writes
+the live SQLite database; it uses the committed public snapshot.
 
-The strict checker rejects incomplete/obsolete class inventories, mapped
-classes absent from diagrams, missing or duplicate sheets, wrong atlas page
-mapping, invalid sequence activations, stale embedded image pixels and LaTeX
-layout/reference warnings. New classes or changed architecture are not reasons
-to weaken these checks.
+The build order is **UML atlas → SRS → SDD → final report**. It uses Java and
+PlantUML for PNGs, then the installed `pdflatex` or Tectonic; portable tools may
+reside in the ignored `.tools` directory. `-SkipDiagrams` is appropriate only
+when current PNGs already match unchanged diagram sources. Intermediate files
+and logs go to the ignored `.build` directory; PDFs are copied into this folder.
 
-### Current verification
+The strict [checker](../tools/check_documentation.py) rejects:
 
-The **22 September 2026** rebuild and unchanged strict checker passed against
-the current non-AI sources:
+- Missing/obsolete production-class coverage and missing declarations.
+- Unused/missing diagrams, duplicate sheets and wrong SDD/atlas page mappings.
+- Unbalanced sequence activations or mismatched calls/replies.
+- Missing/stale embedded UML pixels.
+- Missing/stale screenshot capture hashes or screenshots absent from the report.
+- Stale computed evidence or generated table fragments.
+- LaTeX layout/reference/missing-character errors and unresolved PDF references.
+- A report shorter than 25 or longer than 30 actual PDF pages.
 
-| Verified artifact or check | Observed result |
-| --- | --- |
-| Authored production classes | **56**, all covered across **10 class views** |
-| Current diagrams | **34**, including **16 sequence views** with balanced activations |
-| Published SRS | **11 pages** |
-| Published SDD | **47 pages**, including all current UML images |
-| Published full-size atlas | **34 pages**, exactly one per diagram |
-| Atlas/SDD mapping and embedded-image fingerprints | Passed |
-| LaTeX layout, missing-character and reference checks | Passed; no matching warnings/errors |
-| Documentation regression tests | **12 passed** |
-| Diagram image bounds | All 34 retain surrounding margins; largest is **3,987 × 3,133 px**, below the 8,192-pixel ceiling |
-| Selected declared Python methods / local Markdown links | Checked against source / existing targets |
-| Historical `docs/evidence` files | Unchanged |
+The compiler's non-fatal Fontconfig configuration diagnostic is separate from
+LaTeX layout errors. Font embedding and representative rendered pages are
+inspected as part of publication. No warning threshold or UML rule is weakened
+to make the documents pass.
 
-Executed commands (from the repository root):
+## Validation and remaining gates
 
-```powershell
-.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
-# After fixing only LaTeX wrapping and cover anchors, reuse unchanged rendered images:
-.\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar -SkipDiagrams
-.\.venv\Scripts\python.exe -m tools.check_documentation
-.\.venv\Scripts\python.exe -m unittest tools.tests.test_documentation_checks -q
-git --no-pager diff --check -- README.md docs
-```
+The final [verification record](evidence/final-documentation-verification-20260927.json)
+records the published page counts, class/diagram coverage, image checks,
+report evidence and tooling regressions. The seven corpus grammar/persistence
+tests were rerun successfully on 27 September.
 
-The full render succeeded; the final PDF rebuild, strict artifact check and
-regression command exited successfully. Scratch files were confined to
-`docs\.build` and cleaned. Existing Java/PlantUML/Tectonic tools were reused.
-VS Code tool requests timed out, so the existing command-line pipeline was used.
-The portable Tectonic binary still emits its non-fatal missing default
-Fontconfig-configuration diagnostic; all **7 SRS** and **11 SDD** font resources
-are embedded, and the published PDFs pass the strict content/layout checks.
-No validation rule was weakened or suppressed.
+Earlier application-release evidence is dated **26 September**: 186
+backend/launcher/legacy-storage passes, 148 frontend unit passes, 68 mocked
+browser passes, passing app/test type checks and production build. Fourteen
+distinct live workflows passed across a full run and a focused rerun. Two
+full-run fixture startup/teardown interruptions passed in a three-test mobile
+rerun; this was not an uninterrupted 14/14 run.
 
-These are documentation results, not frontend/browser-suite totals, public
-deployment acceptance or completion of the fieldwork/report.
+One known old category-expectation regression remains in
+[the parser test suite](../compiler/tests/test_parser.py). It omits nine
+currently supported categories; this documentation-only task does not repair
+it or claim fully green CI.
 
-### Compiler measurement boundary
+The public HTTPS bootstrap and five-screen no-login interface were verified
+read-only on 27 September. The documentation session did not perform remote
+updates or certify long-term uptime, full backup recovery or all deployment
+settings.
 
-The current [verified compiler benchmark](../compiler/output/benchmark_verified.json)
-was recorded at **2026-09-22 09:46:18 UTC** on Windows 11 / AMD64 / CPython 3.14.6.
-All **11 recorded source hashes match** the current measured implementation.
-The synthetic run retains **13 individual cases**, with **21 samples × 150
-iterations**, five warm-ups per case and batch-average microsecond timings.
+Before academic submission, the group must confirm or explicitly qualify
+fieldwork provenance, review linguistic annotations and individual contributions,
+and prepare/rehearse the ten-minute presentation. This edition supplies the
+report and engineering documentation, not a claim that the oral assessment
+or instructor approval is already complete.
 
-Its separate, alternating-order, same-process comparison of the **exact saved
-public starter** measured median preparation of **1,042.155 µs uncached** versus
-**207.775 µs cached**, a **5.02× ratio**. This is not a custom-grammar,
-end-to-end latency, throughput, linguistic-quality or universal algorithm
-speedup claim. Earlier before/after captures are noisy different-time historical
-runs; some unchanged cases were slower. Private grammars/comments, corpus text
-and reviewed annotations are not cached by the starter service.
+## Historical archives
 
-Reproduce without overwriting the recorded result:
-
-```powershell
-.\.venv\Scripts\python.exe -m tools.benchmark_compiler --samples 21 --iterations 150
-```
-
-## Current application verification
-
-The [22 September compiler-refocus verification](evidence/compiler-refocus-verification-20260922.json)
-records the completed non-AI acceptance: **382 Python tests**, **141 frontend
-unit tests**, **34 mocked browser tests**, **10 isolated live browser tests**,
-successful type checks/builds and the documentation results above. Focused
-reruns overlap these totals and are not additional tests.
-
-The final integrated Python command was
-`.\.venv\Scripts\python.exe -m tools.run_python_tests --quiet`:
-**382 passed in 88.112 seconds**, reported by the coordinator. Frontend commands
-were run from `frontend`:
-
-```powershell
-npm run typecheck
-npm run build
-npm test -- --maxWorkers=2 --reporter=dot
-npm run test:e2e -- --workers=2 --reporter=line --output=.playwright\mocked-final-results
-npm run test:e2e:live -- --reporter=line
-```
-
-The frontend full suites passed before the final saved-collection wording
-corrections. After those copy changes, **20 affected unit tests** and
-**2 desktop/mobile manual-result regressions** passed, along with type checking
-and the final build. They overlap the 141/34 totals rather than increasing them.
-The final build has 56 Vite modules; the served asset check used
-`index-7gdDTWaQ.js` and `index-T8pHzcNQ.css`. No subsequent workflow/class change
-was reported.
-
-The existing local account remained signed in, served JS/CSS matched the final
-build, and native browser checks exercised the manual parser without saving
-synthetic fieldwork. Existing accounts, projects and data were preserved. This
-record does not certify authentic fieldwork, the final report or deployment.
-
-## Historical material is not current acceptance
-
-Earlier records in `docs/evidence` remain unmodified. They describe their original
-source versions, dates, fixtures and limits. Earlier Gemini, translation,
-assistant, browser dictation and cloud-media successes do not exercise the current
-non-AI product; earlier suite totals do not establish a current passing build.
-Historical email/Google/device records also do not replace fresh deployment
-acceptance.
-
-`README.legacy.md`, `srs-legacy.tex`, `sdd-legacy.tex` and the root
-`README.legacy.md` are explicitly archived. Previous business/AI implementation
-history also remains in version control. Obsolete AI diagrams are removed from
-the **current** atlas/inventory rather than presented as active architecture.
-Legacy saved AI history remains private readable/exportable data, not generation.
-
-## Remaining human gates
-
-- Supply and review the real manual statements, provenance, consent and exact
-  transcription; references and synthetic tests cannot substitute.
-- Justify the CFG against those statements; inspect labels, unknowns, table
-  conflicts, accepted/rejected cases and limitations.
-- Capture real screenshots, author the linguistic discussion, check final
-  25–30-page pagination and rehearse the ten-minute presentation.
-- For public hosting, validate HTTPS, SMTP, Google configuration if enabled,
-  browser recording/read-aloud, persistent storage and off-host recovery.
-- Do not call the report finished or claim remote CI/provider tests without
-  fresh evidence. No provider calls are required for the compiler workflow.
+[The legacy guide](README.legacy.md), [legacy SRS](srs-legacy.tex),
+[legacy SDD](sdd-legacy.tex), [root legacy guide](../README.legacy.md) and older
+[evidence files](evidence) remain historical records. Old AI/authenticated
+workflows, zero-corpus statements, starter-grammar claims, benchmark ratios and
+test totals must not be reused as facts about this edition.

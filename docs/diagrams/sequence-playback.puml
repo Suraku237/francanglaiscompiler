@@ -1,57 +1,58 @@
 @startuml
 !include theme.iuml
-title Preserved desktop playback with library and OS fallback
+title Existing recorded reading — lookup, guarded audio and honest absence
 hide footbox
 autonumber
-actor Contributor
-participant "app : App" as App
-participant "audio_utils\n<<module>>" as Audio
-participant "File system" as Files
-participant "soundfile / sounddevice" as Backend
-participant "OS default player" as OS
-
-note over App : Precondition: filename present and no unfinished recording.\nOtherwise the handler returns with appropriate feedback.
-activate Contributor
-Contributor -> App : play_pending_audio()\n(or _play_selected_audio())
-activate App
-App -> Audio : play_audio(resolved_path)
-activate Audio
-Audio -> Files : exists(path)
-activate Files
-Files --> Audio : exists: bool
-deactivate Files
-alt File does not exist
-  note over Audio : Result = false; skip all playback attempts.
-else File exists
-  opt AUDIO_RECORDING_AVAILABLE
-    Audio -> Backend : Stop prior library playback;\nsf.read(path); sd.play(data, sample_rate)
-    activate Backend
-    Backend --> Audio : Started or library exception
-    deactivate Backend
-  end
-  alt Library playback started successfully
-    note over Audio : Result = true; do not launch an OS player.
-  else Library unavailable or failed
-    Audio -> OS : Launch platform default player(path)
-    activate OS
-    OS --> Audio : Launch accepted or exception
-    deactivate OS
-    note over Audio : Result = true if launch accepted; otherwise false.
-  end
+actor Visitor
+participant "useReadAloud / ReadingDialog\nAudioPlayer <<browser functions>>" as UI
+participant "readings_api.py\n<<route functions>>" as API
+participant "store : PublicWorkspaceStore" as Store
+database "Shared SQLite\nreadings table" as DB
+participant "Protected audio directory" as Files
+activate Visitor
+Visitor -> UI : request recorded reading for text/language
+activate UI
+UI -> API : POST /api/readings/lookup\nOrigin + cookie + CSRF
+activate API
+note over API : Boundary checks passed. ReadingLookup.lookup_key() normalizes\ncase/apostrophes/spacing, retains punctuation and includes language.
+API -> DB : SELECT * FROM readings WHERE key=?\nunder store.lock()/connection()
+activate DB
+DB --> API : row, or no matching reading
+deactivate DB
+opt row exists
+  note over API : StoredReading validates identity; _view() builds ReadingView.
+  API -> Store : ownership("reading", record.id)
+  activate Store
+  Store --> API : redacted Ownership
+  deactivate Store
 end
-Audio --> App : Result: bool
-deactivate Audio
-opt Result = false
-  note over App : Show "Playback failed" error dialog.
+API --> UI : ReadingSearch(reading=ReadingView or null)
+deactivate API
+alt matching recording exists
+  UI -> API : GET /api/readings/{id}/audio\nnative audio playback/download
+  activate API
+  API -> DB : SELECT * FROM readings WHERE id=?\n_find() under the shared lock
+  activate DB
+  DB --> API : validated record, or no longer present
+  deactivate DB
+  opt record still exists
+    API -> Files : check non-symlink, existing file,\nresolved path inside store.audio_dir
+    activate Files
+    Files --> API : safe file path, or rejection
+    deactivate Files
+  end
+  API --> UI : FileResponse streaming existing audio, or 404
+  deactivate API
+  note over UI : Native controls/download; autoplay failure offers manual play.\nMissing/damaged/unsupported media is an explicit playback error.
+else no matching recording
+  note over UI : Show "No voice recording is available".\nNo synthesis, capture, upload or cloning fallback.
 end
-App --> Contributor : Return; show an error only on failure
-deactivate App
-deactivate Contributor
+UI --> Visitor : existing audio controls or clear unavailable/error state
+deactivate UI
+deactivate Visitor
 legend bottom
-  This is the desktop compatibility path, not the browser's private audio download flow.
-  true means a playback request was accepted, not that sound was heard to completion.
-  OS launch acceptance is not playback completion; media decoding is external.
-  Expected audio errors are reported by the GUI; CSV is unchanged.
-  Clear/close can stop in-process playback, not an external OS player's lifetime.
+  The browser hook name speak() selects a saved-reading lookup; it does not synthesize speech.
+  Public ownership redaction never rewrites historical creator records.
+  Collection attachment playback uses the separate read-only GET /api/dataset/{id}/audio route.
 endlegend
 @enduml

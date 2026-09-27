@@ -1,0 +1,42 @@
+@startuml
+!include theme.iuml
+title Public policy enforcement — rejected writes and hidden legacy routes
+hide footbox
+autonumber
+actor "HTTP caller\nnot a public UI editing control" as Caller
+participant "public_workspace()\npublic_access.py middleware" as Boundary
+participant "state : PublicAccessState" as State
+participant "rate_limits.throttle()" as Limiter
+activate Caller
+Caller -> Boundary : POST/PATCH/DELETE Collection or recordings;\nPUT /api/analyzer/grammar
+activate Boundary
+Boundary --> Caller : 403 public workspace is read-only
+deactivate Boundary
+Caller -> Boundary : GET /api/auth/* or /api/workspace/*;\nrequest coursework/import/backup/history/restore
+activate Boundary
+Boundary --> Caller : 404 API endpoint not found
+deactivate Boundary
+Caller -> Boundary : POST allowed analysis/lookup path\nwith wrong Origin or invalid/missing CSRF
+activate Boundary
+Boundary --> Caller : 403 request-origin/token error
+deactivate Boundary
+Caller -> Boundary : POST allowed path with valid Origin + CSRF\nbut exhausted 120-request/60-second IP window
+activate Boundary
+Boundary -> State : limit(client address)
+activate State
+State -> Limiter : throttle(public limits DB, hashed IP, 120, 60)
+activate Limiter
+Limiter --> State : RateLimitExceeded(retry_after)
+deactivate Limiter
+State --> Boundary : propagate RateLimitExceeded
+deactivate State
+Boundary --> Caller : 429 + Retry-After
+deactivate Boundary
+deactivate Caller
+legend bottom
+  Allowed POST paths: /api/analyze, /api/analyzer/analyze, /api/analyzer/tests, /api/readings/lookup.
+  Read-only-resource path checks distinguish forbidden writes (403) from absent legacy endpoints (404).
+  These failures dispatch no domain mutation. PublicWorkspaceStore also rejects forbidden writes/imports.
+  This sequence depicts separate requests; every call/reply and activation is independently balanced.
+endlegend
+@enduml

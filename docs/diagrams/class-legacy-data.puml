@@ -1,0 +1,72 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Retained workspace inputs, old saved history and operator backups
+hide empty members
+package "backend.workspaces — retained inputs/history" #FFF6E8 {
+  class WorkspaceInput <<retained>> {
+    model_config: extra=forbid
+  }
+  class ProjectInput <<retained>> {
+    name: nonblank str [1..100]
+  }
+  class SavedTranslation <<retained>> {
+    source_text; source_language; target_language
+    translation; explanation; note
+  }
+  class SavedMessage <<retained>> {
+    role: user | assistant
+    content: str [1..4000]
+  }
+  class SavedConversation <<retained>>
+  class HistoryInput <<retained>> {
+    kind: translation | conversation
+    title: nonblank str [1..100]
+    document(): dict
+  }
+  class RestoreRevision <<retained>> {
+    expected_version: int >= 0
+  }
+}
+package "backend.workspace_backups — operator / retained API" #FFF6E8 {
+  class BackupSettings <<retained>> {
+    automatic: bool = false
+    interval_hours: 24 | 168
+    keep_last: int [1..10] = 3
+  }
+  class BackupRestore <<retained>> {
+    token: 32-character hex
+    expected_version: int >= 0
+    confirmation: REPLACE
+  }
+  rectangle "snapshot(), validate_archive(), preview_backup()\nrestore_backup(), maintenance_cycle()\n<<functions, not service classes>>" as Backups
+}
+class "pydantic.BaseModel" as BaseModel <<external>>
+class WorkspaceStore <<reference>>
+WorkspaceInput --|> BaseModel
+ProjectInput --|> WorkspaceInput
+SavedTranslation --|> WorkspaceInput
+SavedMessage --|> WorkspaceInput
+SavedConversation --|> WorkspaceInput
+HistoryInput --|> WorkspaceInput
+RestoreRevision --|> WorkspaceInput
+BackupSettings --|> WorkspaceInput
+BackupRestore --|> WorkspaceInput
+SavedConversation "0..*" --> "1..100" SavedMessage : messages
+HistoryInput "0..*" --> "0..1" SavedTranslation : content {xor}
+HistoryInput "0..*" --> "0..1" SavedConversation : content {xor}
+Backups ..> WorkspaceStore : snapshot / validated restore
+Backups ..> BackupSettings : scheduling and retention
+Backups ..> BackupRestore : confirmed restore input
+note bottom of HistoryInput
+  Exactly one content alternative matches kind.
+  Historical saved translations/conversations remain data,
+  not evidence of active translation/chat generation.
+end note
+legend bottom
+  All workspace/history/import/backup HTTP endpoints are unavailable in the default public application.
+  Automatic backup maintenance may still run privately when configured; no public recovery UI is mounted.
+  Shared export is format 5 (format 4 compatible); private WorkspaceStore export is format 3.
+  Older private formats 1/2 normalize during validation. ZIP manifest remains format 1.
+endlegend
+@enduml

@@ -1,0 +1,72 @@
+@startuml
+!include theme.iuml
+title Immutable tests — persisted snapshots and public result enrichment
+hide empty members
+class SnapshotModel {
+  model_config: extra=forbid, strict=true
+}
+class RecordedTest {
+  id: CanonicalUUID
+  created_at: Timestamp
+  grammar_source: str [1..12000]
+  text: str [0..4000]
+  canonical_grammar(value): str {class}
+  consistent_consumption(): Self
+}
+class LexicalSnapshot {
+  code_mixed_spans: list[str]
+  verb_phrases: list[str]
+  slang_expressions: list[str]
+  consistent_statistics(): Self
+}
+class TestMetadata {
+  topics: list[str]
+  languages: list[DatasetLanguage]
+  matching_entries: int >= 0
+  distinct_recorded_labels(): Self
+}
+class StoredAnalyzerTest {
+  id: CanonicalUUID
+  project_id: str
+  project_identifier(value): str {class}
+  matching_identifier(): Self
+}
+class RecordedTestResult {
+  consistent_approval(): Self
+}
+class OwnedRecordedTest
+class GrammarAnalysis <<reference>>
+class ParseResult <<reference>>
+class TokenSnapshot <<reference>>
+class LexicalStatistics <<reference>>
+class VocabularyApproval <<reference>>
+class Ownership <<reference>>
+class "pydantic.BaseModel" as BaseModel <<external>>
+SnapshotModel --|> BaseModel
+RecordedTest --|> SnapshotModel
+LexicalSnapshot --|> SnapshotModel
+TestMetadata --|> SnapshotModel
+StoredAnalyzerTest --|> SnapshotModel
+RecordedTestResult --|> RecordedTest
+OwnedRecordedTest --|> RecordedTestResult
+RecordedTest "0..*" --> "1" LexicalSnapshot : lexical
+RecordedTest "0..*" --> "1" GrammarAnalysis : grammar
+RecordedTest "0..*" --> "1" ParseResult : parse
+RecordedTest "0..*" --> "1" TestMetadata : metadata
+LexicalSnapshot "0..*" --> "0..*" TokenSnapshot : tokens
+LexicalSnapshot "0..*" --> "1" LexicalStatistics : statistics
+StoredAnalyzerTest "0..*" --> "1" RecordedTest : data\nJson[RecordedTest] after validation
+RecordedTestResult "0..*" --> "1" VocabularyApproval : approval
+OwnedRecordedTest "0..*" --> "1" Ownership : ownership
+note bottom of RecordedTest
+  Exact original text and canonical submitted grammar are stored.
+  Lexer categories, statistics, grammar transforms and parse trace
+  are validated together; accepted parsing consumes all tokens.
+  Stored JSON excludes response-only approval and ownership.
+end note
+legend bottom
+  Source: backend/analyzer_models.py. DTO serialization/validation also uses inherited Pydantic methods.
+  Public results add derived vocabulary approval and a redacted ownership DTO without rewriting snapshots.
+  Immutability is a public persistence policy, not Python frozen=True on these Pydantic models.
+endlegend
+@enduml

@@ -1,0 +1,56 @@
+@startuml
+!include theme.iuml
+allowmixing
+title Camfranglais — overall runtime relationships (orientation view)
+hide empty members
+class PublicAccessState {
+  workspace(): PublicWorkspaceStore
+  limit(address): PublicWorkspaceStore
+}
+class PublicWorkspaceStore {
+  authorize_write(db, kind, identifier, new)
+  ownership(kind, identifier): Ownership
+}
+class SharedWorkspaceStore {
+  save_analyzer_request(request_id, record)
+}
+class WorkspaceStore {
+  load_coursework(): ProjectProfile | None
+  load_analyzer_test(test_id): RecordedTest | None
+}
+class Ownership
+class RecordedTest {
+  id; created_at; text; grammar_source
+  consistent_consumption(): Self
+}
+class LexicalSnapshot
+class GrammarAnalysis
+class ParseResult
+class TestMetadata
+class RecordedTestResult
+class OwnedRecordedTest
+class VocabularyApproval
+rectangle "analyzer_api.py / analyzer_history.py\n<<function modules, not classes>>\nrecord_test() / test_view()" as Routes
+PublicAccessState "0..1" --> "0..1" PublicWorkspaceStore : _store\nlazy cache
+PublicWorkspaceStore --|> SharedWorkspaceStore
+SharedWorkspaceStore --|> WorkspaceStore
+PublicWorkspaceStore ..> Ownership : returns redacted DTO
+SharedWorkspaceStore ..> RecordedTest : persists / returns values\nnot a retained object collection
+Routes ..> RecordedTest : creates validated snapshot
+Routes ..> OwnedRecordedTest : returns public result
+Routes ..> SharedWorkspaceStore : context-bound storage operations
+RecordedTest "0..*" --> "1" LexicalSnapshot : lexical
+RecordedTest "0..*" --> "1" GrammarAnalysis : grammar
+RecordedTest "0..*" --> "1" ParseResult : parse
+RecordedTest "0..*" --> "1" TestMetadata : metadata
+RecordedTestResult --|> RecordedTest
+OwnedRecordedTest --|> RecordedTestResult
+RecordedTestResult "0..*" --> "1" VocabularyApproval : approval
+OwnedRecordedTest "0..*" --> "1" Ownership : ownership
+legend bottom
+  Orientation only: the detailed class sheets and class-coverage.json cover all 98 production classes.
+  Hollow triangles: actual inheritance. Dashed arrows: usage dependencies, without multiplicities.
+  Numbered arrows: actual stored/nested references; DTOs are not exclusive-lifecycle compositions.
+  Public owner identity is redacted; the internal stable actor UUID is not a user account.
+endlegend
+@enduml

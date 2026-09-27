@@ -1,54 +1,50 @@
 @startuml
 !include theme.iuml
-title Private workspace restore: guarded replacement and failure paths
+title Retained restore procedure — private operator/legacy workflow only
 start
-:Signed-in owner selects backup ZIP;
-:Validate byte limits, paths, manifest,\nformat-2 records/screenshots and audio;\nnormalize legacy format 1;
+:Operator uses an explicit private recovery context;\npublic /api/workspace/backups routes are unavailable;
+:Validate ZIP paths, size, checksums,\nworkspace document and referenced audio;
 if (Archive valid?) then (yes)
-  :Show counts and replacement warning;\nstore one-hour owner-scoped preview;
+  :Authorize import scope;\ncreate an expiring preview with counts\nand captured workspace version;
 else (no)
-  :Report validation error;\nleave live data unchanged;
+  :Reject; leave live logical data unchanged;
   stop
 endif
-if (Owner types REPLACE and confirms?) then (yes)
-  :Acquire account workspace lock;
+if (Confirmed REPLACE?) then (yes)
+  :Acquire shared/private workspace lock;
 else (no)
-  :Keep current workspace;\npreview expires without applying it;
+  :Leave live data unchanged; preview expires;
   stop
 endif
 if (Preview valid and version unchanged?) then (yes)
-  :Revalidate archive and create\nverified pre-restore safety backup;
+  :Revalidate archive and authorization;\ncreate verified pre-restore safety backup;
 else (no)
-  :Release lock; report expiry/conflict;
+  :Reject stale/expired/unauthorized preview;\nrelease lock;
   stop
 endif
-if (Safety backup succeeded?) then (yes)
-  :Stage missing audio immutably;\nremap conflicting filenames;
+if (Safety copy and media staging succeed?) then (yes)
+  :Apply validated logical data in a\nversion-checked SQLite transaction;
 else (no)
-  :Release lock; report failure;\nleave logical data unchanged;
+  :Clean up newly staged files;\nrelease lock; report failure;
   stop
 endif
-if (Audio staging succeeded?) then (yes)
-  :Replace project/entry/history/revision/\ncoursework/screenshot rows in one\nversion-checked SQLite transaction;
-else (no)
-  :Remove only newly staged files;\nrelease lock and report failure;
-  stop
-endif
-if (Transaction committed?) then (yes)
-  :Invalidate preview; retain safety backup\nand previous committed media;
-  if (Post-commit cleanup succeeded?) then (yes)
-    :Release lock; reopen General;\nreview restored information;
+if (Transaction commits?) then (yes)
+  :Invalidate preview and remove used preview ZIP;
+  if (Post-commit cleanup succeeds?) then (yes)
+    :Report counts and safety backup ID;
   else (no)
-    :Release lock; report uncertain completion;\nrefresh saved state, do not restore blindly;
+    :Report uncertain completion;\ninspect saved state before retrying;
   endif
 else (no)
-  :Rollback rows; remove newly staged files;\nrelease lock and report failure;
+  :Roll back logical rows;\nremove newly staged files; report error;
 endif
+:Release lock; retain safety backup\nand earlier committed media for recovery;
 stop
 legend bottom
-  Branch guards are exclusive; each final node ends this attempt.
-  A cleanup error is explicit and does not imply a committed transaction rolled back.
-  This activity does not delete account credentials or other users' workspaces.
-  The workspace document is format 2; the outer archive manifest remains format 1.
+  Shared format 5 includes ownership, request mappings, archived profiles and readings; format 4 remains compatible.
+  Private formats 1/2 normalize to format 3; outer ZIP manifest is format 1.
+  Non-system legacy restore cannot change another creator's records or original archived profiles.
+  PublicWorkspaceStore.authorize_import() always rejects; no browser restore feature is implied.
+  Filesystem staging and SQLite are coordinated operations, not one cross-file ACID transaction.
 endlegend
 @enduml

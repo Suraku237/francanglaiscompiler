@@ -1,0 +1,72 @@
+@startuml
+!include theme.iuml
+title Analyze and retain one new public test — successful path
+hide footbox
+autonumber
+participant "FrancAnalyzer / api.ts\n<<browser functions>>" as UI
+participant "analyzer_api.py\nrecord_test() / test_view()" as API
+participant "public_access.py\nrequire_shared_grammar()" as Guard
+participant "analyzer_history.py\nrecord_test()" as History
+participant "Compiler / analyzer.py\n<<functions>>" as Compiler
+participant "store : PublicWorkspaceStore" as Store
+activate UI
+UI -> API : POST /api/analyzer/tests\n{request_id, exact text, saved grammar}
+activate API
+note over API : Public allowlist + Origin + CSRF + limit already passed.\ncourse_operation() holds the shared dataset lock for this operation.
+API -> Guard : require_shared_grammar(grammar, request_id)
+activate Guard
+Guard -> Store : load_coursework() via load_project()
+activate Store
+Store --> Guard : saved grammar matches
+deactivate Store
+Guard --> API : allowed
+deactivate Guard
+API -> History : record_test(request)
+activate History
+History -> Store : load_analyzer_request(request_id)
+activate Store
+Store --> History : None (new request)
+deactivate Store
+History -> Compiler : analyze_grammar(request.grammar)
+activate Compiler
+Compiler --> History : transforms, sets, table, conflicts
+deactivate Compiler
+History -> Store : load_all() via dataset.load_all()
+activate Store
+Store --> History : Collection entries from the locked shared revision
+deactivate Store
+History -> Compiler : build_lexicon(entries);\nanalyze_manual(text, grammar, learned)
+activate Compiler
+Compiler --> History : exact lexical snapshot and parse result
+deactivate Compiler
+History -> Store : analyzer_test_identifier(request_id)
+activate Store
+Store --> History : stable actor-scoped UUID5 test ID
+deactivate Store
+note over History : RecordedTest.model_validate() captures text, grammar source,\nlexical/grammar/parse snapshots and exact-match metadata.
+History -> Store : save_analyzer_request(request_id, record)
+activate Store
+note over Store : authorize_write(new analyzer_test) then INSERT snapshot\nand request mapping + bump version in one SQL transaction.
+Store --> History : committed
+deactivate Store
+History --> API : immutable RecordedTest
+deactivate History
+API -> Store : ownership("analyzer_test", record.id)\nvia record_ownership()
+activate Store
+Store --> API : owner_id=null, owner_name="", can_edit=false
+deactivate Store
+note over API : test_view() derives VocabularyApproval from saved statistics.
+API --> UI : OwnedRecordedTest with two distinct verdicts
+deactivate API
+UI -> UI : clear pendingTest; display result;\ninvalidate the saved-test report
+activate UI
+UI --> UI : ready for an intentional new test
+deactivate UI
+deactivate UI
+legend bottom
+  Storage calls abbreviate the real dataset/coursework_store/ownership ContextVar adapters.
+  A retained grammar rejection is still a completed test; malformed/oversized grammar raises before insertion.
+  No Collection entry, grammar, recording or private history is modified by this operation.
+  Cancellation/timeout cannot promise rollback; identical retries are detailed separately.
+endlegend
+@enduml
