@@ -8,8 +8,8 @@ class SnapshotModel {
 class RecordedTest {
   id: CanonicalUUID
   created_at: Timestamp
-  grammar_source: str [1..12000]
-  text: str [0..4000]
+  grammar_source: str {length=1..12000}
+  text: str {length=0..4000}
   canonical_grammar(value): str {class}
   consistent_consumption(): Self
 }
@@ -22,7 +22,7 @@ class LexicalSnapshot {
 class TestMetadata {
   topics: list[str]
   languages: list[DatasetLanguage]
-  matching_entries: int >= 0
+  matching_entries: int {min=0}
   distinct_recorded_labels(): Self
 }
 class StoredAnalyzerTest {

@@ -37,9 +37,9 @@ note bottom of App
   Do not expose :2021 as a public application URL.
 end note
 legend bottom
-  This is the intended deployment of the final source, not evidence that an update was executed.
-  Last supplied remote observation (26 September): HTTPS health 200; bootstrap 401 from the old deployment.
-  A prepared updater is not proof of a remotely installed release. Re-check bootstrap after deployment.
+  Intended internal host topology; the documentation session did not perform a remote update.
+  Read-only observation (27 September): bootstrap 200, public_read_only, five-page interface without login.
+  Browser/API observations do not certify exact server configuration, backup recovery or long-term uptime.
   Operator recovery must preserve data/configuration; a workspace ZIP does not recreate account identities.
 endlegend
 @enduml

@@ -7,18 +7,18 @@ class RequestModel {
   model_config: extra=forbid
 }
 class AnalyzeRequest {
-  text: str [1..4000], original whitespace
+  text: str {length=1..4000, original whitespace}
   nonblank_text(text): str {class}
 }
 class GrammarRequest {
-  grammar: str [1..12000], trimmed
+  grammar: str {length=1..12000, trimmed}
 }
 class AnalyzerRequest {
-  text: str [0..4000]
+  text: str {length=0..4000}
 }
 class AnalyzerTestRequest {
   request_id: canonical UUID
-  text: str [0..4000]
+  text: str {length=0..4000}
 }
 class EntryCreate <<retained>> {
   text; french_gloss; english_gloss

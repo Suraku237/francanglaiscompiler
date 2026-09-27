@@ -5,7 +5,8 @@ SET A**. The application is public: **no login or account is required**.
 Anyone can analyze and save tests; **Collection, saved grammar and recordings
 are read-only**.
 
-**Website:** https://camfranglais.duckdns.org  
+**Website:** https://camfranglais.duckdns.org
+
 The public bootstrap and no-login interface were observed working on
 **27 September 2026**. This is a dated observation, not an uptime guarantee.
 

@@ -1,7 +1,9 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from tools.build_report_evidence import (
-    ROOT, compute_evidence, render_fragments, tex, write_or_check,
+    ROOT, compute_evidence, render_fragments, source_fingerprint, tex, write_or_check,
 )
 
 
@@ -59,6 +61,16 @@ class CourseworkEvidenceTests(unittest.TestCase):
         self.assertEqual(tex("n'ais & 50%_x"), r"n'ais \& 50\%\_x")
         self.assertEqual(tex(r"\input{x}"), r"\textbackslash{}input\{x\}")
         self.assertIn("n'ais", render_fragments(self.evidence)["tokens-c.tex"])
+
+    def test_source_hashes_are_stable_across_git_line_endings(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="report-source-hash-") as temporary:
+            source = Path(temporary) / "source.txt"
+            source.write_bytes(b"first\nsecond\n")
+            expected = source_fingerprint(source)
+            source.write_bytes(b"\xef\xbb\xbffirst\r\nsecond\r\n")
+            self.assertEqual(source_fingerprint(source), expected)
+            source.write_bytes(b"first\nchanged\n")
+            self.assertNotEqual(source_fingerprint(source), expected)
 
     def test_committed_evidence_matches_fresh_computation(self) -> None:
         result = write_or_check(ROOT, check=True)

@@ -31,7 +31,6 @@ Visitor --> Copy
 Visitor --> Lookup
 Visitor --> Play
 Visitor --> Privacy
-Analyze ..> Open : <<include>>\nrequest protection ready
 Copy ..> Collection : <<extend>>\nchosen entry
 Copy ..> Dictionary : <<extend>>\nchosen reference
 Copy ..> Examples : <<extend>>\nchosen example
@@ -40,6 +39,8 @@ Operator --> Deploy
 Operator --> Recover
 Operator --> Curate
 note bottom of Analyze
+  Precondition: the public browser session is ready.
+  Bootstrap normally occurs when the app opens.
   Analyze in the current UI records a test.
   A test does not add an entry to Collection.
   UNKNOWN-only vocabulary approval and

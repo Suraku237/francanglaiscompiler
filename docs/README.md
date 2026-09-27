@@ -23,6 +23,10 @@ The coursework report is the **25–30-page submission document**; the SRS, SDD
 and atlas are separate supplements and are not subject to that limit. The
 checker counts actual PDF pages, including the cover and contents, not sections.
 
+The published edition has **29 report pages, 11 SRS pages, 52 SDD pages and
+35 atlas sheets**. The SDD includes all 35 full-size UML sheets after its
+narrative; the separate atlas contains only those sheets.
+
 The known author group is filled on the covers:
 
 | Name | Matricule |
@@ -54,7 +58,9 @@ The [computed analysis](evidence/final-analysis-20260927.json) and
 - Ten accepted originals and two rejections at token six (`n'ais`, `alli`).
 - Complete traces for all twelve cases in JSON; full S02/S09/S10 traces in the
   report; seven additional constructed boundary controls.
-- Source SHA-256 fingerprints for reproducibility.
+- Source SHA-256 fingerprints for reproducibility. Text is hashed as UTF-8
+  without BOM with line endings normalized to LF, so Git's Windows/Unix
+  checkout conversion does not produce false evidence changes.
 
 **Fieldwork remains unconfirmed.** The saved manual-transcription flag is false
 and collection method is blank. Some locations and audio references exist, but
@@ -96,11 +102,16 @@ and erased TypeScript interfaces are outside that inventory. Selected methods
 use actual source names. Modules, React functions/hooks and record-shaped data
 must not be turned into invented runtime classes.
 
+The inventory contains **98 production classes** across **18 class views**.
+The other sheets are **nine sequence, three activity, two state, one use-case,
+one component and one deployment diagram**.
+
 Real associations have meaningful multiplicities. Inheritance, protocol
 realization and dependencies do not receive artificial cardinalities.
 Optional/collection-valued fields and retained legacy relationships are
 distinguished. Overview and detailed views are provided instead of making a
-single unreadable all-to-all graph.
+single unreadable all-to-all graph. String lengths and numeric bounds are
+written as constraints in braces, not misleading object multiplicities.
 
 Each sequence call activates its receiver; callers/return receivers are active,
 replies match their calls, and activations close explicitly. Active public
@@ -151,8 +162,12 @@ to make the documents pass.
 
 The final [verification record](evidence/final-documentation-verification-20260927.json)
 records the published page counts, class/diagram coverage, image checks,
-report evidence and tooling regressions. The seven corpus grammar/persistence
-tests were rerun successfully on 27 September.
+report evidence and tooling regressions. The **strict documentation checker
+passed** against all four published PDFs, with no LaTeX layout/reference
+errors or clipped image placements. All **28 focused documentation,
+report-evidence and corpus grammar/persistence tests** passed on 27 September,
+including the seven corpus tests. Workflow syntax and the edited Python files'
+editor diagnostics were also checked successfully.
 
 Earlier application-release evidence is dated **26 September**: 186
 backend/launcher/legacy-storage passes, 148 frontend unit passes, 68 mocked

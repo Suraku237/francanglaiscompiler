@@ -5,19 +5,19 @@ title Retained coursework/import contracts — saved grammar reuse, no public ex
 hide empty members
 package "backend.coursework_models" {
   class ProjectProfile {
-    group_members: list[str] [3]
-    grammar: str [1..12000]
+    group_members: list[str] {size=3}
+    grammar: str {length=1..12000}
     manual_transcription_confirmed: bool
     grammar_rationale; discussion
     collection_method; limitations
     distinct_members(members): list[str] {class}
   }
   class ParseRequest <<retained>> {
-    text: str [0..4000] = ""
+    text: str = "" {length=0..4000}
   }
   class ScreenshotRequest <<retained>> {
-    name: str [1..120]
-    data_url: str [0..2800000]
+    name: str {length=1..120}
+    data_url: str {length=0..2800000}
   }
 }
 package "backend.import_models — retained local extraction" #FFF6E8 {

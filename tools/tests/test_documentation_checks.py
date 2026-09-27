@@ -1,13 +1,15 @@
+import hashlib
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from PIL import Image
+from pypdf import PdfReader
 
 from tools.check_documentation import (
-    application_classes, check_class_coverage, check_report_page_count, check_sequence_activations,
-    declared_classes, image_fingerprint,
+    application_classes, check_class_coverage, check_report_page_count, check_report_screenshots,
+    check_sequence_activations, declared_classes, image_fingerprint,
 )
 
 
@@ -122,6 +124,33 @@ class DocumentationCheckTests(unittest.TestCase):
         for pages in (0, 24, 31):
             with self.subTest(pages=pages), self.assertRaisesRegex(ValueError, "25-30 actual PDF pages"):
                 check_report_page_count(pages)
+
+    def test_report_screenshots_require_current_registered_and_embedded_pixels(self) -> None:
+        docs = self.root / "docs"
+        screenshots = docs / "evidence" / "screenshots"
+        screenshots.mkdir(parents=True)
+        image_path = screenshots / "public-fixture.png"
+        pdf_path = docs / "fixture.pdf"
+        image = Image.new("RGB", (8, 8), "white")
+        image.save(image_path)
+        image.save(pdf_path, format="PDF")
+        reader = PdfReader(pdf_path, strict=True)
+        record = screenshots / "captures-20260927.json"
+        record.write_text(json.dumps({"images": [{
+            "file": image_path.name, "sha256": hashlib.sha256(image_path.read_bytes()).hexdigest(),
+        }]}), encoding="utf-8")
+        source = r"\screen{public-fixture.png}{5cm}{Real capture}"
+        self.assertEqual(check_report_screenshots(docs, source, reader), 1)
+        with self.assertRaisesRegex(ValueError, "genuine application screenshots"):
+            check_report_screenshots(docs, "", reader)
+        Image.new("RGB", (8, 8), "black").save(image_path)
+        with self.assertRaisesRegex(ValueError, "stale screenshot capture record"):
+            check_report_screenshots(docs, source, reader)
+        record.write_text(json.dumps({"images": [{
+            "file": image_path.name, "sha256": hashlib.sha256(image_path.read_bytes()).hexdigest(),
+        }]}), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "absent or stale in the report"):
+            check_report_screenshots(docs, source, reader)
 
     def test_sequence_calls_and_nested_activations_are_balanced(self) -> None:
         (self.diagrams / "sequence-fixture.puml").write_text(

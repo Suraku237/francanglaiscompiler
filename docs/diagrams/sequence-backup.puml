@@ -12,6 +12,7 @@ activate App
 App -> Worker : maintain_backups(data_dir, stop)
 activate Worker
 note over Worker : Poll in threadpool; this view shows one shared-workspace cycle.\nWhen shared storage is absent, retained private stores are considered instead.
+create Store
 Worker -> Store : SharedWorkspaceStore(data_dir, SYSTEM_OWNER_ID,\n"System", system=True)
 activate Store
 Store --> Worker : privileged internal store

@@ -35,20 +35,20 @@ package "backend.auth — not installed by default" #FFF6E8 {
     email: EmailStr
   }
   class LoginInput <<retained>> {
-    password: str [1..128]
+    password: str {length=1..128}
   }
   class RegisterInput <<retained>> {
-    display_name: str [1..100]
-    password: str [12..128]
+    display_name: str {length=1..100}
+    password: str {length=12..128}
   }
   class TokenInput <<retained>> {
-    token: str [20..200]
+    token: str {length=20..200}
   }
   class ResetInput <<retained>> {
-    password: str [12..128]
+    password: str {length=12..128}
   }
   class ProfileInput <<retained>> {
-    display_name: str [1..100]
+    display_name: str {length=1..100}
   }
   class AuthError <<retained>> {
     status: int

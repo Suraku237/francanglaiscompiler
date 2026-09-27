@@ -26,7 +26,7 @@ class GrammarConflict {
 class ParseResult {
   accepted: bool
   error: str | None
-  consumed: int >= 0
+  consumed: int {min=0}
   consistent_outcome(): Self
 }
 class ParseStep {

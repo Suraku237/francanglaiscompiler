@@ -80,6 +80,10 @@ def side_by_side(blocks: list[str]) -> str:
     )
 
 
+def source_fingerprint(path: Path) -> str:
+    return hashlib.sha256(path.read_text(encoding="utf-8-sig").encode("utf-8")).hexdigest()
+
+
 def compute_evidence(root: Path) -> dict[str, Any]:
     corpus = json.loads((root / SNAPSHOT).read_text(encoding="utf-8"))
     statements = corpus["statements"]
@@ -129,8 +133,9 @@ def compute_evidence(root: Path) -> dict[str, Any]:
         "source_revision": corpus["source_revision"],
         "provenance_status": corpus["provenance_status"],
         "corpus_snapshot": SNAPSHOT.as_posix(),
+        "source_hash_encoding": "UTF-8 without BOM; CRLF and CR normalized to LF; no other text changes.",
         "source_sha256": {
-            path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+            path.relative_to(root).as_posix(): source_fingerprint(path)
             for path in sorted(set(source_paths))
         },
         "dictionary_entries": len(load_dictionary()),

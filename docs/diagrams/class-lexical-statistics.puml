@@ -4,35 +4,35 @@ title Lexical snapshots, token counts and UNKNOWN-only approval
 hide empty members
 class SnapshotModel <<reference>>
 class TokenSnapshot {
-  text: str [1..4000]
+  text: str {length=1..4000}
   category: validated lexer terminal
 }
 class Frequency {
   token: str
-  count: int > 0
+  count: int {min=1}
 }
 class VariationForm {
   text: str
-  count: int > 0
+  count: int {min=1}
 }
 class Variation {
   normalized: str
 }
 class LexicalStatistics {
   category_counts: dict[Category, PositiveCount]
-  total_tokens: int >= 0
+  total_tokens: int {min=0}
 }
 class VocabularyApproval {
   basis: no_unknown_tokens
   accepted: bool
-  unknown_count: int >= 0
+  unknown_count: int {min=0}
   from_statistics(statistics): Self {class}
   consistent_outcome(): Self
 }
 class AggregateStatistics
 class UnknownReview {
-  tests: int > 0
-  forms: list[str] [1..*]
+  tests: int {min=1}
+  forms: list[str] {min_items=1}
 }
 TokenSnapshot --|> SnapshotModel
 Frequency --|> SnapshotModel

@@ -7,23 +7,23 @@ class SnapshotModel <<reference>>
 class TestSummary {
   id: CanonicalUUID
   created_at: Timestamp
-  text: str [0..4000]
+  text: str {length=0..4000}
   accepted: bool
-  token_count; unknown_count: int >= 0
+  token_count; unknown_count: int {min=0}
   error: str | None
   grammar_accepted: bool
   grammar_error: str | None
 }
 class OwnedTestSummary
 class TestTotals {
-  total; accepted; rejected: int >= 0
-  acceptance_rate: float [0..100] | None
+  total; accepted; rejected: int {min=0}
+  acceptance_rate: float | None {range=0..100}
 }
 class TestReport {
   approval_basis: no_unknown_tokens
   topic_counts; language_counts: dict[str, PositiveCount]
-  offset: int >= 0
-  limit: int [1..100]
+  offset: int {min=0}
+  limit: int {range=1..100}
 }
 class AggregateStatistics <<reference>>
 class UnknownReview <<reference>>

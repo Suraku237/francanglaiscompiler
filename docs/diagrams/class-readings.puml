@@ -4,7 +4,7 @@ title Recorded readings — public lookup/playback and retained upload contracts
 hide empty members
 class SnapshotModel <<reference>>
 class ReadingLookup {
-  text: nonblank str [1..4000]
+  text: str {nonblank, length=1..4000}
   language: fr | en
   lookup_key(): str
 }

@@ -19,7 +19,7 @@ class DictionaryEntry {
   id; text; aliases
   language; part_of_speech; english_gloss
   origin; topic; source_document
-  source_line: int >= 1
+  source_line: int {min=1}
 }
 class DictionaryResponse {
   total; matched; offset; limit: int

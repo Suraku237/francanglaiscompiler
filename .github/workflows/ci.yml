@@ -146,7 +146,12 @@ jobs:
       - name: Validate workflow syntax and expressions
         shell: pwsh
         run: .\docs\.tools\actionlint\actionlint.exe .github\workflows\ci.yml
-      - name: Render all diagrams and build both documents
+      - name: Verify reproducible report evidence and documentation checks
+        run: |
+          python -m tools.build_report_evidence --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest tools.tests.test_documentation_checks tools.tests.test_report_evidence
+      - name: Render diagrams and build the report, SRS, SDD and atlas
         shell: pwsh
         run: .\docs\build.ps1 -PlantUmlJar .\docs\.tools\plantuml.jar
       - name: Check class coverage and actual PDF figures
@@ -159,5 +164,6 @@ jobs:
             docs/srs.pdf
             docs/sdd.pdf
             docs/uml-atlas.pdf
+            docs/final-report.pdf
             docs/diagrams/*.png
           retention-days: 14

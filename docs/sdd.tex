@@ -32,7 +32,7 @@ action records a complete public test. Reference browsing, text handoff and
 recording playback do not add Collection entries.
 
 \subsection{Three explicit application modes}
-\begin{longtable}{L{3.5cm}L{10.7cm}}
+\begin{longtable}{L{3.9cm}L{10.3cm}}
 \toprule\textbf{Factory selection} & \textbf{Implemented composition}\\\midrule\endhead
 \texttt{require\_auth=None} &
 Default public mode. Installs public-access policy, shared storage, read routes
@@ -63,9 +63,11 @@ entries. There are 26 clearly labelled synthetic examples. These are distinct
 populations, not 938 collected statements or 26 additional field observations.
 
 The original 28 saved tests were preserved. A 26 September local observation
-found 29 after an additional public test had been recorded. Counts grow with
-use; the design does not hard-code 28 or 29 as a universal total. Public tests
-may include repeated text and rejected results and are separate from Collection.
+found 29 after an additional public test had been recorded. Read-only public
+browser captures on 27 September show 34 saved tests and 13 Collection entries.
+Counts grow with use; none of these dated totals is a permanent application
+constant. Tests may include repeated text and rejected results and are separate
+from Collection and the report's fixed twelve-case evaluation.
 
 Human collection location, date, consent and transcription authenticity have
 not been confirmed. The historical \nolinkurl{compiler/parser/yaounde.py}
@@ -165,11 +167,11 @@ On startup, \texttt{PublicSession} calls
 rendering \texttt{App} and stores the CSRF token only in its API module state.
 Figure~\ref{fig:sequence-public-session} shows this interaction.
 
-The \texttt{camfranglais\_public} cookie contains an opaque random value. It is
-\texttt{HttpOnly}, \texttt{SameSite=Lax}, path \texttt{/}, and \texttt{Secure} in
-production. A valid existing cookie can be reused; an invalid/missing one is
-replaced. The CSRF token is derived from that value and compared in constant
-time. This mechanism supplies no email, display name or signed-in identity.
+The \nolinkurl{camfranglais_public} cookie is an opaque random value, not an
+identity. It has \texttt{HttpOnly}, \texttt{SameSite=Lax}, \texttt{Path=/} and,
+in production, \texttt{Secure}. The server reuses a valid cookie and replaces
+an invalid or missing value. It derives a CSRF token and compares tokens in
+constant time. No email address, display name or signed-in identity is created.
 
 \subsection{Public route contracts}
 \begin{longtable}{L{4.9cm}L{9.3cm}}
@@ -306,11 +308,11 @@ runtime state-enum class.
 
 \subsection{Snapshot invariants}
 \texttt{SnapshotModel} uses strict validation and forbids extra fields.
-\texttt{LexicalSnapshot.consistent\_statistics} checks statistics against its
-stored token sequence. \texttt{GrammarAnalysis.consistent\_symbols} verifies
+\nolinkurl{LexicalSnapshot.consistent_statistics} checks statistics against its
+stored token sequence. \nolinkurl{GrammarAnalysis.consistent_symbols} verifies
 start/nonterminal/set consistency and refuses an LL(1) claim with conflicts.
-\texttt{ParseResult.consistent\_outcome} relates acceptance to the absence of an
-error. \texttt{RecordedTest.consistent\_consumption} checks consumed length and
+\nolinkurl{ParseResult.consistent_outcome} relates acceptance to the absence of an
+error. \nolinkurl{RecordedTest.consistent_consumption} checks consumed length and
 requires an LL(1) grammar for an accepted parse.
 
 These are real validation methods, not evidence that the DTOs are declared
@@ -358,6 +360,9 @@ identify structural protocol conformance, not nominal Python inheritance.
 \item Multiplicities are attached to stored or nested references. Inheritance,
 realization and function/module dependencies have no decorative cardinalities.
 Repeated DTO references are not exclusive-lifecycle compositions.
+\item String lengths and numeric bounds are constraints in braces, not
+multiplicities. The collection-valued types and numbered associations describe
+how many related values or objects may be held.
 \item \texttt{reference} means a class detailed on another sheet;
 \texttt{external} means a library type. Warm-toned retained classes identify
 compatibility code, not public capability.
@@ -624,11 +629,17 @@ handling. A broad legacy microphone permissions-policy allowance is not proof
 that a public microphone control exists. Public mutation denial must be tested
 at the server, not inferred solely from UI screenshots.
 
-The last supplied remote observation on 26 September was HTTPS health 200 but
-bootstrap 401 from the older deployment. A prepared updater was not confirmed
-as run by the operator. This document therefore makes no claim that the final
-public release is remotely installed. Deployment acceptance must include the
-public bootstrap, allowed analysis and denied/hidden routes, not health alone.
+Read-only checks on 27 September confirmed HTTPS bootstrap 200 with
+\nolinkurl{access_mode=public_read_only} and the expected capabilities. The
+deployed interface opened directly into the five public pages without login;
+the genuine report screenshots retain that observation. This supersedes the
+older 26 September bootstrap-401 observation.
+
+The documentation session did not perform a remote update or verify the
+operator's exact deployment steps. The diagram's internal host configuration,
+backup recovery and long-term availability are not certified by a browser
+capture. Full deployment acceptance must still exercise the expected allowed
+and denied routes and operational recovery, not health alone.
 
 \subsection{Failure and resource behavior}
 General API JSON bodies are bounded to 1 MiB in the web boundary; analyzer

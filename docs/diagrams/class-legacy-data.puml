@@ -8,7 +8,7 @@ package "backend.workspaces — retained inputs/history" #FFF6E8 {
     model_config: extra=forbid
   }
   class ProjectInput <<retained>> {
-    name: nonblank str [1..100]
+    name: str {nonblank, length=1..100}
   }
   class SavedTranslation <<retained>> {
     source_text; source_language; target_language
@@ -16,27 +16,27 @@ package "backend.workspaces — retained inputs/history" #FFF6E8 {
   }
   class SavedMessage <<retained>> {
     role: user | assistant
-    content: str [1..4000]
+    content: str {length=1..4000}
   }
   class SavedConversation <<retained>>
   class HistoryInput <<retained>> {
     kind: translation | conversation
-    title: nonblank str [1..100]
+    title: str {nonblank, length=1..100}
     document(): dict
   }
   class RestoreRevision <<retained>> {
-    expected_version: int >= 0
+    expected_version: int {min=0}
   }
 }
 package "backend.workspace_backups — operator / retained API" #FFF6E8 {
   class BackupSettings <<retained>> {
     automatic: bool = false
     interval_hours: 24 | 168
-    keep_last: int [1..10] = 3
+    keep_last: int = 3 {range=1..10}
   }
   class BackupRestore <<retained>> {
     token: 32-character hex
-    expected_version: int >= 0
+    expected_version: int {min=0}
     confirmation: REPLACE
   }
   rectangle "snapshot(), validate_archive(), preview_backup()\nrestore_backup(), maintenance_cycle()\n<<functions, not service classes>>" as Backups
