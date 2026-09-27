@@ -12,6 +12,7 @@ historical archives.
 
 | Document | Purpose |
 | --- | --- |
+| [12-slide PowerPoint](camfranglais-presentation-12-slides.pptx) · [PDF preview](camfranglais-presentation-12-slides.pdf) | Essential oral presentation: app workflow, real screenshots, key source files, compiler automata and results; exactly 12 editable slides with speaker notes |
 | [Final coursework report](final-report.pdf) · [LaTeX](final-report.tex) | Fixed twelve-statement study; all raw text and token tables; regex/CFG calculations, lexer DFA and parser pushdown models, complete LL(1) table and representative complete traces; browser evidence and linguistic limitations |
 | [SRS](srs.pdf) · [LaTeX](srs.tex) | Public permissions, functional/quality requirements, failure contracts, limits and acceptance criteria |
 | [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Source-grounded design and UML; active public boundary distinguished from retained legacy/desktop code |
@@ -104,6 +105,97 @@ tests and 179 token occurrences, including repeats and older snapshots. These
 are not the fixed twelve-statement/81-token evaluation. The register records
 the crop coordinates, capture context and image hashes. Screenshots establish
 working software, not authentic original field recordings.
+
+## 12-slide essentials PowerPoint
+
+The [editable PowerPoint](camfranglais-presentation-12-slides.pptx) and
+[PDF preview](camfranglais-presentation-12-slides.pdf) contain **exactly 12
+slides**, suitable for a roughly ten-minute oral presentation:
+
+1. Project title and group members.
+2. Purpose: preserve, explain and review.
+3. The five public pages.
+4. The input-to-result workflow.
+5. Franc Analyzer and its real input screen.
+6. Separate vocabulary and grammar verdicts.
+7. Collection, Dictionary and synthetic examples.
+8. The three application layers and their key files.
+9. The lexer and its equivalent DFA.
+10. The LL(1) parser and its pushdown control.
+11. Controlled results and their limitations.
+12. Conclusion, website and questions.
+
+The deck includes the known names/matricules without signing fields, a
+matching navy/teal/gold design, ten layout variants and speaker notes on every
+slide. Text, cards, flow graphics and the outcome chart are editable;
+screenshots, the original architecture illustration and imported formal
+automata are images. Slide 3 has clickable navigation cards that lead only
+to slides within this twelve-slide deck.
+
+The [concise slide content](presentation/slides-brief.json) contains the exact
+titles, explanations, notes and responsible source filenames. Source rails use
+repository-relative links: keep the deck in this folder with the checkout
+if you want those links to resolve. Standalone copies still display every
+filename and retain their speaker notes.
+
+The earlier [100-slide technical reference](camfranglais-presentation-100-slides.pptx),
+its [PDF](camfranglais-presentation-100-slides.pdf) and
+[full content](presentation/slides.json) are preserved separately; they are
+not the concise presentation.
+
+The shared asset collection contains eight real screenshots covering all five
+pages, a `kass` dictionary lookup, and mobile Analyzer/Collection views. The
+[capture register](presentation/screenshots/captures.json) records their
+hashes and dimensions. Capture uses the live app without response mocking or
+DOM changes; all non-read API requests are blocked and **no new tests are
+submitted**. The concise deck uses selected Analyzer and Dictionary images,
+plus a genuine earlier selected-test image reused from the report.
+The [visual register](presentation/visuals/provenance.json) distinguishes
+crop-only derivatives from original programmatically drawn illustrations.
+Illustrations are explanatory artwork, not fieldwork photographs.
+
+Rebuild using the configured Python environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.build_presentation --brief
+.\.venv\Scripts\python.exe -m tools.build_presentation --brief --check
+.\.venv\Scripts\python.exe -m unittest tools.tests.test_presentation
+```
+
+The [generator](../tools/build_presentation.py) uses `python-pptx`, Pillow
+and the installed Arial/Georgia/Consolas Windows fonts for layout metrics.
+It rejects a count other than 12 for the concise edition, missing referenced
+files, text that cannot fit above its minimum font size, absent speaker notes
+and off-slide objects. Omit `--brief` only to rebuild the 100-slide reference.
+The optional `--render` command additionally uses PyMuPDF and local LibreOffice
+to render and validate the **actual PPTX**, then publishes the PDF:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.build_presentation --brief --render
+```
+
+The verified local renderer is LibreOffice 26.2.6.3, extracted under
+`.tools\LibreOffice-26.2.6` without a system-wide installation. Its official
+26.2.6 Windows MSI SHA-256 is
+`f9877032fd908beb9c0ddf06df4af5c2e85f419c42e14876c4cce5aae5fb2660`.
+Rendering never uploads the presentation to a third party. A non-blocking
+LibreOffice Python-prefix message may appear; the converter exit, PDF
+existence, freshness and all 12 rendered pages are checked independently.
+Use `--brief --verify-render` to recheck a current local PDF without regenerating.
+
+The [concise verification record](presentation/verification-brief.json)
+records both artifact hashes, editability counts, source-file inventory,
+page count, per-text-box fit, image bounds and PDF font embedding. The
+[reference verification record](presentation/verification.json) is separate.
+The published concise deck has 221 editable text shapes, seven image
+placements, one editable chart and 12 speaker-note pages. All 221 rendered
+text boxes fit, every image stays within the page and all five PDF font
+resources are embedded.
+Review images and intermediate files stay under the ignored
+`.build\presentation\brief` directory. To intentionally refresh public screenshots,
+run the [read-only capture script](../tools/capture_presentation.cjs) after
+installing the frontend's declared development dependencies; then review the
+new counts and explanatory text before rebuilding.
 
 ## UML modeling rules
 

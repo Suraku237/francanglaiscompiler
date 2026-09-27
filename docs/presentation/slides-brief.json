@@ -1,0 +1,107 @@
+[
+  {
+    "layout": "cover",
+    "title": "Camfranglais",
+    "subtitle": "How the app works.\nThe essential source files.",
+    "points": [["Kwete Ngouba Junior Rayan", "ICTU20241377"], ["Djemtchimo Noukui Bruno Jonatan", "ICTU20241585"], ["Amina Boubakary", "ICTU20241870"]],
+    "sources": ["README.md", "docs/document-style.tex"],
+    "image": "analyzer-desktop",
+    "notes": "Introduce the group and the project. CS4110 Compiler Construction, Summer 2026, SET A. Instructor: Engr. Tanwi Nkiamboh. This concise presentation has twelve slides and is intended for a roughly ten-minute oral presentation. The app is a deterministic lexical and syntactic analyzer, not an AI translator."
+  },
+  {
+    "layout": "cards",
+    "title": "Our goal: make language analysis visible",
+    "subtitle": "A transparent teaching tool for Camfranglais statements.",
+    "points": [["PRESERVE", "Keep the original words, spelling and punctuation."], ["EXPLAIN", "Show token categories and the grammar decision."], ["REVIEW", "Save the result and inspect its evidence."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/parser/predictive.py", "backend/analyzer_history.py"],
+    "notes": "Explain the problem: informal mixed-language statements are difficult to understand through a single accept/reject badge. The app exposes the intermediate decisions. A grammar match is not proof of meaning or standard French correctness. Suggested speaking time: 40 seconds."
+  },
+  {
+    "layout": "navigation",
+    "title": "Five pages, one public workspace",
+    "subtitle": "No login: analyze and save tests; reference data stays read-only.",
+    "points": [["Franc Analyzer", "Enter a statement and run a test."], ["Analysis", "Inspect saved results and statistics."], ["Collection", "Browse supplied statements and audio."], ["Dictionary", "Look up reference vocabulary."], ["Synthetic examples", "Try clearly labelled practice material."]],
+    "sources": ["frontend/src/App.tsx", "frontend/src/PublicSession.tsx", "backend/public_access.py"],
+    "targets": [5, 6, 7, 7, 7],
+    "notes": "App.tsx owns the five-page navigation. PublicSession prepares anonymous access; public_access.py enforces the allowed operations. Public visitors cannot edit Collection, the saved grammar or recordings. The cards link to the matching short walkthrough slides. Suggested speaking time: 45 seconds."
+  },
+  {
+    "layout": "flow",
+    "title": "What happens when we press Analyze?",
+    "subtitle": "One input becomes a traceable, saved result.",
+    "points": [["INPUT", "Keep the original text"], ["LEXER", "Split and classify tokens"], ["PARSER", "Test the saved grammar"], ["SAVE", "Retain the original snapshot"], ["DISPLAY", "Show verdicts and evidence"]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "backend/analyzer_api.py", "compiler/lexer/tokenizer.py", "compiler/parser/predictive.py"],
+    "notes": "Trace the main path from the React input to POST /api/analyzer/tests. The backend validates access and the shared grammar, runs lexical and syntactic analysis, and saves an immutable snapshot. A rejected sentence is still saved as a legitimate test result. Suggested speaking time: 55 seconds."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Franc Analyzer: the main action",
+    "subtitle": "Type or paste a statement, then explicitly choose Analyze.",
+    "image": "analyzer-input",
+    "points": [["Original text", "No silent spelling correction."], ["Saved grammar", "The public visitor cannot edit it."], ["Public result", "The test is retained, not added to Collection."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "backend/analyzer_api.py", "backend/analyzer_history.py"],
+    "notes": "Use the real input screenshot to explain the user action. The main input is limited to 4,000 characters and can intentionally test empty input. Warn that submitting saves the text publicly, even when rejected. The screenshot was captured without submitting a new test. Suggested speaking time: 50 seconds."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Two verdicts explain the result",
+    "subtitle": "Example: je suis kass je go nang",
+    "image": "saved-token-panel",
+    "points": [["Vocabulary", "Passes when no token is UNKNOWN."], ["Grammar", "Passes when categories fit the saved rules."], ["Evidence", "S02: six tokens consumed; the CFG accepts."]],
+    "sources": ["frontend/src/CourseworkResults.tsx", "frontend/src/VocabularyVerdict.tsx", "compiler/parser/predictive.py"],
+    "notes": "Show the genuine saved S02 result. Its categories are French function word, verb, adjective, French function word, verb, verb. Known words can still fail grammar: the constructed control je je suis is one example. The trace explains the decision; acceptance does not certify linguistic correctness. Suggested speaking time: 65 seconds."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Reference pages support the analysis",
+    "subtitle": "Browse the evidence without changing it.",
+    "image": "dictionary-kass",
+    "points": [["Collection", "Original statements, context and existing audio."], ["Dictionary", "938 source-labelled reference entries."], ["Examples", "26 constructed practice statements, not fieldwork."]],
+    "sources": ["frontend/src/Collection.tsx", "frontend/src/Dictionary.tsx", "frontend/src/Examples.tsx", "backend/dictionary.py"],
+    "notes": "The screenshot is a real search for kass: supplied meaning tired/exhausted/worn out, category adjective. Opening a reference only drafts text in the Analyzer; it does not automatically save a test. Existing recordings can be played, but the public workflow does not generate speech. Suggested speaking time: 50 seconds."
+  },
+  {
+    "layout": "art",
+    "title": "Three layers and their key files",
+    "subtitle": "Each layer has one clear responsibility.",
+    "art": "architecture",
+    "points": [["React interface", "App.tsx: pages and navigation."], ["FastAPI backend", "main.py: public API wiring."], ["Python compiler", "tokenizer.py and predictive.py: the analysis rules."]],
+    "sources": ["frontend/src/App.tsx", "backend/main.py", "compiler/lexer/tokenizer.py", "compiler/parser/predictive.py"],
+    "notes": "The browser presents the workflow, the backend validates and coordinates requests, and the compiler performs the rule-based computation. SharedWorkspaceStore persists public test snapshots in SQLite. The documented site is https://camfranglais.duckdns.org, with a private 127.0.0.1:2021 upstream behind Nginx. Suggested speaking time: 55 seconds."
+  },
+  {
+    "layout": "diagram",
+    "title": "Lexer: from characters to tokens",
+    "subtitle": "An equivalent DFA explains the actual segmentation regex.",
+    "image": "lexer-dfa",
+    "points": [["Recognize", "Word, number and punctuation forms."], ["Classify", "Apply ordered vocabulary and regex rules."], ["Preserve", "Unknown characters are kept, not discarded."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/lexicon.py", "docs/diagrams/automaton-lexer.puml"],
+    "notes": "The implementation uses Python's regex matcher, not a hand-written DFA class. Double circles accept token forms. W is word, I integer, F fraction, P punctuation and O other; J and R await continuation. Example: j'ai is one word, while 3. becomes 3 and a punctuation token. A word-shaped token can still receive UNKNOWN. Suggested speaking time: 65 seconds."
+  },
+  {
+    "layout": "diagram-wide",
+    "title": "Parser: categories plus a stack",
+    "subtitle": "The saved LL(1) table selects each next action.",
+    "image": "parser-pda",
+    "points": [["Expand", "Use the unique table entry."], ["Match", "Consume one matching category."], ["Finish", "Accept only at input end."]],
+    "sources": ["compiler/parser/analysis.py", "compiler/parser/predictive.py", "docs/diagrams/automaton-parser.puml"],
+    "notes": "This pushdown model explains the implementation rather than introducing invented classes. Stack top is on the right; expansion pushes the reversed production. FIRST/FOLLOW and the LL(1) table are computed from the grammar. The study's transformed grammar has 39 productions, 47 populated table cells and no conflicts. The implementation has token, trace and stack bounds. Suggested speaking time: 70 seconds."
+  },
+  {
+    "layout": "outcome",
+    "title": "What the controlled study shows",
+    "subtitle": "Twelve supplied statements, 81 token occurrences.",
+    "data": "outcomes",
+    "points": [["10 ACCEPTED", "The category sequences fit the saved grammar."], ["2 REJECTED", "n'ais and alli remain unresolved."], ["LIMITATION", "Grammar match is not linguistic accuracy or proven fieldwork."]],
+    "sources": ["docs/evidence/final-analysis-20260927.json", "compiler/tests/yaounde_cases.py", "compiler/parser/yaounde.py"],
+    "notes": "The 83.3 percent match rate applies only to these twelve unchanged originals and this saved grammar. It is not a language-wide accuracy measurement. Original fieldwork provenance and supplied meanings still need human confirmation. The dashboard's live history totals are a different dataset. Suggested speaking time: 55 seconds."
+  },
+  {
+    "layout": "closing",
+    "title": "Transparent rules. Visible evidence.",
+    "subtitle": "Thank you. Questions?",
+    "points": [["PRESERVE", "The original text"], ["EXPLAIN", "The compiler decision"], ["RETAIN", "The original result"]],
+    "sources": ["README.md", "docs/README.md"],
+    "notes": "Summarize the main value: a public, deterministic application that makes lexical and syntactic decisions inspectable and keeps their original results. Invite questions or demonstrate an existing saved test. The website is https://camfranglais.duckdns.org. Suggested speaking time: 20 seconds, leaving time for transitions and the group handoff."
+  }
+]

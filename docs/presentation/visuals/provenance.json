@@ -1,0 +1,63 @@
+[
+  {
+    "file": "docs/presentation/visuals/analyzer-input.png",
+    "sha256": "febb4067f0df6b0fe15e2141d7efd150d4558aa69cf508fe3dc005ff667c0de8",
+    "derived_from": "docs/presentation/screenshots/analyzer-desktop.png",
+    "crop_box_pixels": [
+      389,
+      144,
+      2117,
+      979
+    ],
+    "edit": "Crop only; no text, result or interface altered."
+  },
+  {
+    "file": "docs/presentation/visuals/collection-filters.png",
+    "sha256": "22fb3b622c2eb4e857586bcb3d3ebfc2d45e2326012a8db86ad39f92891c31e9",
+    "derived_from": "docs/presentation/screenshots/collection-desktop.png",
+    "crop_box_pixels": [
+      389,
+      547,
+      2117,
+      979
+    ],
+    "edit": "Crop only; no text, result or interface altered."
+  },
+  {
+    "file": "docs/presentation/visuals/dictionary-kass.png",
+    "sha256": "75357dffd93d04848a6ae7c55ea703905e42ab4d611eff66de712b8ec31715a9",
+    "derived_from": "docs/presentation/screenshots/dictionary-search.png",
+    "crop_box_pixels": [
+      389,
+      720,
+      2117,
+      1368
+    ],
+    "edit": "Crop only; no text, result or interface altered."
+  },
+  {
+    "file": "docs/presentation/visuals/illustration-language.png",
+    "sha256": "02254f98b973e5d87b90352a58f142281a0742645f90bb41315520233a229749",
+    "origin": "Original programmatically drawn explanatory artwork; not a screenshot or fieldwork photograph."
+  },
+  {
+    "file": "docs/presentation/visuals/illustration-tokens.png",
+    "sha256": "3046b1b89eee0c9d69997f41e4d4d20471bc161df901659d3fd77b02f5e1b120",
+    "origin": "Original programmatically drawn explanatory artwork; not a screenshot or fieldwork photograph."
+  },
+  {
+    "file": "docs/presentation/visuals/illustration-grammar.png",
+    "sha256": "250641ea869d18bf023d3cf67d72a5a70982ccbdcfe2ef154af668fd40b0f33a",
+    "origin": "Original programmatically drawn explanatory artwork; not a screenshot or fieldwork photograph."
+  },
+  {
+    "file": "docs/presentation/visuals/illustration-architecture.png",
+    "sha256": "4f9c71dc9780901f6acdb41332d575e037cc9e857c382ab7df61e21deb07b699",
+    "origin": "Original programmatically drawn explanatory artwork; not a screenshot or fieldwork photograph."
+  },
+  {
+    "file": "docs/presentation/visuals/illustration-storage.png",
+    "sha256": "c2f036416f880eef010dfd604b5d28c54d6f5d8e25025ec7f106f3883b890b83",
+    "origin": "Original programmatically drawn explanatory artwork; not a screenshot or fieldwork photograph."
+  }
+]

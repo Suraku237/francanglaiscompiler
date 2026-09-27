@@ -14,6 +14,7 @@ The public bootstrap and no-login interface were observed working on
 
 | Document | PDF | Editable source |
 | --- | --- | --- |
+| 12-slide essentials presentation | [Slide preview](docs/camfranglais-presentation-12-slides.pdf) | [PowerPoint](docs/camfranglais-presentation-12-slides.pptx) |
 | Final coursework report | [Report](docs/final-report.pdf) | [LaTeX](docs/final-report.tex) |
 | Software Requirements Specification | [SRS](docs/srs.pdf) | [LaTeX](docs/srs.tex) |
 | Software Design Description | [SDD](docs/sdd.pdf) | [LaTeX](docs/sdd.tex) |
@@ -30,6 +31,15 @@ areas. The report explains the regex lexer's equivalent DFA and the bounded
 LL(1) parser's pushdown control. Both automata are included alongside the
 35 UML views in the SDD and 37-sheet atlas; they do not imply invented runtime
 classes or an LR implementation.
+
+The **12-slide presentation** keeps only the essentials for a roughly
+ten-minute oral presentation: purpose, five-page workflow, genuine app
+screenshots, key source filenames, compiler automata, results and limitations.
+It includes the group's names/matricules and short speaker notes on every slide.
+Text, cards, flow graphics and the outcome chart remain editable in PowerPoint;
+the PDF is a fixed preview. The earlier 100-slide technical reference remains
+available through the [documentation register](docs/README.md), separately
+from the concise presentation.
 
 ## Five-screen workflow
 

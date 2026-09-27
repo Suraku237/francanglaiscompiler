@@ -1,0 +1,848 @@
+[
+  {
+    "layout": "cover",
+    "title": "Camfranglais",
+    "subtitle": "From everyday language to transparent compiler decisions.",
+    "points": [["CS4110", "Compiler Construction / Summer 2026 / SET A"], ["100 slides", "Product walkthrough, source-file guide and technical reference"]],
+    "sources": ["README.md", "docs/final-report.tex"],
+    "image": "analyzer-desktop",
+    "notes": "Introduce Camfranglais as the group's deterministic lexical and syntactic analyzer. This is a 100-slide reference presentation, not a claim that all 100 slides fit into the ten-minute oral assessment. Slide 99 provides a suggested short route. Screenshots show the real deployed application; no tests were created to capture them."
+  },
+  {
+    "layout": "team",
+    "title": "The group behind the project",
+    "subtitle": "Three members. One shared compiler workspace.",
+    "points": [["Kwete Ngouba Junior Rayan", "ICTU20241377"], ["Djemtchimo Noukui Bruno Jonatan", "ICTU20241585"], ["Amina Boubakary", "ICTU20241870"]],
+    "sources": ["docs/document-style.tex"],
+    "notes": "These are the known names and matricules already used in the documentation. No individual contribution assignments are invented. Instructor: Engr. Tanwi Nkiamboh. The group should review who presents each part before the assessment."
+  },
+  {
+    "layout": "cards",
+    "title": "Three questions this deck answers",
+    "subtitle": "Start with the experience. Follow the data. Find the implementation.",
+    "points": [["USE", "What can a visitor do on each of the five pages?"], ["TRACE", "How does a statement become tokens, verdicts and a saved result?"], ["LOCATE", "Which real source file owns each part of that behavior?"]],
+    "sources": ["README.md", "docs/sdd.tex"],
+    "notes": "Use the small source rail on each slide to find the responsible files. Detailed paths and contextual explanations are also retained in the speaker notes. The presentation moves from the user interface to the algorithms and then to persistence, deployment and evidence."
+  },
+  {
+    "layout": "art",
+    "title": "Mixed language. Traceable rules.",
+    "subtitle": "A teaching tool for inspecting informal urban communication.",
+    "points": [["Multiple influences", "French, English, Camfranglais and Pidgin evidence can coexist."], ["Original wording", "Keep spelling, apostrophes and punctuation visible."], ["Inspectable decisions", "Explain categories and grammar, not a translation."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/languages.py"],
+    "art": "language",
+    "notes": "The illustration is original explanatory artwork, not a photograph or evidence of field collection. The application recognizes categories and language clues through rules and reference vocabulary. It is not an AI translator and does not infer a speaker's intent."
+  },
+  {
+    "layout": "navigation",
+    "title": "Five pages, one connected workflow",
+    "subtitle": "Click a page card in the slideshow to jump to its walkthrough.",
+    "points": [["Franc Analyzer", "Enter text and record a test."], ["Analysis", "Inspect saved results and statistics."], ["Collection", "Browse supplied records, context and audio."], ["Dictionary", "Search source-labelled vocabulary."], ["Synthetic examples", "Explore clearly constructed practice material."]],
+    "sources": ["frontend/src/App.tsx"],
+    "targets": [11, 21, 31, 35, 38],
+    "notes": "App.tsx owns the public page list and hash navigation. The five public routes are compiler, analysis, collection, dictionary and examples. There are no public account, translator, imports or coursework-generation screens."
+  },
+  {
+    "layout": "flow",
+    "title": "From statement to saved evidence",
+    "subtitle": "The main journey has five visible outcomes.",
+    "points": [["TEXT", "Preserve the raw input."], ["TOKENS", "Split and assign categories."], ["GRAMMAR", "Run the saved LL(1) rules."], ["SNAPSHOT", "Retain the original result."], ["REVIEW", "Inspect tokens, trace and statistics."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "backend/analyzer.py", "backend/analyzer_history.py"],
+    "notes": "This is a simplified explanatory flow, not UML sequence notation. The detailed implementation validates the request and shared grammar before computation and persistence. Analyze in the current UI records an immutable public test, even when the parser rejects it."
+  },
+  {
+    "layout": "compare",
+    "title": "Two verdicts. Different questions.",
+    "subtitle": "A familiar word sequence is not automatically a grammatical match.",
+    "points": [["VOCABULARY", "Are any tokens UNKNOWN?\nNo unknowns means vocabulary approval."], ["GRAMMAR", "Does the category sequence fit the saved CFG?\nKnown words can still reject."]],
+    "sources": ["frontend/src/VocabularyVerdict.tsx", "backend/analyzer_models.py", "compiler/parser/predictive.py"],
+    "notes": "Vocabulary approval is based on UNKNOWN occurrences. Recognized slang, AMBIGUOUS and other known categories can pass it. CFG acceptance comes from predictive parsing. Neither result proves standard French correctness, meaning or authentic fieldwork."
+  },
+  {
+    "layout": "table",
+    "title": "Public does not mean editable",
+    "subtitle": "The permission boundary is deliberate.",
+    "columns": ["Action", "Public behavior"],
+    "rows": [["Analyze and save tests", "Allowed; results are retained publicly"], ["Read saved tests", "Allowed; original snapshots"], ["Browse Collection and grammar", "Read-only"], ["Play existing recordings", "Allowed when a matching file exists"], ["Edit reference data or recordings", "Denied"], ["Use accounts or private maintenance APIs", "Not exposed publicly"]],
+    "sources": ["backend/public_access.py", "frontend/src/PublicSession.tsx"],
+    "notes": "The public session advertises analyze and save_tests capabilities while disabling reference edits. These restrictions are enforced in the backend, not merely by hiding buttons. CSRF protection remains even though login was removed."
+  },
+  {
+    "layout": "files",
+    "title": "Every feature has a source",
+    "subtitle": "Read the source rail as a map, not just a list of filenames.",
+    "points": [["frontend/src/App.tsx", "Chooses the page and connects navigation."], ["backend/analyzer_api.py", "Receives analyzer HTTP requests."], ["compiler/lexer/tokenizer.py", "Splits and classifies the input."], ["compiler/parser/predictive.py", "Executes the bounded parsing stack."]],
+    "sources": ["frontend/src/App.tsx", "backend/analyzer_api.py", "compiler/lexer/tokenizer.py", "compiler/parser/predictive.py"],
+    "notes": "The actual code is mostly Python functions and React function components. Do not rename these as imaginary controller or service classes. Paths on the slides are repository-relative; the complete repository accompanies the presentation."
+  },
+  {
+    "layout": "metrics",
+    "title": "The project at a glance",
+    "subtitle": "Different numbers describe different parts of the system.",
+    "points": [["5", "Public pages"], ["12", "Statements in the controlled study"], ["938", "Reference dictionary entries"], ["26", "Constructed practice examples"]],
+    "sources": ["frontend/src/App.tsx", "docs/evidence/final-analysis-20260927.json", "docs/README.md"],
+    "notes": "The twelve statements are the fixed evaluation corpus. The 938 dictionary entries and 26 synthetic examples are not additional collected statements. The Collection snapshot contains those twelve sentences plus one approved Word annotation, choa."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Start in Franc Analyzer",
+    "subtitle": "No account gate stands between the visitor and the input.",
+    "image": "analyzer-desktop",
+    "points": [["One main input", "Type or paste a sentence or word."], ["Saved grammar", "The public interface uses the operator-saved grammar."], ["Visible retention notice", "The interface explains that tests become public."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/PublicSession.tsx"],
+    "notes": "This screenshot is a real deployed page captured on 27 September 2026. The input is empty because the screenshot process did not submit a new test. The real input screen permits an empty-input grammar check."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Keep the speaker's original text",
+    "subtitle": "The input is evidence, not text to silently repair.",
+    "image": "analyzer-input",
+    "points": [["4,000 characters", "The UI bounds one analyzer request."], ["No hidden correction", "Keep case, spelling and punctuation."], ["Separate destination", "A test is not added to Collection."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/types.ts", "backend/analyzer_models.py"],
+    "notes": "The visual is a documented crop of the real input panel. Normalization is used later for matching and statistics; it does not replace the stored source text. An intentionally empty request is valid input to the analyzer flow, although the saved corpus grammar rejects it."
+  },
+  {
+    "layout": "flow",
+    "title": "What happens after Analyze?",
+    "subtitle": "A click starts a reproducible, server-side workflow.",
+    "points": [["PREPARE", "Text + saved grammar + request ID"], ["VALIDATE", "Public access and current grammar"], ["COMPUTE", "Lexical report + grammar trace"], ["PERSIST", "Immutable test in shared storage"], ["DISPLAY", "Show the recorded snapshot"]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "backend/analyzer_api.py", "backend/analyzer_history.py", "backend/shared_workspace.py"],
+    "notes": "The endpoint used by the UI is POST /api/analyzer/tests. The request identifier supports safe retry. The public boundary and request models validate the operation before a result is saved. A grammar rejection is still a legitimate recorded result, not a failed network operation."
+  },
+  {
+    "layout": "code",
+    "title": "The client sends a reproducible request",
+    "subtitle": "Three fields connect the UI to a specific computation.",
+    "code": "POST /api/analyzer/tests\n\n{\n  \"request_id\": \"<new or reused UUID>\",\n  \"text\": \"je suis kass je go nang\",\n  \"grammar\": \"<exact saved grammar>\"\n}",
+    "points": [["Text", "The original string, not a translation."], ["Grammar", "The saved rule text used for this test."], ["Request ID", "Identical retry can find the same result."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "backend/analyzer_models.py", "backend/analyzer_history.py"],
+    "notes": "Angle-bracket values are explicitly abbreviated teaching placeholders, not a payload to copy unchanged. The actual request includes a valid UUID and full saved grammar. No CSRF token or private configuration is displayed in this example."
+  },
+  {
+    "layout": "cards",
+    "title": "Waiting, stopping and retrying",
+    "subtitle": "Browser state and server completion are not the same thing.",
+    "points": [["WAIT", "The analyzer allows up to 60 seconds for its request."], ["STOP WAITING", "Abort the local wait, not a guaranteed server rollback."], ["RETRY IDENTICALLY", "Keep the request ID to recover the already-saved result."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/useRequest.ts", "frontend/src/api.ts"],
+    "notes": "The general API helper has a shorter default timeout; the analyzer overrides it to 60000 ms. If the browser stops waiting, the server may still commit. Repeated completed tests with deliberately new request IDs count separately."
+  },
+  {
+    "layout": "cards",
+    "title": "A test is an immutable snapshot",
+    "subtitle": "Opening an old result does not run today's rules again.",
+    "points": [["SOURCE", "The exact original text."], ["RULES", "The grammar used at that time."], ["RESULT", "Tokens, approval and parser trace."], ["IDENTITY", "A stable test ID and recorded time."]],
+    "sources": ["backend/analyzer_models.py", "backend/analyzer_history.py", "backend/shared_workspace.py"],
+    "notes": "Saved tests have no public edit or delete operation. An operator's later grammar or reference update does not rewrite prior lexical and syntactic results. This distinction is important when interpreting dashboard statistics."
+  },
+  {
+    "layout": "tokens",
+    "title": "An accepted example, token by token",
+    "subtitle": "S02: je suis kass je go nang",
+    "data": "s02",
+    "points": [["6 tokens", "Every raw word is retained."], ["No UNKNOWN", "Vocabulary approval passes."], ["Accepted CFG", "All six categories are consumed."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "This slide is generated from the committed computed evidence, not typed token labels. The categories are FRENCH_FUNCTION_WORD, VERB, ADJECTIVE, FRENCH_FUNCTION_WORD, VERB, VERB. FF is used visually as an abbreviation for FRENCH_FUNCTION_WORD."
+  },
+  {
+    "layout": "compare",
+    "title": "Rejection keeps the evidence",
+    "subtitle": "The two unresolved corpus forms are not erased or repaired.",
+    "points": [["S09 / n'ais", "The sixth token is UNKNOWN.\nFive tokens are consumed before rejection."], ["S10 / alli", "The sixth token is UNKNOWN.\nLater tokens are not silently skipped."]],
+    "sources": ["compiler/tests/yaounde_cases.py", "compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "Both original strings remain unchanged. Each rejected trace contains fourteen recorded rows. The parser reports the undefined table entry instead of treating UNKNOWN as a wildcard. Human review is needed to resolve the linguistic forms."
+  },
+  {
+    "layout": "flow",
+    "title": "Reference, then draft, then explicit Analyze",
+    "subtitle": "Opening a library item does not secretly create a test.",
+    "points": [["CHOOSE", "Collection, Dictionary or an example"], ["HAND OFF", "Copy its text to Franc Analyzer"], ["REVIEW", "Inspect the draft and retention notice"], ["ANALYZE", "Explicitly run and save the test"]],
+    "sources": ["frontend/src/App.tsx", "frontend/src/Collection.tsx", "frontend/src/Dictionary.tsx", "frontend/src/Examples.tsx"],
+    "notes": "App.tsx coordinates the openCompiler handoff. It supplies a draft rather than automatically invoking the backend. This lets visitors inspect a source before choosing to publicly retain an analysis."
+  },
+  {
+    "layout": "files",
+    "title": "Analyzer: the files to open",
+    "subtitle": "Use this map when explaining or debugging the main workflow.",
+    "points": [["frontend/src/FrancAnalyzer.tsx", "Input, saved grammar, submit, retry and selected test."], ["frontend/src/api.ts", "JSON requests, CSRF headers and error messages."], ["backend/analyzer_api.py", "Public analyzer endpoints."], ["backend/analyzer_history.py", "Record, retrieve and report saved tests."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/api.ts", "backend/analyzer_api.py", "backend/analyzer_history.py"],
+    "notes": "Follow the UI event into the API file, then the route and history service. The compiler algorithms are intentionally separate from request orchestration and storage. The next chapter explains the evidence rendered from these saved results."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Analysis is the evidence desk",
+    "subtitle": "Statistics and original results from publicly saved tests.",
+    "image": "analysis-desktop",
+    "points": [["Dashboard", "View retained-test totals and verdicts."], ["Individual result", "Inspect the original tokens and trace."], ["Rule visibility", "Open the read-only grammar settings."]],
+    "sources": ["frontend/src/Analysis.tsx", "frontend/src/TestStatistics.tsx", "frontend/src/CourseworkResults.tsx"],
+    "notes": "The screenshot was captured from the live deployed application. Its totals describe the retained history at capture time, not the fixed twelve-statement evaluation. The two sets of numbers must not be merged."
+  },
+  {
+    "layout": "metrics",
+    "title": "Count saved tests, not collected records",
+    "subtitle": "A dated history snapshot is different from a controlled study.",
+    "points": [["34", "Retained tests in the screenshot"], ["179", "Token occurrences in that history"], ["12", "Statements in the fixed study"], ["81", "Token occurrences in the fixed study"]],
+    "sources": ["frontend/src/TestStatistics.tsx", "backend/analyzer_history.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The first two values are observed on 27 September 2026 and can change as visitors submit new tests. The last two are fixed by the committed study. Untested Collection entries do not enter saved-test statistics."
+  },
+  {
+    "layout": "compare",
+    "title": "Vocabulary approval asks one question",
+    "subtitle": "Does the saved token stream contain UNKNOWN?",
+    "points": [["ZERO UNKNOWN", "Vocabulary ACCEPT.\nSlang and AMBIGUOUS are not automatically rejected."], ["ONE OR MORE UNKNOWN", "Vocabulary REJECT.\nKeep the unresolved forms visible for review."]],
+    "sources": ["frontend/src/VocabularyVerdict.tsx", "backend/analyzer_models.py"],
+    "notes": "The approval condition is exact: reject when unknown_count is positive. Empty input has no UNKNOWN tokens, so it passes this lexical condition even though the saved corpus grammar cannot derive an empty utterance."
+  },
+  {
+    "layout": "compare",
+    "title": "Known words may still fail the CFG",
+    "subtitle": "Constructed control: je je suis",
+    "points": [["LEXICAL VIEW", "All three words have recognized categories.\nVocabulary approval passes."], ["SYNTACTIC VIEW", "The category order is unsupported.\nThe saved grammar rejects it."]],
+    "sources": ["compiler/parser/yaounde.py", "compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "This is control C06, not an additional collected utterance. It demonstrates why separate verdicts matter. A dictionary-membership test alone could not explain this rejection."
+  },
+  {
+    "layout": "bars",
+    "title": "Nine categories occur in the study",
+    "subtitle": "Counts are generated from all 81 token occurrences.",
+    "data": "categories",
+    "points": [["Count the evidence", "Do not infer category coverage from the grammar alone."]],
+    "sources": ["docs/evidence/final-analysis-20260927.json", "tools/build_report_evidence.py"],
+    "notes": "The lexer supports twenty terminal categories, but only nine occur in the twelve supplied statements. The chart is generated from statistics.category_counts. FF and EF abbreviate French and English function-word categories."
+  },
+  {
+    "layout": "bars",
+    "title": "Frequency starts with actual tokens",
+    "subtitle": "Most frequent forms in the controlled twelve-statement study.",
+    "data": "frequencies",
+    "points": [["Observed frequency", "These counts do not estimate language-wide usage."]],
+    "sources": ["docs/evidence/final-analysis-20260927.json", "tools/build_report_evidence.py"],
+    "notes": "The bars use the first six entries of the computed frequency list. The corpus has 55 case-folded forms. Preserve the distinction between token occurrences and distinct forms, and avoid treating this small convenience corpus as representative of a whole population."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Inspect raw text and categories",
+    "subtitle": "The selected-test panel makes individual decisions visible.",
+    "image": "saved-token-panel",
+    "points": [["Original input", "Review exactly what was recorded."], ["Token detail", "Compare each spelling with its chosen label."], ["Historical result", "This is a saved snapshot, not a new computation."]],
+    "sources": ["frontend/src/CourseworkResults.tsx", "frontend/src/VocabularyVerdict.tsx", "backend/analyzer_models.py"],
+    "notes": "This image comes from the genuine selected-S02 capture used in the report. The capture register preserves its original and cropped derivatives. It was opened read-only without submitting a test."
+  },
+  {
+    "layout": "trace",
+    "title": "A trace is a sequence of decisions",
+    "subtitle": "Each row records the stack and remaining input before its action.",
+    "data": "trace-intro",
+    "points": [["Read left to right", "Stack state / remaining categories / selected action."]],
+    "sources": ["compiler/parser/predictive.py", "frontend/src/CourseworkResults.tsx"],
+    "notes": "The displayed rows are the first four S02 trace records from computed evidence. In visual abbreviations: Ut is Utterance, Uf is Utterance_LF1, Cl is Clause, St is SubjectTail, and FF is FRENCH_FUNCTION_WORD. The full names are retained in the underlying evidence."
+  },
+  {
+    "layout": "flow",
+    "title": "Grammar panels reveal the calculation",
+    "subtitle": "The UI exposes intermediate results instead of only a green badge.",
+    "points": [["ORIGINAL", "The exact supplied grammar"], ["TRANSFORMED", "Before/after rule rewrites"], ["SETS", "Computed FIRST and FOLLOW"], ["TABLE", "LL(1) entries and conflicts"]],
+    "sources": ["frontend/src/CourseworkResults.tsx", "compiler/parser/service.py", "compiler/parser/analysis.py"],
+    "notes": "GrammarResults renders the original and transformed grammar, transformation steps, sets and table. Conflicting entries are reported explicitly. These panels are read-only in the public workflow."
+  },
+  {
+    "layout": "files",
+    "title": "Analysis: rendering versus aggregation",
+    "subtitle": "Different files own the view, the evidence and the totals.",
+    "points": [["frontend/src/Analysis.tsx", "Page wrapper, selected test and loading states."], ["frontend/src/TestStatistics.tsx", "History metrics, frequencies and pagination."], ["frontend/src/CourseworkResults.tsx", "Token tables, grammar tables and parse traces."], ["backend/analyzer_history.py", "Aggregate saved snapshots and page summaries."]],
+    "sources": ["frontend/src/Analysis.tsx", "frontend/src/TestStatistics.tsx", "frontend/src/CourseworkResults.tsx", "backend/analyzer_history.py"],
+    "notes": "Statistics are computed across saved tests even when only one summary page is returned. Pagination limits the displayed summaries, not the overall totals. Old snapshots are not silently reclassified."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Collection preserves supplied evidence",
+    "subtitle": "A read-only browser for statements, annotations and context.",
+    "image": "collection-desktop",
+    "points": [["Browse", "Read the existing records."], ["Inspect", "Open meanings, notes and available audio."], ["Reuse carefully", "Copy a record into an analyzer draft."]],
+    "sources": ["frontend/src/Collection.tsx", "backend/collection.py"],
+    "notes": "The current capture shows thirteen Collection entries: twelve sentences and one Word annotation. Review status is metadata, not proof of authentic original fieldwork. The public interface cannot create, edit or delete Collection records."
+  },
+  {
+    "layout": "cards",
+    "title": "What one Collection record means",
+    "subtitle": "Keep content, interpretation and provenance separate.",
+    "points": [["RAW EXPRESSION", "The saved statement or word."], ["SUPPLIED GLOSSES", "Meanings provided with the record."], ["CONTEXT", "Location, review state and notes where present."], ["EXISTING AUDIO", "Playback or download when a stored file is available."]],
+    "sources": ["frontend/src/Collection.tsx", "backend/schemas.py", "backend/audio_api.py"],
+    "notes": "EntryViewer presents these fields. A gloss is not an independently verified translation, and a recording does not alone establish who collected the original utterance or when. Missing metadata should remain missing rather than be filled with invented details."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Search and filter without rewriting",
+    "subtitle": "Read-side tools help visitors find relevant records.",
+    "image": "collection-filters",
+    "points": [["Search and filters", "Filter language, review, category and type."], ["JSON export", "Download the filtered public result set."], ["No mutation", "Searching or exporting does not change a record."]],
+    "sources": ["frontend/src/Collection.tsx", "backend/collection.py"],
+    "notes": "The screenshot is a crop of the real Collection page. Exported fields can include context and contributor details; the UI cautions users to share only with authorized recipients. The presentation capture did not export private data or mutate any record."
+  },
+  {
+    "layout": "metrics",
+    "title": "Twelve statements; provenance still qualified",
+    "subtitle": "Software can measure the corpus without certifying its origin.",
+    "points": [["12", "Exact supplied statements"], ["81", "Token occurrences"], ["55", "Case-folded forms"], ["UNCONFIRMED", "Original fieldwork provenance"]],
+    "sources": ["docs/evidence/final-corpus-20260927.json", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The saved manual_transcription_confirmed flag is false and collection_method is blank. Some locations and audio references exist, but these do not prove collector identities, original dates, speakers or consent. This qualification remains explicit throughout the presentation."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Dictionary is a reference library",
+    "subtitle": "Search vocabulary, supplied labels and source meanings.",
+    "image": "dictionary-desktop",
+    "points": [["938 entries", "Distinct reference entries, including retained senses."], ["Source-labelled", "See where a meaning or category came from."], ["Not fieldwork", "Reference entries never increase research counts."]],
+    "sources": ["frontend/src/Dictionary.tsx", "backend/dictionary.py", "dictionary/full_lexicon_classified.csv"],
+    "notes": "The dictionary is assembled from the supplied classified CSV and retained Markdown sources. It is reference material, not the shared Collection. The UI separates source meanings and origins rather than inventing missing French translations."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Search kass and inspect its source",
+    "subtitle": "A concrete lookup connects the interface to the reference data.",
+    "image": "dictionary-kass",
+    "points": [["Meaning", "tired; exhausted; worn out"], ["Supplied category", "adjective"], ["Traceable source", "full_lexicon_classified.csv, line 134"]],
+    "sources": ["frontend/src/Dictionary.tsx", "backend/dictionary.py", "dictionary/full_lexicon_classified.csv"],
+    "notes": "This is a genuine current dictionary search, not a fabricated card. Opening the entry copies kass into the analyzer but does not run a test. The meaning and category are displayed as supplied source annotations, not independently validated linguistic facts."
+  },
+  {
+    "layout": "flow",
+    "title": "Reference lookup does not overrule everything",
+    "subtitle": "The classifier uses a defined priority order.",
+    "points": [["STRUCTURE", "Numbers and punctuation"], ["REVIEWED", "Compatible approved word labels"], ["BUNDLED", "Explicit lexical lists"], ["SUPPLIED", "Reference categories"], ["FALLBACK", "French forms, morphology, UNKNOWN"]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/reference.py", "compiler/lexer/learned.py"],
+    "notes": "The last card groups several later steps for a readable overview. classify_token checks French forms after the supplied reference and then morphological suffix heuristics. This is deterministic first-applicable-rule classification, not majority voting."
+  },
+  {
+    "layout": "screenshot",
+    "title": "Synthetic means constructed, not collected",
+    "subtitle": "Practice examples are useful precisely because they are labelled honestly.",
+    "image": "examples-desktop",
+    "points": [["26 examples", "A separate practice library."], ["Search and browse", "Inspect topics, meanings and source labels."], ["Draft handoff", "Try a chosen example without altering Collection."]],
+    "sources": ["frontend/src/Examples.tsx", "backend/examples.py"],
+    "notes": "Examples do not train the lexer or count as original field statements. They are explicitly constructed teaching material. Search and page navigation share the reference-search hook with the Dictionary."
+  },
+  {
+    "layout": "flow",
+    "title": "Read-aloud reuses an existing recording",
+    "subtitle": "There is no generated speech in the public workflow.",
+    "points": [["REQUEST", "Choose read-aloud for a text"], ["LOOK UP", "Find a compatible recorded reading"], ["MATCH", "Return its stored audio reference"], ["PLAY", "Stream existing bytes in the browser"]],
+    "sources": ["frontend/src/RecordedReadings.tsx", "frontend/src/voice.ts", "backend/readings_api.py"],
+    "notes": "POST /api/readings/lookup is a read-only search, despite using POST. Upload, replace and delete are different write operations and are unavailable publicly. If there is no recording, the app must say so rather than synthesize a voice."
+  },
+  {
+    "layout": "files",
+    "title": "Library features: source ownership",
+    "subtitle": "Three libraries share patterns, not the same evidence role.",
+    "points": [["frontend/src/Collection.tsx", "Collection browser and record viewer."], ["frontend/src/Dictionary.tsx", "Reference vocabulary interface."], ["frontend/src/Examples.tsx", "Constructed practice interface."], ["frontend/src/useReferenceSearch.ts", "Debounced reference search and paging."], ["backend/dictionary.py", "Reference assembly and lookup."], ["backend/examples.py", "Constructed example loading and lookup."]],
+    "sources": ["frontend/src/Collection.tsx", "frontend/src/useReferenceSearch.ts", "backend/dictionary.py", "backend/examples.py"],
+    "notes": "Collection search uses its own dataset-oriented controls. Dictionary and Examples reuse useReferenceSearch with a page size of 25 and a 250 ms debounce. Backend services keep source datasets separate."
+  },
+  {
+    "layout": "art",
+    "title": "Three working layers, one product",
+    "subtitle": "The browser presents. The server coordinates. The compiler decides.",
+    "art": "architecture",
+    "points": [["REACT", "Pages, inputs, feedback and evidence panels."], ["FASTAPI", "Validation, public policy, endpoints and storage."], ["PYTHON COMPILER", "Regex lexing, grammar analysis and predictive parsing."]],
+    "sources": ["frontend/src/App.tsx", "backend/main.py", "compiler/parser/service.py"],
+    "notes": "Shared persistence supports the server layer. The explanatory illustration is original artwork, not a deployment proof. The current product is a lexical and syntactic analysis workspace; it does not emit machine code."
+  },
+  {
+    "layout": "flow",
+    "title": "Boot without a login",
+    "subtitle": "Public-session preparation replaces account authentication.",
+    "points": [["MOUNT", "main.tsx loads PublicSession"], ["BOOTSTRAP", "Load the public session"], ["CHECK", "Validate public-read-only capabilities"], ["CONFIGURE", "Keep the anonymous CSRF token"], ["OPEN", "Render App and its five pages"]],
+    "sources": ["frontend/src/main.tsx", "frontend/src/PublicSession.tsx", "frontend/src/api.ts", "backend/public_access.py"],
+    "notes": "PublicSession rejects incompatible capabilities rather than silently assuming the backend is safe. The cookie and token provide request-origin protection. They are not a user account, fake identity or login session."
+  },
+  {
+    "layout": "table",
+    "title": "Hash routes select the five pages",
+    "subtitle": "Navigation stays inside the same application shell.",
+    "columns": ["URL fragment", "Visible page", "Principal file"],
+    "rows": [["#compiler", "Franc Analyzer", "FrancAnalyzer.tsx"], ["#analysis", "Analysis", "Analysis.tsx"], ["#collection", "Collection", "Collection.tsx"], ["#dictionary", "Dictionary", "Dictionary.tsx"], ["#examples", "Synthetic examples", "Examples.tsx"]],
+    "sources": ["frontend/src/App.tsx"],
+    "notes": "All listed component files are under frontend/src. App.tsx chooses the route and handles shared navigation and focus. Unknown or retired fragments fall back to the analyzer rather than exposing removed screens."
+  },
+  {
+    "layout": "compare",
+    "title": "Waiting state and transport are separate",
+    "subtitle": "Two shared helpers keep page code focused.",
+    "points": [["useRequest.ts", "Owns pending and error state.\nPrevents overlapping runs.\nSupports cancel and clearError."], ["api.ts", "Sends JSON and CSRF headers.\nNormalizes errors and timeouts.\nGuards against stale sessions."]],
+    "sources": ["frontend/src/useRequest.ts", "frontend/src/api.ts"],
+    "notes": "These are hooks and functions, not classes. The default transport timeout is 15 seconds; the main analysis request explicitly uses 60 seconds. The UI must distinguish stop-waiting from durable cancellation."
+  },
+  {
+    "layout": "flow",
+    "title": "One origin connects the UI and API",
+    "subtitle": "Production serves the compiled frontend and API together.",
+    "points": [["BROWSER", "React requests /api/..."], ["HTTPS", "The same public origin"], ["PROXY", "Nginx forwards the request"], ["APP", "FastAPI serves JSON and static assets"]],
+    "sources": ["backend/web.py", "backend/main.py", "tools/run_app.py", "README.md"],
+    "notes": "This is the documented deployment topology. Vite is a development and build tool, not the public production server. The presentation makes no new claim of audited VPS configuration or guaranteed uptime."
+  },
+  {
+    "layout": "table",
+    "title": "Public API, grouped by task",
+    "subtitle": "The route reveals which part of the app is involved.",
+    "columns": ["Task", "Endpoint", "Owner"],
+    "rows": [["Session", "GET /api/public/session", "public_access.py"], ["Record a test", "POST /api/analyzer/tests", "analyzer_api.py"], ["Test summaries", "GET /api/analyzer/tests", "analyzer_api.py"], ["Collection", "GET /api/dataset", "main.py + collection.py"], ["Dictionary", "GET /api/dictionary", "main.py + dictionary.py"], ["Recorded lookup", "POST /api/readings/lookup", "readings_api.py"]],
+    "sources": ["backend/main.py", "backend/analyzer_api.py", "backend/public_access.py", "backend/readings_api.py"],
+    "notes": "Endpoint names are actual public interfaces. A POST is not automatically a write: recorded-reading lookup is an example of read-only POST. The analyzer test POST does persist a public result."
+  },
+  {
+    "layout": "code",
+    "title": "Bootstrap advertises the public contract",
+    "subtitle": "The frontend verifies capabilities before opening the workspace.",
+    "code": "{\n  \"access_mode\": \"public_read_only\",\n  \"capabilities\": {\n    \"analyze\": true,\n    \"save_tests\": true,\n    \"edit_collection\": false,\n    \"edit_grammar\": false,\n    \"edit_recordings\": false\n  }\n}",
+    "points": [["Allowed", "Analyze and retain tests."], ["Protected", "Reference data, grammar and recordings."], ["Anonymous", "No account or login is required."]],
+    "sources": ["backend/public_access.py", "frontend/src/PublicSession.tsx"],
+    "notes": "This is an abridged representation of the response contract. The real response also carries a CSRF token; no actual token is included on the slide. Capability validation is a frontend safeguard in addition to server-side enforcement."
+  },
+  {
+    "layout": "table",
+    "title": "Errors tell the user what happened",
+    "subtitle": "A failed request is not a success-shaped empty result.",
+    "columns": ["Status", "Meaning in this workflow", "Next step"],
+    "rows": [["403", "Forbidden write or invalid Origin/CSRF", "Respect the public boundary"], ["404", "Missing record or unavailable private API", "Check the requested resource"], ["409", "Stale grammar or conflicting retry payload", "Refresh or reconcile the request"], ["422", "Invalid request fields or bounds", "Fix the submitted input"], ["429", "Rate limit exceeded", "Wait for Retry-After"], ["503", "Storage temporarily busy", "Retry after the service recovers"]],
+    "sources": ["backend/public_access.py", "backend/analyzer_history.py", "frontend/src/api.ts"],
+    "notes": "A valid grammar rejection is different from these transport and validation failures. It is a successful computation with accepted=false and a trace. This distinction prevents the UI from presenting server failures as linguistic conclusions."
+  },
+  {
+    "layout": "mobile",
+    "title": "The same workflow on a narrow screen",
+    "subtitle": "Responsive presentation without changing the permission model.",
+    "image": "analyzer-mobile",
+    "second_image": "collection-mobile",
+    "points": [["Navigate", "Page controls remain available."], ["Read", "Inputs and cards adapt to width."], ["Same policy", "Reference data remains read-only."]],
+    "sources": ["frontend/src/App.tsx", "frontend/src/FrancAnalyzer.tsx", "frontend/src/Collection.tsx"],
+    "notes": "Both images are real 420-CSS-pixel viewport captures. Some mobile navigation is horizontally scrollable; the screenshot is not a complete list of all off-screen tabs. No special mobile write permissions exist."
+  },
+  {
+    "layout": "files",
+    "title": "Frontend file map: find the right layer",
+    "subtitle": "Open the smallest responsible surface first.",
+    "points": [["frontend/src/main.tsx", "Mount the public application."], ["frontend/src/PublicSession.tsx", "Validate anonymous capabilities."], ["frontend/src/App.tsx", "Navigation, handoff and shared shell."], ["frontend/src/api.ts", "HTTP transport and CSRF."], ["frontend/src/useRequest.ts", "Request lifecycle in React."], ["frontend/src/CourseworkResults.tsx", "Render compiler evidence."]],
+    "sources": ["frontend/src/main.tsx", "frontend/src/PublicSession.tsx", "frontend/src/App.tsx", "frontend/src/api.ts"],
+    "notes": "The lower source rail contains the core entry points, while the cards add the helper and evidence modules. All these files contain React/TypeScript functions except the explicit ApiError class inside api.ts."
+  },
+  {
+    "layout": "art",
+    "title": "Words become a typed token stream",
+    "subtitle": "The lexer is the first algorithmic stage.",
+    "art": "tokens",
+    "points": [["SEGMENT", "Recognize word forms, numbers and punctuation."], ["CLASSIFY", "Assign a category using an ordered rule set."], ["ANNOTATE", "Add language and phrase clues without deleting tokens."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/lexicon.py"],
+    "notes": "Token is a namedtuple with text and category. tokenize only segments; classify_token chooses labels; analyze_sentence assembles the lexical result. The rest of the compiler consumes the resulting categories."
+  },
+  {
+    "layout": "code",
+    "title": "Read the real segmentation branches",
+    "subtitle": "TOKEN_SPLIT_RE preserves unsupported non-whitespace input.",
+    "code": "WORD:   letters + internal joiners\nNUMBER: \\d+(?:[.,]\\d+)?\nPUNCT:  [.,!?;:\\\"()]\nOTHER:  \\S\n\nTOKEN_SPLIT_RE.findall(text)",
+    "points": [["Ordered alternatives", "Words, then numbers, punctuation and fallback."], ["Whitespace", "Skipped between matches."], ["Fallback", "An unsupported character survives for classification."]],
+    "sources": ["compiler/lexer/tokenizer.py"],
+    "notes": "The WORD line is a readable summary, not the complete source regex. Its exact Unicode and combining-mark definition appears in tokenizer.py. The other branches and findall call match the real code. The fallback prevents silently dropping unknown characters."
+  },
+  {
+    "layout": "table",
+    "title": "Internal joiners belong to the word",
+    "subtitle": "Small boundary cases make the scanner behavior concrete.",
+    "columns": ["Raw input", "Actual tokenization", "Reason"],
+    "rows": [["j'ai", "[j'ai]", "Internal apostrophe with continuation"], ["go-slow", "[go-slow]", "Internal hyphen with continuation"], ["a-", "[a, -]", "Dangling hyphen cannot finish a word"], ["a--b", "[a, -, -, b]", "Repeated joiners break the word path"]],
+    "sources": ["compiler/lexer/tokenizer.py", "tools/tests/test_report_evidence.py"],
+    "notes": "These tokenization outputs were executed through the real tokenizer. Tokenization is not classification: the isolated hyphens subsequently become UNKNOWN. No original character is erased to make the example easier to parse."
+  },
+  {
+    "layout": "table",
+    "title": "Numbers are not signed literals",
+    "subtitle": "The decimal branch requires digits on both sides of a separator.",
+    "columns": ["Raw input", "Actual tokens", "Interpretation"],
+    "rows": [["3.14", "[3.14]", "One decimal-number token"], ["3.", "[3, .]", "Integer followed by punctuation"], [".5", "[., 5]", "Leading punctuation and integer"], ["-5", "[-, 5]", "Other character followed by integer"]],
+    "sources": ["compiler/lexer/tokenizer.py", "docs/report-data/lexer-controls.tex"],
+    "notes": "The lexer also permits comma as the decimal separator. The scanner does not recognize a signed-number syntax. These distinctions are included in the eight generated lexer controls that accompany the final report."
+  },
+  {
+    "layout": "compare",
+    "title": "Unicode details change the boundary",
+    "subtitle": "Not every apostrophe-like character takes the same transition.",
+    "points": [["U+0027 / U+2018 / U+2019", "Pending joiners outside the word class.\nNeed a following word character."], ["U+02BC", "Already belongs to Python's word-character class.\nFollows the C edges, even at a boundary."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/lexicon.py", "tools/tests/test_report_evidence.py"],
+    "notes": "C is [^\\W\\d_], not simply ASCII letters. Combining marks can continue a word according to the defined ranges. The DFA's joiner edge deliberately says outside C so the outgoing transitions remain deterministic."
+  },
+  {
+    "layout": "priority",
+    "title": "Classification is ordered, not voted",
+    "subtitle": "The first applicable rule determines the token category.",
+    "points": [["01 / Structural", "NUMBER and PUNCTUATION regex matches."], ["02 / Reviewed", "Compatible approved Word annotations."], ["03 / Explicit lists", "Slang, Pidgin, nouns, verbs and function words."], ["04 / Supplied reference", "One category, or AMBIGUOUS for conflicting labels."], ["05 / Later fallbacks", "Observed French forms, then suffix heuristics."], ["06 / Unresolved", "UNKNOWN if no rule applies."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/learned.py", "compiler/lexer/reference.py"],
+    "notes": "Within the explicit lists, the source order is slang, Pidgin, noun, verb, French function word, English function word. Approved annotations cannot displace the first structural number and punctuation checks. Suffix labels ending in _LIKE are heuristics, not confirmed parts of speech."
+  },
+  {
+    "layout": "compare",
+    "title": "AMBIGUOUS is not UNKNOWN",
+    "subtitle": "Preserve uncertainty instead of pretending all labels mean the same thing.",
+    "points": [["AMBIGUOUS", "The supplied reference has conflicting categories.\nIt is a known label, not a wildcard."], ["UNKNOWN", "No supported classification matched.\nIt fails vocabulary approval."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/parser/yaounde.py", "backend/analyzer_models.py"],
+    "notes": "The saved corpus grammar allows AMBIGUOUS in specified positions only. It excludes UNKNOWN. Other explicitly authored grammars could include UNKNOWN as a terminal, but it would still not stand for an arbitrary category."
+  },
+  {
+    "layout": "flow",
+    "title": "Normalize for matching. Preserve for evidence.",
+    "subtitle": "A comparison key and the raw text serve different purposes.",
+    "points": [["RAW", "J'ai"], ["MATCHING KEY", "j'ai"], ["LOOKUP", "Apply category rules"], ["SAVED TEXT", "J'ai remains unchanged"]],
+    "sources": ["compiler/lexer/vocabulary.py", "compiler/lexer/tokenizer.py", "backend/analyzer_models.py"],
+    "notes": "normalize_word uses lowercasing for ASCII and NFC/casefold plus apostrophe normalization otherwise. normalize_text also normalizes whitespace for comparisons. These functions are not a license to overwrite transcriptions."
+  },
+  {
+    "layout": "cards",
+    "title": "Language clues and phrases are annotations",
+    "subtitle": "Additional evidence must not collapse the token stream.",
+    "points": [["LANGUAGE CLUES", "Compare candidate-language sets; retain uncertainty."], ["SENTENCE BOUNDARIES", "Sentence-ending punctuation resets the language run."], ["PHRASE MATCHES", "Preserve source-ordered raw spans as extra annotations."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/languages.py", "compiler/lexer/reference.py"],
+    "notes": "S02 includes the clue je ... go. Across the twelve statements there are 26 emitted transition clues, but zero matched verb phrases and zero matched slang phrases. Those zero results are evidence, not missing values to embellish."
+  },
+  {
+    "layout": "files",
+    "title": "Lexer files and responsibilities",
+    "subtitle": "A small set of modules explains the complete lexical path.",
+    "points": [["compiler/lexer/tokenizer.py", "Segment, classify and annotate."], ["compiler/lexer/lexicon.py", "Terminal categories and explicit rules."], ["compiler/lexer/reference.py", "Read supplied reference categories."], ["compiler/lexer/learned.py", "Build compatible reviewed-word overrides."], ["compiler/lexer/vocabulary.py", "Normalize matching keys and aliases."], ["compiler/lexer/languages.py", "Return candidate-language evidence."]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/lexer/reference.py", "compiler/lexer/learned.py", "compiler/lexer/vocabulary.py"],
+    "notes": "The module name learned does not imply machine learning. It derives a deterministic map from approved lexical annotations. Public visitors cannot edit those shared annotations through this app."
+  },
+  {
+    "layout": "art",
+    "title": "Grammar recognizes category sequences",
+    "subtitle": "The parser reads labels, not the meaning of words.",
+    "art": "grammar",
+    "points": [["INPUT", "A finite stream of lexer categories."], ["RULES", "A context-free grammar of those categories."], ["RESULT", "Acceptance or an explicit failed transition."]],
+    "sources": ["compiler/parser/grammar.py", "compiler/parser/service.py", "compiler/parser/predictive.py"],
+    "notes": "The saved category grammar is intentionally limited. It is not a complete grammar of Camfranglais. A sentence can match categories without being standard French, and meaningful language may fall outside the model."
+  },
+  {
+    "layout": "code",
+    "title": "The saved grammar is corpus-derived",
+    "subtitle": "Reusable category structures, not a list of accepted sentences.",
+    "code": "Utterance -> Clause\n           | Clause PUNCTUATION\n\nClause -> FRENCH_FUNCTION_WORD SubjectTail\n        | Nominal BareSubjectTail\n        | VERB PredicateTail",
+    "points": [["Observed structures", "Subject-led, nominal-led and verb-initial clauses."], ["Limited ending", "At most one optional punctuation token."], ["No forced repair", "The two unresolved forms stay rejected."]],
+    "sources": ["compiler/parser/yaounde.py", "docs/evidence/final-corpus-20260927.json"],
+    "notes": "This is an excerpt of the actual original saved grammar. The full rationale in yaounde.py explains the observed structures and limitations. The saved snapshot is compared with this source by the evidence tests."
+  },
+  {
+    "layout": "compare",
+    "title": "Starter grammar and saved grammar differ",
+    "subtitle": "Do not confuse a fresh installation with the documented corpus state.",
+    "points": [["TEACHING STARTER", "DEFAULT_GRAMMAR in service.py.\nIllustrative rules for an empty setup."], ["DOCUMENTED CORPUS", "GRAMMAR in yaounde.py.\nThe group's saved category-level rules."]],
+    "sources": ["compiler/parser/service.py", "compiler/parser/yaounde.py", "docs/evidence/final-corpus-20260927.json"],
+    "notes": "The public analyzer loads the stored shared grammar. An empty data directory does not automatically reproduce the documented corpus and grammar. Only the generic starter has an immutable JSON analysis cache; custom grammars are analyzed afresh."
+  },
+  {
+    "layout": "flow",
+    "title": "Read, transform, calculate, then parse",
+    "subtitle": "Each phase produces inspectable output.",
+    "points": [["READ", "Validate category-level notation"], ["TRANSFORM", "Remove supported recursion and factor prefixes"], ["CALCULATE", "FIRST, FOLLOW and LL(1) table"], ["PARSE", "Run the category stream on the stack"]],
+    "sources": ["compiler/parser/grammar.py", "compiler/parser/analysis.py", "compiler/parser/service.py", "compiler/parser/predictive.py"],
+    "notes": "read_grammar raises GrammarError for invalid or oversized notation. transform_grammar records before/after snapshots. The table retains only unambiguous cells and reports conflicts separately. Predictive parsing is disabled for non-LL(1) grammars."
+  },
+  {
+    "layout": "rewrite",
+    "title": "Remove the actual left recursion",
+    "subtitle": "A noun cluster should not recurse before consuming input.",
+    "before": "Nominal -> Nominal NOUN | NOUN",
+    "after": "Nominal -> NOUN Nominal_LR1\nNominal_LR1 -> NOUN Nominal_LR1 | epsilon",
+    "points": [["Meaning preserved", "One or more noun categories."], ["Predictive shape", "Consume a NOUN before repeating."]],
+    "sources": ["compiler/parser/yaounde.py", "compiler/parser/analysis.py"],
+    "notes": "This is an actual transformation from the corpus grammar, not a generic unrelated textbook example. The helper name is the one produced by the implementation. Epsilon is represented internally by an empty production list."
+  },
+  {
+    "layout": "rewrite",
+    "title": "Factor the shared Clause prefix",
+    "subtitle": "Choose the ending only after the common clause has been parsed.",
+    "before": "Utterance -> Clause | Clause PUNCTUATION",
+    "after": "Utterance -> Clause Utterance_LF1\nUtterance_LF1 -> epsilon | PUNCTUATION",
+    "points": [["Shared prefix", "Both alternatives begin with Clause."], ["Factored choice", "The helper selects no ending or one punctuation token."]],
+    "sources": ["compiler/parser/yaounde.py", "compiler/parser/analysis.py"],
+    "notes": "This is the second actual grammar rewrite used in the report. The syntax layer records it as left_factor. It does not broaden the grammar to accept arbitrary repeated punctuation."
+  },
+  {
+    "layout": "set",
+    "title": "FIRST tells us what can start",
+    "subtitle": "For the transformed study grammar:",
+    "code": "FIRST(Utterance)",
+    "points": [["FRENCH_FUNCTION_WORD", "A subject-led clause."], ["NOUN", "A nominal-led clause."], ["VERB", "A verb-initial clause."]],
+    "sources": ["compiler/parser/analysis.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The three displayed categories are the computed FIRST set, not an assumption made from examples. calculate_first grows sets to a fixed point using first_of_sequence and nullable alternatives."
+  },
+  {
+    "layout": "set",
+    "title": "FOLLOW tells us what can come next",
+    "subtitle": "End-of-input matters when a production is nullable.",
+    "code": "FOLLOW(Utterance) = { $ }",
+    "points": [["START SYMBOL", "Its FOLLOW set includes the end marker."], ["NULLABLE RHS", "The LL(1) builder also uses FOLLOW lookaheads."], ["NO EXTRA TOKEN", "$ is a virtual marker, not a word typed by the visitor."]],
+    "sources": ["compiler/parser/analysis.py", "compiler/parser/grammar.py"],
+    "notes": "calculate_follow scans productions in reverse while propagating trailers until stable. The dollar marker is appended logically to the category input. It is distinct from EPSILON, which denotes an empty derivation."
+  },
+  {
+    "layout": "metrics",
+    "title": "The study's transformed grammar",
+    "subtitle": "Measured structure after the two recorded rewrites.",
+    "points": [["12", "Nonterminals"], ["39", "Productions"], ["47", "Populated LL(1) cells"], ["0", "Table conflicts"]],
+    "sources": ["compiler/parser/analysis.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The transformed grammar uses nine distinct terminal categories. These values are calculated from the committed saved grammar. They are not the number of supported categories in the lexer, which is twenty."
+  },
+  {
+    "layout": "files",
+    "title": "Syntax-analysis files: a map",
+    "subtitle": "Locate notation, transformations, orchestration and execution.",
+    "points": [["compiler/parser/grammar.py", "Read and validate grammar notation."], ["compiler/parser/analysis.py", "Transform rules; compute sets and table."], ["compiler/parser/service.py", "Assemble JSON-serializable analysis."], ["compiler/parser/predictive.py", "Execute the bounded LL(1) stack."], ["compiler/parser/yaounde.py", "Corpus grammar, rationale and limits."]],
+    "sources": ["compiler/parser/grammar.py", "compiler/parser/analysis.py", "compiler/parser/service.py", "compiler/parser/predictive.py"],
+    "notes": "parse_tokens in service.py analyzes a grammar and delegates to parse_analysis. The latter can also consume a previously calculated grammar analysis without recalculation. These functions separate calculation from UI concerns."
+  },
+  {
+    "layout": "diagram",
+    "title": "Lexer DFA: recognizing token forms",
+    "subtitle": "An equivalent formal model of the regex, not a runtime DFA class.",
+    "image": "lexer-dfa",
+    "points": [["Double circles", "Accept a token form."], ["J and R", "Pending joiner or decimal continuation."], ["Implicit dead state", "Unshown transitions stop this token path."]],
+    "sources": ["compiler/lexer/tokenizer.py", "docs/diagrams/automaton-lexer.puml"],
+    "notes": "W is word, I integer, F fraction, P punctuation and O another non-whitespace character. C is the Unicode word class excluding decimal digits and underscore; D is a decimal digit; M is a supported combining mark. Missing transitions enter an omitted dead state. This is formal automata notation, not UML state-machine notation."
+  },
+  {
+    "layout": "flow",
+    "title": "A pending state cannot end a token",
+    "subtitle": "Compare 3.14 with 3. using the same automaton.",
+    "points": [["I", "Read 3: integer accepts"], ["R", "Read .: separator is pending"], ["F", "Read 14: fraction accepts"], ["RESCAN", "With no following digit, emit 3 then scan . again"]],
+    "sources": ["compiler/lexer/tokenizer.py", "docs/diagrams/automaton-lexer.puml", "docs/report-data/lexer-controls.tex"],
+    "notes": "For this particular regex, greedy matching retains the longest accepted prefix. A dangling joiner or separator is not included in a completed word or number. The remaining character is rescanned and preserved by another alternative."
+  },
+  {
+    "layout": "diagram-wide",
+    "title": "The parser adds a stack",
+    "subtitle": "Deterministic pushdown control explains the saved LL(1) recognizer.",
+    "image": "parser-pda",
+    "points": [["Expand", "Use the unique table cell."], ["Match", "Pop a terminal and advance."], ["Accept", "Bottom marker and input end agree."]],
+    "sources": ["compiler/parser/predictive.py", "docs/diagrams/automaton-parser.puml"],
+    "notes": "The diagram uses buffered lookahead states q[a], one finite control state for each possible category or end marker. The implementation inspects categories[position] and advances only when matching. This is an equivalent recognition model, not a literal list of Python classes or a claim of unlimited memory."
+  },
+  {
+    "layout": "stack",
+    "title": "The top of the stack is on the right",
+    "subtitle": "S02 begins with a start symbol above the bottom marker.",
+    "data": "stack-expand",
+    "points": [["Initial", "[$, Utterance]"], ["First expansion", "[$, Utterance_LF1, Clause]"], ["Why reverse?", "Clause must be handled before the ending helper."]],
+    "sources": ["compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The actual code initializes stack = [END, analysis['start_symbol']]. Popping the start symbol and extending with reversed(['Clause', 'Utterance_LF1']) leaves Clause at the rightmost top. The slide abbreviates long names only where the visual needs it."
+  },
+  {
+    "layout": "code",
+    "title": "One table entry controls expansion",
+    "subtitle": "Nonterminal expansion does not consume a category.",
+    "code": "production = table[top][lookahead]\n\nrecord(\"Apply ...\")\nstack.pop()\nstack.extend(reversed(production))",
+    "points": [["Lookahead", "Choose a unique M[A, a] entry."], ["Replacement", "Push the RHS in reverse order."], ["Epsilon", "Pop A without consuming input."]],
+    "sources": ["compiler/parser/predictive.py", "compiler/parser/analysis.py"],
+    "notes": "The snippet is a focused excerpt with simplified table access and abbreviated trace text. The actual function checks that the row contains the lookahead and enforces the stack limit before applying the production. Conflicting table cells are never selected."
+  },
+  {
+    "layout": "stack",
+    "title": "A terminal match consumes one category",
+    "subtitle": "The stack and logical input advance together.",
+    "data": "stack-match",
+    "points": [["Before", "Top = FF; lookahead = FF."], ["Action", "Record Match, pop, then increment position."], ["After", "The next category is VERB."]],
+    "sources": ["compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "This is the first terminal match in S02. FF abbreviates FRENCH_FUNCTION_WORD. Trace snapshots precede their actions, so the next trace row shows the changed stack and remaining input."
+  },
+  {
+    "layout": "trace",
+    "title": "Walk the first four S02 actions",
+    "subtitle": "Expansion and matching leave different fingerprints in the trace.",
+    "data": "trace-intro",
+    "points": [["Notice row 3", "Only Match FF advances the remaining input."]],
+    "sources": ["compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json", "tools/tests/test_report_evidence.py"],
+    "notes": "Explain each row while pointing at the rightmost stack item. The regression tests verify consecutive trace transitions, including reversed RHS pushes, non-consuming expansion and one-token matching. See slide 28 for the reading convention."
+  },
+  {
+    "layout": "compare",
+    "title": "Acceptance and rejection are explicit",
+    "subtitle": "Both outcomes return evidence rather than a guess.",
+    "points": [["S02 / ACCEPT", "6 consumed tokens.\n16 recorded trace rows.\nFinal stack and input both show $."], ["S09 / REJECT", "5 consumed tokens.\n14 recorded trace rows.\nUNKNOWN at the sixth token has no valid table entry."]],
+    "sources": ["compiler/parser/predictive.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The accept path retains the bottom marker; it does not require an empty stack. A rejection includes an error and trace. It is still a valid computational result that the public app can store."
+  },
+  {
+    "layout": "metrics",
+    "title": "Bounds protect the parser",
+    "subtitle": "The formal pushdown model is implemented with explicit resource limits.",
+    "points": [["256", "Input tokens"], ["1,000", "Characters in one token"], ["2,000", "Recorded parse steps"], ["1,024", "Stack symbols"]],
+    "sources": ["compiler/parser/predictive.py"],
+    "notes": "The parser also rejects malformed token structures, unsupported categories, conflicts, unresolved left recursion and repeated stack/input configurations. The 4,000-character analyzer request bound is a separate UI/API limit."
+  },
+  {
+    "layout": "files",
+    "title": "Four authored compiler classes, many functions",
+    "subtitle": "Model the actual implementation, not invented service objects.",
+    "points": [["compiler/lexer/tokenizer.py", "Token: namedtuple with text and category."], ["compiler/lexer/reference.py", "ReferenceEntry: immutable supplied row."], ["compiler/parser/grammar.py", "GrammarError: explicit notation failure."], ["compiler/parser/analysis.py", "_Transformations: bounded rewrite log."]],
+    "sources": ["docs/diagrams/class-compiler.puml", "compiler/lexer/tokenizer.py", "compiler/parser/analysis.py"],
+    "notes": "The class diagram in the SDD verifies these four authored compiler runtime classes. Lexer, Parser and Grammar service classes are not invented. Grammar itself is a dictionary type alias and the main algorithms are module functions."
+  },
+  {
+    "layout": "art",
+    "title": "Shared storage is not an account",
+    "subtitle": "One protected workspace supports all public visitors.",
+    "art": "storage",
+    "points": [["PUBLIC POLICY", "PublicWorkspaceStore narrows allowed writes."], ["SHARED STORE", "SharedWorkspaceStore supplies common persistence."], ["SQLITE", "workspace.sqlite3 holds shared records and test snapshots."]],
+    "sources": ["backend/public_access.py", "backend/shared_workspace.py", "backend/workspaces.py"],
+    "notes": "The active public database is under data_dir/shared-workspace. A stable internal public actor supports identifiers and idempotency, but it is not a fabricated user account. Public responses redact legacy ownership."
+  },
+  {
+    "layout": "flow",
+    "title": "Save once, retry safely",
+    "subtitle": "The snapshot and request mapping commit together.",
+    "points": [["LOOKUP", "Check an existing request ID"], ["VALIDATE", "Text and grammar must agree"], ["COMPUTE", "Build a complete snapshot"], ["TRANSACTION", "Save test + request mapping atomically"]],
+    "sources": ["backend/analyzer_history.py", "backend/shared_workspace.py"],
+    "notes": "save_analyzer_request uses a BEGIN IMMEDIATE transaction for analyzer_tests and test_requests. Repeating the same request ID with the same payload returns the existing test. Reusing it with a different payload causes a conflict."
+  },
+  {
+    "layout": "compare",
+    "title": "Same retry versus a new stale request",
+    "subtitle": "Grammar changes must not destroy the meaning of idempotency.",
+    "points": [["IDENTICAL OLD RETRY", "Can return its original snapshot after an offline grammar change.\nIt is not a new computation."], ["NEW STALE REQUEST", "A new request with outdated grammar returns 409.\nRefresh the shared grammar before trying again."]],
+    "sources": ["backend/public_access.py", "backend/analyzer_history.py", "frontend/src/FrancAnalyzer.tsx"],
+    "notes": "This subtle distinction preserves recoverability when the first response was lost. An identical retry is allowed to find its previous result. It does not authorize arbitrary new tests against a stale or editable browser grammar."
+  },
+  {
+    "layout": "cards",
+    "title": "What is stored in a test?",
+    "subtitle": "The saved evidence is enough to explain its original result.",
+    "points": [["TEXT + GRAMMAR", "The exact input and chosen rule snapshot."], ["LEXICAL RESULT", "Raw tokens, categories, counts and clues."], ["PARSE RESULT", "Accepted flag, consumed count, error and trace."], ["METADATA", "Stable ID, recorded time and contextual summaries."]],
+    "sources": ["backend/analyzer_models.py", "backend/shared_workspace.py"],
+    "notes": "RecordedTest and related models validate internal consistency, including the relationship between tokens, parser consumption and vocabulary approval. Public snapshots are not replaced just because reference data later changes."
+  },
+  {
+    "layout": "compare",
+    "title": "Web SQLite and desktop CSV are different",
+    "subtitle": "Avoid explaining the active public store with the wrong persistence helper.",
+    "points": [["PUBLIC WEB", "SharedWorkspaceStore / WorkspaceStore.\nShared SQLite database.\nPublic tests append; reference data stays read-only."], ["RETAINED DESKTOP", "data_collector/dataset.py.\nCSV with a lock and atomic replacement.\nLocal compatibility, not the public write path."]],
+    "sources": ["backend/shared_workspace.py", "backend/workspaces.py", "data_collector/dataset.py"],
+    "notes": "Legacy helper modules and private compatibility code remain in the repository. Their existence does not mean public visitors can invoke them. This slide explicitly separates active deployment architecture from retained local tooling."
+  },
+  {
+    "layout": "table",
+    "title": "Read-only rules live on the server",
+    "subtitle": "Hiding an edit button is not the enforcement mechanism.",
+    "columns": ["Request family", "Public result"],
+    "rows": [["Analyzer test create/read", "Allowed with request protections"], ["Collection and saved grammar reads", "Allowed"], ["Collection / grammar / recording writes", "403"], ["Account, workspace, import, private maintenance", "404"], ["Invalid Origin or CSRF on protected POST", "403"], ["More than 120 requests / 60 seconds / address", "429 with Retry-After"]],
+    "sources": ["backend/public_access.py", "backend/rate_limits.py", "backend/tests/test_public_access.py"],
+    "notes": "Health is excluded from the public rate limit. The backend combines path/method allowlisting, Origin and CSRF validation, rate limiting and storage controls. This is a behavior explanation, not a new security certification."
+  },
+  {
+    "layout": "cards",
+    "title": "Recorded audio is retrieved, not generated",
+    "subtitle": "Two read paths serve existing media.",
+    "points": [["COLLECTION AUDIO", "Play an audio attachment that already belongs to a record."], ["RECORDED READING", "Look up a compatible text/language reading and stream its file."], ["HONEST ABSENCE", "No recording means unavailable, not a synthesized substitute."]],
+    "sources": ["backend/audio_api.py", "backend/readings_api.py", "frontend/src/RecordedReadings.tsx", "frontend/src/voice.ts"],
+    "notes": "The public app does not record a microphone, clone a voice, synthesize browser speech or transcribe audio. Retained recorder components and private upload routes must not be presented as current public capabilities."
+  },
+  {
+    "layout": "deployment",
+    "title": "HTTPS outside, port 2021 inside",
+    "subtitle": "camfranglais.duckdns.org uses a private loopback upstream.",
+    "points": [["VISITOR", "Public DuckDNS domain"], ["NGINX", "Public HTTPS / port 443"], ["UVICORN + FASTAPI", "127.0.0.1:2021"], ["PERSISTENCE", "/var/lib/camfranglais"]],
+    "sources": ["README.md", "backend/web.py", "backend/config.py", "tools/run_app.py"],
+    "notes": "The documented VPS is 109.199.120.38, with code under /var/www/francanglaiscompiler and camfranglais.service. Port 2021 is the loopback upstream, not the public URL. The source describes the intended topology; the presentation session did not change the VPS or certify recovery and uptime."
+  },
+  {
+    "layout": "files",
+    "title": "Run and configure the application",
+    "subtitle": "The launcher checks prerequisites instead of hiding failures.",
+    "points": [["start.ps1", "Convenient local Windows entry point."], ["tools/run_app.py", "Validate launch settings and serve one origin."], ["backend/config.py", "Environment, public URL and storage settings."], ["backend/main.py", "Construct the FastAPI application."], ["backend/web.py", "Serve the built frontend and web policy."]],
+    "sources": ["start.ps1", "tools/run_app.py", "backend/config.py", "backend/main.py"],
+    "notes": "The local guide requires Python 3.11+ and a supported Node.js version. The launcher can explicitly build the frontend, rejects unsafe production reload and does not silently install dependencies. Do not replace existing shared data with demonstration fixtures."
+  },
+  {
+    "layout": "cards",
+    "title": "Recovery does not rewrite history",
+    "subtitle": "Use the failure message to choose the next safe action.",
+    "points": [["TIMEOUT", "Recover an identical pending request before creating another."], ["STALE GRAMMAR", "Refresh the saved grammar for a new computation."], ["BUSY STORAGE", "Retry when the service is available."], ["OLD RESULT", "Inspect the original snapshot; do not reinterpret it as a rerun."]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/api.ts", "backend/analyzer_history.py", "backend/public_access.py"],
+    "notes": "These are practical recovery explanations, not actions the presentation generator performed. The screenshots were read-only and all non-read API requests were blocked during capture."
+  },
+  {
+    "layout": "metrics",
+    "title": "A fixed study, not a live benchmark",
+    "subtitle": "The evaluation uses the same twelve original strings.",
+    "points": [["12", "Supplied originals"], ["81", "Tokens retained"], ["10", "Grammar accepts"], ["2", "Explicit grammar rejects"]],
+    "sources": ["compiler/tests/yaounde_cases.py", "docs/evidence/final-analysis-20260927.json"],
+    "notes": "The fixed corpus is reproduced from the committed snapshot and exact regression cases. These values are independent of live history totals. The source strings were not corrected to improve the acceptance rate."
+  },
+  {
+    "layout": "outcome",
+    "title": "Ten of twelve fit the saved grammar",
+    "subtitle": "83.3% category-grammar match is not linguistic accuracy.",
+    "data": "outcomes",
+    "points": [["ACCEPTED", "10 original statements"], ["REJECTED", "2 originals with unresolved sixth tokens"], ["INTERPRETATION", "A result for this corpus and these rules only"]],
+    "sources": ["docs/evidence/final-analysis-20260927.json", "compiler/parser/yaounde.py"],
+    "notes": "The visual is computed from the original-result accepted flags. The ratio does not establish performance on unseen data, correctness of a supplied meaning, or authenticity of collection. A broader independent evaluation is a separate future task."
+  },
+  {
+    "layout": "controls",
+    "title": "Boundary cases expose the rules",
+    "subtitle": "Seven constructed controls supplement the twelve originals.",
+    "data": "controls",
+    "sources": ["docs/evidence/final-analysis-20260927.json", "compiler/tests/test_yaounde_grammar.py"],
+    "notes": "These inputs are explicitly constructed tests, not field statements. Empty input, a noun fragment, an incomplete subject, repeated punctuation, an unsupported order and UNKNOWN reject; one optional punctuation token accepts. The generator reads their actual outcomes from the evidence."
+  },
+  {
+    "layout": "cards",
+    "title": "Evidence has a clear boundary",
+    "subtitle": "State what is measured and what still needs human confirmation.",
+    "points": [["VERIFIED", "Token outputs, grammar transformations, traces and saved-data behavior."], ["QUALIFIED", "Supplied glosses and lexical annotations need linguistic review."], ["UNCONFIRMED", "Original fieldwork dates, collectors, speakers and consent."]],
+    "sources": ["docs/evidence/final-corpus-20260927.json", "docs/final-report.tex"],
+    "notes": "The dataset's manual-transcription flag is false and its collection method is blank. Screenshots demonstrate working software but cannot prove the origin of the utterances. This presentation does not invent missing human evidence."
+  },
+  {
+    "layout": "cards",
+    "title": "Tests check different layers",
+    "subtitle": "A successful build is not the only form of evidence.",
+    "points": [["COMPILER", "Exact tokenization, grammar controls and trace transitions."], ["API + STORAGE", "Public permissions, snapshots and safe retries."], ["FRONTEND", "Page behavior, request states and visible results."], ["DOCUMENTS", "Diagrams, source coverage and reproducible report evidence."]],
+    "sources": ["compiler/tests/test_yaounde_grammar.py", "backend/tests/test_public_access.py", "frontend/tests/unit/FrancAnalyzer.test.tsx", "tools/tests/test_report_evidence.py"],
+    "notes": "The documentation release recorded 33 focused documentation/evidence/corpus passes. Earlier app-release tests are dated evidence, not an uninterrupted run performed for this deck. A known old expected-category regression remains in compiler/tests/test_parser.py; do not claim fully green application CI."
+  },
+  {
+    "layout": "files",
+    "title": "File map: UI and the request path",
+    "subtitle": "A compact index for questions during the demonstration.",
+    "points": [["frontend/src/FrancAnalyzer.tsx", "Where does Analyze begin?"], ["frontend/src/TestStatistics.tsx", "Where are history metrics displayed?"], ["frontend/src/Collection.tsx", "Where are records browsed?"], ["frontend/src/api.ts", "Where are errors and headers handled?"], ["backend/analyzer_api.py", "Where does the request enter?"], ["backend/analyzer_history.py", "Where is its snapshot managed?"]],
+    "sources": ["frontend/src/FrancAnalyzer.tsx", "frontend/src/api.ts", "backend/analyzer_api.py", "backend/analyzer_history.py"],
+    "notes": "Use the filenames to answer implementation questions without searching the entire repository. The source paths in the notes are relative to the same checkout that accompanies this deck."
+  },
+  {
+    "layout": "files",
+    "title": "File map: compiler and persistence",
+    "subtitle": "The computational core stays separate from the public interface.",
+    "points": [["compiler/lexer/tokenizer.py", "How are raw tokens and labels produced?"], ["compiler/parser/analysis.py", "How are grammar sets and tables calculated?"], ["compiler/parser/predictive.py", "How does the stack accept or reject?"], ["compiler/parser/yaounde.py", "Why were these grammar rules chosen?"], ["backend/shared_workspace.py", "How are public requests saved once?"], ["backend/workspaces.py", "Where is the SQLite workspace implemented?"]],
+    "sources": ["compiler/lexer/tokenizer.py", "compiler/parser/analysis.py", "compiler/parser/predictive.py", "backend/shared_workspace.py"],
+    "notes": "These files are the key cross-section for understanding the full application. For complete class relationships and activated sequence diagrams, open the SDD and the separate 37-sheet UML and automata atlas."
+  },
+  {
+    "layout": "flow",
+    "title": "A safe demonstration in five moves",
+    "subtitle": "Use an existing saved result for a read-only rehearsal.",
+    "points": [["OPEN", "Show the public Analyzer"], ["INSPECT", "Choose the existing S02 test"], ["EXPLAIN", "Compare tokens, verdict and trace"], ["LOOK UP", "Search kass in Dictionary"], ["CONNECT", "Point to the responsible source files"]],
+    "sources": ["frontend/src/App.tsx", "frontend/src/FrancAnalyzer.tsx", "frontend/src/Dictionary.tsx", "docs/README.md"],
+    "notes": "For a live write demonstration, first explain that pressing Analyze publicly retains the text and result. Never submit personal or confidential content. The rehearsal path here avoids new saves while still showing genuine computed evidence."
+  },
+  {
+    "layout": "route",
+    "title": "Present the story; keep the depth",
+    "subtitle": "All 100 slides are included. A short oral route is optional.",
+    "points": [["OPEN / 01, 05", "Introduce the product and its five pages."], ["DEMO / 13, 17, 24, 35", "Show a request, a result, two verdicts and lookup."], ["EXPLAIN / 56, 73, 88", "Connect lexer, parser and deployment."], ["CLOSE / 100", "Return to the value and invite questions."]],
+    "sources": ["docs/final-report.tex", "docs/README.md"],
+    "notes": "The coursework calls for a ten-minute presentation: roughly three minutes per member and one shared minute. The group can use this ten-slide route and keep the remaining slides as technical backup. This suggestion does not assign or attest personal contributions."
+  },
+  {
+    "layout": "closing",
+    "title": "From language to evidence.",
+    "subtitle": "Your questions, traced to the code.",
+    "points": [["PRESERVE", "The original text"], ["EXPLAIN", "The rules and trace"], ["RETAIN", "The original result"]],
+    "sources": ["README.md", "docs/README.md"],
+    "notes": "Close by emphasizing transparent rules, two distinct verdicts and immutable evidence. The app is available at https://camfranglais.duckdns.org. The PowerPoint, source files, screenshots and technical documentation accompany one another; no unconfirmed fieldwork or fully green application CI is claimed."
+  }
+]

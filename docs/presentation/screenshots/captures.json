@@ -1,0 +1,105 @@
+{
+  "source_url": "https://camfranglais.duckdns.org",
+  "method": "Local headless Playwright Chromium with real API responses; no DOM alterations or mocks.",
+  "new_tests_submitted": 0,
+  "non_read_api_requests_permitted": false,
+  "images": [
+    {
+      "file": "analyzer-desktop.png",
+      "description": "Public Analyzer, no test submitted.",
+      "url": "https://camfranglais.duckdns.org/#compiler",
+      "captured_at": "2026-09-27T17:37:45.232Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "55b187296cc57c25ce7ec4bd749b8456f9689cb7618cd25bf63ed340d478126d"
+    },
+    {
+      "file": "analysis-desktop.png",
+      "description": "Real deployed Analysis page; retained data only.",
+      "url": "https://camfranglais.duckdns.org/#analysis",
+      "captured_at": "2026-09-27T17:37:46.315Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "025ceac9f39e61dbb801862f84da4bfce39860ce179d75fc01fb27d2974cf49a"
+    },
+    {
+      "file": "collection-desktop.png",
+      "description": "Real deployed Collection page; retained data only.",
+      "url": "https://camfranglais.duckdns.org/#collection",
+      "captured_at": "2026-09-27T17:37:47.274Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "b2e508ad045d6126f85c8a5562f74b4b73c1783aa364543e9e5ed23d59f07980"
+    },
+    {
+      "file": "dictionary-desktop.png",
+      "description": "Real deployed Dictionary page; retained data only.",
+      "url": "https://camfranglais.duckdns.org/#dictionary",
+      "captured_at": "2026-09-27T17:37:48.315Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "83fbd0b92ae1f89a95a5ede571a90a57733355195c2a365125021d3173921ffe"
+    },
+    {
+      "file": "examples-desktop.png",
+      "description": "Real deployed Synthetic examples page; retained data only.",
+      "url": "https://camfranglais.duckdns.org/#examples",
+      "captured_at": "2026-09-27T17:37:49.314Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "0e0e0c82f84ea47c1e2792351ee01c0b3a0e777001a769bebbf60f026bba7a5b"
+    },
+    {
+      "file": "dictionary-search.png",
+      "description": "Read-only dictionary search for kass.",
+      "url": "https://camfranglais.duckdns.org/#dictionary",
+      "captured_at": "2026-09-27T17:37:50.347Z",
+      "viewport_css_pixels": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "78c3a3acd40c278bf0b896ade02dbf4259b3982128455b8ef621e2831aa6ddc6"
+    },
+    {
+      "file": "analyzer-mobile.png",
+      "description": "Real responsive Franc Analyzer page at 420 CSS pixels.",
+      "url": "https://camfranglais.duckdns.org/#compiler",
+      "captured_at": "2026-09-27T17:37:52.552Z",
+      "viewport_css_pixels": {
+        "width": 420,
+        "height": 900
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "9980170c21c829d718838a7752f07b2fb0d5852608b2f83c3adbaf880d2a4c18"
+    },
+    {
+      "file": "collection-mobile.png",
+      "description": "Real responsive Collection page at 420 CSS pixels.",
+      "url": "https://camfranglais.duckdns.org/#collection",
+      "captured_at": "2026-09-27T17:37:55.774Z",
+      "viewport_css_pixels": {
+        "width": 420,
+        "height": 900
+      },
+      "device_scale_factor": 1.5,
+      "sha256": "9f662b6c7dd53516cc05b81b694cc0687a3288e40de3012b9d59f2b60004c5fe"
+    }
+  ],
+  "evidence_boundary": "Working software, not proof of authentic original fieldwork. Counts reflect capture time."
+}
