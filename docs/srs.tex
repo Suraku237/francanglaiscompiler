@@ -28,8 +28,8 @@ captures. Its page limit does not apply to this engineering specification or
 the SDD.
 
 \begin{tabularx}{\linewidth}{@{}L{3.2cm}X@{}}
-\toprule
-Baseline & Version 4.0; 27 September 2026; public-access release.\\
+\toprule\tablehead
+Baseline & Version 4.1; 27 September 2026; public-access release.\\
 Replaces & Version 3.0's account/private-project, editable-grammar,
 import and in-app report workflows. Historical archives remain preserved.\\
 Primary stakeholders & Three student authors, instructor/examiner,
@@ -93,7 +93,7 @@ must not invent collection dates, speaker identities, consent or authenticity.}
 
 \section{Actors, Permissions and Operating Modes}
 \begin{longtable}{L{3.0cm}L{6.6cm}L{4.6cm}}
-\toprule\textbf{Actor} & \textbf{Permitted actions} & \textbf{Restrictions}\\\midrule\endhead
+\toprule\tablehead\textbf{Actor} & \textbf{Permitted actions} & \textbf{Restrictions}\\\midrule\endhead
 Public visitor & View all public pages; analyze input; retain and inspect
 immutable tests; play available recordings. &
 No accounts, private user workspace, reference editing or public administration.\\\addlinespace
@@ -121,7 +121,7 @@ personal, confidential or sensitive material.
 
 \section{Functional Requirements}
 \begin{longtable}{L{2.0cm}L{6.1cm}L{6.1cm}}
-\toprule\textbf{ID / area} & \textbf{Required behavior} & \textbf{Acceptance criterion}\\\midrule\endhead
+\toprule\tablehead\textbf{ID / area} & \textbf{Required behavior} & \textbf{Acceptance criterion}\\\midrule\endhead
 \req{FR-01}{Public entry}
 {The application shall open directly into the five-screen workspace without
 sign-in, registration, SMTP or an identity provider.}
@@ -227,7 +227,7 @@ current images are embedded; PDF references/layout pass the strict checker.}
 
 \section{Quality Requirements and Failure Contracts}
 \begin{longtable}{L{2.4cm}L{11.8cm}}
-\toprule\textbf{ID} & \textbf{Requirement and verification boundary}\\\midrule\endhead
+\toprule\tablehead\textbf{ID} & \textbf{Requirement and verification boundary}\\\midrule\endhead
 \textbf{QR-01}\newline Correctness &
 The same bounded input, grammar and lexicon snapshot shall yield the same
 compiler output. Tests shall exercise actual source sentences and independent
@@ -260,7 +260,7 @@ have no automatic purge: operators must monitor storage growth.\\
 \end{longtable}
 
 \begin{tabularx}{\linewidth}{@{}L{2.1cm}X@{}}
-\toprule\textbf{Failure} & \textbf{Required distinction}\\\midrule
+\toprule\tablehead\textbf{Failure} & \textbf{Required distinction}\\\midrule
 403 & Invalid Origin/CSRF or a forbidden reference mutation.\\
 404 & Missing resource or an endpoint not exposed in public mode.\\
 409 & Stale grammar or conflicting idempotency input, with recovery guidance.\\
@@ -275,7 +275,7 @@ be retained as an immutable test.\\
 \section{Data and Lifecycle Requirements}
 \subsection{Logical records}
 \begin{longtable}{L{3.0cm}L{7.0cm}L{4.2cm}}
-\toprule\textbf{Record} & \textbf{Purpose and lifecycle} & \textbf{Public policy}\\\midrule\endhead
+\toprule\tablehead\textbf{Record} & \textbf{Purpose and lifecycle} & \textbf{Public policy}\\\midrule\endhead
 Collection entry & Raw wording, glosses, reviewed annotations, location text and
 audio references; revisions preserved. & Read-only.\\\addlinespace
 Saved grammar/profile & Grammar, rationale, limitations and retained coursework
@@ -308,7 +308,7 @@ Credentials/configuration require separately protected full-root backup.
 
 \subsection{Active processing bounds}
 \begin{tabularx}{\linewidth}{@{}X L{5.3cm}@{}}
-\toprule\textbf{Boundary} & \textbf{Current limit}\\\midrule
+\toprule\tablehead\textbf{Boundary} & \textbf{Current limit}\\\midrule
 General JSON body & 1 MiB.\\
 Statement / grammar text & 4,000 / 12,000 characters.\\
 Coursework corpus helper & 500 entries / 100,000 text characters.\\
@@ -328,7 +328,7 @@ rate bucket; trusted proxy configuration affects address attribution.
 
 \section{External Interfaces}
 \begin{longtable}{L{3.3cm}L{10.9cm}}
-\toprule\textbf{Area} & \textbf{Default public interface}\\\midrule\endhead
+\toprule\tablehead\textbf{Area} & \textbf{Default public interface}\\\midrule\endhead
 Bootstrap &
 \texttt{GET} \nolinkurl{/api/public/session}: public capability policy,
 anonymous CSRF token and cookie; not an account session.\\\addlinespace
@@ -368,7 +368,7 @@ public-facing URL. HTTPS traffic uses port 443; port 80 supports the configured
 HTTP redirect/certificate flow.
 
 \begin{tabularx}{\linewidth}{@{}L{3.2cm}>{\raggedright\arraybackslash}X@{}}
-\toprule
+\toprule\tablehead
 Application & \nolinkurl{/var/www/francanglaiscompiler}\\
 Persistent data & \nolinkurl{/var/lib/camfranglais}\\
 Environment & \nolinkurl{/etc/camfranglais.env}\\
@@ -390,7 +390,7 @@ availability, backup recovery or the mechanism used to deploy it.
 
 \section{Verification and Traceability}
 \begin{longtable}{L{3.1cm}L{6.7cm}L{4.4cm}}
-\toprule\textbf{Requirement group} & \textbf{Evidence / check} & \textbf{Limitation}\\\midrule\endhead
+\toprule\tablehead\textbf{Requirement group} & \textbf{Evidence / check} & \textbf{Limitation}\\\midrule\endhead
 FR-01--02, 18--19 & Public-boundary backend tests; fresh desktop/mobile browser
 workflows; observed live no-login policy. & No full independent security audit
 or availability certification claimed.\\\addlinespace

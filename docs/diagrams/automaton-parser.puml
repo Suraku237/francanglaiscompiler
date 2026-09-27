@@ -1,0 +1,24 @@
+@startdot
+digraph Parser {
+  graph [rankdir=LR, bgcolor="white", dpi=160, pad=0.18, nodesep=0.4, ranksep=0.65,
+    fontname="Arial", fontsize=18, fontcolor="#183247", labelloc=t,
+    label="PARSER / DETERMINISTIC PUSHDOWN CONTROL"];
+  node [shape=circle, style=filled, fillcolor="#EDF6F5", color="#126C70",
+    fontname="Arial", fontsize=13, fontcolor="#183247", penwidth=1.4];
+  edge [fontname="Arial", fontsize=12, fontcolor="#183247", color="#526676", arrowsize=0.75];
+  start [shape=point, width=0.08, label="", fillcolor="#B68032", color="#B68032"];
+  q0 [label="q0"];
+  load [label="q_load"];
+  ready [label="q[a]"];
+  accept [shape=doublecircle, label="accept"];
+  reject [label="reject", color="#A65538", fillcolor="#FBF0EA"];
+  { rank=same; accept; reject; }
+  start -> q0;
+  q0 -> load [label="eps, $ / $ Ut"];
+  load -> ready [label="a, X / X\nbuffer a"];
+  ready -> ready [label="eps, A / rev(rhs)\nM[A,a] = rhs"];
+  ready -> load [label="eps, a / eps\nmatch (a != $)"];
+  ready -> accept [label="eps, $ / $\na = $"];
+  ready -> reject [label="undefined table entry\nor terminal mismatch", color="#A65538"];
+}
+@enddot

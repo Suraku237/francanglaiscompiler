@@ -1,0 +1,32 @@
+@startdot
+digraph Lexer {
+  graph [rankdir=LR, bgcolor="white", dpi=160, pad=0.18, nodesep=0.22, ranksep=0.55,
+    fontname="Arial", fontsize=18, fontcolor="#183247", labelloc=t,
+    label="LEXER / FINITE-STATE TOKEN RECOGNITION"];
+  node [shape=circle, style=filled, fillcolor="#EDF6F5", color="#126C70",
+    fontname="Arial", fontsize=13, fontcolor="#183247", penwidth=1.4];
+  edge [fontname="Arial", fontsize=12, fontcolor="#183247", color="#526676", arrowsize=0.75];
+  start [shape=point, width=0.08, label="", fillcolor="#B68032", color="#B68032"];
+  q0 [label="q0"];
+  W [shape=doublecircle, label="W"];
+  J [label="J", fillcolor="#FBF4E8"];
+  I [shape=doublecircle, label="I"];
+  R [label="R", fillcolor="#FBF4E8"];
+  F [shape=doublecircle, label="F"];
+  P [shape=doublecircle, label="P"];
+  O [shape=doublecircle, label="O", fillcolor="#FBF4E8"];
+  { rank=same; W; I; P; O; }
+  start -> q0;
+  q0 -> W [label="C"];
+  W -> W [label="C or M"];
+  W -> J [label="joiner\noutside C"];
+  J -> W [label="C"];
+  q0 -> I [label="D"];
+  I -> I [label="D"];
+  I -> R [label="dot or comma"];
+  R -> F [label="D"];
+  F -> F [label="D"];
+  q0 -> P [label="punctuation"];
+  q0 -> O [label="other non-whitespace"];
+}
+@enddot

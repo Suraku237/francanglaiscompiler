@@ -11,6 +11,7 @@ from backend.dictionary import load_dictionary
 from backend.token_statistics import token_statistics
 from compiler.lexer import lexicon
 from compiler.lexer.reference import CSV_PATH, load_classified_lexicon
+from compiler.lexer.tokenizer import tokenize
 from compiler.parser.service import analyze_grammar
 from compiler.parser.yaounde import GRAMMAR
 from compiler.tests.yaounde_cases import CORPUS_CASES
@@ -39,6 +40,16 @@ CONTROLS = (
     ("C06", "je je suis", False, "Unsupported category order, despite known words."),
     ("C07", "je suis alli", False, "UNKNOWN is not a grammar terminal."),
 )
+LEXER_CONTROLS = (
+    ("L01", "j'ai", ("j'ai",)),
+    ("L02", "go-slow", ("go-slow",)),
+    ("L03", "a-", ("a", "-")),
+    ("L04", "3.14", ("3.14",)),
+    ("L05", "3.", ("3", ".")),
+    ("L06", ".5", (".", "5")),
+    ("L07", "-5", ("-", "5")),
+    ("L08", "_x", ("_", "x")),
+)
 
 
 def tex(value: object) -> str:
@@ -64,7 +75,7 @@ def table(headers: list[str], rows: list[list[str]], columns: str) -> str:
     return "\n".join([
         r"\par\noindent",
         r"\begin{tabularx}{\linewidth}{@{}" + columns + r"@{}}",
-        r"\toprule", " & ".join(r"\textbf{" + header + "}" for header in headers) + r"\\",
+        r"\toprule\tablehead", " & ".join(r"\textbf{" + header + "}" for header in headers) + r"\\",
         r"\midrule",
         *(" & ".join(row) + r"\\" for row in rows),
         r"\bottomrule", r"\end{tabularx}\par", "",
@@ -119,6 +130,12 @@ def compute_evidence(root: Path) -> dict[str, Any]:
             "vocabulary_accepted": not result["lexical"]["statistics"]["unknown_tokens"],
             "parse": result["parse"],
         })
+    lexer_controls = []
+    for identifier, text, expected_tokens in LEXER_CONTROLS:
+        tokens = tokenize(text)
+        if tuple(tokens) != expected_tokens:
+            raise ValueError(f"Lexer automaton control {identifier} changed; review the documented state model.")
+        lexer_controls.append({"id": identifier, "text": text, "tokens": tokens})
     source_paths = [
         *(root / "compiler" / "lexer").glob("*.py"),
         *(root / "compiler" / "parser").glob("*.py"),
@@ -144,6 +161,7 @@ def compute_evidence(root: Path) -> dict[str, Any]:
             token for result in results for token in result["lexical"]["tokens"]
         ),
         "grammar": grammar, "results": results, "controls": controls,
+        "lexer_controls": lexer_controls,
     }
 
 
@@ -276,6 +294,13 @@ def render_fragments(evidence: dict[str, Any]) -> dict[str, str]:
           "Pass" if entry["vocabulary_accepted"] else "Fail", "Accept" if entry["accepted"] else "Reject"]
          for entry in evidence["controls"]], "l X l l",
     )
+    fragments["lexer-controls.tex"] = table(
+        ["Raw input", "Observed tokenization"],
+        [[r"\texttt{" + tex(entry["text"]) + "}",
+          r"\texttt{" + tex(json.dumps(entry["tokens"], ensure_ascii=True)) + "}"]
+         for entry in evidence["lexer_controls"]],
+        r"L{3.0cm} >{\raggedright\arraybackslash}X",
+    )
     return fragments
 
 
@@ -299,6 +324,7 @@ def write_or_check(root: Path, *, check: bool) -> dict[str, int]:
         "accepted": sum(result["parse"]["accepted"] for result in evidence["results"]),
         "rejected": sum(not result["parse"]["accepted"] for result in evidence["results"]),
         "boundary_controls": len(evidence["controls"]),
+        "lexer_controls": len(evidence["lexer_controls"]),
     }
 
 

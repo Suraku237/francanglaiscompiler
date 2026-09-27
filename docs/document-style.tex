@@ -1,15 +1,28 @@
-\usepackage[a4paper,margin=2.3cm,headheight=16pt]{geometry}
+\usepackage[a4paper,margin=2.3cm,headheight=22pt]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{iftex}
 \ifPDFTeX\usepackage[utf8]{inputenc}\fi
 \usepackage{lmodern,microtype,booktabs,longtable,tabularx,array}
-\usepackage{enumitem,xcolor,xurl,hyperref,fancyhdr}
+\usepackage{enumitem,xcolor,colortbl,titlesec}
+\usepackage{xurl,hyperref,fancyhdr}
 \definecolor{ink}{HTML}{183247}
 \definecolor{accent}{HTML}{126C70}
 \definecolor{muted}{HTML}{526676}
-\definecolor{paperblue}{HTML}{EDF5F7}
+\definecolor{paperblue}{HTML}{EDF6F5}
 \definecolor{gold}{HTML}{B68032}
+\definecolor{papergold}{HTML}{FBF4E8}
+\definecolor{rulecolor}{HTML}{B8D4D3}
 \hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\titleformat{\section}
+  {\Large\bfseries\sffamily\color{ink}}
+  {\colorbox{accent}{\color{white}\strut\thesection}}{0.6em}{}
+  [\vspace{2pt}{\color{gold}\titlerule[0.7pt]}]
+\titleformat{\subsection}
+  {\large\bfseries\sffamily\color{accent}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{12pt}{8pt}
+\titlespacing*{\subsection}{0pt}{10pt}{5pt}
+\arrayrulecolor{rulecolor}
+\newcommand{\tablehead}{\rowcolor{paperblue}}
 \setlength{\emergencystretch}{4em}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
@@ -19,39 +32,50 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{\small\textcolor{muted}{CAMFRANGLAIS / COMPILER CONSTRUCTION}}
-\cfoot{\small\textcolor{muted}{\thepage}}
-\renewcommand{\headrulewidth}{0.4pt}
+\lhead{\small\sffamily\textcolor{accent}{\textbf{CAMFRANGLAIS}}\;
+  \textcolor{muted}{/ COMPILER CONSTRUCTION}}
+\rhead{\small\sffamily\textcolor{muted}{CS4110 / SET A}}
+\cfoot{\colorbox{paperblue}{\makebox[1.8em]{\small\sffamily\textcolor{accent}{\thepage}}}}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\headrule}{\color{accent}\hrule width\headwidth height\headrulewidth\vskip-\headrulewidth}
 \newcommand{\notice}[2]{%
-  \par\medskip\noindent\colorbox{paperblue}{%
+  \par\medskip\noindent\begingroup\setlength{\fboxsep}{8pt}%
+  \colorbox{paperblue}{%
     \begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}
-      \vspace{6pt}\textbf{\textcolor{accent}{#1}}\par
-      #2\vspace{6pt}
-    \end{minipage}}\par\medskip}
+      {\bfseries\sffamily\textcolor{accent}{#1}}\par
+      #2
+    \end{minipage}}\endgroup\par\medskip}
 \newcommand{\projectcover}[3]{%
   \hypersetup{pageanchor=false}
   \begin{titlepage}
-    {\small\bfseries\textcolor{accent}{CS4110 \quad / \quad SUMMER 2026 \quad / \quad SET A}}\par
-    \vspace{1.3cm}
-    {\color{gold}\rule{2.5cm}{3pt}}\par
-    \vspace{0.7cm}
+    \noindent\colorbox{ink}{%
+      \begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}
+        \vspace{8pt}\hspace{8pt}%
+        {\small\bfseries\sffamily\color{white}CS4110 \quad / \quad SUMMER 2026 \quad / \quad SET A}
+        \par\vspace{8pt}
+      \end{minipage}}\par
+    \vspace{1.0cm}
+    {\color{gold}\rule{3.4cm}{4pt}}\par
+    \vspace{0.6cm}
     {\Huge\bfseries\color{ink}#1\par}
     \vspace{0.9cm}
-    {\LARGE\color{accent}Camfranglais\par}
+    {\LARGE\sffamily\color{accent}Camfranglais\par}
     \vspace{0.4cm}
     {\large\color{muted}#2\par}
     \vspace{1cm}
     \notice{DETERMINISTIC / PUBLIC ACCESS / EVIDENCE-LED}{#3}
     \vfill
-    {\small\bfseries\color{muted}AUTHOR GROUP}\par
-    \begin{tabular}{@{}lll@{}}
-      \textbf{Name} & \textbf{Matricule} & \textbf{Signature}\\[4pt]
-      Kwete Ngouba Junior Rayan & ICTU20241377 & \rule{1.6cm}{0.3pt}\\[5pt]
-      Djemtchimo Noukui Bruno Jonatan & ICTU20241585 & \rule{1.6cm}{0.3pt}\\[5pt]
-      Amina Boubakary & ICTU20241870 & \rule{1.6cm}{0.3pt}
-    \end{tabular}
+    {\small\bfseries\sffamily\color{accent}AUTHOR GROUP}\par
+    {\renewcommand{\arraystretch}{1.45}
+    \begin{tabularx}{\linewidth}{@{}X r@{}}
+      \toprule\tablehead\textbf{Name} & \textbf{Matricule}\\\midrule
+      Kwete Ngouba Junior Rayan & ICTU20241377\\
+      Djemtchimo Noukui Bruno Jonatan & ICTU20241585\\
+      Amina Boubakary & ICTU20241870\\
+      \bottomrule
+    \end{tabularx}}
     \par\vspace{0.7cm}
-    {\small Version 4.0 \quad|\quad 27 September 2026\par
+    {\small\textcolor{accent}{\textbf{Version 4.1}} \quad|\quad 27 September 2026\par
     Faculty of Information and Communication Technologies\par
     Instructor: Engr. Tanwi Nkiamboh\par
     Assignment due: 29 September 2026}

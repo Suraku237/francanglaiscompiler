@@ -138,6 +138,11 @@ jobs:
           if ((Get-FileHash docs\.tools\plantuml.jar -Algorithm SHA256).Hash -ne '5e1ecfa8ecd32c90b03bbf3b1eb6f020943f98ab0fcf4032be31a0002ee2c462') {
             throw 'PlantUML checksum mismatch.'
           }
+          Invoke-WebRequest -Uri 'https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/16.1.0/windows_10_cmake_Release_Graphviz-16.1.0-win64.zip' -OutFile docs\.tools\graphviz.zip
+          if ((Get-FileHash docs\.tools\graphviz.zip -Algorithm SHA256).Hash -ne '733e49626c492242eb8dca30ea627b6ead20710e207998c7933b4909d92d6abc') {
+            throw 'Graphviz checksum mismatch.'
+          }
+          Expand-Archive -LiteralPath docs\.tools\graphviz.zip -DestinationPath docs\.tools
           Invoke-WebRequest -Uri 'https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip' -OutFile docs\.tools\actionlint.zip
           if ((Get-FileHash docs\.tools\actionlint.zip -Algorithm SHA256).Hash -ne '6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9') {
             throw 'Actionlint checksum mismatch.'

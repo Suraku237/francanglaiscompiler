@@ -10,6 +10,22 @@ $buildDir = Join-Path $docs ".build"
 $pdflatex = Get-Command pdflatex -ErrorAction SilentlyContinue
 $tectonic = Get-Command tectonic -ErrorAction SilentlyContinue
 $localTectonic = Join-Path $docs ".tools\tectonic.exe"
+$localGraphviz = Join-Path $docs ".tools\Graphviz-16.1.0-win64\bin\dot.exe"
+
+function Assert-PngSignature {
+    param([string]$Path)
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $header = New-Object byte[] 8
+        $length = $stream.Read($header, 0, $header.Length)
+        if ($length -ne 8 -or [System.BitConverter]::ToString($header) -ne "89-50-4E-47-0D-0A-1A-0A") {
+            throw "Invalid PNG output '$Path'. DOT automata require a full Graphviz build with PNG support."
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
 
 if ($pdflatex) {
     $compiler = $pdflatex.Source
@@ -35,6 +51,7 @@ if ($SkipDiagrams) {
         if (-not (Test-Path -LiteralPath $image -PathType Leaf)) {
             throw "Missing diagram image '$image'. Render the PlantUML sources first."
         }
+        Assert-PngSignature -Path $image
     }
 }
 else {
@@ -47,12 +64,17 @@ else {
     if (-not (Test-Path -LiteralPath $PlantUmlJar -PathType Leaf)) {
         throw "PlantUML jar not found at '$PlantUmlJar'. Pass -PlantUmlJar, or use -SkipDiagrams with existing PNGs."
     }
+    $graphvizArguments = @()
+    if (Test-Path -LiteralPath $localGraphviz -PathType Leaf) {
+        $graphvizArguments = @("-graphvizdot", $localGraphviz)
+    }
     foreach ($diagram in $diagrams) {
         # Full architecture views may exceed PlantUML's default 4096-pixel canvas.
-        & java -DPLANTUML_LIMIT_SIZE=8192 -jar $PlantUmlJar -tpng -charset UTF-8 $diagram.FullName
+        & java -DPLANTUML_LIMIT_SIZE=8192 -jar $PlantUmlJar @graphvizArguments -tpng -charset UTF-8 $diagram.FullName
         if ($LASTEXITCODE -ne 0) {
             throw "PlantUML failed for $($diagram.Name)."
         }
+        Assert-PngSignature -Path ([System.IO.Path]::ChangeExtension($diagram.FullName, ".png"))
     }
 }
 

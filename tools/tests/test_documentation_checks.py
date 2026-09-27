@@ -8,8 +8,9 @@ from PIL import Image
 from pypdf import PdfReader
 
 from tools.check_documentation import (
-    application_classes, check_class_coverage, check_report_page_count, check_report_screenshots,
-    check_sequence_activations, declared_classes, image_fingerprint,
+    application_classes, check_class_coverage, check_no_signature_fields, check_report_automata,
+    check_report_page_count, check_report_screenshots, check_sequence_activations,
+    declared_classes, image_fingerprint,
 )
 
 
@@ -124,6 +125,31 @@ class DocumentationCheckTests(unittest.TestCase):
         for pages in (0, 24, 31):
             with self.subTest(pages=pages), self.assertRaisesRegex(ValueError, "25-30 actual PDF pages"):
                 check_report_page_count(pages)
+
+    def test_signature_fields_and_signing_instructions_are_rejected(self) -> None:
+        check_no_signature_fields("Author group: Name and Matricule. Contributions await review.")
+        for text in ("Name | Matricule | Signature", "Group signatures are left blank."):
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, "signature fields"):
+                check_no_signature_fields(text)
+
+    def test_report_requires_both_current_automaton_images(self) -> None:
+        lexer = Image.new("RGB", (8, 8), "white")
+        parser = Image.new("RGB", (8, 8), "black")
+        lexer.save(self.diagrams / "automaton-lexer.png")
+        parser.save(self.diagrams / "automaton-parser.png")
+        pdf_path = self.root / "docs" / "automata.pdf"
+        lexer.save(pdf_path, format="PDF", save_all=True, append_images=[parser])
+        reader = PdfReader(pdf_path, strict=True)
+        source = (
+            r"\automaton{automaton-lexer}{5cm}{DFA}"
+            r"\automaton{automaton-parser}{5cm}{DPDA}"
+        )
+        self.assertEqual(check_report_automata(self.root / "docs", source, reader), 2)
+        with self.assertRaisesRegex(ValueError, "lexer and parser automata"):
+            check_report_automata(self.root / "docs", r"\automaton{automaton-lexer}", reader)
+        Image.new("RGB", (8, 8), "blue").save(self.diagrams / "automaton-parser.png")
+        with self.assertRaisesRegex(ValueError, "absent or stale"):
+            check_report_automata(self.root / "docs", source, reader)
 
     def test_report_screenshots_require_current_registered_and_embedded_pixels(self) -> None:
         docs = self.root / "docs"

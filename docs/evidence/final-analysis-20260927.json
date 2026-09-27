@@ -6534,5 +6534,68 @@
         "consumed": 2
       }
     }
+  ],
+  "lexer_controls": [
+    {
+      "id": "L01",
+      "text": "j'ai",
+      "tokens": [
+        "j'ai"
+      ]
+    },
+    {
+      "id": "L02",
+      "text": "go-slow",
+      "tokens": [
+        "go-slow"
+      ]
+    },
+    {
+      "id": "L03",
+      "text": "a-",
+      "tokens": [
+        "a",
+        "-"
+      ]
+    },
+    {
+      "id": "L04",
+      "text": "3.14",
+      "tokens": [
+        "3.14"
+      ]
+    },
+    {
+      "id": "L05",
+      "text": "3.",
+      "tokens": [
+        "3",
+        "."
+      ]
+    },
+    {
+      "id": "L06",
+      "text": ".5",
+      "tokens": [
+        ".",
+        "5"
+      ]
+    },
+    {
+      "id": "L07",
+      "text": "-5",
+      "tokens": [
+        "-",
+        "5"
+      ]
+    },
+    {
+      "id": "L08",
+      "text": "_x",
+      "tokens": [
+        "_",
+        "x"
+      ]
+    }
   ]
 }

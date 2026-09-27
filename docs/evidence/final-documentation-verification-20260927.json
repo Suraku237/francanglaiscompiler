@@ -1,14 +1,17 @@
 {
   "format": 1,
   "verification_date": "2026-09-27",
-  "document_edition": "4.0",
+  "document_edition": "4.1",
   "application_source_revision": "a1b88aac3ba2b8249649ec945797b767cc5890ea",
-  "git_head_at_verification": "63412b6ec35d26ac086dbc52d4c5fe6a690c1119",
-  "source_boundary": "The intervening commit contains documentation work. Application directories, launcher and dependency manifests were compared with the application baseline and are unchanged. Remaining finalization changes are in the worktree; this completion turn did not create a commit.",
+  "git_head_at_verification": "0c201b882f5ed89cdbaa9dec29132f928f7ea058",
+  "source_boundary": "The intervening commits contain documentation work. Application source directories, launcher and dependency manifests were compared with the application baseline and are unchanged. Edition 4.1 changes remain in the worktree; this completion turn did not create a commit.",
   "build": {
     "task": "Build documentation PDFs",
     "script": "docs/build.ps1",
-    "diagram_renderer": "Local PlantUML JAR and Java; no online renderer",
+    "diagram_renderer": "Local PlantUML 1.2026.8, Java and full portable Graphviz 16.1.0; no online renderer",
+    "graphviz_archive_sha256": "733e49626c492242eb8dca30ea627b6ead20710e207998c7933b4909d92d6abc",
+    "graphviz_archive_checksum_verified": true,
+    "png_output_guard": "Passed a real PNG and a negative text-file control; invalid renderer output is rejected even if PlantUML exits successfully.",
     "latex_engine": "Tectonic",
     "completed": true,
     "publication_directory": "docs",
@@ -21,58 +24,65 @@
     "result": {
       "verified": true,
       "production_classes": 98,
-      "diagrams": 35,
+      "diagrams": 37,
       "sequence_diagrams": 9,
-      "atlas_pages": 35,
+      "atlas_pages": 37,
       "srs_pages": 11,
-      "sdd_pages": 52,
-      "final-report_pages": 29,
+      "sdd_pages": 56,
+      "final-report_pages": 30,
       "report_screenshots": 4,
+      "report_automata": 2,
       "report_evidence": {
-        "generated_files": 20,
+        "generated_files": 21,
         "statements": 12,
         "tokens": 81,
         "accepted": 10,
         "rejected": 2,
-        "boundary_controls": 7
+        "boundary_controls": 7,
+        "lexer_controls": 8
       }
     }
   },
   "published_pdfs": [
     {
       "file": "docs/final-report.pdf",
-      "physical_pages": 29,
-      "bytes": 385657,
-      "sha256": "4d3a27ce0c76ea81ec2c03f892d0a22dde0b19ccfa7d5c9e476b220fff45b4dc",
-      "font_resources": 18,
+      "physical_pages": 30,
+      "bytes": 577520,
+      "sha256": "71ca4968797178a73524c3cf28dce76eb51da0ff91249e484f9b016cb63c929a",
+      "font_resources": 20,
       "unembedded_fonts": [],
       "clipped_image_pages": [],
+      "signature_text_pages": [],
       "required_page_range_including_front_matter": [25, 30]
     },
     {
       "file": "docs/srs.pdf",
       "physical_pages": 11,
-      "bytes": 61404,
-      "sha256": "0be5ba6bed32a6b5b361d316e96d78f275bd922fe4b84cc7f559d63cbde6f705",
-      "font_resources": 6,
+      "bytes": 69109,
+      "sha256": "1dfecdaa7adbd8885c48a905ad0d8b4834b39b3b0b9e55590faf700d4ea474ea",
+      "font_resources": 8,
       "unembedded_fonts": [],
-      "clipped_image_pages": []
+      "clipped_image_pages": [],
+      "signature_text_pages": []
     },
     {
       "file": "docs/sdd.pdf",
-      "physical_pages": 52,
+      "physical_pages": 56,
       "included_uml_sheets": 35,
-      "bytes": 13651351,
-      "sha256": "16e2d077de34f31509e9747b8a105006807a8c2e35abb9e6af5799acfc1cad26",
-      "font_resources": 9,
+      "included_automata_sheets": 2,
+      "included_diagram_sheets": 37,
+      "bytes": 14020454,
+      "sha256": "bf4ecd8f8de3ceab315bbae7268e00ea6e3f61b8fa5b51b26e0ac92a75eeae76",
+      "font_resources": 13,
       "unembedded_fonts": [],
-      "clipped_image_pages": []
+      "clipped_image_pages": [],
+      "signature_text_pages": []
     },
     {
       "file": "docs/uml-atlas.pdf",
-      "physical_pages": 35,
-      "bytes": 13546692,
-      "sha256": "c957f652fe0bc08e0ad3ec456b93036570a4bf7b6e1119f52d0314bded1ee44a",
+      "physical_pages": 37,
+      "bytes": 13899585,
+      "sha256": "2e34dd52fb48770129773286abc84647bf6c2967a939901eeddec3b024b6006f",
       "font_resources": 0,
       "font_note": "Each sheet embeds its complete rendered PNG; diagram lettering is part of the image.",
       "unembedded_fonts": [],
@@ -89,25 +99,38 @@
     "use_case_views": 1,
     "component_views": 1,
     "deployment_views": 1,
-    "method_name_check": "80 displayed Python operation occurrences were mechanically compared with authored or inherited source method names; no unresolved operation was found.",
+    "method_name_check": "The 80 displayed Python operation occurrences were mechanically verified against authored or inherited methods in edition 4.0. Those operation declarations and their application source are unchanged in this colour/automata revision.",
     "activation_check": "Every sequence call has an active sender and immediately activated receiver; replies match calls, and all activations close.",
     "notation_review": "Associations carry multiplicities; inheritance and dependencies do not. String lengths and numeric ranges use constraints, not object multiplicities. Public session readiness is an analysis precondition, not an include relation that repeats bootstrap.",
     "current_pngs_present_in_atlas_and_sdd": true,
     "one_correctly_mapped_atlas_page_per_source": true,
     "png_canvas_check": {
-      "images_checked": 35,
+      "images_checked": 37,
       "renderer_dimension_limit": 8192,
-      "largest_width": 3526,
+      "largest_width": 3518,
       "largest_height": 2795,
       "minimum_content_margin_pixels": 9,
       "clipped_or_empty_images": 0
     }
   },
+  "compiler_automata": {
+    "formal_automata_sheets": 2,
+    "uml_state_machine_views": false,
+    "lexer_model": "Equivalent DFA for TOKEN_SPLIT_RE, not a hand-coded runtime class. Eight shown states, double-circle accepting states, non-accepting pending joiner/decimal states and an implicit dead state.",
+    "parser_model": "Deterministic pushdown control for the saved LL(1) grammar. Stack top is on the right; expansion pushes the reversed RHS; matching advances the logical input; acceptance retains the bottom marker.",
+    "lookahead_boundary": "The diagram uses finite buffered-lookahead states. Runtime categories[position] advances only on a match. Input validation, repetition checks and explicit resource bounds remain part of the implementation.",
+    "unicode_check": "U+02BC is in Python's Unicode word-character class and follows C transitions, unlike pending joiners outside C.",
+    "current_pngs_embedded_in_report_sdd_and_atlas": true,
+    "report_physical_pages": [9, 21],
+    "sdd_explanation_physical_page": 13,
+    "lexer_smallest_nominal_printed_label_points": 8.12,
+    "lr_implementation_claimed": false
+  },
   "report_evidence": {
     "corpus": "docs/evidence/final-corpus-20260927.json",
     "complete_analysis": "docs/evidence/final-analysis-20260927.json",
     "generated_latex_directory": "docs/report-data",
-    "latex_fragments": 19,
+    "latex_fragments": 20,
     "complete_analysis_json_files": 1,
     "exact_original_cases": 12,
     "tokens": 81,
@@ -118,6 +141,7 @@
     "rejected_originals": 2,
     "unresolved_sixth_tokens": ["n'ais", "alli"],
     "constructed_boundary_controls": 7,
+    "constructed_lexer_controls": 8,
     "reproducibility_check_passed": true,
     "source_hash_policy": "UTF-8 without BOM; CRLF and CR normalized to LF; all other text preserved.",
     "generator_reads_or_writes_live_database": false
@@ -137,24 +161,29 @@
   },
   "focused_regressions": {
     "command": "python -m unittest tools.tests.test_documentation_checks tools.tests.test_report_evidence compiler.tests.test_yaounde_grammar backend.tests.test_yaounde_corpus",
-    "passed": 28,
+    "passed": 33,
     "failed": 0,
     "corpus_grammar_and_persistence_tests_included": 7,
     "editor_test_adapter": "No tests were discovered by the editor test runner; the repository's unittest command above was executed successfully.",
     "edited_python_editor_diagnostics": 0,
     "workflow_actionlint": "passed",
+    "workflow_executed_remotely_in_this_turn": false,
     "git_diff_check": "passed",
+    "local_markdown_links_checked": 57,
+    "missing_local_markdown_targets": 0,
     "non_blocking_message": "The existing Starlette TestClient dependency emitted an httpx deprecation warning."
   },
   "visual_review": {
-    "report_physical_pages": [1, 3, 6, 8, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 27, 28, 29],
+    "report_physical_pages": [1, 3, 9, 21, 25, 29, 30],
     "srs_physical_pages": [1, 5, 11],
-    "sdd_physical_pages": [1, 2, 3, 4, 10, 16],
-    "fresh_diagram_overviews_reviewed": 35,
+    "sdd_physical_pages": [1, 7, 13],
+    "fresh_diagram_overviews_reviewed": 37,
     "report_orphan_only_pages": 0,
     "all_published_pdf_image_rectangles_within_page_bounds": true,
     "known_names_and_matricules_present": true,
-    "signatures_and_individual_contributions_left_for_authors": true
+    "palette": "Navy headings, teal accents, pale-mint table headers and restrained gold rules.",
+    "signature_columns_and_signing_blanks_removed": true,
+    "individual_contributions_invented": false
   },
   "public_deployment_observation": {
     "date": "2026-09-27",
@@ -183,6 +212,6 @@
     "Original fieldwork provenance remains unconfirmed. The saved manual-transcription flag is false and collection method is blank; location or audio metadata does not establish dates, collectors, speakers or consent.",
     "Supplied glosses and linguistic annotations have not been independently validated. Parsing success is not linguistic accuracy or proof of authenticity.",
     "The known pre-existing GrammarNotationTests.test_every_real_lexer_category_is_a_supported_terminal expected-category regression remains unresolved. The full application CI suite is not claimed green.",
-    "The group must attest individual contributions and signatures, review provenance and rehearse the required ten-minute presentation; those human assessment tasks are not certified by document generation."
+    "The group must review individual contributions and provenance and rehearse the required ten-minute presentation; those human assessment tasks are not certified by document generation."
   ]
 }

@@ -17,13 +17,19 @@ The public bootstrap and no-login interface were observed working on
 | Final coursework report | [Report](docs/final-report.pdf) | [LaTeX](docs/final-report.tex) |
 | Software Requirements Specification | [SRS](docs/srs.pdf) | [LaTeX](docs/srs.tex) |
 | Software Design Description | [SDD](docs/sdd.pdf) | [LaTeX](docs/sdd.tex) |
-| Full-size UML atlas | [Atlas](docs/uml-atlas.pdf) | [LaTeX](docs/uml-atlas.tex) |
-| UML diagrams | [PNG images and PlantUML](docs/diagrams) | [Exact class inventory](docs/diagrams/class-coverage.json) |
+| Full-size UML and automata atlas | [Atlas](docs/uml-atlas.pdf) | [LaTeX](docs/uml-atlas.tex) |
+| UML diagrams and compiler automata | [PNG images and PlantUML](docs/diagrams) | [Exact class inventory](docs/diagrams/class-coverage.json) |
 
 The [documentation register](docs/README.md) explains the evidence, validation,
 rebuild procedure and remaining human submission requirements. The report is
 separate from the engineering SRS/SDD and must remain **25–30 actual PDF pages,
 including its cover and front matter**.
+
+Edition **4.1** uses a coordinated navy, teal and gold design without signing
+areas. The report explains the regex lexer's equivalent DFA and the bounded
+LL(1) parser's pushdown control. Both automata are included alongside the
+35 UML views in the SDD and 37-sheet atlas; they do not imply invented runtime
+classes or an LR implementation.
 
 ## Five-screen workflow
 
@@ -111,7 +117,8 @@ rehearsal remain human tasks. The documentation author group is:
 | Amina Boubakary | ICTU20241870 |
 
 These identities are printed in the documents; they do not create app accounts.
-Signatures and individually attested contributions are left blank.
+There are no signature fields. The group must still review individual
+contributions rather than treat generated documentation as personal attestation.
 
 ## Run locally
 

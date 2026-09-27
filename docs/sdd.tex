@@ -2,7 +2,7 @@
 \usepackage{graphicx,pdfpages}
 \input{document-style.tex}
 \hypersetup{pdftitle={Camfranglais -- Software Design Description}}
-\rhead{\small SDD / v4.0}
+\rhead{\small\sffamily\textcolor{muted}{SDD / v4.1}}
 \newcommand{\diagram}[3]{\includepdf[pages=#2,fitpaper=true,
  pagecommand={\thispagestyle{empty}\refstepcounter{figure}\label{fig:#1}
  \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#3}}]{uml-atlas.pdf}}
@@ -33,7 +33,7 @@ recording playback do not add Collection entries.
 
 \subsection{Three explicit application modes}
 \begin{longtable}{L{3.9cm}L{10.3cm}}
-\toprule\textbf{Factory selection} & \textbf{Implemented composition}\\\midrule\endhead
+\toprule\tablehead\textbf{Factory selection} & \textbf{Implemented composition}\\\midrule\endhead
 \texttt{require\_auth=None} &
 Default public mode. Installs public-access policy, shared storage, read routes
 and analyzer-test append. Uses \texttt{ServerSettings}; does not install
@@ -118,7 +118,7 @@ routes and legacy workflows are not presented as public features.
 
 \subsection{Implementation responsibility map}
 \begin{longtable}{L{4.5cm}L{9.7cm}}
-\toprule\textbf{Source area} & \textbf{Responsibility}\\\midrule\endhead
+\toprule\tablehead\textbf{Source area} & \textbf{Responsibility}\\\midrule\endhead
 \nolinkurl{backend/main.py}, \nolinkurl{config.py}, \nolinkurl{web.py} &
 Mode composition, server settings, static assets, health, host/TLS policy,
 request-size limits and response headers.\\\addlinespace
@@ -175,7 +175,7 @@ constant time. No email address, display name or signed-in identity is created.
 
 \subsection{Public route contracts}
 \begin{longtable}{L{4.9cm}L{9.3cm}}
-\toprule\textbf{Route/method} & \textbf{Contract and effect}\\\midrule\endhead
+\toprule\tablehead\textbf{Route/method} & \textbf{Contract and effect}\\\midrule\endhead
 \nolinkurl{GET /api/health} &
 Returns compiler health. Does not initialize or consume a shared request-limit
 window. Health alone does not prove successful public bootstrap.\\\addlinespace
@@ -399,6 +399,38 @@ coverage of identity, old history/recovery, coursework/import and desktop code.
 despite the absence of public profile-editing routes.
 
 \section{Deterministic Compiler Design}
+\subsection{Automata and their implementation boundary}
+Figure~\ref{fig:automaton-lexer} is an equivalent finite-state model of
+\nolinkurl{TOKEN_SPLIT_RE}, not an invented lexer class. Double circles accept
+a token form: \(W\) is word, \(I\) integer, \(F\) fraction, \(P\) punctuation
+and \(O\) another character. Non-accepting states \(J\) and \(R\) require a
+valid continuation after a joiner or decimal separator respectively.
+Missing transitions enter an omitted dead state.
+The scanner retains the last accepted prefix and resumes at the unconsumed
+character; whitespace is skipped between matches.
+
+The word class \(C\) is the Unicode regex class
+\texttt{[\textasciicircum{}\textbackslash W\textbackslash d\_]}, not only ASCII
+letters. In particular, U+02BC belongs to \(C\), so it follows word edges
+rather than competing with the pending-joiner edge. This distinction preserves
+the actual regex behavior and the diagram's determinism. Classification by
+lexicon and morphology remains a later operation.
+
+Figure~\ref{fig:automaton-parser} shows finite control for the LL(1) pushdown
+recognizer. Its stack initially holds the end marker and start symbol.
+One table entry replaces a top nonterminal with a reversed right-hand side;
+a matching terminal is popped; an epsilon production consumes no category.
+Acceptance requires the bottom marker and end-of-input together, not an
+arbitrary empty stack or any recognized vocabulary.
+
+The family \(q[a]\) encodes a single lookahead in finitely many states. The
+diagram buffers a category on its input edge; the implementation instead
+reads \nolinkurl{categories[position]} and advances its position only when
+matching a terminal. This is an equivalent recognition model, not a claim
+that the Python function declares those control states. Input validation,
+non-LL(1) rejection and resource/repetition guards additionally bound the
+actual implementation. The project has not implemented an LR automaton.
+
 \subsection{Lexical pipeline}
 The lexer first segments raw input using a compiled regular expression.
 Internal apostrophes and hyphens remain part of words; a final non-whitespace
@@ -460,7 +492,7 @@ statements' human collection provenance.
 \section{Storage, Ownership and Recovery}
 \subsection{Persistent structures, not invented objects}
 \begin{longtable}{L{4.7cm}L{9.5cm}}
-\toprule\textbf{Physical structure} & \textbf{Design role}\\\midrule\endhead
+\toprule\tablehead\textbf{Physical structure} & \textbf{Design role}\\\midrule\endhead
 \nolinkurl{shared-workspace/workspace.sqlite3} &
 Shared logical database. Base tables include metadata, projects, entries,
 revisions, history, coursework, screenshots and analyzer tests.\\\addlinespace
@@ -543,7 +575,7 @@ with public browser functionality.
 \section{Frontend and Recorded Media}
 \subsection{Navigation and data ownership}
 \begin{longtable}{L{3.7cm}L{10.5cm}}
-\toprule\textbf{Public page} & \textbf{Behavior}\\\midrule\endhead
+\toprule\tablehead\textbf{Public page} & \textbf{Behavior}\\\midrule\endhead
 Franc Analyzer &
 Exact typed or handed-off input, saved grammar status, explicit Analyze action,
 pending request identity and visible lexical/vocabulary/CFG results.\\\addlinespace
@@ -659,9 +691,11 @@ against cross-site requests; they do not turn public tests into confidential dat
 The strict documentation checker derives the production class inventory from
 Python ASTs and TypeScript source declarations, checks every inventory-to-class
 mapping, balances sequence activations/calls/replies, and verifies source,
-PNG, atlas-page and SDD-page agreement. The design contains \textbf{35 UML
-sheets}: 18 class, nine sequence, three activity, two state, and one each of
-component, deployment and use-case.
+PNG, atlas-page and SDD-page agreement. The design contains \textbf{37 diagram
+sheets}: 35 UML views (18 class, nine sequence, three activity, two state, and
+one each of component, deployment and use-case) plus two formal automata.
+The latter use conventional automata notation, including double-circle
+acceptance, and are rendered through PlantUML's local Graphviz support.
 
 Diagrams are rendered locally with the repository's PlantUML JAR and Java,
 using an 8192-pixel canvas cap. No code, corpus or diagram source is sent to an
@@ -691,7 +725,7 @@ diagram/class checks for this documentation revision.
 
 \subsection{Design-to-contract index}
 \begin{longtable}{L{4.5cm}L{9.7cm}}
-\toprule\textbf{Contract} & \textbf{Primary implementation and diagrams}\\\midrule\endhead
+\toprule\tablehead\textbf{Contract} & \textbf{Primary implementation and diagrams}\\\midrule\endhead
 Public access, no fake account &
 \nolinkurl{public_access.py}, \nolinkurl{config.py};
 Figures~\ref{fig:class-public-access}, \ref{fig:sequence-public-session}.\\\addlinespace
@@ -706,7 +740,8 @@ Separate vocabulary/CFG verdicts &
 Figures~\ref{fig:class-lexical-statistics}, \ref{fig:sequence-stats}.\\\addlinespace
 Exact source and bounded compiler &
 \nolinkurl{compiler/lexer}, \nolinkurl{compiler/parser};
-Figures~\ref{fig:class-compiler}, \ref{fig:sequence-compiler}.\\\addlinespace
+Figures~\ref{fig:class-compiler}, \ref{fig:sequence-compiler},
+\ref{fig:automaton-lexer}, \ref{fig:automaton-parser}.\\\addlinespace
 Existing recording playback only &
 \nolinkurl{readings_api.py}, \nolinkurl{voice.ts};
 Figures~\ref{fig:class-readings}, \ref{fig:sequence-playback}.\\\addlinespace
@@ -722,7 +757,7 @@ Figures~\ref{fig:deployment}, \ref{fig:sequence-backup},
 \end{longtable}
 
 \appendix
-\section{Full-size UML Atlas}
+\section{Full-size UML and Automata Atlas}
 Each following sheet is the locally rendered image from the matching
 \nolinkurl{docs/diagrams} PlantUML source. The ordering is identical to
 \nolinkurl{docs/uml-atlas.tex}; captions and labels are part of this SDD.
@@ -764,4 +799,6 @@ coverage, not as a list of public application features.
 \diagram{sequence-playback}{33}{Existing recorded-reading lookup and guarded audio streaming}
 \diagram{sequence-public-boundary}{34}{Forbidden public writes, hidden APIs and request limits}
 \diagram{sequence-backup}{35}{Configured private automatic-backup maintenance}
+\diagram{automaton-lexer}{36}{Finite-state model equivalent to the token segmentation regex}
+\diagram{automaton-parser}{37}{Deterministic pushdown control for the saved LL(1) grammar}
 \end{document}

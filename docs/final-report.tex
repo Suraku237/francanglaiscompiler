@@ -14,13 +14,20 @@
   {\centering
     \includegraphics[width=\linewidth,height=#2,keepaspectratio]{evidence/screenshots/#1}
     \par}
-  {\small\textbf{Screenshot.} #3\par}}
+  {\small\textbf{\textcolor{accent}{Screenshot.}} #3\par}}
+\newcommand{\automaton}[3]{%
+  \par\smallskip
+  {\centering
+    \includegraphics[width=\linewidth,height=#2,keepaspectratio]{diagrams/#1.png}
+    \par}
+  \refstepcounter{figure}\label{fig:#1}%
+  {\small\textbf{\textcolor{accent}{Figure \thefigure.}} #3\par}}
 \begin{document}
 \projectcover{Final Coursework Report}
 {Lexical and Syntactic Analysis of Informal Urban Communication in Yaound\'e}
 {A reproducible study of twelve supplied transcriptions using a custom regex
 lexer and a corpus-derived LL(1) parser. Includes all raw statements and tokens,
-actual transformations, FIRST/FOLLOW, the predictive table, test traces and
+actual transformations, automata models, FIRST/FOLLOW, the predictive table, test traces and
 working-application screenshots. Original fieldwork provenance remains
 unconfirmed; software results do not certify collection authenticity.}
 \setcounter{page}{2}
@@ -52,7 +59,7 @@ Historical aggregate statistics in those screenshots differ from this report's
 fixed twelve-statement evaluation.
 
 \begin{tabularx}{\linewidth}{@{}X r@{}}
-\toprule\textbf{Controlled evaluation} & \textbf{Measured result}\\\midrule
+\toprule\tablehead\textbf{Controlled evaluation} & \textbf{Measured result}\\\midrule
 Raw statements / original token occurrences & 12 / \CorpusTokens\\
 Known-category occurrences / unresolved occurrences & 79 / 2\\
 Emitted language-transition clues & \CorpusSwitches\\
@@ -144,7 +151,7 @@ label or attachment field is not independent proof of where an utterance was
 heard, nor proof that an attachment is an original field recording.
 
 \begin{tabularx}{\linewidth}{@{}L{4.1cm}X@{}}
-\toprule\textbf{Evidence item} & \textbf{Status at the snapshot}\\\midrule
+\toprule\tablehead\textbf{Evidence item} & \textbf{Status at the snapshot}\\\midrule
 Twelve original strings & Present and matched exactly to regression fixtures.\\
 Supplied French meanings & Present; human-supplied, not independently reviewed.\\
 Collection method & Not recorded in the saved project profile.\\
@@ -287,6 +294,42 @@ correction. The implementation is in
 \nolinkurl{compiler/lexer/lexicon.py} \cite{source}.
 
 \clearpage
+\section{Finite-State Model of the Lexer}
+The token pattern is regular, so it has an equivalent deterministic finite
+automaton (DFA). Figure~\ref{fig:automaton-lexer} explains that pattern;
+the implementation executes Python's \code{re} matcher, not a hand-written
+DFA class. A double circle accepts a \emph{token form}, not vocabulary
+correctness or a complete grammatical statement.
+
+\automaton{automaton-lexer}{8.2cm}
+{Equivalent token recognizer, initially in \(q0\). Double-circle states accept:
+\(W\) word; \(I\) integer; \(F\) fraction; \(P\) punctuation; \(O\) other character.
+\(J\) awaits a joiner continuation and \(R\) a decimal digit; neither accepts.
+Unshown transitions enter an implicit dead state.}
+
+\textbf{Input classes.} \(C\) is \code{[\textasciicircum{}\string\W\string\d\_]}:
+a Unicode word character excluding decimal digits and underscore.
+\(D\) is \code{\string\d}; \(M\) is the combining-mark set on the preceding
+page. Pending joiners are ASCII/curly apostrophes or hyphen, outside \(C\).
+U+02BC is already a word character and follows the \(C\) edges, even at a word
+boundary. Punctuation is \code{[.,!?;:"()]}; ``other'' is the remaining
+non-whitespace input, including a standalone underscore or hyphen.
+
+\textbf{Token boundaries.} For this pattern, greedy matching retains the
+longest accepted prefix. A dangling joiner or decimal separator cannot finish
+in \(J\) or \(R\), so the match ends at the previous accepting state and the
+remaining character is scanned again. Whitespace is skipped between matches,
+not emitted as a token. The source's final \code{\string\S} alternative
+preserves other characters instead of losing them.
+
+{\small\input{report-data/lexer-controls}}
+
+These eight constructed checks were executed through the real tokenizer.
+For example, \code{3.} is not a decimal token and \code{-5} is not a signed
+number token. A word-form path can still receive \code{UNKNOWN} during the
+separate priority-ordered classification stage.
+
+\clearpage
 \section{Lexicon, Category Policy and Notation}
 \subsection*{Precedence is part of the result}
 After NUMBER/PUNCTUATION, a compatible approved, unambiguous Word annotation may
@@ -310,7 +353,7 @@ Multiword references annotate phrases separately; they do not assign a whole
 phrase's category to each component word.
 
 \begin{tabularx}{\linewidth}{@{}l X l X@{}}
-\toprule\textbf{Code} & \textbf{Actual lexer category} &
+\toprule\tablehead\textbf{Code} & \textbf{Actual lexer category} &
 \textbf{Code} & \textbf{Actual lexer category}\\\midrule
 FF & FRENCH\_FUNCTION\_WORD & EF & ENGLISH\_FUNCTION\_WORD\\
 N & NOUN & V & VERB\\
@@ -649,40 +692,43 @@ subset. It also does not imply that a derived category sequence has a sensible
 meaning. Formal determinism and linguistic coverage are different properties.
 
 \clearpage
-\section{Predictive Parser Implementation}
-The parser maintains a stack, a category sequence, a current input position
-and a trace. The stack is printed with its top at the right. Trace snapshots
-are taken \emph{before} the recorded action; the final accept row still displays
-the end marker. A production is pushed in reverse order so its leftmost symbol
-is processed next.
+\section{Pushdown Automaton for the LL(1) Parser}
+The parser is a \emph{bounded implementation of a deterministic pushdown
+recognizer}, not another token DFA. Its extra memory is the symbol stack.
+For the saved grammar, the stack alphabet contains twelve nonterminals,
+nine grammar terminals and \code{\$}. Input consists of lexer categories,
+not raw words; a virtual \code{\$} marks the end.
 
-{\small
-\begin{verbatim}
-stack = ["$", start_symbol]
-position = 0
-while stack is not empty:
-    top = stack[-1]
-    lookahead = categories[position] or end marker
-    if top is "$":
-        accept only if lookahead is also "$"
-    elif top is a terminal:
-        reject if top != lookahead
-        record the match; pop; advance position
-    else:
-        reject if table[top, lookahead] is absent
-        record the chosen production
-        pop top; push its RHS in reverse order
-\end{verbatim}}
+\automaton{automaton-parser}{5.7cm}
+{Finite control of the predictive pushdown automaton. An edge label is
+``input, stack top / replacement''; \code{eps} consumes no input.
+The stack top is at the right. \(q[a]\) abbreviates one control state per
+possible buffered lookahead, not an unbounded variable.}
 
-The displayed pseudocode summarizes the control flow; the implementation also
-validates token shapes/categories, refuses conflicting grammars and checks
-resource limits. It detects repeated stack/input configurations, excessive
-trace length and oversized stack expansion. UNKNOWN is a real lexer category
-that can be represented in input, but it is not a wildcard and has no production
-in this saved grammar.
+\textbf{Expand, match, accept.} The initial stack becomes
+\code{[\$, Ut]}. With a nonterminal \(A\) on top, the unique table entry
+\(M[A,a]\) replaces it by the reversed right-hand side without consuming
+the buffered category. An epsilon production only pops \(A\).
+If a terminal matches \(a\), it is popped and the next lookahead is loaded.
+Acceptance requires \code{\$} on top and at input end; the implementation's
+final trace still shows the bottom marker rather than an empty stack.
+
+\textbf{Why this is deterministic.} Loading reads one category into finite
+control; expansion and matching then use epsilon transitions. The table has
+no conflicting entry, so each valid configuration selects at most one action.
+There are twenty supported lexer categories plus the end marker.
+The diagram uses a prefetched lookahead; the actual code instead reads
+\nolinkurl{categories[position]} and advances \code{position} only on a match.
+This equivalent presentation does not change the accepted category sequences.
+
+\textbf{Concrete execution.} In S02, the first expansion changes
+\code{[\$, Ut]} to \code{[\$, Uf, Cl]}. Later matching FF consumes the first
+token. S09/S10 instead reach an undefined table entry with UNK after five
+matches, so neither the unknown nor the following tokens is skipped.
+The complete traces on the next pages show the recorded configurations.
 
 \begin{tabularx}{\linewidth}{@{}X r@{}}
-\toprule\textbf{Parser bound} & \textbf{Value}\\\midrule
+\toprule\tablehead\textbf{Implemented guard} & \textbf{Bound}\\\midrule
 Input tokens & 256\\
 Characters in an individual token & 1,000\\
 Recorded parse steps & 2,000\\
@@ -690,11 +736,11 @@ Stack symbols & 1,024\\
 \bottomrule
 \end{tabularx}
 
-The output includes \code{accepted}, an explicit error or null, the trace and
-the consumed count. A CFG rejection is a valid computed test result and can be
-saved; it is not a network error. Conversely, a storage failure must not look
-like a successful saved test. This separation helps students distinguish
-lexical uncertainty, syntactic mismatch and operational failure.
+Malformed tokens and non-LL(1) grammars are rejected before the stack loop.
+The implementation also checks repeated configurations and the bounds above;
+the abstract pushdown model does not imply unlimited runtime memory.
+Trace snapshots precede each action. A rejected parse is still a valid saved
+test result, not a fabricated success or a network failure.
 
 \clearpage
 \section{Complete Accepted Trace: S02}
@@ -817,7 +863,7 @@ for the public read-and-analyze workflow.
 \section{Application Architecture and Public Deployment}
 \subsection*{Separation of responsibilities}
 \begin{tabularx}{\linewidth}{@{}L{3.0cm}>{\raggedright\arraybackslash}X@{}}
-\toprule\textbf{Layer} & \textbf{Actual responsibility}\\\midrule
+\toprule\tablehead\textbf{Layer} & \textbf{Actual responsibility}\\\midrule
 React / TypeScript & Five-screen UI, anonymous capability bootstrap, input
 handling, read-only references and display of immutable tests.\\
 FastAPI boundary & Bounded requests, origin/CSRF policy, public allowlist,
@@ -861,7 +907,7 @@ and atlas, including clear boundaries around retained legacy code.
 \section{Verification, Reproducibility and Limitations}
 \subsection*{Checks and the dates to which they apply}
 \begin{tabularx}{\linewidth}{@{}L{3.1cm}X@{}}
-\toprule\textbf{Evidence} & \textbf{Observed result}\\\midrule
+\toprule\tablehead\textbf{Evidence} & \textbf{Observed result}\\\midrule
 27 September corpus checks & Seven targeted grammar/persistence tests passed;
 the exact twelve cases are exercised within them. Seven additional constructed
 controls in the report generator also matched their expected outcomes.\\
@@ -934,21 +980,19 @@ category regression, and rehearse the required ten-minute demonstration.
 Any corrected or extended analysis should be saved as new evidence, not
 silently substituted into original immutable tests.
 
-\subsection*{Author review and contribution record}
-Known names and matricules are filled below. Specific individual contributions
-and signatures are left for the group to attest; no division of work is invented.
+\subsection*{Author group and contribution review}
+Known names and matricules are listed below. Specific individual contributions
+have not been provided; the group must confirm them rather than invent a
+division of work.
 
 {\small\renewcommand{\arraystretch}{1.6}
-\begin{tabularx}{\linewidth}{@{}L{7.0cm}L{3.1cm}X@{}}
-\toprule\textbf{Member} & \textbf{Matricule} & \textbf{Confirmed contribution}\\\midrule
-Kwete Ngouba Junior Rayan & ICTU20241377 & \rule{2cm}{0.3pt}\\
-Djemtchimo Noukui Bruno Jonatan & ICTU20241585 & \rule{2cm}{0.3pt}\\
-Amina Boubakary & ICTU20241870 & \rule{2cm}{0.3pt}\\
+\begin{tabularx}{\linewidth}{@{}X r@{}}
+\toprule\tablehead\textbf{Member} & \textbf{Matricule}\\\midrule
+Kwete Ngouba Junior Rayan & ICTU20241377\\
+Djemtchimo Noukui Bruno Jonatan & ICTU20241585\\
+Amina Boubakary & ICTU20241870\\
 \bottomrule
 \end{tabularx}}
-
-Group review date: \rule{3cm}{0.3pt}\qquad
-Instructor feedback: \rule{4cm}{0.3pt}
 
 \clearpage
 \addcontentsline{toc}{section}{References and Evidence Register}

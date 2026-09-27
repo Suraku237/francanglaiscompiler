@@ -182,6 +182,26 @@ def check_report_page_count(pages: int) -> None:
         raise ValueError(f"The coursework report must have 25-30 actual PDF pages, not {pages}.")
 
 
+def check_no_signature_fields(text: str) -> None:
+    if re.search(r"\bsignatures?\b", text, re.IGNORECASE):
+        raise ValueError("Published documents must not contain signature fields or signing instructions.")
+
+
+def check_report_automata(docs: Path, source: str, reader: PdfReader) -> int:
+    names = set(re.findall(r"\\automaton\{([\w-]+)\}", source))
+    if names != {"automaton-lexer", "automaton-parser"}:
+        raise ValueError("The coursework report must include both the lexer and parser automata.")
+    embedded = {
+        image_fingerprint(image.image)
+        for page in reader.pages for image in page.images if image.image is not None
+    }
+    for name in sorted(names):
+        with Image.open(docs / "diagrams" / f"{name}.png") as image:
+            if image_fingerprint(image) not in embedded:
+                raise ValueError(f"Automaton image is absent or stale in the report: {name}")
+    return len(names)
+
+
 def check_report_screenshots(docs: Path, source: str, reader: PdfReader) -> int:
     names = set(re.findall(r"\\screen\{([\w-]+\.png)\}", source))
     if not names:
@@ -253,6 +273,7 @@ def verify_documents(root: Path) -> dict[str, object]:
             raise ValueError(f"The published {stem.upper()} is empty or has an unexpected title.")
         if "??" in text:
             raise ValueError(f"The published {stem.upper()} contains unresolved-reference markers.")
+        check_no_signature_fields(text)
         log = docs / ".build" / f"{stem}.log"
         problems = BUILD_PROBLEMS.findall(log.read_text(encoding="utf-8", errors="replace"))
         if problems:
@@ -273,6 +294,7 @@ def verify_documents(root: Path) -> dict[str, object]:
             check_report_page_count(len(reader.pages))
             report_source = (docs / "final-report.tex").read_text(encoding="utf-8")
             results["report_screenshots"] = check_report_screenshots(docs, report_source, reader)
+            results["report_automata"] = check_report_automata(docs, report_source, reader)
             results["report_evidence"] = write_or_check(root, check=True)
     return results
 
