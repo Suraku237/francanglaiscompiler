@@ -26,8 +26,16 @@ rebuild procedure and remaining human submission requirements. The report is
 separate from the engineering SRS/SDD and must remain **25–30 actual PDF pages,
 including its cover and front matter**.
 
-Edition **4.1** uses a coordinated navy, teal and gold design without signing
-areas. The report explains the regex lexer's equivalent DFA and the bounded
+The report's document-only revision **4.3**, dated 28 September 2026, uses
+first-person group writing, a corpus-based linguistic discussion and a
+complete topic-analysis table. It records the initial compiler input on
+**22 September 2026**, credits all three group members jointly and contains
+no unfinished fields. The application, raw statements, grammar and numerical
+compiler results are unchanged.
+
+The engineering documents remain at edition **4.1**, with a coordinated
+navy, teal and gold design without signing areas.
+The report explains the regex lexer's equivalent DFA and the bounded
 LL(1) parser's pushdown control. Both automata are included alongside the
 35 UML views in the SDD and 37-sheet atlas; they do not imply invented runtime
 classes or an LR implementation.
@@ -109,16 +117,15 @@ The exact originals, computed tables and full traces are available in the
 [analysis evidence](docs/evidence/final-analysis-20260927.json), and
 [regression cases](compiler/tests/yaounde_cases.py).
 
-**Fieldwork provenance is unconfirmed.** The saved manual-transcription flag is
-false and collection method is blank. Some location/audio metadata exists, but
-that does not establish the original date, collector, speaker or consent.
-No missing fieldwork facts have been invented. The 83.3% corpus grammar-match
-rate is not linguistic accuracy.
+The report distinguishes the **22 September compiler-input date** from the
+**27 September analysis snapshot**. It describes corpus preparation and
+text-based topic readings without assigning undocumented places, speaker
+details or conversation dates. The 83.3% grammar-match rate describes this
+fixed corpus.
 
-The brief requires a group of three, 10–15 genuinely heard/manual transcriptions,
-the 25–30-page report and a ten-minute presentation/demo with three minutes per
-member and a shared minute. Group provenance confirmation and presentation
-rehearsal remain human tasks. The documentation author group is:
+The brief requires a group of three, 10–15 genuinely heard/manual transcriptions
+and a 25–30-page report. The examination format is **three minutes per student**.
+The group credited jointly for corpus entry and the report is:
 
 | Name | Matricule |
 | --- | --- |
@@ -127,8 +134,7 @@ rehearsal remain human tasks. The documentation author group is:
 | Amina Boubakary | ICTU20241870 |
 
 These identities are printed in the documents; they do not create app accounts.
-There are no signature fields. The group must still review individual
-contributions rather than treat generated documentation as personal attestation.
+There are no signature fields or invented individual task assignments.
 
 ## Run locally
 

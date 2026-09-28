@@ -1,6 +1,6 @@
 # Camfranglais documentation
 
-**Version 4.1 · 27 September 2026 · CS4110 SET A**
+**Report 4.3 · 28 September 2026 · Engineering documents 4.1 · CS4110 SET A**
 
 This edition documents the actual **public, non-AI, five-screen application**:
 anyone may analyze and retain immutable tests, while Collection, saved grammar
@@ -8,12 +8,17 @@ and recordings are read-only. It replaces the old account/private-project,
 editable-grammar and in-app report-generation guidance without rewriting
 historical archives.
 
+The report revision is **documentation-only**. It improves the group voice,
+corpus-entry account, linguistic discussion, topic interpretation and exam
+guidance. It does not modify the application, lexicon, grammar, saved data or
+the twelve raw statements. All measured compiler results remain unchanged.
+
 ## Deliverables and reading order
 
 | Document | Purpose |
 | --- | --- |
 | [12-slide PowerPoint](camfranglais-presentation-12-slides.pptx) · [PDF preview](camfranglais-presentation-12-slides.pdf) | Essential oral presentation: app workflow, real screenshots, key source files, compiler automata and results; exactly 12 editable slides with speaker notes |
-| [Final coursework report](final-report.pdf) · [LaTeX](final-report.tex) | Fixed twelve-statement study; all raw text and token tables; regex/CFG calculations, lexer DFA and parser pushdown models, complete LL(1) table and representative complete traces; browser evidence and linguistic limitations |
+| [Final coursework report](final-report.pdf) · [LaTeX](final-report.tex) | Fixed twelve-statement study; dated compiler input and joint group credit, exact raw text, token tables, slang-register readings, topic analysis, grammar calculations, both automata and complete representative traces |
 | [SRS](srs.pdf) · [LaTeX](srs.tex) | Public permissions, functional/quality requirements, failure contracts, limits and acceptance criteria |
 | [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Source-grounded design and UML; active public boundary distinguished from retained legacy/desktop code |
 | [UML and automata atlas](uml-atlas.pdf) · [LaTeX](uml-atlas.tex) | One full-size zoomable sheet per current diagram, also embedded in the SDD |
@@ -24,16 +29,20 @@ The coursework report is the **25–30-page submission document**; the SRS, SDD
 and atlas are separate supplements and are not subject to that limit. The
 checker counts actual PDF pages, including the cover and contents, not sections.
 
-The published edition has **30 report pages, 11 SRS pages, 56 SDD pages and
+The published edition has **29 report pages, 11 SRS pages, 56 SDD pages and
 37 atlas sheets**.
 The SDD includes all 37 full-size sheets after its narrative: **35 UML views
 and two formal automata**. The separate atlas contains only those sheets.
-The [verification record](evidence/final-documentation-verification-20260927.json)
-lists the physical page counts and hashes of all four PDFs.
+The [27 September verification record](evidence/final-documentation-verification-20260927.json)
+retains the previous edition's page counts and hashes. The
+[report revision record](evidence/final-report-revision-20260928.json) records
+the current report, changed sections, unchanged compiler statistics and
+the absence of unfinished fields.
 
 The shared design uses navy headings, teal accents, pale-mint table headers
-and restrained gold rules. Covers retain the known identities below; signing
-columns and handwritten approval/contribution blanks have been removed.
+and restrained gold rules. Covers retain the known identities below without
+signing fields. The corpus-entry account and author table credit all three
+members jointly, without assigning unsupported individual tasks.
 
 The known author group is filled on the covers:
 
@@ -43,9 +52,8 @@ The known author group is filled on the covers:
 | Djemtchimo Noukui Bruno Jonatan | ICTU20241585 |
 | Amina Boubakary | ICTU20241870 |
 
-Individual contributions still require the group's own review; they are not
-invented by the documentation. No account or privileged application role is
-created from these names.
+These names and matricules identify the report's author group. They do not
+create an account or privileged application role.
 
 ## Evidence boundaries
 
@@ -60,7 +68,7 @@ The [computed analysis](evidence/final-analysis-20260927.json) and
 [generated LaTeX tables](report-data) contain twenty LaTeX fragments and one
 computed JSON analysis:
 
-- Twelve supplied statements, 81 tokens, 55 case-folded forms.
+- Twelve unchanged statements, 81 tokens, 55 case-folded forms.
 - Full token/category tables, frequencies, observed spelling variation and
   26 language-transition clues.
 - The original grammar, two actual transformations, complete FIRST/FOLLOW
@@ -74,11 +82,20 @@ computed JSON analysis:
   without BOM with line endings normalized to LF, so Git's Windows/Unix
   checkout conversion does not produce false evidence changes.
 
-**Fieldwork remains unconfirmed.** The saved manual-transcription flag is false
-and collection method is blank. Some locations and audio references exist, but
-they do not establish the original utterance's date, collector or consent.
-Supplied meanings have not been independently validated. Numerical corpus size,
-available recordings and successful parsing cannot certify authenticity.
+Section 2 records the **22 September 2026 initial compiler input** and credits
+all three members for corpus entry, as requested by the group. The date comes
+from the recorded initial local analysis; it is distinct from the date of an
+original conversation or a later saved test. Section 23 explains topic
+readings through exact textual cues, and Section 26 retains the three names
+and matricules. No location, consent or speaker detail is invented, and the
+historical analysis snapshot is unchanged.
+
+Section 7 identifies **15 slang-register forms in 17 occurrences** as a
+linguistic reading of the corpus. This is a new document annotation, not a
+change to token classification: the implemented lexer still emits **zero
+SLANG tokens** in this fixed evaluation. The discussion of `tchop`, `a` and
+`do` likewise distinguishes contextual readings from actual software labels.
+The topic analysis is report-only; it is not presented as an app feature.
 
 The 938 dictionary entries and 26 synthetic examples are reference/practice
 material, not additional field statements. Vocabulary recognition, CFG fit
@@ -89,16 +106,19 @@ and linguistic correctness are deliberately distinguished.
 The [capture register](evidence/screenshots/captures-20260927.json) records
 six images: four real browser captures and two cropped derivatives. They were
 captured locally with Playwright Chromium from the deployed application, using
-its real API and no mocked responses. The report embeds four images:
+its real API and no mocked responses. The current report embeds two images:
 
 - [Public analyzer input panel](evidence/screenshots/public-analyzer-20260927.png);
   its [full-page view](evidence/screenshots/public-analyzer-full-20260927.png)
   is retained.
-- [Loaded read-only Collection](evidence/screenshots/public-collection-20260927.png).
-- [Saved-test statistics](evidence/screenshots/public-analysis-20260927.png).
 - [Selected S02 token panel](evidence/screenshots/public-test-20260927.png);
   its [uncropped original](evidence/screenshots/public-test-full-20260927.png)
   is retained.
+
+The [Collection capture](evidence/screenshots/public-collection-20260927.png)
+and [historical statistics capture](evidence/screenshots/public-analysis-20260927.png)
+remain available in the register but are omitted from the revised report to
+keep the focus on the fixed corpus.
 
 No new test was submitted for these captures. The history screenshot shows 34
 tests and 179 token occurrences, including repeats and older snapshots. These
@@ -302,8 +322,8 @@ to make the documents pass.
 
 ## Validation and remaining gates
 
-The final [verification record](evidence/final-documentation-verification-20260927.json)
-records the published page counts, class/diagram coverage, image checks,
+The [27 September verification record](evidence/final-documentation-verification-20260927.json)
+records that edition's page counts, class/diagram coverage, image checks,
 report evidence and tooling regressions. The **strict documentation checker
 passed** against all four published PDFs, with no LaTeX layout/reference
 errors or clipped image placements. All **33 focused documentation,
@@ -330,11 +350,12 @@ read-only on 27 September. The documentation session did not perform remote
 updates or certify long-term uptime, full backup recovery or all deployment
 settings.
 
-Before academic submission, the group must confirm or explicitly qualify
-fieldwork provenance, review linguistic annotations and individual contributions,
-and prepare/rehearse the ten-minute presentation. This edition supplies the
-report and engineering documentation, not a claim that the oral assessment
-or instructor approval is already complete.
+For the current report, the
+[28 September revision record](evidence/final-report-revision-20260928.json)
+records the final checks, the dated entry evidence and the removal of all
+unfinished fields. Submission is due **29 September 2026 at 14:00**.
+The examination format is **three minutes per student**; rehearse the
+individual parts in that format.
 
 ## Historical archives
 

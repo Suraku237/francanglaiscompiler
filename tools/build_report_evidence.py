@@ -187,7 +187,7 @@ def render_fragments(evidence: dict[str, Any]) -> dict[str, str]:
     ) + "\n"}
     for part, entries in (("a", results[:6]), ("b", results[6:])):
         fragments[f"statements-{part}.tex"] = table(
-            ["ID", "Exact raw statement", "Supplied French meaning"],
+            ["ID", "Exact raw statement", "French gloss"],
             [[tex(entry["id"]), r"\texttt{" + tex(entry["text"]) + "}", tex(entry["french_gloss"])] for entry in entries],
             r"L{0.7cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X",
         )

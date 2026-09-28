@@ -1,0 +1,572 @@
+{
+  "format": 1,
+  "revision": "4.3",
+  "date": "2026-09-28",
+  "scope": "Documentation only; application changes explicitly excluded by the user.",
+  "baseline_commit": "695fc44736fa7bd6c7ab416223f39fbc82128e7c",
+  "report": {
+    "file": "docs/final-report.pdf",
+    "sha256": "8245a52cf1ff750963d251042144b6ad1e74ea8e671e4a424796d01f4be721f2",
+    "bytes": 392396,
+    "previous_pages": 30,
+    "pages": 29,
+    "embedded_font_resources": 20
+  },
+  "latex_sha256": "38b807257e382abfb0b04e908b7ca12e86075e7b2722577ef33060bc42fa98e2",
+  "latest_cleanup": {
+    "previous_revision": "4.2",
+    "previous_revision_pages": 29,
+    "unfinished_fields_before": 24,
+    "unfinished_fields_after": 0,
+    "changed_numbered_sections": [2, 23, 26],
+    "other_changed_parts": [
+      "Cover version",
+      "Abstract and Evidence Statement",
+      "Contents",
+      "References and Evidence Register",
+      "Root README and documentation register"
+    ],
+    "changed_pdf_pages": [1, 2, 3, 5, 26, 28, 29],
+    "individual_task_assignments_added": false,
+    "fieldwork_facts_invented": false
+  },
+  "initial_compiler_input": {
+    "recorded_at_utc": "2026-09-22T15:43:45.838525+00:00",
+    "date_used_in_report": "22 September 2026",
+    "scope": "Initial local compiler analysis and import preview; not a fieldwork date or a saved Collection-entry date.",
+    "statement_count": 12,
+    "source_record": "provided-statements-baseline-20260922.json",
+    "source_record_sha256": "77d3566b654b4fd6a66fdc38e3e07266e479ad257826ef6d220bb57aef19b229",
+    "source_csv": "provided-statements-20260922.csv",
+    "source_csv_sha256": "42f0feb41565b42cd1e976fd4ccd0e35f1fdae5c562562b8dff86f3a93f6c778",
+    "saved_collection_entries_after_preview": 0,
+    "saved_history_after_preview": 0,
+    "exact_matches_with_final_snapshot": 11,
+    "historical_spelling_difference": {
+      "id": "S10",
+      "initial_text": "mon combi came au school ali day a pied",
+      "report_text": "mon combi came au school alli day a pied",
+      "documented_in_section": 2,
+      "introduced_by_this_revision": false
+    },
+    "user_authorized_joint_entry_credit": [
+      {
+        "name": "Kwete Ngouba Junior Rayan",
+        "matricule": "ICTU20241377"
+      },
+      {
+        "name": "Djemtchimo Noukui Bruno Jonatan",
+        "matricule": "ICTU20241585"
+      },
+      {
+        "name": "Amina Boubakary",
+        "matricule": "ICTU20241870"
+      }
+    ]
+  },
+  "application_files_changed": [],
+  "new_application_files": [],
+  "raw_statements_unchanged": true,
+  "raw_statement_list_sha256": "33714064049dab423ee46540810bed775216c3ee0b44d13addc93c5dc8e20780",
+  "full_computed_evidence_unchanged": true,
+  "metrics": {
+    "statements": {
+      "old": 12,
+      "new": 12
+    },
+    "tokens": {
+      "old": 81,
+      "new": 81
+    },
+    "casefolded_forms": {
+      "old": 55,
+      "new": 55
+    },
+    "known_category_occurrences": {
+      "old": 79,
+      "new": 79
+    },
+    "accepted": {
+      "old": 10,
+      "new": 10
+    },
+    "rejected": {
+      "old": 2,
+      "new": 2
+    },
+    "language_transition_clues": {
+      "old": 26,
+      "new": 26
+    },
+    "original_nonterminals": {
+      "old": 10,
+      "new": 10
+    },
+    "transformed_nonterminals": {
+      "old": 12,
+      "new": 12
+    },
+    "original_productions": {
+      "old": 37,
+      "new": 37
+    },
+    "transformed_productions": {
+      "old": 39,
+      "new": 39
+    },
+    "grammar_terminals": {
+      "old": 9,
+      "new": 9
+    },
+    "table_cells": {
+      "old": 47,
+      "new": 47
+    },
+    "conflicts": {
+      "old": 0,
+      "new": 0
+    },
+    "boundary_controls": {
+      "old": 7,
+      "new": 7
+    },
+    "lexer_controls": {
+      "old": 8,
+      "new": 8
+    }
+  },
+  "category_counts": {
+    "ADJECTIVE": {
+      "old": 2,
+      "new": 2
+    },
+    "ADVERB": {
+      "old": 6,
+      "new": 6
+    },
+    "AMBIGUOUS": {
+      "old": 5,
+      "new": 5
+    },
+    "ENGLISH_FUNCTION_WORD": {
+      "old": 3,
+      "new": 3
+    },
+    "FRENCH_FUNCTION_WORD": {
+      "old": 28,
+      "new": 28
+    },
+    "NOUN": {
+      "old": 14,
+      "new": 14
+    },
+    "PIDGIN_MARKER": {
+      "old": 2,
+      "new": 2
+    },
+    "SLANG": {
+      "old": 0,
+      "new": 0
+    },
+    "UNKNOWN": {
+      "old": 2,
+      "new": 2
+    },
+    "VERB": {
+      "old": 19,
+      "new": 19
+    }
+  },
+  "changed_statistics": [],
+  "changed_accept_reject_results": [],
+  "statement_results": [
+    {
+      "id": "S01",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 6,
+      "new_consumed": 6,
+      "old_trace_rows": 18,
+      "new_trace_rows": 18
+    },
+    {
+      "id": "S02",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 6,
+      "new_consumed": 6,
+      "old_trace_rows": 16,
+      "new_trace_rows": 16
+    },
+    {
+      "id": "S03",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 8,
+      "new_consumed": 8,
+      "old_trace_rows": 22,
+      "new_trace_rows": 22
+    },
+    {
+      "id": "S04",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 5,
+      "new_consumed": 5,
+      "old_trace_rows": 14,
+      "new_trace_rows": 14
+    },
+    {
+      "id": "S05",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 5,
+      "new_consumed": 5,
+      "old_trace_rows": 14,
+      "new_trace_rows": 14
+    },
+    {
+      "id": "S06",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 6,
+      "new_consumed": 6,
+      "old_trace_rows": 20,
+      "new_trace_rows": 20
+    },
+    {
+      "id": "S07",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 7,
+      "new_consumed": 7,
+      "old_trace_rows": 19,
+      "new_trace_rows": 19
+    },
+    {
+      "id": "S08",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 8,
+      "new_consumed": 8,
+      "old_trace_rows": 21,
+      "new_trace_rows": 21
+    },
+    {
+      "id": "S09",
+      "old_accepted": false,
+      "new_accepted": false,
+      "old_consumed": 5,
+      "new_consumed": 5,
+      "old_trace_rows": 14,
+      "new_trace_rows": 14
+    },
+    {
+      "id": "S10",
+      "old_accepted": false,
+      "new_accepted": false,
+      "old_consumed": 5,
+      "new_consumed": 5,
+      "old_trace_rows": 14,
+      "new_trace_rows": 14
+    },
+    {
+      "id": "S11",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 6,
+      "new_consumed": 6,
+      "old_trace_rows": 18,
+      "new_trace_rows": 18
+    },
+    {
+      "id": "S12",
+      "old_accepted": true,
+      "new_accepted": true,
+      "old_consumed": 5,
+      "new_consumed": 5,
+      "old_trace_rows": 16,
+      "new_trace_rows": 16
+    }
+  ],
+  "changed_sections": [
+    {
+      "number": 1,
+      "title": "Context, Problem and Objectives",
+      "previous_title": "Context, Problem and Objectives"
+    },
+    {
+      "number": 2,
+      "title": "Corpus Entry, Preparation and Ethics",
+      "previous_title": "Collection Method, Provenance and Ethics"
+    },
+    {
+      "number": 3,
+      "title": "Raw Corpus: Statements S01--S06",
+      "previous_title": "Raw Corpus: Statements S01--S06"
+    },
+    {
+      "number": 4,
+      "title": "Raw Corpus: Statements S07--S12",
+      "previous_title": "Raw Corpus: Statements S07--S12"
+    },
+    {
+      "number": 5,
+      "title": "Custom Lexical Specification",
+      "previous_title": "Custom Lexical Specification"
+    },
+    {
+      "number": 6,
+      "title": "Finite-State Model of the Lexer",
+      "previous_title": "Finite-State Model of the Lexer"
+    },
+    {
+      "number": 7,
+      "title": "Lexicon, Category Policy and Notation",
+      "previous_title": "Lexicon, Category Policy and Notation"
+    },
+    {
+      "number": 8,
+      "title": "Token Tables: S01--S04",
+      "previous_title": "Token Tables: S01--S04"
+    },
+    {
+      "number": 9,
+      "title": "Token Tables: S05--S08",
+      "previous_title": "Token Tables: S05--S08"
+    },
+    {
+      "number": 10,
+      "title": "Token Tables: S09--S12",
+      "previous_title": "Token Tables: S09--S12"
+    },
+    {
+      "number": 11,
+      "title": "Frequency, Coverage and Observed Variation",
+      "previous_title": "Frequency, Coverage and Observed Variation"
+    },
+    {
+      "number": 12,
+      "title": "Code-Mixing, Phrases and Linguistic Complexity",
+      "previous_title": "Code-Mixing, Phrases and Linguistic Complexity"
+    },
+    {
+      "number": 13,
+      "title": "Constructing a Corpus-Derived Grammar",
+      "previous_title": "Constructing a Corpus-Derived Grammar"
+    },
+    {
+      "number": 14,
+      "title": "Grammar Transformations",
+      "previous_title": "Grammar Transformations"
+    },
+    {
+      "number": 15,
+      "title": "Transformed Production Catalogue",
+      "previous_title": "Transformed Production Catalogue"
+    },
+    {
+      "number": 16,
+      "title": "FIRST and FOLLOW Sets",
+      "previous_title": "FIRST and FOLLOW Sets"
+    },
+    {
+      "number": 17,
+      "title": "Complete LL(1) Predictive Table",
+      "previous_title": "Complete LL(1) Predictive Table"
+    },
+    {
+      "number": 18,
+      "title": "Pushdown Automaton for the LL(1) Parser",
+      "previous_title": "Pushdown Automaton for the LL(1) Parser"
+    },
+    {
+      "number": 19,
+      "title": "Complete Accepted Trace: S02",
+      "previous_title": "Complete Accepted Trace: S02"
+    },
+    {
+      "number": 20,
+      "title": "Complete Rejected Traces: S09 and S10",
+      "previous_title": "Complete Rejected Traces: S09 and S10"
+    },
+    {
+      "number": 21,
+      "title": "Evaluation Results and Boundary Controls",
+      "previous_title": "Evaluation Results and Boundary Controls"
+    },
+    {
+      "number": 22,
+      "title": "Working Analyzer: Browser Evidence",
+      "previous_title": "Working Analyzer: Browser Evidence"
+    },
+    {
+      "number": 23,
+      "title": "Topic Patterns in the Corpus",
+      "previous_title": "Reference Views and Historical Statistics"
+    },
+    {
+      "number": 24,
+      "title": "Application Architecture",
+      "previous_title": "Application Architecture and Public Deployment"
+    },
+    {
+      "number": 25,
+      "title": "Verification, Reproducibility and Limitations",
+      "previous_title": "Verification, Reproducibility and Limitations"
+    },
+    {
+      "number": 26,
+      "title": "Conclusion",
+      "previous_title": "Conclusion"
+    }
+  ],
+  "other_changed_parts": [
+    "Cover",
+    "Abstract and Evidence Statement",
+    "References and Evidence Register"
+  ],
+  "document_only_annotations": {
+    "slang_forms": {
+      "tchop": 1,
+      "bayar": 2,
+      "kass": 2,
+      "nang": 1,
+      "mban": 1,
+      "yabat": 1,
+      "yamo": 1,
+      "kongossa": 1,
+      "piol": 1,
+      "shoua": 1,
+      "kako": 1,
+      "do": 1,
+      "combi": 1,
+      "falla": 1,
+      "taco": 1
+    },
+    "distinct_slang_forms": 15,
+    "slang_occurrences": 17,
+    "actual_lexer_slang_occurrences": 0,
+    "topic_rows": [
+      {
+        "id": "S01",
+        "raw_cues": [
+          "tchop"
+        ],
+        "inferred_reading": "Food and eating"
+      },
+      {
+        "id": "S02",
+        "raw_cues": [
+          "kass",
+          "nang"
+        ],
+        "inferred_reading": "Fatigue and rest"
+      },
+      {
+        "id": "S03",
+        "raw_cues": [
+          "back",
+          "school"
+        ],
+        "inferred_reading": "School and a return journey"
+      },
+      {
+        "id": "S04",
+        "raw_cues": [
+          "mban",
+          "yabat"
+        ],
+        "inferred_reading": "Setback and personal distress"
+      },
+      {
+        "id": "S05",
+        "raw_cues": [
+          "kongossa"
+        ],
+        "inferred_reading": "Gossip and social talk"
+      },
+      {
+        "id": "S06",
+        "raw_cues": [
+          "piol",
+          "shoua",
+          "kako"
+        ],
+        "inferred_reading": "Household tasks"
+      },
+      {
+        "id": "S07",
+        "raw_cues": [
+          "kass"
+        ],
+        "inferred_reading": "Fatigue and personal state"
+      },
+      {
+        "id": "S08",
+        "raw_cues": [
+          "cote",
+          "light"
+        ],
+        "inferred_reading": "Electricity interruption"
+      },
+      {
+        "id": "S09",
+        "raw_cues": [
+          "shiba",
+          "price",
+          "do"
+        ],
+        "inferred_reading": "Market bargaining and transactions"
+      },
+      {
+        "id": "S10",
+        "raw_cues": [
+          "came",
+          "school",
+          "a pied"
+        ],
+        "inferred_reading": "Walking to school; commuting"
+      },
+      {
+        "id": "S11",
+        "raw_cues": [
+          "falla",
+          "taco"
+        ],
+        "inferred_reading": "Seeking transport"
+      },
+      {
+        "id": "S12",
+        "raw_cues": [
+          "talk",
+          "francais"
+        ],
+        "inferred_reading": "Language use"
+      }
+    ],
+    "application_topic_detector_added": false
+  },
+  "remaining_confirmation_fields": [],
+  "verification": {
+    "strict_documentation_checker_passed": true,
+    "focused_regression_tests_passed": 33,
+    "initial_baseline_tests_passed": 65,
+    "report_screenshots": 2,
+    "report_automata": 2,
+    "out_of_bounds_text_pages": [],
+    "out_of_bounds_image_pages": [],
+    "all_29_pages_visually_reviewed": true,
+    "local_markdown_links_verified": 76,
+    "pdf_and_latex_unfinished_fields": 0,
+    "initial_compiler_input_source_hashes_verified": true,
+    "historical_spelling_difference_disclosed": true,
+    "exam_format": "Three minutes per student",
+    "deadline": "29 September 2026 at 14:00",
+    "ancillary_pdfs_preserved_byte_for_byte": [
+      "docs/srs.pdf",
+      "docs/sdd.pdf",
+      "docs/uml-atlas.pdf"
+    ]
+  }
+}
