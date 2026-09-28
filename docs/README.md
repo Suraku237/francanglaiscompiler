@@ -18,6 +18,7 @@ the twelve raw statements. All measured compiler results remain unchanged.
 | Document | Purpose |
 | --- | --- |
 | [12-slide PowerPoint](camfranglais-presentation-12-slides.pptx) · [PDF preview](camfranglais-presentation-12-slides.pdf) | Essential oral presentation: app workflow, real screenshots, key source files, compiler automata and results; exactly 12 editable slides with speaker notes |
+| [Two-page automata guide](automata-guide.pdf) · [LaTeX](automata-guide.tex) | Plain-language explanation of the lexer DFA and parser stack machine, with both actual diagrams, a symbol key and small checked examples |
 | [Final coursework report](final-report.pdf) · [LaTeX](final-report.tex) | Fixed twelve-statement study; dated compiler input and joint group credit, exact raw text, token tables, slang-register readings, topic analysis, grammar calculations, both automata and complete representative traces |
 | [SRS](srs.pdf) · [LaTeX](srs.tex) | Public permissions, functional/quality requirements, failure contracts, limits and acceptance criteria |
 | [SDD](sdd.pdf) · [LaTeX](sdd.tex) | Source-grounded design and UML; active public boundary distinguished from retained legacy/desktop code |
@@ -25,9 +26,10 @@ the twelve raw statements. All measured compiler results remain unchanged.
 | [PlantUML and PNGs](diagrams) | Editable sources, rendered images and the exact [class-coverage inventory](diagrams/class-coverage.json) |
 | [Operating guide](../README.md) | Local launch, public behavior, storage, deployment and test commands |
 
-The coursework report is the **25–30-page submission document**; the SRS, SDD
-and atlas are separate supplements and are not subject to that limit. The
-checker counts actual PDF pages, including the cover and contents, not sections.
+The coursework report is the **25–30-page submission document**; the SRS, SDD,
+atlas and short automata guide are separate supplements and are not subject
+to that limit. The checker counts actual PDF pages, including the cover and
+contents, not sections.
 
 The published edition has **29 report pages, 11 SRS pages, 56 SDD pages and
 37 atlas sheets**.
@@ -244,6 +246,13 @@ an online renderer. Large atlas sheets preserve their aspect ratio for zooming.
 
 ### Compiler automata
 
+For a quick explanation before reading the formal report, use the
+[two-page guide](automata-guide.pdf). Page 1 explains token recognition with
+`j'ai`, `3.14` and `3.`. Page 2 explains the stack, grammar expansion and
+category matching with the checked practice examples `je suis kass`
+(accepted) and `je suis alli` (rejected at token 3). These practice examples
+do not add statements to the twelve-entry report corpus.
+
 The two additional sheets use formal automata notation rather than claiming
 to be UML state machines:
 
@@ -281,9 +290,9 @@ change, omit `--check` from the report-evidence command. Review the resulting
 data and narrative together before publishing. Generation never reads or writes
 the live SQLite database; it uses the committed public snapshot.
 
-The build order is **UML atlas → SRS → SDD → final report**. It uses Java and
-PlantUML for PNGs, then the installed `pdflatex` or Tectonic; portable tools may
-reside in the ignored `.tools` directory. DOT automata additionally require a
+The build order is **UML atlas → SRS → SDD → final report → automata guide**.
+It uses Java and PlantUML for PNGs, then the installed `pdflatex` or Tectonic;
+portable tools may reside in the ignored `.tools` directory. DOT automata additionally require a
 **full Graphviz build with PNG support**; PlantUML's minimal bundled Graphviz
 can return text errors despite a successful process exit.
 
@@ -301,6 +310,22 @@ The build checks the PNG header of every diagram and fails on error text
 masquerading as an image. `-SkipDiagrams` is appropriate only when current
 PNGs already match unchanged sources and the shared theme. Intermediate files
 and logs go to the ignored `.build` directory; PDFs are copied into this folder.
+
+To rebuild only the short guide using the existing portable Tectonic, run
+these commands from the repository root:
+
+```powershell
+Push-Location .\docs
+try {
+    New-Item -ItemType Directory -Path .build -Force | Out-Null
+    & .\.tools\tectonic.exe --keep-logs --outdir .build automata-guide.tex
+    if ($LASTEXITCODE -ne 0) { throw "Automata guide compilation failed." }
+    Copy-Item -LiteralPath .\.build\automata-guide.pdf -Destination .\automata-guide.pdf -Force
+}
+finally {
+    Pop-Location
+}
+```
 
 The strict [checker](../tools/check_documentation.py) rejects:
 

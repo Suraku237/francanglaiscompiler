@@ -15,6 +15,7 @@ The public bootstrap and no-login interface were observed working on
 | Document | PDF | Editable source |
 | --- | --- | --- |
 | 12-slide essentials presentation | [Slide preview](docs/camfranglais-presentation-12-slides.pdf) | [PowerPoint](docs/camfranglais-presentation-12-slides.pptx) |
+| Two-page automata explanation | [Simple guide](docs/automata-guide.pdf) | [LaTeX](docs/automata-guide.tex) |
 | Final coursework report | [Report](docs/final-report.pdf) | [LaTeX](docs/final-report.tex) |
 | Software Requirements Specification | [SRS](docs/srs.pdf) | [LaTeX](docs/srs.tex) |
 | Software Design Description | [SDD](docs/sdd.pdf) | [LaTeX](docs/sdd.tex) |

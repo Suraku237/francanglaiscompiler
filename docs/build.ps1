@@ -82,7 +82,7 @@ New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 Write-Host "Compiling documentation with $engine ($compiler)"
 Push-Location $docs
 try {
-    foreach ($document in @("uml-atlas.tex", "srs.tex", "sdd.tex", "final-report.tex")) {
+    foreach ($document in @("uml-atlas.tex", "srs.tex", "sdd.tex", "final-report.tex", "automata-guide.tex")) {
         if ($engine -eq "pdflatex") {
             foreach ($pass in 1..2) {
                 & $compiler -interaction=nonstopmode -halt-on-error -file-line-error -no-shell-escape -output-directory $buildDir $document
@@ -109,4 +109,4 @@ finally {
     Pop-Location
 }
 
-Write-Host "Built docs\srs.pdf, docs\sdd.pdf, docs\final-report.pdf and the full-size docs\uml-atlas.pdf"
+Write-Host "Built docs\srs.pdf, docs\sdd.pdf, docs\final-report.pdf, docs\automata-guide.pdf and the full-size docs\uml-atlas.pdf"

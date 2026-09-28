@@ -1,0 +1,118 @@
+\documentclass[11pt]{article}
+\input{document-style}
+\usepackage{graphicx}
+\hypersetup{
+  pdftitle={Camfranglais - Two Automata Explained Simply},
+  pdfauthor={Kwete Ngouba Junior Rayan; Djemtchimo Noukui Bruno Jonatan; Amina Boubakary}
+}
+\setlength{\parskip}{5pt}
+\setlist{itemsep=2pt,topsep=3pt}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\automaton}[3]{%
+  \par\smallskip
+  {\centering
+    \includegraphics[width=\linewidth,height=#2,keepaspectratio]{diagrams/#1.png}
+    \par}
+  {\small #3\par}}
+\begin{document}
+
+{\LARGE\bfseries\sffamily\color{ink}Our two automata, made simple\par}
+An \textbf{automaton} is a machine that follows rules to read input.
+
+\section{The lexer: finding the pieces}
+The lexer cuts text into \textbf{tokens}: words, numbers and punctuation.
+Its \textbf{DFA} (deterministic finite automaton) tracks the current state;
+it has no stack.
+
+\automaton{automaton-lexer}{6.3cm}{
+\textbf{Reading the arrows:} C = a letter-like word character;
+D = a digit; M = a combining accent mark.
+A \textbf{double circle} means a complete token can end here.}
+
+\subsection*{How it works}
+\begin{enumerate}
+\item \textbf{Start at q0.} A letter leads to W (word), a digit to I (integer),
+punctuation to P, and another non-space character to O.
+\item \textbf{Follow the arrows.} Stay in W for more letters, or I/F for
+more digits. J waits for a letter after an apostrophe or hyphen.
+R waits for a digit after a decimal point or comma.
+\item \textbf{Keep the longest complete token and restart.} Skip spaces.
+J and R are waiting states, so a token cannot finish there.
+\end{enumerate}
+
+\subsection*{Three small examples}
+\begin{tabularx}{\linewidth}{@{}L{2.0cm}X@{}}
+\toprule\tablehead\textbf{Input} & \textbf{What happens}\\\midrule
+\code{j'ai} & j: W; apostrophe: J; a and i: W. Output: one word.\\
+\code{3.14} & 3: I; dot: R; 1 and 4: F. Output: one number.\\
+\code{3.} & No digit follows the dot. Output: number \code{3}, then punctuation \code{.}\\
+\bottomrule
+\end{tabularx}
+
+\notice{What goes to the parser?}{
+After splitting \code{je suis kass}, vocabulary classification labels the
+three tokens \textbf{French function word}, \textbf{verb}, \textbf{adjective}.
+The parser receives these categories.}
+
+{\small Python regular expressions perform the recognition shown above.
+Classification is a separate step: a word-shaped token can still be
+\code{UNKNOWN}.\par
+\textbf{Main files:} \nolinkurl{compiler/lexer/tokenizer.py} and
+\nolinkurl{compiler/lexer/lexicon.py}.}
+
+\clearpage
+\section{The parser: checking the order}
+The \textbf{pushdown automaton} adds a \textbf{stack}: a last-in, first-out
+to-do list. Our \textbf{LL(1) parser} reads categories from left to right,
+using one category of lookahead to choose a grammar rule.
+
+\automaton{automaton-parser}{4.2cm}{
+\textbf{States:} q0 starts; q\_load gets the next category;
+q[a] holds category a while the parser works.
+\textbf{\$} marks the end; \textbf{eps} means no input is read on that arrow.}
+
+\subsection*{The three main actions}
+\begin{enumerate}
+\item \textbf{Expand.} Start with \code{[\$, Ut]} (Ut = whole utterance).
+Replace a grammar symbol with its table rule, pushed backwards so the
+first symbol is on top. Do not read a token yet.
+\item \textbf{Match.} Compare the expected category on top with the current
+input category. If equal, remove the top and move to the next token.
+\item \textbf{Finish.} Empty rules just remove a grammar symbol.
+Accept when only \code{\$} remains and input has ended. A mismatch or
+missing rule means reject.
+\end{enumerate}
+
+{\small\textbf{Diagram notation:} \code{M[A,a]} selects a rule for grammar
+symbol A and category a; \code{rev(rhs)} pushes its replacement backwards.
+An arrow reads ``input, stack top / replacement'': \code{a, X / X} reads a
+and keeps X. The \textbf{rightmost} stack symbol is the top.}
+
+\subsection*{A simple successful run}
+For \code{je suis kass} (``I am tired''), the categories are
+\code{FF, V, ADJ}: French function word, verb, adjective.
+We group the intermediate grammar expansions below.
+
+\begin{tabularx}{\linewidth}{@{}L{2.8cm}X@{}}
+\toprule\tablehead\textbf{Stage} & \textbf{In simple language}\\\midrule
+Prepare & Put Ut on the stack and apply rules until FF is expected.\\
+Read \code{je} & Match FF. The next rules prepare for a verb.\\
+Read \code{suis} & Match V. The next rule allows an adjective.\\
+Read \code{kass} & Match ADJ. There are no more input tokens.\\
+Finish & Remove empty-rule symbols. End markers agree: \textbf{accept}.\\
+\bottomrule
+\end{tabularx}
+
+\textbf{Rejected example:} \code{je suis alli} stops at token 3:
+\code{alli} is \code{UNKNOWN}, with no applicable grammar rule.
+It is not skipped.
+
+\notice{The difference to remember}{
+\textbf{Lexer:} ``What are the pieces?''\quad
+\textbf{Parser:} ``Do those pieces fit our grammar?''\par
+Accept means grammar fit, not a guarantee of meaning.}
+
+{\small\textbf{Main files:} \nolinkurl{compiler/parser/predictive.py}
+(stack machine), \nolinkurl{compiler/parser/yaounde.py} (corpus grammar).}
+
+\end{document}
